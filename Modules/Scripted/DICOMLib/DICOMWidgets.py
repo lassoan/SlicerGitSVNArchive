@@ -332,12 +332,24 @@ class DICOMLoadableTable(object):
     self.loadables = {}
     row = 0
 
+    genericLoadables = []
     for plugin in loadablesByPlugin:
+      # skip generic loadables for now and add them to the end of the list later
+      # this way more specific DICOM importable objects will appear at the top
+      if plugin.loadType == "Scalar Volume":
+        genericLoadables = loadablesByPlugin[plugin]
+        continue
       for selectState in (True,False):
         for loadable in loadablesByPlugin[plugin]:
           if loadable.selected == selectState:
             self.addLoadableRow(loadable,row,plugin.loadType)
             row += 1
+
+    # Add generic DICOM objects to the end of the list
+    if len(genericLoadables) > 0:
+      for loadable in genericLoadables:
+        self.addLoadableRow(loadable,row,"Generic DICOM")
+        row += 1
 
     self.widget.setVerticalHeaderLabels(row * [""])
 
