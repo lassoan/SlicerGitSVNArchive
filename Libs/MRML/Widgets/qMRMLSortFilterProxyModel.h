@@ -239,9 +239,10 @@ protected:
   enum AcceptType
   {
     Reject = 0,
-    Accept,
+    RejectButPotentiallyAcceptableIfVisibilityChanged,
     RejectButPotentiallyAcceptable,
     AcceptButPotentiallyRejectable,
+    Accept    
   };
   /// Returns true if the item in the row indicated by the given source_row and
   /// source_parent should be included in the model; otherwise returns false.

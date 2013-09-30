@@ -178,9 +178,8 @@ bool qMRMLSortFilterProxyModel::filterAcceptsRow(int source_row, const QModelInd
     }
   if (node && accept != Reject)
     {
-    // TODO: shouldn't it be the following instead?
-    // bool observeAllModifications = sceneModel->listenNodeModifiedEvent() != qMRMLSceneModel::NoNodes;
-    bool observeAllModifications = sceneModel->listenNodeModifiedEvent() == qMRMLSceneModel::OnlyVisibleNodes;
+    bool observeAllModifications = (accept != RejectButPotentiallyAcceptableIfVisibilityChanged) 
+      && (sceneModel->listenNodeModifiedEvent() == qMRMLSceneModel::OnlyVisibleNodes);
     sceneModel->observeNode(node, observeAllModifications);
     }
   return acceptRow;
@@ -250,7 +249,7 @@ qMRMLSortFilterProxyModel::AcceptType qMRMLSortFilterProxyModel
   if (d->NodeTypes.isEmpty())
     {
     // Apply filter if any
-      return hideNode?RejectButPotentiallyAcceptable:AcceptButPotentiallyRejectable;
+      return hideNode?RejectButPotentiallyAcceptableIfVisibilityChanged:AcceptButPotentiallyRejectable;
     }
   foreach(const QString& nodeType, d->NodeTypes)
     {
@@ -296,7 +295,7 @@ qMRMLSortFilterProxyModel::AcceptType qMRMLSortFilterProxyModel
       // fail if the attribute isn't defined on the node at all
       if (nodeAttribute == 0)
         {
-        return RejectButPotentiallyAcceptable;
+        return hideNode?RejectButPotentiallyAcceptableIfVisibilityChanged:RejectButPotentiallyAcceptable;
         }
       // if the filter value is null, any node attribute value will match
       if (!d->Attributes[nodeType].second.isNull())
@@ -304,12 +303,12 @@ qMRMLSortFilterProxyModel::AcceptType qMRMLSortFilterProxyModel
         // otherwise, the node and filter attributes have to match
         if (testAttribute != nodeAttribute)
           {
-          return RejectButPotentiallyAcceptable;
+          return hideNode?RejectButPotentiallyAcceptableIfVisibilityChanged:RejectButPotentiallyAcceptable;
           }
         }
       }
     // Apply filter if any
-    return hideNode?RejectButPotentiallyAcceptable:AcceptButPotentiallyRejectable;
+    return hideNode?RejectButPotentiallyAcceptableIfVisibilityChanged:AcceptButPotentiallyRejectable;
     }
   return Reject;
 }
