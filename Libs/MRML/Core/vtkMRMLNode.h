@@ -211,6 +211,10 @@ public:
   virtual int StartModify() 
     {
     int disabledModify = this->GetDisableModifiedEvent();
+    if (!disabledModify)
+    {
+      this->HideFromEditorsBeforeDisabledModify=this->HideFromEditors;
+    }
     this->DisableModifiedEventOn();
     return disabledModify;
     };
@@ -225,6 +229,10 @@ public:
     this->SetDisableModifiedEvent(previousDisableModifiedEventState);
     if (!previousDisableModifiedEventState)
       {
+      if (this->HideFromEditorsBeforeDisabledModify!=this->HideFromEditors)
+        {
+        this->InvokeEvent(vtkMRMLNode::VisibilityModifiedEvent);
+        }
       return this->InvokePendingModifiedEvent();
       }
     return this->ModifiedEventPending;
@@ -260,8 +268,9 @@ public:
   /// 
   /// Describes if the node is hidden
   vtkGetMacro(HideFromEditors, int);
-  vtkSetMacro(HideFromEditors, int);
-  vtkBooleanMacro(HideFromEditors, int);
+  virtual void SetHideFromEditors(int);
+  virtual void HideFromEditorsOn () { this->SetHideFromEditors(1); }
+  virtual void HideFromEditorsOff () { this->SetHideFromEditors(0); } 
 
   /// 
   /// Describes if the node is selectable
@@ -544,11 +553,14 @@ public:
   void GetNodeReferences(const char* referenceRole, std::vector<vtkMRMLNode*> &nodes);
 
   /// HierarchyModifiedEvent is generated when the hierarchy node with which
-  /// this node is associated changes
+  /// this node is associated changes.
+  /// VisibilityModifiedEvent is generated when the node HideFromEditors property is changed
+  /// (it is separated from the regular modified event for performance reasons).
   enum
     {
       HierarchyModifiedEvent = 16000,
       IDChangedEvent = 16001,
+      VisibilityModifiedEvent,
       ReferenceAddedEvent,
       ReferenceModifiedEvent,
       ReferenceRemovedEvent,
@@ -736,6 +748,7 @@ private:
 
   int DisableModifiedEvent;
   int ModifiedEventPending;
+  int HideFromEditorsBeforeDisabledModify;
 
 };
 

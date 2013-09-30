@@ -429,9 +429,9 @@ void qMRMLSceneHierarchyModel::updateNodeFromItemData(vtkMRMLNode* node, QStanda
 
 
 //------------------------------------------------------------------------------
-void qMRMLSceneHierarchyModel::observeNode(vtkMRMLNode* node)
+void qMRMLSceneHierarchyModel::observeNode(vtkMRMLNode* node, bool observeAllModifications)
 {
-  this->Superclass::observeNode(node);
+  this->Superclass::observeNode(node, observeAllModifications);
   qvtkConnect(node, vtkMRMLNode::HierarchyModifiedEvent,
               this, SLOT(onMRMLNodeModified(vtkObject*)));
 }

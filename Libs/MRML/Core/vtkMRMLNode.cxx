@@ -1449,3 +1449,21 @@ vtkMRMLNode::vtkMRMLNodeReference* vtkMRMLNode::vtkMRMLNodeReference::New()
     } 
   return new vtkMRMLNode::vtkMRMLNodeReference; 
 } 
+
+//----------------------------------------------------------------------------
+void vtkMRMLNode::SetHideFromEditors(int hide)
+{
+  vtkDebugMacro(<< this->GetClassName() << " (" << this << "): setting HideFromEditors to " << hide);
+  if (this->HideFromEditors != hide)
+    {
+    this->HideFromEditors = hide;
+    // Some GUI elements (e.g., node selectors) don't need observe every modifications of the node
+    // (and they don't do it to optimize performance), but they need to know about visibility changes.
+    // Therefore, emit visibility changed event as well.
+    if (!GetDisableModifiedEvent())
+      {
+      this->InvokeEvent(vtkMRMLNode::VisibilityModifiedEvent);
+      }
+    this->Modified();
+    }
+}

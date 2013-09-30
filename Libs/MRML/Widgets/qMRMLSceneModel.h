@@ -214,8 +214,10 @@ public:
   bool isAffiliatedNode(vtkMRMLNode* nodeA, vtkMRMLNode* nodeB)const;
 
   /// Observe node and update item when the node is modified.
+  /// If observeAllModifications is false then only visibility changes are observed.
+  /// If observeAllModifications is true then all node changes are observed (it may impact the performance).
   /// \sa listenNodeModifiedEvent
-  virtual void observeNode(vtkMRMLNode* node);
+  virtual void observeNode(vtkMRMLNode* node, bool observeAllModifications);
 
 protected slots:
 
@@ -234,6 +236,8 @@ protected slots:
   void onMRMLSceneDeleted(vtkObject* scene);
 
   void onMRMLNodeModified(vtkObject* node);
+  /// The node visibility (HideFromEditors property) has changed.
+  void onMRMLNodeVisibilityModified(vtkObject* node);  
   /// The node has its ID changed. The scene model needs to update the UIDRole
   /// associated with the node in order to keep being in sync.
   void onMRMLNodeIDChanged(vtkObject* node, void* callData);

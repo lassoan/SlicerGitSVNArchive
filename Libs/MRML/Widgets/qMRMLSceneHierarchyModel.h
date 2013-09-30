@@ -62,7 +62,7 @@ protected:
                            QObject *parent=0);
   virtual QFlags<Qt::ItemFlag> nodeFlags(vtkMRMLNode* node, int column)const;
 
-  virtual void observeNode(vtkMRMLNode* node);
+  virtual void observeNode(vtkMRMLNode* node, bool observeAllModifications);
 
   /// Reimplemented to add expandColumn support
   void updateItemDataFromNode(QStandardItem* item, vtkMRMLNode* node, int column);

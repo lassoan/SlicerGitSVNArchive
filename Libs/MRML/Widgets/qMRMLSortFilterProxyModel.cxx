@@ -176,11 +176,12 @@ bool qMRMLSortFilterProxyModel::filterAcceptsRow(int source_row, const QModelInd
     acceptRow = this->QSortFilterProxyModel::filterAcceptsRow(source_row,
                                                               source_parent);
     }
-  if (node &&
-      sceneModel->listenNodeModifiedEvent() == qMRMLSceneModel::OnlyVisibleNodes &&
-      accept != Reject)
+  if (node && accept != Reject)
     {
-    sceneModel->observeNode(node);
+    // TODO: shouldn't it be the following instead?
+    // bool observeAllModifications = sceneModel->listenNodeModifiedEvent() != qMRMLSceneModel::NoNodes;
+    bool observeAllModifications = sceneModel->listenNodeModifiedEvent() == qMRMLSceneModel::OnlyVisibleNodes;
+    sceneModel->observeNode(node, observeAllModifications);
     }
   return acceptRow;
 }
@@ -211,21 +212,26 @@ qMRMLSortFilterProxyModel::AcceptType qMRMLSortFilterProxyModel
     {
     return Accept;
     }
+
+  /*
+  const_cast<qMRMLSortFilterProxyModel*>(this)->qvtkConnect(
+    node, vtkMRMLNode::VisibilityModifiedEvent,
+    const_cast<qMRMLSortFilterProxyModel*>(this),
+    SLOT(invalidate()),0., Qt::UniqueConnection);
+    */
+
   // HideFromEditors property
+  bool hideNode=false;
   if (!d->ShowHidden && node->GetHideFromEditors())
     {
-    bool hide = true;
+    hideNode = true;
     foreach(const QString& nodeType, d->ShowHiddenForTypes)
       {
       if (node->IsA(nodeType.toLatin1()))
         {
-        hide = false;
+        hideNode = false;
         break;
         }
-      }
-    if (hide)
-      {
-      return Reject;
       }
     }
 
@@ -244,7 +250,7 @@ qMRMLSortFilterProxyModel::AcceptType qMRMLSortFilterProxyModel
   if (d->NodeTypes.isEmpty())
     {
     // Apply filter if any
-    return AcceptButPotentiallyRejectable;
+      return hideNode?RejectButPotentiallyAcceptable:AcceptButPotentiallyRejectable;
     }
   foreach(const QString& nodeType, d->NodeTypes)
     {
@@ -303,7 +309,7 @@ qMRMLSortFilterProxyModel::AcceptType qMRMLSortFilterProxyModel
         }
       }
     // Apply filter if any
-    return AcceptButPotentiallyRejectable;
+    return hideNode?RejectButPotentiallyAcceptable:AcceptButPotentiallyRejectable;
     }
   return Reject;
 }

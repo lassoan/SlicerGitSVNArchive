@@ -127,10 +127,7 @@ void qMRMLSceneModelPrivate::listenNodeModifiedEvent()
     {
     vtkMRMLNode* node = q->mrmlNodeFromIndex(sceneIndex.child(i,0));
     q->qvtkDisconnect(node, vtkCommand::NoEvent, q, 0);
-    if (this->ListenNodeModifiedEvent == qMRMLSceneModel::AllNodes)
-      {
-      q->observeNode(node);
-      }
+    q->observeNode(node, this->ListenNodeModifiedEvent == qMRMLSceneModel::AllNodes);
     }
 }
 
@@ -789,20 +786,24 @@ QStandardItem* qMRMLSceneModel::insertNode(vtkMRMLNode* node, QStandardItem* par
     this->insertRow(row,items);
     }
   // TODO: don't listen to nodes that are hidden from editors ?
-  if (d->ListenNodeModifiedEvent == AllNodes)
-    {
-    this->observeNode(node);
-    }
+  this->observeNode(node,d->ListenNodeModifiedEvent == AllNodes);
   return items[0];
 }
 
 //------------------------------------------------------------------------------
-void qMRMLSceneModel::observeNode(vtkMRMLNode* node)
+void qMRMLSceneModel::observeNode(vtkMRMLNode* node, bool observeAllModifications)
+{
+  // Observe VisibilityModifiedEvent of all nodes (it is rarely called, so there is no performance issue)
+  qvtkConnect(node, vtkMRMLNode::VisibilityModifiedEvent,
+              this, SLOT(onMRMLNodeVisibilityModified(vtkObject*)));
+  
+  if (observeAllModifications)
 {
   qvtkConnect(node, vtkCommand::ModifiedEvent,
               this, SLOT(onMRMLNodeModified(vtkObject*)));
   qvtkConnect(node, vtkMRMLNode::IDChangedEvent,
               this, SLOT(onMRMLNodeIDChanged(vtkObject*,void*)));
+}
 }
 
 //------------------------------------------------------------------------------
@@ -1263,6 +1264,115 @@ void qMRMLSceneModel::onMRMLNodeModified(vtkObject* node)
 {
   vtkMRMLNode* modifiedNode = vtkMRMLNode::SafeDownCast(node);
   this->updateNodeItems(modifiedNode, QString(modifiedNode->GetID()));
+}
+
+//------------------------------------------------------------------------------
+void qMRMLSceneModel::onMRMLNodeVisibilityModified(vtkObject* node)
+{
+  Q_D(qMRMLSceneModel);
+
+  if (d->LazyUpdate && d->MRMLScene->IsBatchProcessing())
+  {
+    return;
+  }
+
+  vtkMRMLNode* modifiedNode = vtkMRMLNode::SafeDownCast(node); 
+  Q_ASSERT(modifiedNode);
+
+  if (modifiedNode->GetHideFromEditors())
+  {
+    int connectionsRemoved =
+      qvtkDisconnect(modifiedNode, vtkCommand::ModifiedEvent,
+      this, SLOT(onMRMLNodeModified(vtkObject*)));
+
+    Q_ASSERT_X(((d->ListenNodeModifiedEvent == NoNodes) && connectionsRemoved == 0) ||
+      (d->ListenNodeModifiedEvent != NoNodes && connectionsRemoved <= 1),
+      "qMRMLSceneModel::onMRMLSceneNodeAboutToBeRemoved()",
+      "A node has been removed from the scene but the scene model has "
+      "never been notified it has been added in the first place. Maybe"
+      " vtkMRMLScene::AddNodeNoNotify() has been used instead of "
+      "vtkMRMLScene::AddNode");
+    Q_UNUSED(connectionsRemoved);
+
+  
+  // Remove all the observations on the node
+  qvtkDisconnect(node, vtkCommand::NoEvent, this, 0);
+
+  // Keep the observer to the VisibilityModified event
+  qvtkConnect(node, vtkMRMLNode::VisibilityModifiedEvent,
+              this, SLOT(onMRMLNodeVisibilityModified(vtkObject*)));
+
+    QList<QList<QStandardItem*> > allOrphans;
+
+    // TODO: can be fasten by browsing the tree only once
+    QModelIndexList indexes = this->match(this->mrmlSceneIndex(), qMRMLSceneModel::UIDRole,
+      QString(modifiedNode->GetID()), 1,
+      Qt::MatchExactly | Qt::MatchRecursive);
+    if (indexes.count())
+    {
+      QStandardItem* item = this->itemFromIndex(indexes[0].sibling(indexes[0].row(),0));
+      // The children may be lost if not reparented, we ensure they got reparented.
+      while (item->rowCount())
+      {
+        // we need to remove the children from the node to remove because they
+        // would be automatically deleted in QStandardItemModel::removeRow()
+        allOrphans.push_back(item->takeRow(0));
+      }
+      // Remove the item from any orphan list if it exist as we don't want to
+      // add it back later in onMRMLSceneNodeRemoved
+      foreach(QList<QStandardItem*> orphans, allOrphans)
+      {
+        if (orphans.contains(item))
+        {
+          allOrphans.removeAll(orphans);
+        }
+      }
+      this->removeRow(indexes[0].row(), indexes[0].parent());
+    }
+
+    // The removed node may had children, if they haven't been updated, they
+    // are likely to be lost (not reachable when browsing the model), we need
+    // to reparent them.
+    foreach(QList<QStandardItem*> orphans, allOrphans)
+    {
+      QStandardItem* orphan = orphans[0];
+      // Make sure that the orphans have not already been reparented.
+      if (orphan->parent())
+      {
+        // Not sure how it is possible, but if it is, then we might want to
+        // review the logic behind.
+        Q_ASSERT(orphan->parent() == 0);
+        continue;
+      }
+      vtkMRMLNode* orphanNode = this->mrmlNodeFromItem(orphan);
+      int newIndex = this->nodeIndex(orphanNode);
+      QStandardItem* newParentItem = this->itemFromNode(this->parentNode(orphanNode));
+      if (newParentItem == 0)
+      {
+        newParentItem = this->mrmlSceneItem();
+      }
+      Q_ASSERT(newParentItem);
+      d->reparentItems(orphans, newIndex, newParentItem);
+    }
+    allOrphans.clear();
+
+  }
+  else
+  {
+    QStandardItem* item = this->insertNode(modifiedNode);
+
+    // force update
+    int visible=item->data(qMRMLSceneModel::VisibilityRole).toInt();
+    item->setData(visible, qMRMLSceneModel::VisibilityRole);
+
+    //item->setData(QString(node->GetID()), qMRMLSceneModel::UIDRole);
+    //this->itemChanged(item);
+    //itemChanged(item);
+    //item->emitDataChanged();
+    
+    //this->updateItemFromNode(item, modifiedNode, i);
+    //this->updateNodeItems(modifiedNode, QString(modifiedNode->GetID()));
+  }  
 }
 
 //------------------------------------------------------------------------------
