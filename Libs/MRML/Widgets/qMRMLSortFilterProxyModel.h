@@ -229,20 +229,19 @@ protected:
   /// filtering:
   ///   * Reject if the node should not be visible and has no chance of being
   ///     visible.
-  ///   * Accept if the node should be visible and will always be.
   ///   * RejectButPotentiallyAcceptable if the node should not be visible but
   ///     has the potential for being visible. This can happen if a property is
   ///     changed. The node should be observed by the model and invalidate the
   ///     filter when modified to make sure its visibility state is correct.
   ///   * AcceptButPotentiallyRejectable if the node should be visible but has
   ///     the potential for being hidden. See \a RejectButPotentiallyAcceptable.
+  ///   * Accept if the node should be visible and will always be.
   enum AcceptType
   {
     Reject = 0,
-    RejectButPotentiallyAcceptableIfVisibilityChanged,
+    Accept,
     RejectButPotentiallyAcceptable,
     AcceptButPotentiallyRejectable,
-    Accept    
   };
   /// Returns true if the item in the row indicated by the given source_row and
   /// source_parent should be included in the model; otherwise returns false.

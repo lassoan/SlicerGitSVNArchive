@@ -212,28 +212,6 @@ qMRMLSortFilterProxyModel::AcceptType qMRMLSortFilterProxyModel
     return Accept;
     }
 
-  /*
-  const_cast<qMRMLSortFilterProxyModel*>(this)->qvtkConnect(
-    node, vtkMRMLNode::VisibilityModifiedEvent,
-    const_cast<qMRMLSortFilterProxyModel*>(this),
-    SLOT(invalidate()),0., Qt::UniqueConnection);
-    */
-
-  // HideFromEditors property
-  bool hideNode=false;
-  if (!d->ShowHidden && node->GetHideFromEditors())
-    {
-    hideNode = true;
-    foreach(const QString& nodeType, d->ShowHiddenForTypes)
-      {
-      if (node->IsA(nodeType.toLatin1()))
-        {
-        hideNode = false;
-        break;
-        }
-      }
-    }
-
   if (!d->HideNodesUnaffiliatedWithNodeID.isEmpty())
     {
     vtkMRMLNode* theNode = sceneModel->mrmlScene()->GetNodeByID(
@@ -245,11 +223,37 @@ qMRMLSortFilterProxyModel::AcceptType qMRMLSortFilterProxyModel
       }
     }
 
+  // HideFromEditors property
+  if (!d->ShowHidden)
+    {
+    const_cast<qMRMLSortFilterProxyModel*>(this)->qvtkConnect(
+      node, vtkMRMLNode::HideFromEditorsModifiedEvent,
+      const_cast<qMRMLSortFilterProxyModel*>(this),
+      SLOT(invalidate()),0., Qt::UniqueConnection);
+
+    if (node->GetHideFromEditors())
+      {
+      hideNode = true;
+      foreach(const QString& nodeType, d->ShowHiddenForTypes)
+        {
+        if (node->IsA(nodeType.toLatin1()))
+          {
+          hideNode = false;
+          break;
+          }
+        }
+      }
+      if (hideNode)
+        {
+        return RejectButPotentiallyAcceptable;
+        }
+    }
+
   // Accept all the nodes if no type has been set
   if (d->NodeTypes.isEmpty())
     {
     // Apply filter if any
-      return hideNode?RejectButPotentiallyAcceptableIfVisibilityChanged:AcceptButPotentiallyRejectable;
+      return AcceptButPotentiallyRejectable;
     }
   foreach(const QString& nodeType, d->NodeTypes)
     {
@@ -280,9 +284,8 @@ qMRMLSortFilterProxyModel::AcceptType qMRMLSortFilterProxyModel
     // filter by attributes
     if (d->Attributes.contains(nodeType))
       {
-      // can be optimized if the event is AttributeModifiedEvent instead of modifiedevent
       const_cast<qMRMLSortFilterProxyModel*>(this)->qvtkConnect(
-        node, vtkCommand::ModifiedEvent,
+        node, vtkMRMLNode::AttributeModifiedEvent,
         const_cast<qMRMLSortFilterProxyModel*>(this),
         SLOT(invalidate()),0., Qt::UniqueConnection);
 
@@ -295,7 +298,7 @@ qMRMLSortFilterProxyModel::AcceptType qMRMLSortFilterProxyModel
       // fail if the attribute isn't defined on the node at all
       if (nodeAttribute == 0)
         {
-        return hideNode?RejectButPotentiallyAcceptableIfVisibilityChanged:RejectButPotentiallyAcceptable;
+        return RejectButPotentiallyAcceptable;
         }
       // if the filter value is null, any node attribute value will match
       if (!d->Attributes[nodeType].second.isNull())
@@ -303,12 +306,12 @@ qMRMLSortFilterProxyModel::AcceptType qMRMLSortFilterProxyModel
         // otherwise, the node and filter attributes have to match
         if (testAttribute != nodeAttribute)
           {
-          return hideNode?RejectButPotentiallyAcceptableIfVisibilityChanged:RejectButPotentiallyAcceptable;
+          return RejectButPotentiallyAcceptable;
           }
         }
       }
     // Apply filter if any
-    return hideNode?RejectButPotentiallyAcceptableIfVisibilityChanged:AcceptButPotentiallyRejectable;
+    return AcceptButPotentiallyRejectable;
     }
   return Reject;
 }

@@ -229,10 +229,6 @@ public:
     this->SetDisableModifiedEvent(previousDisableModifiedEventState);
     if (!previousDisableModifiedEventState)
       {
-      if (this->HideFromEditorsBeforeDisabledModify!=this->HideFromEditors)
-        {
-        this->InvokeEvent(vtkMRMLNode::VisibilityModifiedEvent);
-        }
       return this->InvokePendingModifiedEvent();
       }
     return this->ModifiedEventPending;
@@ -382,6 +378,16 @@ public:
   /// Returns the old flag state.
   virtual int InvokePendingModifiedEvent ()
     {
+    if (this->HideFromEditorsBeforeDisabledModify!=this->HideFromEditors)
+      {
+      this->HideFromEditorsBeforeDisabledModify=this->HideFromEditors;
+      this->InvokeEvent(vtkMRMLNode::HideFromEditorsModifiedEvent);
+      }
+    if (this->AttributeModifiedEventPending)
+      {
+      this->AttributeModifiedEventPending = 0;
+      this->InvokeEvent(vtkMRMLNode::AttributeModifiedEvent);
+      }
     if ( this->ModifiedEventPending )
       {
       int oldModifiedEventPending = this->ModifiedEventPending;
@@ -554,13 +560,14 @@ public:
 
   /// HierarchyModifiedEvent is generated when the hierarchy node with which
   /// this node is associated changes.
-  /// VisibilityModifiedEvent is generated when the node HideFromEditors property is changed
-  /// (it is separated from the regular modified event for performance reasons).
+  /// HierarchyModifiedEvent and AttributeModifiedEvent are added to allow
+  /// observation of specific node changes (for performance optimization reasons).
   enum
     {
       HierarchyModifiedEvent = 16000,
       IDChangedEvent = 16001,
-      VisibilityModifiedEvent,
+      HideFromEditorsModifiedEvent,
+      AttributeModifiedEvent,
       ReferenceAddedEvent,
       ReferenceModifiedEvent,
       ReferenceRemovedEvent,
@@ -747,7 +754,11 @@ private:
   char *SingletonTag;
 
   int DisableModifiedEvent;
+  /// Number of pending modified events
   int ModifiedEventPending;
+  /// Number of pending attribute modified events
+  int AttributeModifiedEventPending;
+  /// Value of HideFromEditors before StartModify
   int HideFromEditorsBeforeDisabledModify;
 
 };

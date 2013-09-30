@@ -793,11 +793,13 @@ QStandardItem* qMRMLSceneModel::insertNode(vtkMRMLNode* node, QStandardItem* par
 //------------------------------------------------------------------------------
 void qMRMLSceneModel::observeNode(vtkMRMLNode* node, bool observeAllModifications)
 {
+/*
   // Observe VisibilityModifiedEvent of all nodes (it is rarely called, so there is no performance issue)
   qvtkConnect(node, vtkMRMLNode::VisibilityModifiedEvent,
               this, SLOT(onMRMLNodeVisibilityModified(vtkObject*)));
   
   if (observeAllModifications)
+  */
 {
   qvtkConnect(node, vtkCommand::ModifiedEvent,
               this, SLOT(onMRMLNodeModified(vtkObject*)));
@@ -1269,6 +1271,7 @@ void qMRMLSceneModel::onMRMLNodeModified(vtkObject* node)
 //------------------------------------------------------------------------------
 void qMRMLSceneModel::onMRMLNodeVisibilityModified(vtkObject* node)
 {
+/*
   Q_D(qMRMLSceneModel);
 
   if (d->LazyUpdate && d->MRMLScene->IsBatchProcessing())
@@ -1373,6 +1376,7 @@ void qMRMLSceneModel::onMRMLNodeVisibilityModified(vtkObject* node)
     //this->updateItemFromNode(item, modifiedNode, i);
     //this->updateNodeItems(modifiedNode, QString(modifiedNode->GetID()));
   }  
+*/
 }
 
 //------------------------------------------------------------------------------
