@@ -176,11 +176,11 @@ bool qMRMLSortFilterProxyModel::filterAcceptsRow(int source_row, const QModelInd
     acceptRow = this->QSortFilterProxyModel::filterAcceptsRow(source_row,
                                                               source_parent);
     }
-  if (node && accept != Reject)
+  if (node &&
+      sceneModel->listenNodeModifiedEvent() == qMRMLSceneModel::OnlyVisibleNodes &&
+      accept != Reject)
     {
-    bool observeAllModifications = (accept != RejectButPotentiallyAcceptableIfVisibilityChanged) 
-      && (sceneModel->listenNodeModifiedEvent() == qMRMLSceneModel::OnlyVisibleNodes);
-    sceneModel->observeNode(node, observeAllModifications);
+    sceneModel->observeNode(node);
     }
   return acceptRow;
 }
@@ -226,6 +226,8 @@ qMRMLSortFilterProxyModel::AcceptType qMRMLSortFilterProxyModel
   // HideFromEditors property
   if (!d->ShowHidden)
     {
+
+    // Hidden nodes are not shown, so we have to observe the HideFromEditors property
     const_cast<qMRMLSortFilterProxyModel*>(this)->qvtkConnect(
       node, vtkMRMLNode::HideFromEditorsModifiedEvent,
       const_cast<qMRMLSortFilterProxyModel*>(this),
@@ -233,7 +235,8 @@ qMRMLSortFilterProxyModel::AcceptType qMRMLSortFilterProxyModel
 
     if (node->GetHideFromEditors())
       {
-      hideNode = true;
+      // The node is hidden, so reject it unless it's listed as an exception (in ShowHiddenForTypes)
+      bool hideNode = true;
       foreach(const QString& nodeType, d->ShowHiddenForTypes)
         {
         if (node->IsA(nodeType.toLatin1()))
@@ -242,18 +245,18 @@ qMRMLSortFilterProxyModel::AcceptType qMRMLSortFilterProxyModel
           break;
           }
         }
-      }
       if (hideNode)
         {
         return RejectButPotentiallyAcceptable;
         }
+      }
     }
 
   // Accept all the nodes if no type has been set
   if (d->NodeTypes.isEmpty())
     {
     // Apply filter if any
-      return AcceptButPotentiallyRejectable;
+    return AcceptButPotentiallyRejectable;
     }
   foreach(const QString& nodeType, d->NodeTypes)
     {

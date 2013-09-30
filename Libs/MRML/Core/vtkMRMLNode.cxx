@@ -717,7 +717,7 @@ void vtkMRMLNode::SetAttribute(const char* name, const char* value)
     }
   else
     {
-    this->InvokeEvent(vtkMRMLNode::HideFromEditorsModifiedEvent);
+    this->InvokeEvent(vtkMRMLNode::AttributeModifiedEvent);
     }
   this->Modified();
 }

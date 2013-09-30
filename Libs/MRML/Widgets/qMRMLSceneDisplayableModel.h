@@ -66,7 +66,7 @@ protected:
 
   /// Reimplemented to listen to the displayable DisplayModifiedEvent event for
   /// visibility check state changes.
-  virtual void observeNode(vtkMRMLNode* node, bool observeAllModifications);
+  virtual void observeNode(vtkMRMLNode* node);
   virtual QFlags<Qt::ItemFlag> nodeFlags(vtkMRMLNode* node, int column)const;
   virtual void updateItemDataFromNode(QStandardItem* item, vtkMRMLNode* node, int column);
   virtual void updateNodeFromItemData(vtkMRMLNode* node, QStandardItem* item);

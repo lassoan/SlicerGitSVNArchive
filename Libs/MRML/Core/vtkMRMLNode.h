@@ -565,9 +565,9 @@ public:
   enum
     {
       HierarchyModifiedEvent = 16000,
-      IDChangedEvent = 16001,
       HideFromEditorsModifiedEvent,
       AttributeModifiedEvent,
+      IDChangedEvent,
       ReferenceAddedEvent,
       ReferenceModifiedEvent,
       ReferenceRemovedEvent,
@@ -758,7 +758,9 @@ private:
   int ModifiedEventPending;
   /// Number of pending attribute modified events
   int AttributeModifiedEventPending;
-  /// Value of HideFromEditors before StartModify
+  /// Value of HideFromEditors before StartModify (HideFromEditors is a simple bool flag,
+  /// so we can actually check if it was changed - as opposed to generic modifications and
+  /// attribute modifications, where we remember if there was any pending change)
   int HideFromEditorsBeforeDisabledModify;
 
 };

@@ -139,9 +139,9 @@ bool qMRMLSceneDisplayableModel::canBeAParent(vtkMRMLNode* node)const
 }
 
 //------------------------------------------------------------------------------
-void qMRMLSceneDisplayableModel::observeNode(vtkMRMLNode* node, bool observeAllModifications)
+void qMRMLSceneDisplayableModel::observeNode(vtkMRMLNode* node)
 {
-  this->Superclass::observeNode(node, observeAllModifications);
+  this->Superclass::observeNode(node);
   if (node->IsA("vtkMRMLDisplayableNode"))
     {
     qvtkConnect(node, vtkMRMLDisplayableNode::DisplayModifiedEvent,
