@@ -140,6 +140,15 @@ void qMRMLSortFilterProxyModel::addAttribute(const QString& nodeType,
   this->invalidateFilter();
 }
 
+//-----------------------------------------------------------------------------
+void qMRMLSortFilterProxyModel::updateNodeVisibility(vtkObject* node)
+{
+  Q_D(qMRMLSortFilterProxyModel);
+  vtkMRMLNode* nodeToRefresh= vtkMRMLNode::SafeDownCast(node);
+  qMRMLSceneModel* sceneModel = qobject_cast<qMRMLSceneModel*>(this->sourceModel());
+  sceneModel->forceItemUpdate(nodeToRefresh);
+}
+
 //------------------------------------------------------------------------------
 //bool qMRMLSortFilterProxyModel::filterAcceptsColumn(int source_column, const QModelIndex & source_parent)const;
 
@@ -231,7 +240,7 @@ qMRMLSortFilterProxyModel::AcceptType qMRMLSortFilterProxyModel
     const_cast<qMRMLSortFilterProxyModel*>(this)->qvtkConnect(
       node, vtkMRMLNode::HideFromEditorsModifiedEvent,
       const_cast<qMRMLSortFilterProxyModel*>(this),
-      SLOT(invalidate()),0., Qt::UniqueConnection);
+      SLOT(updateNodeVisibility(vtkObject*)),0., Qt::UniqueConnection);
 
     if (node->GetHideFromEditors())
       {
@@ -290,7 +299,7 @@ qMRMLSortFilterProxyModel::AcceptType qMRMLSortFilterProxyModel
       const_cast<qMRMLSortFilterProxyModel*>(this)->qvtkConnect(
         node, vtkMRMLNode::AttributeModifiedEvent,
         const_cast<qMRMLSortFilterProxyModel*>(this),
-        SLOT(invalidate()),0., Qt::UniqueConnection);
+        SLOT(updateNodeVisibility(vtkObject*)),0., Qt::UniqueConnection);
 
       QString attributeName = d->Attributes[nodeType].first;
       const char *nodeAttribute = node->GetAttribute(attributeName.toLatin1());

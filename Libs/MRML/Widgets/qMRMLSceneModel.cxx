@@ -806,6 +806,21 @@ void qMRMLSceneModel::observeNode(vtkMRMLNode* node)
 }
 
 //------------------------------------------------------------------------------
+void qMRMLSceneModel::forceItemUpdate(vtkMRMLNode* node)
+{
+  // dataChanged will update the node from the model, but we don't want any change in the node,
+  // therefore first we update the model from the node
+  this->updateNodeItems(node, QString(node->GetID()));
+
+  // enforce refresh of the view
+  QModelIndexList modelIndexes = indexes(node);
+  foreach(QModelIndex index, modelIndexes)
+  {
+    dataChanged(index,index);
+  }
+}
+
+//------------------------------------------------------------------------------
 void qMRMLSceneModel::updateItemFromNode(QStandardItem* item, vtkMRMLNode* node, int column)
 {
   Q_D(qMRMLSceneModel);

@@ -223,6 +223,9 @@ public slots:
   /// \sa hideAll, hideAll()
   void setHideAll(bool hide);
 
+  /// This is called whenever the visibility (acceptance) of a node has to be re-evaluated
+  void updateNodeVisibility(vtkObject* node);
+
   // TODO Add setMRMLScene() to propagate to the scene model
 protected:
   /// This enum type is used to describe the behavior of a node with regard to

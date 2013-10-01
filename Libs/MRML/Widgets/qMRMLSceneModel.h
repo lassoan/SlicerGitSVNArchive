@@ -217,6 +217,11 @@ public:
   /// \sa listenNodeModifiedEvent
   virtual void observeNode(vtkMRMLNode* node);
 
+  /// This method allows a SortFilterProxy to request an update on a single node
+  /// (only the SortFilterProxy knows which node worth observing and updating)
+  /// TODO: maybe add all the observers in the model (on the SortFilterProxy's request)
+  virtual void forceItemUpdate(vtkMRMLNode* node);
+
 protected slots:
 
   virtual void onMRMLSceneNodeAboutToBeAdded(vtkMRMLScene* scene, vtkMRMLNode* node);
