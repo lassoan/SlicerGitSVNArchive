@@ -32,6 +32,7 @@ class QStandardItem;
 // qMRML includes
 #include "qMRMLWidgetsExport.h"
 
+class vtkIntArray;
 class vtkMRMLNode;
 class vtkMRMLScene;
 class qMRMLAbstractItemHelper;
@@ -223,9 +224,6 @@ public slots:
   /// \sa hideAll, hideAll()
   void setHideAll(bool hide);
 
-  /// This is called whenever the visibility (acceptance) of a node has to be re-evaluated
-  void updateNodeVisibility(vtkObject* node);
-
   // TODO Add setMRMLScene() to propagate to the scene model
 protected:
   /// This enum type is used to describe the behavior of a node with regard to
@@ -257,10 +255,11 @@ protected:
   virtual bool filterAcceptsRow(int source_row,
                                 const QModelIndex &source_parent)const;
   /// This method returns whether the \a node should be visible or hidden
-  /// from the view.
+  /// from the view. It also returns a list of events that have to be observed
+  /// and has to trigger update of the node visibility when they occur.
   /// It returns the behavior of the node with regard to the filters.
   /// \sa filterAcceptRow(), AcceptType
-  virtual AcceptType filterAcceptsNode(vtkMRMLNode* node)const;
+  virtual AcceptType filterAcceptsNode(vtkMRMLNode* node, vtkIntArray* eventsToBeObserved)const;
 
   QStandardItem* sourceItem(const QModelIndex& index)const;
 

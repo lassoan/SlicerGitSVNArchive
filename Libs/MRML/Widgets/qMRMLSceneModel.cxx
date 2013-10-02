@@ -806,18 +806,13 @@ void qMRMLSceneModel::observeNode(vtkMRMLNode* node)
 }
 
 //------------------------------------------------------------------------------
-void qMRMLSceneModel::forceItemUpdate(vtkMRMLNode* node)
+void qMRMLSceneModel::observeNodeForceUpdate(vtkMRMLNode* node, vtkIntArray* events)
 {
-  // dataChanged will update the node from the model, but we don't want any change in the node,
-  // therefore first we update the model from the node
-  this->updateNodeItems(node, QString(node->GetID()));
-
-  // enforce refresh of the view
-  QModelIndexList modelIndexes = indexes(node);
-  foreach(QModelIndex index, modelIndexes)
-  {
-    dataChanged(index,index);
-  }
+  for (int i=0; i<events->GetNumberOfTuples(); i++)
+    {
+    qvtkConnect(node, events->GetValue(i),
+              this, SLOT(onMRMLNodeModifiedForceUpdate(vtkObject*)),0., Qt::UniqueConnection);
+    }
 }
 
 //------------------------------------------------------------------------------
@@ -1278,6 +1273,23 @@ void qMRMLSceneModel::onMRMLNodeModified(vtkObject* node)
 {
   vtkMRMLNode* modifiedNode = vtkMRMLNode::SafeDownCast(node);
   this->updateNodeItems(modifiedNode, QString(modifiedNode->GetID()));
+}
+
+//------------------------------------------------------------------------------
+void qMRMLSceneModel::onMRMLNodeModifiedForceUpdate(vtkObject* node)
+{
+  vtkMRMLNode* modifiedNode = vtkMRMLNode::SafeDownCast(node);
+
+  // dataChanged will update the node from the model, but we don't want any change in the node,
+  // therefore first we update the model from the node
+  this->updateNodeItems(modifiedNode, QString(modifiedNode->GetID()));
+
+  // enforce refresh of the view
+  QModelIndexList modelIndexes = indexes(modifiedNode);
+  foreach(QModelIndex index, modelIndexes)
+    {
+    dataChanged(index,index);
+    }
 }
 
 //------------------------------------------------------------------------------

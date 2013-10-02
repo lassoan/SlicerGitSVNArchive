@@ -59,10 +59,10 @@ qMRMLSortFilterHierarchyProxyModel::~qMRMLSortFilterHierarchyProxyModel()
 
 //------------------------------------------------------------------------------
 qMRMLSortFilterProxyModel::AcceptType qMRMLSortFilterHierarchyProxyModel
-::filterAcceptsNode(vtkMRMLNode* node)const
+::filterAcceptsNode(vtkMRMLNode* node, vtkIntArray* eventsToBeObserved)const
 {
   //Q_D(const qMRMLSortFilterHierarchyProxyModel);
-  AcceptType res = this->Superclass::filterAcceptsNode(node);
+  AcceptType res = this->Superclass::filterAcceptsNode(node, eventsToBeObserved);
   if (res == Accept || res == AcceptButPotentiallyRejectable)
     {
     return res;

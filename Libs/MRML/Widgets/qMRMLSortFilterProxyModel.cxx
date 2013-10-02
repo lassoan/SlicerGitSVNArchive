@@ -140,15 +140,6 @@ void qMRMLSortFilterProxyModel::addAttribute(const QString& nodeType,
   this->invalidateFilter();
 }
 
-//-----------------------------------------------------------------------------
-void qMRMLSortFilterProxyModel::updateNodeVisibility(vtkObject* node)
-{
-  Q_D(qMRMLSortFilterProxyModel);
-  vtkMRMLNode* nodeToRefresh= vtkMRMLNode::SafeDownCast(node);
-  qMRMLSceneModel* sceneModel = qobject_cast<qMRMLSceneModel*>(this->sourceModel());
-  sceneModel->forceItemUpdate(nodeToRefresh);
-}
-
 //------------------------------------------------------------------------------
 //bool qMRMLSortFilterProxyModel::filterAcceptsColumn(int source_column, const QModelIndex & source_parent)const;
 
@@ -178,25 +169,38 @@ bool qMRMLSortFilterProxyModel::filterAcceptsRow(int source_row, const QModelInd
     }
   qMRMLSceneModel* sceneModel = qobject_cast<qMRMLSceneModel*>(this->sourceModel());
   vtkMRMLNode* node = sceneModel->mrmlNodeFromItem(item);
-  AcceptType accept = this->filterAcceptsNode(node);
+  vtkSmartPointer<vtkIntArray> eventsToBeObserved=vtkSmartPointer<vtkIntArray>::New();
+  AcceptType accept = this->filterAcceptsNode(node,eventsToBeObserved);
   bool acceptRow = (accept == Accept);
   if (accept == AcceptButPotentiallyRejectable)
     {
     acceptRow = this->QSortFilterProxyModel::filterAcceptsRow(source_row,
                                                               source_parent);
     }
-  if (node &&
-      sceneModel->listenNodeModifiedEvent() == qMRMLSceneModel::OnlyVisibleNodes &&
-      accept != Reject)
+
+  // Set up node observers for events that signal modifications that may require refresh of the model
+  if (node)
     {
-    sceneModel->observeNode(node);
-    }
+    // If listenNodeModifiedEvent() is all node or none of the nodes then it is handled in the model,
+    // but if only the visible nodes are observed then we have to do it here, in the filter.
+    if (sceneModel->listenNodeModifiedEvent() == qMRMLSceneModel::OnlyVisibleNodes &&
+      accept != Reject) // TODO: try with (accept == Accept)
+      {
+      sceneModel->observeNode(node);
+      }
+    // Acceptance by the filter may depend on properties that do not appear in the model
+    // (therefore doesn't trigger modification) and we also want to observe certain events
+    // of conditionally accepted/rejected nodes (to avoid observation of the frequently occurring
+    // generic modified event)
+    sceneModel->observeNodeForceUpdate(node,eventsToBeObserved);
+
+  }
   return acceptRow;
 }
 
 //------------------------------------------------------------------------------
 qMRMLSortFilterProxyModel::AcceptType qMRMLSortFilterProxyModel
-::filterAcceptsNode(vtkMRMLNode* node)const
+::filterAcceptsNode(vtkMRMLNode* node, vtkIntArray* eventsToBeObserved)const
 {
   Q_D(const qMRMLSortFilterProxyModel);
   qMRMLSceneModel* sceneModel = qobject_cast<qMRMLSceneModel*>(this->sourceModel());
@@ -237,10 +241,7 @@ qMRMLSortFilterProxyModel::AcceptType qMRMLSortFilterProxyModel
     {
 
     // Hidden nodes are not shown, so we have to observe the HideFromEditors property
-    const_cast<qMRMLSortFilterProxyModel*>(this)->qvtkConnect(
-      node, vtkMRMLNode::HideFromEditorsModifiedEvent,
-      const_cast<qMRMLSortFilterProxyModel*>(this),
-      SLOT(updateNodeVisibility(vtkObject*)),0., Qt::UniqueConnection);
+    eventsToBeObserved->InsertNextValue(vtkMRMLNode::HideFromEditorsModifiedEvent);
 
     if (node->GetHideFromEditors())
       {
@@ -296,10 +297,7 @@ qMRMLSortFilterProxyModel::AcceptType qMRMLSortFilterProxyModel
     // filter by attributes
     if (d->Attributes.contains(nodeType))
       {
-      const_cast<qMRMLSortFilterProxyModel*>(this)->qvtkConnect(
-        node, vtkMRMLNode::AttributeModifiedEvent,
-        const_cast<qMRMLSortFilterProxyModel*>(this),
-        SLOT(updateNodeVisibility(vtkObject*)),0., Qt::UniqueConnection);
+      eventsToBeObserved->InsertNextValue(vtkMRMLNode::AttributeModifiedEvent);
 
       QString attributeName = d->Attributes[nodeType].first;
       const char *nodeAttribute = node->GetAttribute(attributeName.toLatin1());
