@@ -388,14 +388,13 @@ public:
       this->AttributeModifiedEventPending = 0;
       this->InvokeEvent(vtkMRMLNode::AttributeModifiedEvent);
       }
+    int oldModifiedEventPending = this->ModifiedEventPending;
     if ( this->ModifiedEventPending )
       {
-      int oldModifiedEventPending = this->ModifiedEventPending;
       this->ModifiedEventPending = 0;
       Superclass::Modified();
-      return oldModifiedEventPending;
       }
-    return this->ModifiedEventPending;
+    return oldModifiedEventPending;
     }
 
   void CopyWithSingleModifiedEvent (vtkMRMLNode *node)

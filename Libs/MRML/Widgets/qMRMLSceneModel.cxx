@@ -800,9 +800,11 @@ QStandardItem* qMRMLSceneModel::insertNode(vtkMRMLNode* node, QStandardItem* par
 void qMRMLSceneModel::observeNode(vtkMRMLNode* node)
 {
   qvtkConnect(node, vtkCommand::ModifiedEvent,
-              this, SLOT(onMRMLNodeModified(vtkObject*)));
+              this, SLOT(onMRMLNodeModified(vtkObject*)),
+              0., Qt::UniqueConnection);
   qvtkConnect(node, vtkMRMLNode::IDChangedEvent,
-              this, SLOT(onMRMLNodeIDChanged(vtkObject*,void*)));
+              this, SLOT(onMRMLNodeIDChanged(vtkObject*,void*)),
+              0., Qt::UniqueConnection);
 }
 
 //------------------------------------------------------------------------------

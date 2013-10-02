@@ -184,7 +184,7 @@ bool qMRMLSortFilterProxyModel::filterAcceptsRow(int source_row, const QModelInd
     // If listenNodeModifiedEvent() is all node or none of the nodes then it is handled in the model,
     // but if only the visible nodes are observed then we have to do it here, in the filter.
     if (sceneModel->listenNodeModifiedEvent() == qMRMLSceneModel::OnlyVisibleNodes &&
-      accept != Reject) // TODO: try with (accept == Accept)
+      accept != Reject)
       {
       sceneModel->observeNode(node);
       }
