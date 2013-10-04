@@ -12,6 +12,10 @@ Version:   $Revision: 1.0 $
 
 =========================================================================auto=*/
 
+#if WIN32
+  #define snprintf sprintf_s
+#endif
+
 // MRML includes
 #include "vtkMRMLColorNode.h"
 #include "vtkMRMLScene.h"
@@ -301,21 +305,15 @@ bool vtkMRMLColorNode::SetNameFromColor(int index)
 {
   double rgba[4];
   bool res = this->GetColor(index, rgba);
-  std::stringstream ss;
-  ss.precision(3);
-  ss.setf(std::ios::fixed, std::ios::floatfield);
-  ss << "R=";
-  ss << rgba[0];
-  ss << " G=";
-  ss << rgba[1];
-  ss << " B=";
-  ss << rgba[2];
-  ss << " A=";
-  ss << rgba[3];
+  const unsigned int MAX_COLOR_NAME_LENGTH=50;
+  char colorBuffer[MAX_COLOR_NAME_LENGTH+1];
+  // This method is called about 30000 times at each Slicer start, therefore execution time is critical
+  // using printf because std::stringstream is much slower
+  snprintf(colorBuffer, BUFSIZ, "R=%.3f G=%.3f B=%.3f, A=%.3f", rgba[0], rgba[1], rgba[2], rgba[3]);
   vtkDebugMacro("SetNamesFromColors: " << index << " Name = " << ss.str().c_str());
-  if (this->SetColorName(index, ss.str().c_str()) == 0)
+  if (this->SetColorName(index, colorBuffer) == 0)
     {
-    vtkErrorMacro("SetNamesFromColors: Error setting color name " << index << " Name = " << ss.str().c_str());
+    vtkErrorMacro("SetNamesFromColors: Error setting color name " << index << " Name = " << colorBuffer);
     return false;
     }
   return res;
