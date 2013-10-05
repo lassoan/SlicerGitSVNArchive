@@ -293,10 +293,13 @@ public:
   void AddReferencedNodeID(const char *id, vtkMRMLNode *refrencingNode);
   bool IsNodeReferencingNodeID(vtkMRMLNode* referencingNode, const char* id);
 
+  int GetNumberOfNodeReferences();
+  vtkMRMLNode* GetNthReferencingNode(int n);
+  const char* GetNthReferencedID(int n);
+
   void ClearReferencedNodeID()
   {
-    this->ReferencedIDs.clear();
-    this->ReferencingNodes.clear();
+    this->NodeReferences.clear();
     this->ReferencedIDChanges.clear();
   };
 
@@ -344,12 +347,6 @@ public:
   /// \sa AddReferencedNodeID(), GetReferencedNodes()
   void GetReferencedSubScene(vtkMRMLNode *node, vtkMRMLScene* newScene);
 
-  /// Return the list of referencing nodes.
-  /// Only used for debugging
-  const std::vector< vtkSmartPointer<vtkMRMLNode> >& GetReferencingNodes();
-  /// Return the list of referenced ids.
-  /// Only used for debugging
-  const std::vector< std::string >& GetReferencedIDs();
 
   int IsFilePathRelative(const char * filepath);
 
@@ -600,6 +597,8 @@ public:
   bool GetStorableNodesModifiedSinceRead(vtkCollection* modifiedStorableNodes = 0);
 protected:
 
+  typedef std::multimap< std::string, vtkSmartPointer<vtkMRMLNode> > NodeReferencesType;
+
   vtkMRMLScene();
   virtual ~vtkMRMLScene();
 
@@ -647,6 +646,8 @@ protected:
   /// Clear NodeIDs map used to speedup GetByID() method
   void ClearNodeIDs();
 
+  /// Get a NodeReferences iterator for a node reference
+  NodeReferencesType::iterator FindNodeReference(const char* referencedId, vtkMRMLNode* referencingNode);
 
   vtkCollection*  Nodes;
   unsigned long   SceneModifiedTime;
@@ -677,8 +678,7 @@ protected:
   std::vector< vtkMRMLNode* > RegisteredNodeClasses;
   std::vector< std::string >  RegisteredNodeTags;
 
-  std::vector< std::string >          ReferencedIDs;
-  std::vector< vtkSmartPointer<vtkMRMLNode> >         ReferencingNodes;
+  NodeReferencesType NodeReferences; // ReferencedIDs (string), ReferencingNodes (node pointer)
   std::map< std::string, std::string > ReferencedIDChanges;
   std::map< std::string, vtkSmartPointer<vtkMRMLNode> > NodeIDs;
 
