@@ -307,10 +307,11 @@ bool vtkMRMLColorNode::SetNameFromColor(int index)
   bool res = this->GetColor(index, rgba);
   const unsigned int MAX_COLOR_NAME_LENGTH=50;
   char colorBuffer[MAX_COLOR_NAME_LENGTH+1];
+  colorBuffer[MAX_COLOR_NAME_LENGTH]=0;
   // This method is called about 30000 times at each Slicer start, therefore execution time is critical
   // using printf because std::stringstream is much slower
   snprintf(colorBuffer, BUFSIZ, "R=%.3f G=%.3f B=%.3f, A=%.3f", rgba[0], rgba[1], rgba[2], rgba[3]);
-  vtkDebugMacro("SetNamesFromColors: " << index << " Name = " << ss.str().c_str());
+  vtkDebugMacro("SetNamesFromColors: " << index << " Name = " << colorBuffer);
   if (this->SetColorName(index, colorBuffer) == 0)
     {
     vtkErrorMacro("SetNamesFromColors: Error setting color name " << index << " Name = " << colorBuffer);
