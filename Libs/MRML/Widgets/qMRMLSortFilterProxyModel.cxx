@@ -181,10 +181,16 @@ bool qMRMLSortFilterProxyModel::filterAcceptsRow(int source_row, const QModelInd
   // Set up node observers for events that signal modifications that may require refresh of the model
   if (node)
     {
-    // If listenNodeModifiedEvent() is all node or none of the nodes then it is handled in the model,
-    // but if only the visible nodes are observed then we have to do it here, in the filter.
-    if (sceneModel->listenNodeModifiedEvent() == qMRMLSceneModel::OnlyVisibleNodes &&
-      accept != Reject)
+    bool observeNode=false;
+    if (
+      // observe modified events because the node visibility may change as a result of node modifications
+      (accept == AcceptButPotentiallyRejectable)
+       ||
+      // If listenNodeModifiedEvent() is all node or none of the nodes then it is handled in the model,
+      // but if only the visible nodes are observed then we have to do it here, in the filter.
+      (sceneModel->listenNodeModifiedEvent() == qMRMLSceneModel::OnlyVisibleNodes
+        && (accept==Accept || accept==AcceptButPotentiallyRejectable))
+       )
       {
       sceneModel->observeNode(node);
       }
