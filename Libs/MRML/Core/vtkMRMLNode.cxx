@@ -58,6 +58,8 @@ vtkMRMLNode::vtkMRMLNode()
 
   this->DisableModifiedEvent = 0;
   this->ModifiedEventPending = 0;
+  this->AttributeModifiedEventPending = 0;
+  this->HideFromEditorsBeforeDisabledModify = this->HideFromEditors;
 
   // Set up callbacks
   this->MRMLCallbackCommand = vtkCallbackCommand::New ( );
@@ -197,6 +199,7 @@ void vtkMRMLNode::Copy(vtkMRMLNode *node)
     }
   this->SetDescription(node->GetDescription());
   this->Attributes = node->Attributes;
+  ++this->AttributeModifiedEventPending; // we are between a StartModify/EndModify, so don't emit attribute modified events right now
 
   this->CopyReferences(node);
 
@@ -706,6 +709,15 @@ void vtkMRMLNode::SetAttribute(const char* name, const char* value)
   else
     {
     this->Attributes.erase(std::string(name));
+    }
+
+  if (GetDisableModifiedEvent())
+    {
+    ++this->AttributeModifiedEventPending;
+    }
+  else
+    {
+    this->InvokeEvent(vtkMRMLNode::AttributeModifiedEvent);
     }
   this->Modified();
 }
@@ -1465,3 +1477,21 @@ vtkMRMLNode::vtkMRMLNodeReference* vtkMRMLNode::vtkMRMLNodeReference::New()
     } 
   return new vtkMRMLNode::vtkMRMLNodeReference; 
 } 
+
+//----------------------------------------------------------------------------
+void vtkMRMLNode::SetHideFromEditors(int hide)
+{
+  vtkDebugMacro(<< this->GetClassName() << " (" << this << "): setting HideFromEditors to " << hide);
+  if (this->HideFromEditors != hide)
+    {
+    this->HideFromEditors = hide;
+    // Some GUI elements (e.g., node selectors) don't need observe every modifications of the node
+    // (and they don't do it to optimize performance), but they need to know about visibility changes.
+    // Therefore, emit visibility changed event as well.
+    if (!GetDisableModifiedEvent())
+      {
+      this->InvokeEvent(vtkMRMLNode::HideFromEditorsModifiedEvent);
+      }
+    this->Modified();
+    }
+}

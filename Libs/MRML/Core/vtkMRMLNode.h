@@ -211,6 +211,10 @@ public:
   virtual int StartModify() 
     {
     int disabledModify = this->GetDisableModifiedEvent();
+    if (!disabledModify)
+    {
+      this->HideFromEditorsBeforeDisabledModify=this->HideFromEditors;
+    }
     this->DisableModifiedEventOn();
     return disabledModify;
     };
@@ -260,8 +264,9 @@ public:
   /// 
   /// Describes if the node is hidden
   vtkGetMacro(HideFromEditors, int);
-  vtkSetMacro(HideFromEditors, int);
-  vtkBooleanMacro(HideFromEditors, int);
+  virtual void SetHideFromEditors(int);
+  virtual void HideFromEditorsOn () { this->SetHideFromEditors(1); }
+  virtual void HideFromEditorsOff () { this->SetHideFromEditors(0); } 
 
   /// 
   /// Describes if the node is selectable
@@ -373,14 +378,23 @@ public:
   /// Returns the old flag state.
   virtual int InvokePendingModifiedEvent ()
     {
+    if (this->HideFromEditorsBeforeDisabledModify!=this->HideFromEditors)
+      {
+      this->HideFromEditorsBeforeDisabledModify=this->HideFromEditors;
+      this->InvokeEvent(vtkMRMLNode::HideFromEditorsModifiedEvent);
+      }
+    if (this->AttributeModifiedEventPending)
+      {
+      this->AttributeModifiedEventPending = 0;
+      this->InvokeEvent(vtkMRMLNode::AttributeModifiedEvent);
+      }
+    int oldModifiedEventPending = this->ModifiedEventPending;
     if ( this->ModifiedEventPending )
       {
-      int oldModifiedEventPending = this->ModifiedEventPending;
       this->ModifiedEventPending = 0;
       Superclass::Modified();
-      return oldModifiedEventPending;
       }
-    return this->ModifiedEventPending;
+    return oldModifiedEventPending;
     }
 
   void CopyWithSingleModifiedEvent (vtkMRMLNode *node)
@@ -544,11 +558,15 @@ public:
   void GetNodeReferences(const char* referenceRole, std::vector<vtkMRMLNode*> &nodes);
 
   /// HierarchyModifiedEvent is generated when the hierarchy node with which
-  /// this node is associated changes
+  /// this node is associated changes.
+  /// HierarchyModifiedEvent and AttributeModifiedEvent are added to allow
+  /// observation of specific node changes (for performance optimization reasons).
   enum
     {
       HierarchyModifiedEvent = 16000,
-      IDChangedEvent = 16001,
+      HideFromEditorsModifiedEvent,
+      AttributeModifiedEvent,
+      IDChangedEvent,
       ReferenceAddedEvent,
       ReferenceModifiedEvent,
       ReferenceRemovedEvent,
@@ -735,7 +753,14 @@ private:
   char *SingletonTag;
 
   int DisableModifiedEvent;
+  /// Number of pending modified events
   int ModifiedEventPending;
+  /// Number of pending attribute modified events
+  int AttributeModifiedEventPending;
+  /// Value of HideFromEditors before StartModify (HideFromEditors is a simple bool flag,
+  /// so we can actually check if it was changed - as opposed to generic modifications and
+  /// attribute modifications, where we remember if there was any pending change)
+  int HideFromEditorsBeforeDisabledModify;
 
 };
 

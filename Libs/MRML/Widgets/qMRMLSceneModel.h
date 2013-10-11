@@ -31,6 +31,7 @@
 // qMRML includes
 #include "qMRMLWidgetsExport.h"
 
+class vtkIntArray;
 class vtkMRMLNode;
 class vtkMRMLScene;
 class QAction;
@@ -217,6 +218,10 @@ public:
   /// \sa listenNodeModifiedEvent
   virtual void observeNode(vtkMRMLNode* node);
 
+  /// Observe the specified node events and force an item update item when
+  /// any of the events are invoked.
+  void observeNodeForceUpdate(vtkMRMLNode* node, vtkIntArray* events);
+
 protected slots:
 
   virtual void onMRMLSceneNodeAboutToBeAdded(vtkMRMLScene* scene, vtkMRMLNode* node);
@@ -237,6 +242,12 @@ protected slots:
   /// The node has its ID changed. The scene model needs to update the UIDRole
   /// associated with the node in order to keep being in sync.
   void onMRMLNodeIDChanged(vtkObject* node, void* callData);
+  /// A node has changed and in addition to the regular update
+  /// (that updates the views if a property in the model is changed)
+  /// a forced update is performed (that triggers an update in the views
+  /// even if no property in the model is changed, such as HideFromEditors value
+  /// and node attribute values - which is important for filtering)
+  virtual void onMRMLNodeModifiedForceUpdate(vtkObject* node);
   void onItemChanged(QStandardItem * item);
   void delayedItemChanged();
 

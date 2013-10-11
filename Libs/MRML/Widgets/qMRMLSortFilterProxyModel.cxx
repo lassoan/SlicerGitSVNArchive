@@ -169,25 +169,38 @@ bool qMRMLSortFilterProxyModel::filterAcceptsRow(int source_row, const QModelInd
     }
   qMRMLSceneModel* sceneModel = qobject_cast<qMRMLSceneModel*>(this->sourceModel());
   vtkMRMLNode* node = sceneModel->mrmlNodeFromItem(item);
-  AcceptType accept = this->filterAcceptsNode(node);
+  vtkSmartPointer<vtkIntArray> eventsToBeObserved=vtkSmartPointer<vtkIntArray>::New();
+  AcceptType accept = this->filterAcceptsNode(node,eventsToBeObserved);
   bool acceptRow = (accept == Accept);
   if (accept == AcceptButPotentiallyRejectable)
     {
     acceptRow = this->QSortFilterProxyModel::filterAcceptsRow(source_row,
                                                               source_parent);
     }
-  if (node &&
-      sceneModel->listenNodeModifiedEvent() == qMRMLSceneModel::OnlyVisibleNodes &&
-      accept != Reject)
+
+  // Set up node observers for events that signal modifications that may require refresh of the model
+  if (node)
     {
-    sceneModel->observeNode(node);
-    }
+    // If listenNodeModifiedEvent() is all node or none of the nodes then it is handled in the model,
+    // but if only the visible nodes are observed then we have to do it here, in the filter.
+    if (sceneModel->listenNodeModifiedEvent() == qMRMLSceneModel::OnlyVisibleNodes &&
+      accept != Reject)
+      {
+      sceneModel->observeNode(node);
+      }
+    // Acceptance by the filter may depend on properties that do not appear in the model
+    // (therefore doesn't trigger modification) and we also want to observe certain events
+    // of conditionally accepted/rejected nodes (to avoid observation of the frequently occurring
+    // generic modified event)
+    sceneModel->observeNodeForceUpdate(node,eventsToBeObserved);
+
+  }
   return acceptRow;
 }
 
 //------------------------------------------------------------------------------
 qMRMLSortFilterProxyModel::AcceptType qMRMLSortFilterProxyModel
-::filterAcceptsNode(vtkMRMLNode* node)const
+::filterAcceptsNode(vtkMRMLNode* node, vtkIntArray* eventsToBeObserved)const
 {
   Q_D(const qMRMLSortFilterProxyModel);
   qMRMLSceneModel* sceneModel = qobject_cast<qMRMLSceneModel*>(this->sourceModel());
@@ -211,23 +224,6 @@ qMRMLSortFilterProxyModel::AcceptType qMRMLSortFilterProxyModel
     {
     return Accept;
     }
-  // HideFromEditors property
-  if (!d->ShowHidden && node->GetHideFromEditors())
-    {
-    bool hide = true;
-    foreach(const QString& nodeType, d->ShowHiddenForTypes)
-      {
-      if (node->IsA(nodeType.toLatin1()))
-        {
-        hide = false;
-        break;
-        }
-      }
-    if (hide)
-      {
-      return Reject;
-      }
-    }
 
   if (!d->HideNodesUnaffiliatedWithNodeID.isEmpty())
     {
@@ -237,6 +233,32 @@ qMRMLSortFilterProxyModel::AcceptType qMRMLSortFilterProxyModel
     if (!affiliated)
       {
       return Reject;
+      }
+    }
+
+  // HideFromEditors property
+  if (!d->ShowHidden)
+    {
+
+    // Hidden nodes are not shown, so we have to observe the HideFromEditors property
+    eventsToBeObserved->InsertNextValue(vtkMRMLNode::HideFromEditorsModifiedEvent);
+
+    if (node->GetHideFromEditors())
+      {
+      // The node is hidden, so reject it unless it's listed as an exception (in ShowHiddenForTypes)
+      bool hideNode = true;
+      foreach(const QString& nodeType, d->ShowHiddenForTypes)
+        {
+        if (node->IsA(nodeType.toLatin1()))
+          {
+          hideNode = false;
+          break;
+          }
+        }
+      if (hideNode)
+        {
+        return RejectButPotentiallyAcceptable;
+        }
       }
     }
 
@@ -275,11 +297,7 @@ qMRMLSortFilterProxyModel::AcceptType qMRMLSortFilterProxyModel
     // filter by attributes
     if (d->Attributes.contains(nodeType))
       {
-      // can be optimized if the event is AttributeModifiedEvent instead of modifiedevent
-      const_cast<qMRMLSortFilterProxyModel*>(this)->qvtkConnect(
-        node, vtkCommand::ModifiedEvent,
-        const_cast<qMRMLSortFilterProxyModel*>(this),
-        SLOT(invalidate()),0., Qt::UniqueConnection);
+      eventsToBeObserved->InsertNextValue(vtkMRMLNode::AttributeModifiedEvent);
 
       QString attributeName = d->Attributes[nodeType].first;
       const char *nodeAttribute = node->GetAttribute(attributeName.toLatin1());
