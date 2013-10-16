@@ -438,32 +438,62 @@ QStandardItem* qMRMLSceneModel::itemFromNode(vtkMRMLNode* node, int column)const
 //------------------------------------------------------------------------------
 QModelIndex qMRMLSceneModel::indexFromNode(vtkMRMLNode* node, int column)const
 {
-  if (node == 0)
+  Q_D(const qMRMLSceneModel);
+
+  if (node == 0 || node->GetID() == 0 )
     {
     return QModelIndex();
     }
-  // QAbstractItemModel::match doesn't browse through columns
-  // we need to do it manually
-  QModelIndexList nodeIndexes = this->match(
-    this->mrmlSceneIndex(), qMRMLSceneModel::UIDRole, QString(node->GetID()),
-    1, Qt::MatchExactly | Qt::MatchRecursive);
-  Q_ASSERT(nodeIndexes.size() <= 1); // we know for sure it won't be more than 1
-  if (nodeIndexes.size() == 0)
+
+  QModelIndex nodeIndex;
+
+  // Try to find the nodeIndex in the cache first
+  std::map<vtkMRMLNode*,QPersistentModelIndex>::iterator rowCacheIt=d->RowCache.find(node);
+  if (rowCacheIt!=d->RowCache.end())
+  {
+    if (rowCacheIt->second.isValid())
     {
-    // maybe the node hasn't been added to the scene yet...
-    // (if it's called from populateScene/inserteNode)
-    return QModelIndex();
+      QStandardItem* nodeItem = this->itemFromIndex(rowCacheIt->second);
+      if (nodeItem!=NULL)
+      {
+        std::string idInFoundItem=nodeItem->data(qMRMLSceneModel::UIDRole).toString().toLatin1();
+        if (idInFoundItem.compare(node->GetID())==0)
+        {
+          // id matched
+          nodeIndex=rowCacheIt->second;
+        }
+      }
     }
+  }
+
+  if (!nodeIndex.isValid())
+  {
+    // QAbstractItemModel::match doesn't browse through columns
+    // we need to do it manually
+    QModelIndexList nodeIndexes = this->match(
+      this->mrmlSceneIndex(), qMRMLSceneModel::UIDRole, QString(node->GetID()),
+      1, Qt::MatchExactly | Qt::MatchRecursive);
+    Q_ASSERT(nodeIndexes.size() <= 1); // we know for sure it won't be more than 1
+    if (nodeIndexes.size() == 0)
+      {
+      // maybe the node hasn't been added to the scene yet...
+      // (if it's called from populateScene/inserteNode)
+      d->RowCache.erase(node);
+      return QModelIndex();
+      }
+    nodeIndex=nodeIndexes[0];
+    d->RowCache[node]=nodeIndex;
+  }
   if (column == 0)
     {
     // QAbstractItemModel::match only search through the first column
     // (because scene is in the first column)
-    Q_ASSERT(nodeIndexes[0].isValid());
-    return nodeIndexes[0];
+    Q_ASSERT(nodeIndex.isValid());
+    return nodeIndex;
     }
   // Add the QModelIndexes from the other columns
-  const int row = nodeIndexes[0].row();
-  QModelIndex nodeParentIndex = nodeIndexes[0].parent();
+  const int row = nodeIndex.row();
+  QModelIndex nodeParentIndex = nodeIndex.parent();
   Q_ASSERT( column < this->columnCount(nodeParentIndex) );
   return nodeParentIndex.child(row, column);
 }
