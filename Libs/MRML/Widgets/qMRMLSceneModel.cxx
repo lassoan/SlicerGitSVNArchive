@@ -510,10 +510,15 @@ int qMRMLSceneModel::nodeIndex(vtkMRMLNode* node)const
     if (parent == this->parentNode(n))
       {
       ++index;
-      nId = n->GetID();
-      if (nId && !strcmp(nodeId, nId))
+      if (node==n)
         {
-        return index;
+        // found the node, just in case double-check if the nodeID is matching as well
+        nId = n->GetID();
+        if (nId && !strcmp(nodeId, nId))
+          {
+          return index;
+          }
+        qDebug() << "qMRMLSceneModel::nodeIndex node ID mismatch";
         }
       }
     }
