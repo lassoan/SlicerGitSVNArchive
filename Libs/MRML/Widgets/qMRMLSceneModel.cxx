@@ -499,7 +499,8 @@ int qMRMLSceneModel::nodeIndex(vtkMRMLNode* node)const
   int index = -1;
   vtkMRMLNode* parent = this->parentNode(node);
 
-  // otherwise, iterate through the scene
+  // Iterate through the scene and see if there is any matching node.
+  // First try to find based on ptr value, as it's much faster than comparing string IDs.
   vtkCollection* nodes = d->MRMLScene->GetNodes();
   vtkMRMLNode* n = 0;
   vtkCollectionSimpleIterator it;
@@ -512,16 +513,29 @@ int qMRMLSceneModel::nodeIndex(vtkMRMLNode* node)const
       ++index;
       if (node==n)
         {
-        // found the node, just in case double-check if the nodeID is matching as well
-        nId = n->GetID();
-        if (nId && !strcmp(nodeId, nId))
-          {
-          return index;
-          }
-        qDebug() << "qMRMLSceneModel::nodeIndex node ID mismatch";
+        // found the node
+        return index;
         }
       }
     }
+
+  // Not found by node ptr, try to find it by ID (much slower)
+  for (nodes->InitTraversal(it);
+       (n = (vtkMRMLNode*)nodes->GetNextItemAsObject(it)) ;)
+    {
+    // note: parent can be NULL, it means that the scene is the parent
+    if (parent == this->parentNode(n))
+      {
+      ++index;
+      nId = n->GetID();
+      if (nId && !strcmp(nodeId, nId))
+        {
+        return index;
+        }
+      }
+    }
+
+  // Not found
   return -1;
 }
 
