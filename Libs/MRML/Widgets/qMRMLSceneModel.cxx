@@ -649,6 +649,8 @@ void qMRMLSceneModel::updateScene()
                  this, SLOT(onMRMLNodeModified(vtkObject*)));
   qvtkDisconnect(0, vtkMRMLNode::IDChangedEvent,
                  this, SLOT(onMRMLNodeIDChanged(vtkObject*,void*)));
+  qvtkDisconnect(0, 0,
+                 this, SLOT(onMRMLNodeModifiedForceUpdate(vtkObject*)));
 
   // Enabled so it can be interacted with
   this->invisibleRootItem()->setFlags(Qt::ItemIsEnabled);
