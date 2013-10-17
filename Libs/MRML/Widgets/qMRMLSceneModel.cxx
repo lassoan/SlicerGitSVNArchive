@@ -454,21 +454,23 @@ QModelIndex qMRMLSceneModel::indexFromNode(vtkMRMLNode* node, int column)const
     // not found in cache, therefore it cannot be in the model
     return nodeIndex;
   }
-    if (rowCacheIt->second.isValid())
+  if (rowCacheIt->second.isValid())
+  {
+    // An entry found in the cache. If the item at the cached index matches the requested node ID
+    // then we use it.
+    QStandardItem* nodeItem = this->itemFromIndex(rowCacheIt->second);
+    if (nodeItem!=NULL)
     {
-      QStandardItem* nodeItem = this->itemFromIndex(rowCacheIt->second);
-      if (nodeItem!=NULL)
+      std::string idInFoundItem=nodeItem->data(qMRMLSceneModel::UIDRole).toString().toLatin1();
+      if (idInFoundItem.compare(node->GetID())==0)
       {
-        std::string idInFoundItem=nodeItem->data(qMRMLSceneModel::UIDRole).toString().toLatin1();
-        if (idInFoundItem.compare(node->GetID())==0)
-        {
-          // id matched
-          nodeIndex=rowCacheIt->second;
-        }
+        // id matched
+        nodeIndex=rowCacheIt->second;
       }
     }
   }
 
+  // The cache was not up-to-date. Do a slow linear search.
   if (!nodeIndex.isValid())
   {
     // QAbstractItemModel::match doesn't browse through columns
