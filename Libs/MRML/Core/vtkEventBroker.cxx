@@ -517,9 +517,9 @@ vtkObservation *vtkEventBroker::GetNthObservation ( int n )
     {
     if ( static_cast<size_t>(n) < count + iter->second.size())
       {
-        ObservationVector::iterator it=iter->second.begin();
-        std::advance(it, n-count);
-        return (*it);
+      ObservationVector::iterator it=iter->second.begin();
+      std::advance(it, n-count);
+      return (*it);
       }
     else
       {
