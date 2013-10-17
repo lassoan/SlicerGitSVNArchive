@@ -449,8 +449,11 @@ QModelIndex qMRMLSceneModel::indexFromNode(vtkMRMLNode* node, int column)const
 
   // Try to find the nodeIndex in the cache first
   std::map<vtkMRMLNode*,QPersistentModelIndex>::iterator rowCacheIt=d->RowCache.find(node);
-  if (rowCacheIt!=d->RowCache.end())
+  if (rowCacheIt==d->RowCache.end())
   {
+    // not found in cache, therefore it cannot be in the model
+    return nodeIndex;
+  }
     if (rowCacheIt->second.isValid())
     {
       QStandardItem* nodeItem = this->itemFromIndex(rowCacheIt->second);
@@ -680,6 +683,8 @@ void qMRMLSceneModel::updateScene()
   qvtkDisconnect(0, vtkMRMLNode::IDChangedEvent,
                  this, SLOT(onMRMLNodeIDChanged(vtkObject*,void*)));
 
+  d->RowCache.clear();
+
   // Enabled so it can be interacted with
   this->invisibleRootItem()->setFlags(Qt::ItemIsEnabled);
 
@@ -818,6 +823,7 @@ QStandardItem* qMRMLSceneModel::insertNode(vtkMRMLNode* node, QStandardItem* par
     {
     this->insertRow(row,items);
     }
+  d->RowCache[node]=items[0]->index();
   // TODO: don't listen to nodes that are hidden from editors ?
   if (d->ListenNodeModifiedEvent == AllNodes)
     {
