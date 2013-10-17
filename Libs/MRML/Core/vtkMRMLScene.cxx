@@ -1243,15 +1243,15 @@ void vtkMRMLScene::RemoveReferencedNodeID(const char *id, vtkMRMLNode *referenci
     }
   NodeReferencesType::iterator referenceIt=this->NodeReferences.find(id);
   if (referenceIt==this->NodeReferences.end())
-  {
+    {
     // no referrers to id
     return;
-  }
+    }
   if (referencingNode->GetID()==NULL)
-  {
+    {
     // invalid referencinc node id
     return;
-  }
+    }
   referenceIt->second.erase(referencingNode->GetID());
 }
 
@@ -1274,14 +1274,14 @@ void vtkMRMLScene::RemoveNodeReferences(vtkMRMLNode *n)
   for (NodeReferencesType::iterator referenceIt = this->NodeReferences.begin();
     referenceIt != this->NodeReferences.end();
     ++referenceIt)
-  {
+    {
     referringNodesIt=referenceIt->second.find(nid);
     if (referringNodesIt!=referenceIt->second.end())
-    {
+      {
       // observation has been deleted, so remove it from the index
       referenceIt->second.erase(referringNodesIt);
+      }
     }
-  }
 }
 
 //------------------------------------------------------------------------------
@@ -1292,37 +1292,37 @@ void vtkMRMLScene::RemoveUnusedNodeReferences()
   for (NodeReferencesType::iterator referenceIt = this->NodeReferences.begin();
     referenceIt != this->NodeReferences.end();
     ++referenceIt)
-  {
+    {
     for (NodeReferencesType::value_type::second_type::iterator referringNodesIt = referenceIt->second.begin();
       referringNodesIt != referenceIt->second.end();
       /*upon deletion the increment is done already, so don't increment here*/)
-    {
+      {
       vtkMRMLNode *currentReferencingNodePtr=this->GetNodeByID(*referringNodesIt);
       if (currentReferencingNodePtr==NULL)
-      {
+        {
         // the node is not in the scene (or in the scene but with a different pointer), remove it
         referringNodesIt=referenceIt->second.erase(referringNodesIt);
         continue;
-      }
+        }
       ++referringNodesIt;
+      }
     }
-  }
 
   // Remove Referenced IDs that are no longer in the scene
   for (NodeReferencesType::iterator referenceIt = this->NodeReferences.begin();
     referenceIt != this->NodeReferences.end();
     /*upon deletion the increment is done already, so don't increment here*/)
-  {
+    {
     vtkMRMLNode *node = this->GetNodeByID(referenceIt->first);
     if (node==NULL || referenceIt->second.empty())
-    {
+      {
       // the referenced ID is no longer in the scene (or no more references), so remove all related references
       referenceIt=this->NodeReferences.erase(referenceIt);
       continue;
-    }
+      }
     // go to next referenced ID
     ++referenceIt;
-  }
+    }
 }
 
 //------------------------------------------------------------------------------
@@ -2593,19 +2593,19 @@ bool vtkMRMLScene::IsNodeReferencingNodeID(vtkMRMLNode* referencingNode, const c
     }
   NodeReferencesType::iterator referenceIt=this->NodeReferences.find(id);
   if (referenceIt==this->NodeReferences.end())
-  {
+    {
     // no referrers to id
     return false;
-  }
+    }
   if (referencingNode->GetID()==NULL)
-  {
+    {
     // invalid referencing node id
     return false;
-  }
+    }
   if (referenceIt->second.find(referencingNode->GetID())==referenceIt->second.end())
-  {
+    {
     return false;
-  }
+    }
   return true;
 }
 
@@ -2705,28 +2705,28 @@ void vtkMRMLScene::AddReferencedNodes(vtkMRMLNode *node, vtkCollection *refNodes
   for (NodeReferencesType::iterator referenceIt = this->NodeReferences.begin();
     referenceIt != this->NodeReferences.end();
     ++referenceIt)
-  {
+    {
     NodeReferencesType::value_type::second_type::iterator referringNodesIt = referenceIt->second.find(node->GetID());
     if (referringNodesIt!=referenceIt->second.end())
-    {
+      {
       // this ID is referenced by this node
       vtkMRMLNode *referencedNode = this->GetNodeByID(referenceIt->first);
       if (referencedNode!=NULL && !refNodes->IsItemPresent(referencedNode))
-      {
+        {
         // this ID is not yet in the list of reference nodes, so add it
         refNodes->AddItem(referencedNode);
         newFoundReferencedNodes.push_back(referencedNode);
+        }
       }
     }
-  }
 
   // recursively add all the referenced nodes' referenced nodes
   for (std::deque<vtkMRMLNode*>::iterator newReferencedNodeIt=newFoundReferencedNodes.begin();
     newReferencedNodeIt!=newFoundReferencedNodes.end();
     ++newReferencedNodeIt)
-  {
+    {
     this->AddReferencedNodes(*newReferencedNodeIt, refNodes);
-  }
+    }
 }
 
 //------------------------------------------------------------------------------
@@ -2756,20 +2756,20 @@ void vtkMRMLScene::GetReferencingNodes(vtkMRMLNode* referencedNode, std::vector<
   NodeReferencesType::iterator referencedNodeIdIt=this->NodeReferences.find(referencedId);
 
   if (referencedNodeIdIt==this->NodeReferences.end())
-  {
+    {
     // no references to this node
     return;
-  }
+    }
   for (NodeReferencesType::value_type::second_type::iterator referringNodesIt = referencedNodeIdIt->second.begin();
     referringNodesIt != referencedNodeIdIt->second.end();
     ++referringNodesIt)
-  {
+    {
     vtkMRMLNode* node=GetNodeByID(*referringNodesIt);
     if (node)
-    {
+      {
       referencingNodes.push_back(node);
+      }
     }
-  }
 }
 
 //------------------------------------------------------------------------------
@@ -3103,9 +3103,9 @@ int vtkMRMLScene::GetNumberOfNodeReferences()
   for (NodeReferencesType::iterator referenceIt = this->NodeReferences.begin();
     referenceIt != this->NodeReferences.end();
     ++referenceIt)
-  {
+    {
     totalNumberOfReferences+=referenceIt->second.size();
-  }
+    }
   return totalNumberOfReferences;
 }
 
@@ -3115,15 +3115,15 @@ vtkMRMLNode* vtkMRMLScene::GetNthReferencingNode(int n)
   for (NodeReferencesType::iterator referenceIt = this->NodeReferences.begin();
     referenceIt != this->NodeReferences.end();
     ++referenceIt)
-  {
-    if (n<referenceIt->second.size())
     {
+    if (n<referenceIt->second.size())
+      {
       NodeReferencesType::value_type::second_type::iterator referringNodesIt=referenceIt->second.begin();
       std::advance( referringNodesIt, n );
       return GetNodeByID(*referringNodesIt);
-    }
+      }
     n-=referenceIt->second.size();
-  }
+    }
   return NULL;
 }
 
@@ -3133,13 +3133,13 @@ const char* vtkMRMLScene::GetNthReferencedID(int n)
   for (NodeReferencesType::iterator referenceIt = this->NodeReferences.begin();
     referenceIt != this->NodeReferences.end();
     ++referenceIt)
-  {
-    if (n<referenceIt->second.size())
     {
+    if (n<referenceIt->second.size())
+      {
       NodeReferencesType::value_type::second_type::iterator referringNodesIt=referenceIt->second.begin();
       return referenceIt->first.c_str();
-    }
+      }
     n-=referenceIt->second.size();
-  }
+    }
   return NULL;
 }
