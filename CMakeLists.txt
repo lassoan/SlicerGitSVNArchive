@@ -1007,6 +1007,7 @@ include_directories(
 add_subdirectory(Libs)
 add_subdirectory(Base)
 add_subdirectory(Resources)
+add_subdirectory(Utilities/Scripts/SlicerWizard)
 
 #-----------------------------------------------------------------------------
 # Macro useful to build ModuleLogic, ModuleMRML and ModuleWidgets libraries
@@ -1134,7 +1135,15 @@ endif()
 # Documentation
 #-----------------------------------------------------------------------------
 
+# Automatically generate documentation at build time
+set(all_arg)
+if(DOCUMENTATION_TARGET_IN_ALL)
+  set(all_arg "ALL")
+endif()
+add_custom_target(doc ${all_arg})
+
 add_subdirectory(Utilities/Doxygen)
+add_subdirectory(Utilities/Scripts/SlicerWizard/doc)
 
 if(NOT Slicer_INSTALL_NO_DEVELOPMENT)
   file(GLOB cmake_files "${CMAKE_CURRENT_SOURCE_DIR}/CMake/*.cmake")
