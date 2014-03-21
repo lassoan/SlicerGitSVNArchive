@@ -15,7 +15,7 @@
 #ifndef __vtkMRMLTransformNode_h
 #define __vtkMRMLTransformNode_h
 
-#include "vtkMRMLStorableNode.h"
+#include "vtkMRMLDisplayableNode.h"
 
 class vtkCollection;
 class vtkAbstractTransform;
@@ -29,11 +29,11 @@ class vtkMatrix4x4;
 /// A vtkMRMLTransformableNode::TransformModifiedEvent is called if the transforms
 /// are changed. ModifiedEvent is called if either transforms or other properties
 /// of the object are changed.
-class VTK_MRML_EXPORT vtkMRMLTransformNode : public vtkMRMLStorableNode
+class VTK_MRML_EXPORT vtkMRMLTransformNode : public vtkMRMLDisplayableNode
 {
 public:
   static vtkMRMLTransformNode *New();
-  vtkTypeMacro(vtkMRMLTransformNode,vtkMRMLStorableNode);
+  vtkTypeMacro(vtkMRMLTransformNode,vtkMRMLDisplayableNode);
   void PrintSelf(ostream& os, vtkIndent indent);
 
   virtual vtkMRMLNode* CreateNodeInstance();

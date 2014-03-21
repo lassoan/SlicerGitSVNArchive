@@ -610,7 +610,7 @@ int  vtkMRMLTransformNode::GetMatrixTransformToWorld(vtkMatrix4x4* transformToWo
 }
 
 //----------------------------------------------------------------------------
-int  vtkMRMLTransformNode::GetMatrixTransformToNode(vtkMRMLTransformNode* node,
+int  vtkMRMLTransformNode::GetMatrixTransformToNode(vtkMRMLTransformNode* ,
                                                           vtkMatrix4x4* transformToNode)
 {
   // The fact that this method is called means that this is a non-linear transform,
