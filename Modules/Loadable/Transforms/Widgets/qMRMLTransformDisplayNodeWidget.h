@@ -63,6 +63,7 @@ public slots:
   void updateLabels();
   void updateGlyphSourceOptions(int sourceOption);
   void referenceVolumeChanged(vtkMRMLNode* node);
+  void setGlyphSpacingMm(double spacing);
   void setGlyphPointMax(double pointMax);
   void setSeed();
   void setGlyphSeed(int seed);
@@ -82,18 +83,9 @@ public slots:
   void setGlyphConeResolution(double resolution);
   void setGlyphSphereResolution(double resolution);
   void setGridScale(double scale);
-  void setGridSpacingMM(double spacing);
-  void setBlockScale(double scale);
-  void setBlockDisplacementCheck(int state);
+  void setGridSpacingMm(double spacing);
   void setContourValues(QString values_str);
   void setContourDecimation(double reduction);
-  void setGlyphSlicePointMax(double pointMax);
-  void setGlyphSliceThreshold(double min, double max);
-  void setGlyphSliceScale(double scale);
-  void setGlyphSliceSeed(int seed);
-  void setSeed2();
-  void setGridSliceScale(double scale);
-  void setGridSliceSpacingMM(double spacing);
 
 protected slots:
   void updateWidgetFromDisplayNode();

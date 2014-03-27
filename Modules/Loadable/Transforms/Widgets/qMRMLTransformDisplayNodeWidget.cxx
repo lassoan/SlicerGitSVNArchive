@@ -91,30 +91,11 @@ void qMRMLTransformDisplayNodeWidgetPrivate
   QObject::connect(this->InputGridScale, SIGNAL(valueChanged(double)), q, SLOT(setGridScale(double)));
   QObject::connect(this->InputGridSpacing, SIGNAL(valueChanged(double)), q, SLOT(setGridSpacingMM(double)));
 
-  // Block Parameters
-  QObject::connect(this->InputBlockScale, SIGNAL(valueChanged(double)), q, SLOT(setBlockScale(double)));
-  QObject::connect(this->InputBlockDisplacementCheck, SIGNAL(stateChanged(int)), q, SLOT(setBlockDisplacementCheck(int)));
-
   // Contour Parameters
   QRegExp rx("^(([0-9]+(.[0-9]+)?),+)*([0-9]+(.[0-9]+)?)$");
   this->InputContourValues->setValidator(new QRegExpValidator(rx,q));
   QObject::connect(this->InputContourValues, SIGNAL(textChanged(QString)), q, SLOT(setContourValues(QString)));
-  //QObject::connect(this->InputContourNumber, SIGNAL(valueChanged(double)), q, SLOT(setContourNumber(double)));
-  //QObject::connect(this->InputContourRange, SIGNAL(valuesChanged(double, double)), q, SLOT(setContourRange(double, double)));
   QObject::connect(this->InputContourDecimation, SIGNAL(valueChanged(double)), q, SLOT(setContourDecimation(double)));
-
-  // Glyph Slice Parameters
-  QObject::connect(this->GlyphSliceComboBox, SIGNAL(currentNodeChanged(vtkMRMLNode*)), q, SLOT(setGlyphSliceNode(vtkMRMLNode*)));
-  QObject::connect(this->InputGlyphSlicePointMax, SIGNAL(valueChanged(double)), q, SLOT(setGlyphSlicePointMax(double)));
-  QObject::connect(this->InputGlyphSliceThreshold, SIGNAL(valuesChanged(double, double)), q, SLOT(setGlyphSliceThreshold(double, double)));
-  QObject::connect(this->InputGlyphSliceScale, SIGNAL(valueChanged(double)), q, SLOT(setGlyphSliceScale(double)));
-  QObject::connect(this->InputGlyphSliceSeed, SIGNAL(valueChanged(int)), q, SLOT(setGlyphSliceSeed(int)));
-  QObject::connect(this->GenerateSeedButton2, SIGNAL(clicked()), q, SLOT(setSeed2()));
-
-  // Grid Slice Parameters
-  //QObject::connect(this->GridSliceComboBox, SIGNAL(currentNodeChanged(vtkMRMLNode*)), q, SLOT(setGridSliceNode(vtkMRMLNode*)));
-  QObject::connect(this->InputGridSliceScale, SIGNAL(valueChanged(double)), q, SLOT(setGridSliceScale(double)));
-  QObject::connect(this->InputGridSliceSpacing, SIGNAL(valueChanged(double)), q, SLOT(setGridSliceSpacingMM(double)));
 
   q->updateWidgetFromDisplayNode();
 }
@@ -182,6 +163,7 @@ void qMRMLTransformDisplayNodeWidget
 
   // Update Visualization Parameters
   // Glyph Parameters
+  d->InputGlyphSpacing->setValue(d->TransformDisplayNode->GetGlyphSpacingMm());
   d->InputGlyphPointMax->setValue(d->TransformDisplayNode->GetGlyphPointMax());
   d->InputGlyphSeed->setValue(d->TransformDisplayNode->GetGlyphSeed());
   d->InputGlyphScale->setValue(d->TransformDisplayNode->GetGlyphScale());
@@ -206,27 +188,13 @@ void qMRMLTransformDisplayNodeWidget
 
   // Grid Parameters
   d->InputGridScale->setValue(d->TransformDisplayNode->GetGridScale());
-  d->InputGridSpacing->setValue(d->TransformDisplayNode->GetGridSpacingMM());
-
-  // Block Parameters
-  d->InputBlockScale->setValue(d->TransformDisplayNode->GetBlockScale());
-  d->InputBlockDisplacementCheck->setChecked(d->TransformDisplayNode->GetBlockDisplacementCheck());
+  d->InputGridSpacing->setValue(d->TransformDisplayNode->GetGridSpacingMm());
 
   // Contour Parameters
   //d->InputContourNumber->setValue(d->TransformDisplayNode->GetContourNumber());
   //d->InputContourRange->setMaximumValue(d->TransformDisplayNode->GetContourMax());
   //d->InputContourRange->setMinimumValue(d->TransformDisplayNode->GetContourMin());
   d->InputContourDecimation->setValue(d->TransformDisplayNode->GetContourDecimation());
-
-  d->InputGlyphSlicePointMax->setValue(d->TransformDisplayNode->GetGlyphSlicePointMax());
-  d->InputGlyphSliceThreshold->setMaximumValue(d->TransformDisplayNode->GetGlyphSliceThresholdMax());
-  d->InputGlyphSliceThreshold->setMinimumValue(d->TransformDisplayNode->GetGlyphSliceThresholdMin());
-  d->InputGlyphSliceScale->setValue(d->TransformDisplayNode->GetGlyphSliceScale());
-  d->InputGlyphSliceSeed->setValue(d->TransformDisplayNode->GetGlyphSliceSeed());
-
-  // Grid Slice Parameters
-  d->InputGridSliceScale->setValue(d->TransformDisplayNode->GetGridSliceScale());
-  d->InputGridSliceSpacing->setValue(d->TransformDisplayNode->GetGridSliceSpacingMM());
 
   this->updateLabels();
 }
@@ -285,6 +253,18 @@ void qMRMLTransformDisplayNodeWidget::referenceVolumeChanged(vtkMRMLNode* node)
 
   d->TransformDisplayNode->SetAndObserveReferenceVolumeNode(node);
   this->updateLabels();
+}
+
+//-----------------------------------------------------------------------------
+void qMRMLTransformDisplayNodeWidget::setGlyphSpacingMm(double spacing)
+{
+  Q_D(qMRMLTransformDisplayNodeWidget);
+
+  if (!d->TransformDisplayNode)
+  {
+    return;
+  }
+  d->TransformDisplayNode->SetGlyphSpacingMm(spacing);
 }
 
 //-----------------------------------------------------------------------------
@@ -520,7 +500,7 @@ void qMRMLTransformDisplayNodeWidget::setGridScale(double scale)
 }
 
 //-----------------------------------------------------------------------------
-void qMRMLTransformDisplayNodeWidget::setGridSpacingMM(double spacing)
+void qMRMLTransformDisplayNodeWidget::setGridSpacingMm(double spacing)
 {
   Q_D(qMRMLTransformDisplayNodeWidget);
 
@@ -528,31 +508,7 @@ void qMRMLTransformDisplayNodeWidget::setGridSpacingMM(double spacing)
   {
     return;
   }
-  d->TransformDisplayNode->SetGridSpacingMM(spacing);
-}
-
-//-----------------------------------------------------------------------------
-void qMRMLTransformDisplayNodeWidget::setBlockScale(double scale)
-{
-  Q_D(qMRMLTransformDisplayNodeWidget);
-
-  if (!d->TransformDisplayNode)
-  {
-    return;
-  }
-  d->TransformDisplayNode->SetBlockScale(scale);
-}
-
-//-----------------------------------------------------------------------------
-void qMRMLTransformDisplayNodeWidget::setBlockDisplacementCheck(int state)
-{
-  Q_D(qMRMLTransformDisplayNodeWidget);
-
-  if (!d->TransformDisplayNode)
-  {
-    return;
-  }
-  d->TransformDisplayNode->SetBlockDisplacementCheck(state);
+  d->TransformDisplayNode->SetGridSpacingMm(spacing);
 }
 
 //-----------------------------------------------------------------------------
@@ -582,7 +538,6 @@ void qMRMLTransformDisplayNodeWidget::setContourValues(QString values_str)
   }
 
   d->TransformDisplayNode->SetContourValues(values_array, valuesSize);
-  d->TransformDisplayNode->SetContourNumber(valuesSize);
 }
 
 //-----------------------------------------------------------------------------
@@ -595,90 +550,4 @@ void qMRMLTransformDisplayNodeWidget::setContourDecimation(double reduction)
     return;
   }
   d->TransformDisplayNode->SetContourDecimation(reduction);
-}
-
-//-----------------------------------------------------------------------------
-void qMRMLTransformDisplayNodeWidget::setGlyphSlicePointMax(double pointMax)
-{
-  Q_D(qMRMLTransformDisplayNodeWidget);
-
-  if (!d->TransformDisplayNode)
-  {
-    return;
-  }
-  d->TransformDisplayNode->SetGlyphSlicePointMax(pointMax);
-}
-
-//-----------------------------------------------------------------------------
-void qMRMLTransformDisplayNodeWidget::setGlyphSliceThreshold(double min, double max)
-{
-  Q_D(qMRMLTransformDisplayNodeWidget);
-
-  if (!d->TransformDisplayNode)
-  {
-    return;
-  }
-  d->TransformDisplayNode->SetGlyphSliceThresholdMin(min);
-  d->TransformDisplayNode->SetGlyphSliceThresholdMax(max);
-}
-
-//-----------------------------------------------------------------------------
-void qMRMLTransformDisplayNodeWidget::setGlyphSliceScale(double scale)
-{
-  Q_D(qMRMLTransformDisplayNodeWidget);
-
-  if (!d->TransformDisplayNode)
-  {
-    return;
-  }
-  d->TransformDisplayNode->SetGlyphSliceScale(scale);
-}
-
-//-----------------------------------------------------------------------------
-void qMRMLTransformDisplayNodeWidget::setGlyphSliceSeed(int seed)
-{
-  Q_D(qMRMLTransformDisplayNodeWidget);
-
-  if (!d->TransformDisplayNode)
-  {
-    return;
-  }
-  d->TransformDisplayNode->SetGlyphSliceSeed(seed);
-}
-
-//-----------------------------------------------------------------------------
-void qMRMLTransformDisplayNodeWidget::setSeed2()
-{
-  Q_D(qMRMLTransformDisplayNodeWidget);
-
-  if (!d->TransformDisplayNode)
-  {
-    return;
-  }
-  d->TransformDisplayNode->SetGlyphSliceSeed(rand());
-  d->InputGlyphSliceSeed->setValue(d->TransformDisplayNode->GetGlyphSliceSeed());
-}
-
-//-----------------------------------------------------------------------------
-void qMRMLTransformDisplayNodeWidget::setGridSliceScale(double scale)
-{
-  Q_D(qMRMLTransformDisplayNodeWidget);
-
-  if (!d->TransformDisplayNode)
-  {
-    return;
-  }
-  d->TransformDisplayNode->SetGridSliceScale(scale);
-}
-
-//-----------------------------------------------------------------------------
-void qMRMLTransformDisplayNodeWidget::setGridSliceSpacingMM(double spacing)
-{
-  Q_D(qMRMLTransformDisplayNodeWidget);
-
-  if (!d->TransformDisplayNode)
-  {
-    return;
-  }
-  d->TransformDisplayNode->SetGridSliceSpacingMM(spacing);
 }

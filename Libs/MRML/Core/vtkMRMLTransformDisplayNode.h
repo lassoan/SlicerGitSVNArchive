@@ -37,7 +37,6 @@ class VTK_MRML_EXPORT vtkMRMLTransformDisplayNode : public vtkMRMLDisplayNode
     VIS_MODE_3D_GLYPH=8,
     VIS_MODE_3D_GRID=16,
     VIS_MODE_3D_CONTOUR=32,
-    VIS_MODE_3D_BLOCK=64
   };
 
   enum GlyphSources
@@ -89,8 +88,10 @@ class VTK_MRML_EXPORT vtkMRMLTransformDisplayNode : public vtkMRMLDisplayNode
   // Glyph Parameters
   vtkSetMacro(GlyphPointMax, int);
   vtkGetMacro(GlyphPointMax, int);
-  vtkSetMacro(GlyphScale, float);
-  vtkGetMacro(GlyphScale, float);
+  vtkSetMacro(GlyphSpacingMm, double);
+  vtkGetMacro(GlyphSpacingMm, double);
+  vtkSetMacro(GlyphScale, double);
+  vtkGetMacro(GlyphScale, double);
   vtkSetMacro(GlyphThresholdMax, double);
   vtkGetMacro(GlyphThresholdMax, double);
   vtkSetMacro(GlyphThresholdMin, double);
@@ -104,12 +105,12 @@ class VTK_MRML_EXPORT vtkMRMLTransformDisplayNode : public vtkMRMLDisplayNode
   vtkGetMacro(GlyphArrowScaleDirectional, bool);
   vtkSetMacro(GlyphArrowScaleIsotropic, bool);
   vtkGetMacro(GlyphArrowScaleIsotropic, bool);
-  vtkSetMacro(GlyphArrowTipLength, float);
-  vtkGetMacro(GlyphArrowTipLength, float);
-  vtkSetMacro(GlyphArrowTipRadius, float);
-  vtkGetMacro(GlyphArrowTipRadius, float);
-  vtkSetMacro(GlyphArrowShaftRadius, float);
-  vtkGetMacro(GlyphArrowShaftRadius, float);
+  vtkSetMacro(GlyphArrowTipLength, double);
+  vtkGetMacro(GlyphArrowTipLength, double);
+  vtkSetMacro(GlyphArrowTipRadius, double);
+  vtkGetMacro(GlyphArrowTipRadius, double);
+  vtkSetMacro(GlyphArrowShaftRadius, double);
+  vtkGetMacro(GlyphArrowShaftRadius, double);
   vtkSetMacro(GlyphArrowResolution, int);
   vtkGetMacro(GlyphArrowResolution, int);
   // Cone Parameters
@@ -117,52 +118,28 @@ class VTK_MRML_EXPORT vtkMRMLTransformDisplayNode : public vtkMRMLDisplayNode
   vtkGetMacro(GlyphConeScaleDirectional, bool);
   vtkSetMacro(GlyphConeScaleIsotropic, bool);
   vtkGetMacro(GlyphConeScaleIsotropic, bool);
-  vtkSetMacro(GlyphConeHeight, float);
-  vtkGetMacro(GlyphConeHeight, float);
-  vtkSetMacro(GlyphConeRadius, float);
-  vtkGetMacro(GlyphConeRadius, float);
+  vtkSetMacro(GlyphConeHeight, double);
+  vtkGetMacro(GlyphConeHeight, double);
+  vtkSetMacro(GlyphConeRadius, double);
+  vtkGetMacro(GlyphConeRadius, double);
   vtkSetMacro(GlyphConeResolution, int);
   vtkGetMacro(GlyphConeResolution, int);
   // Sphere Parameters
-  vtkSetMacro(GlyphSphereResolution, float);
-  vtkGetMacro(GlyphSphereResolution, float);
+  vtkSetMacro(GlyphSphereResolution, int);
+  vtkGetMacro(GlyphSphereResolution, int);
 
   // Grid Parameters
-  vtkSetMacro(GridScale, float);
-  vtkGetMacro(GridScale, float);
-  vtkSetMacro(GridSpacingMM, int);
-  vtkGetMacro(GridSpacingMM, int);
-
-  // Block Parameters
-  vtkSetMacro(BlockScale, float);
-  vtkGetMacro(BlockScale, float);
-  vtkSetMacro(BlockDisplacementCheck, int);
-  vtkGetMacro(BlockDisplacementCheck, int);
+  vtkSetMacro(GridScale, double);
+  vtkGetMacro(GridScale, double);
+  vtkSetMacro(GridSpacingMm, double);
+  vtkGetMacro(GridSpacingMm, double);
 
   // Contour Parameters
   unsigned int GetNumberOfContourValues();
   void SetContourValues(double*, int size);
   double* GetContourValues();
-  vtkSetMacro(ContourDecimation, float);
-  vtkGetMacro(ContourDecimation, float);
-
-  // Glyph Slice Parameters
-  vtkSetMacro(GlyphSlicePointMax, int);
-  vtkGetMacro(GlyphSlicePointMax, int);
-  vtkSetMacro(GlyphSliceThresholdMax, double);
-  vtkGetMacro(GlyphSliceThresholdMax, double);
-  vtkSetMacro(GlyphSliceThresholdMin, double);
-  vtkGetMacro(GlyphSliceThresholdMin, double);
-  vtkSetMacro(GlyphSliceScale, float);
-  vtkGetMacro(GlyphSliceScale, float);
-  vtkSetMacro(GlyphSliceSeed, int);
-  vtkGetMacro(GlyphSliceSeed, int);
-
-  //Grid Slice Parameters
-  vtkSetMacro(GridSliceScale, float);
-  vtkGetMacro(GridSliceScale, float);
-  vtkSetMacro(GridSliceSpacingMM, int);
-  vtkGetMacro(GridSliceSpacingMM, int);
+  vtkSetMacro(ContourDecimation, double);
+  vtkGetMacro(ContourDecimation, double);
 
 //Parameters
 protected:
@@ -172,52 +149,38 @@ protected:
   unsigned int VisualizationMode;
 
   // Glyph Parameters
-  int GlyphPointMax;
-  float GlyphScale;
+  double GlyphSpacingMm;
+  double GlyphScale;
   double GlyphThresholdMax;
   double GlyphThresholdMin;
+  int GlyphPointMax;
   int GlyphSeed;
   int GlyphSourceOption; //0 - Arrow, 1 - Cone, 2 - Sphere
   // Arrow Parameters
   bool GlyphArrowScaleDirectional;
   bool GlyphArrowScaleIsotropic;
-  float GlyphArrowTipLength;
-  float GlyphArrowTipRadius;
-  float GlyphArrowShaftRadius;
+  double GlyphArrowTipLength;
+  double GlyphArrowTipRadius;
+  double GlyphArrowShaftRadius;
   int GlyphArrowResolution;
 
   // Cone Parameters
   bool GlyphConeScaleDirectional;
   bool GlyphConeScaleIsotropic;
-  float GlyphConeHeight;
-  float GlyphConeRadius;
+  double GlyphConeHeight;
+  double GlyphConeRadius;
   int GlyphConeResolution;
 
   // Sphere Parameters
-  float GlyphSphereResolution;
+  int GlyphSphereResolution;
 
   // Grid Parameters
-  float GridScale;
-  int GridSpacingMM;
-
-  // Block Parameters
-  float BlockScale;
-  int BlockDisplacementCheck;
+  double GridScale;
+  double GridSpacingMm;
 
   // Contour Parameters
   std::vector<double> ContourValues;
-  float ContourDecimation;
-
-  // Glyph Slice Parameters
-  int GlyphSlicePointMax;
-  double GlyphSliceThresholdMax;
-  double GlyphSliceThresholdMin;
-  float GlyphSliceScale;
-  int GlyphSliceSeed;
-
-  // Grid Slice Parameters
-  float GridSliceScale;
-  int GridSliceSpacingMM;
+  double ContourDecimation;
 
  protected:
   vtkMRMLTransformDisplayNode ( );

@@ -42,10 +42,11 @@ vtkMRMLTransformDisplayNode::vtkMRMLTransformDisplayNode()
   this->VisualizationMode=0;
 
   //Glyph Parameters
-  this->GlyphPointMax = 2000;
+  this->GlyphSpacingMm = 1;
   this->GlyphScale = 1;
   this->GlyphThresholdMax = 1000;
   this->GlyphThresholdMin = 0;
+  this->GlyphPointMax = 2000;
   this->GlyphSeed = 687848400;
   this->GlyphSourceOption = 0;
   //Arrow Parameters
@@ -66,11 +67,7 @@ vtkMRMLTransformDisplayNode::vtkMRMLTransformDisplayNode()
 
   //Grid Parameters
   this->GridScale = 1;
-  this->GridSpacingMM = 12;
-
-  //Block Parameters
-  this->BlockScale = 1;
-  this->BlockDisplacementCheck = 0;
+  this->GridSpacingMm = 12;
 
   //Contour Parameters
   this->ContourValues.clear();
@@ -79,17 +76,6 @@ vtkMRMLTransformDisplayNode::vtkMRMLTransformDisplayNode()
   this->ContourValues.push_back(3);
   this->ContourValues.push_back(4);
   this->ContourDecimation = 0.25;
-
-  //Glyph Slice Parameters
-  this->GlyphSlicePointMax = 6000;
-  this->GlyphSliceThresholdMax = 1000;
-  this->GlyphSliceThresholdMin = 0;
-  this->GlyphSliceScale = 1;
-  this->GlyphSliceSeed = 687848400;
-
-  //Grid Slice Parameters
-  this->GridSliceScale = 1;
-  this->GridSliceSpacingMM = 12;
 }
 
 
@@ -110,8 +96,8 @@ void vtkMRMLTransformDisplayNode::WriteXML(ostream& of, int nIndent)
   of << indent << " Show3dGlyph=\""<< (this->VisualizationMode&VIS_MODE_3D_GLYPH?1:0) << "\"";
   of << indent << " Show3dGrid=\""<< (this->VisualizationMode&VIS_MODE_3D_GRID?1:0) << "\"";
   of << indent << " Show3dContour=\""<< (this->VisualizationMode&VIS_MODE_3D_CONTOUR?1:0) << "\"";
-  of << indent << " Show3dBlock=\""<< (this->VisualizationMode&VIS_MODE_3D_BLOCK?1:0) << "\"";
 
+  of << indent << " GlyphSpacingMm=\""<< this->GlyphSpacingMm << "\"";
   of << indent << " GlyphPointMax=\""<< this->GlyphPointMax << "\"";
   of << indent << " GlyphScale=\""<< this->GlyphScale << "\"";
   of << indent << " GlyphThresholdMax=\""<< this->GlyphThresholdMax << "\"";
@@ -132,10 +118,7 @@ void vtkMRMLTransformDisplayNode::WriteXML(ostream& of, int nIndent)
     of << indent << " GlyphSphereResolution=\"" << this->GlyphSphereResolution << "\"";
 
   of << indent << " GridScale=\""<< this->GridScale << "\"";
-  of << indent << " GridSpacingMM=\""<< this->GridSpacingMM << "\"";
-
-  of << indent << " BlockScale=\""<< this->BlockScale << "\"";
-  of << indent << " BlockDisplacementCheck=\""<< this->BlockDisplacementCheck << "\"";
+  of << indent << " GridSpacingMm=\""<< this->GridSpacingMm << "\"";
 
   of << indent << " ContourValues=\"";
   for (int i=0; i<this->ContourValues.size(); i++)
@@ -148,15 +131,6 @@ void vtkMRMLTransformDisplayNode::WriteXML(ostream& of, int nIndent)
   }
   of << "\"";
   of << indent << " ContourDecimation=\""<< this->ContourDecimation << "\"";
-
-  of << indent << " GlyphSlicePointMax=\""<< this->GlyphSlicePointMax << "\"";
-  of << indent << " GlyphSliceThresholdMax=\""<< this->GlyphSliceThresholdMax << "\"";
-  of << indent << " GlyphSliceThresholdMin=\""<< this->GlyphSliceThresholdMin << "\"";
-  of << indent << " GlyphSliceScale=\""<< this->GlyphSliceScale << "\"";
-  of << indent << " GlyphSliceSeed=\""<< this->GlyphSliceSeed << "\"";
-
-  of << indent << " GridSliceScale=\""<< this->GridSliceScale << "\"";
-  of << indent << " GridSliceSpacingMM=\""<< this->GridSliceSpacingMM << "\"";
 }
 
 
@@ -172,7 +146,12 @@ void vtkMRMLTransformDisplayNode::ReadXMLAttributes(const char** atts)
   while (*atts != NULL){
     attName = *(atts++);
     attValue = *(atts++);
-
+    if (!strcmp(attName,"GlyphSpacingMm")){
+      std::stringstream ss;
+      ss << attValue;
+      ss >> this->GridSpacingMm;
+      continue;
+    }
     if (!strcmp(attName,"GlyphPointMax")){
       std::stringstream ss;
       ss << attValue;
@@ -290,25 +269,13 @@ void vtkMRMLTransformDisplayNode::ReadXMLAttributes(const char** atts)
       ss >> this->GridScale;
       continue;
     }
-    if (!strcmp(attName,"GridSpacingMM")){
+    if (!strcmp(attName,"GridSpacingMm")){
       std::stringstream ss;
       ss << attValue;
-      ss >> this->GridSpacingMM;
+      ss >> this->GridSpacingMm;
       continue;
     }
 
-    if (!strcmp(attName,"BlockScale")){
-      std::stringstream ss;
-      ss << attValue;
-      ss >> this->BlockScale;
-      continue;
-    }
-    if (!strcmp(attName,"BlockDisplacementCheck")){
-      std::stringstream ss;
-      ss << attValue;
-      ss >> this->BlockDisplacementCheck;
-      continue;
-    }
     if (!strcmp(attName,"ContourValues")){
       std::stringstream ss(attValue);
       std::string itemString;
@@ -330,50 +297,6 @@ void vtkMRMLTransformDisplayNode::ReadXMLAttributes(const char** atts)
       ss >> this->ContourDecimation;
       continue;
     }
-
-    if (!strcmp(attName,"GlyphSlicePointMax")){
-      std::stringstream ss;
-      ss << attValue;
-      ss >> this->GlyphSlicePointMax;
-      continue;
-    }
-    if (!strcmp(attName,"GlyphSliceThresholdMax")){
-      std::stringstream ss;
-      ss << attValue;
-      ss >> this->GlyphSliceThresholdMax;
-      continue;
-    }
-    if (!strcmp(attName,"GlyphSliceThresholdMin")){
-      std::stringstream ss;
-      ss << attValue;
-      ss >> this->GlyphSliceThresholdMin;
-      continue;
-    }
-    if (!strcmp(attName,"GlyphSliceScale")){
-      std::stringstream ss;
-      ss << attValue;
-      ss >> this->GlyphSliceScale;
-      continue;
-    }
-    if (!strcmp(attName,"GlyphSliceSeed")){
-      std::stringstream ss;
-      ss << attValue;
-      ss >> this->GlyphSliceSeed;
-      continue;
-    }
-
-    if (!strcmp(attName,"GridSliceScale")){
-      std::stringstream ss;
-      ss << attValue;
-      ss >> this->GridSliceScale;
-      continue;
-    }
-    if (!strcmp(attName,"GridSliceSpacingMM")){
-      std::stringstream ss;
-      ss << attValue;
-      ss >> this->GridSliceSpacingMM;
-      continue;
-    }
   }
 
   this->EndModify(disabledModify);
@@ -393,6 +316,7 @@ void vtkMRMLTransformDisplayNode::Copy(vtkMRMLNode *anode)
 
   this->VisualizationMode = node->VisualizationMode;
 
+  this->GlyphSpacingMm = node->GlyphSpacingMm;
   this->GlyphPointMax = node->GlyphPointMax;
   this->GlyphThresholdMax = node->GlyphThresholdMax;
   this->GlyphThresholdMin = node->GlyphThresholdMin;
@@ -412,22 +336,10 @@ void vtkMRMLTransformDisplayNode::Copy(vtkMRMLNode *anode)
   this->GlyphSphereResolution = node->GlyphSphereResolution;
 
   this->GridScale = node->GridScale;
-  this->GridSpacingMM = node->GridSpacingMM;
-
-  this->BlockScale = node->BlockScale;
-  this->BlockDisplacementCheck = node->BlockDisplacementCheck;
+  this->GridSpacingMm = node->GridSpacingMm;
 
   this->ContourValues = node->ContourValues;
   this->ContourDecimation = node->ContourDecimation;
-
-  this->GlyphSlicePointMax = node->GlyphSlicePointMax;
-  this->GlyphSliceThresholdMax = node->GlyphSliceThresholdMax;
-  this->GlyphSliceThresholdMin = node->GlyphSliceThresholdMin;
-  this->GlyphSliceScale = node->GlyphSliceScale;
-  this->GlyphSliceSeed = node->GlyphSliceSeed;
-
-  this->GridSliceScale = node->GridSliceScale;
-  this->GridSliceSpacingMM = node->GridSliceSpacingMM;
 
   this->EndModify(disabledModify);
 }
@@ -439,7 +351,7 @@ void vtkMRMLTransformDisplayNode::PrintSelf(ostream& os, vtkIndent indent)
 
   vtkIndent nextIndent=indent.GetNextIndent();
 
-
+  os << indent << " GlyphSpacingMm = "<< this->GlyphSpacingMm << "\n";
   os << indent << " GlyphPointMax = "<< this->GlyphPointMax << "\n";
   os << indent << " GlyphScale = "<< this->GlyphScale << "\n";
   os << indent << " GlyphThresholdMax = "<< this->GlyphThresholdMax << "\n";
@@ -460,10 +372,7 @@ void vtkMRMLTransformDisplayNode::PrintSelf(ostream& os, vtkIndent indent)
   os << nextIndent << "GlyphSphereResolution = " << this->GlyphSphereResolution << "\n";
 
   os << indent << " GridScale = "<< this->GridScale << "\n";
-  os << indent << " GridSpacingMM = "<< this->GridSpacingMM << "\n";
-
-  os << indent << " BlockScale = "<< this->BlockScale << "\n";
-  os << indent << " BlockDisplacementCheck = "<< this->BlockDisplacementCheck << "\n";
+  os << indent << " GridSpacingMm = "<< this->GridSpacingMm << "\n";
 
   os << indent << " ContourValues = \"";
   for (int i=0; i<this->ContourValues.size(); i++)
@@ -478,14 +387,6 @@ void vtkMRMLTransformDisplayNode::PrintSelf(ostream& os, vtkIndent indent)
 
   os << indent << " ContourDecimation = "<< this->ContourDecimation << "\n";
 
-  os << indent << " GlyphSlicePointMax = "<< this->GlyphSlicePointMax << "\n";
-  os << indent << " GlyphSliceThresholdMax = "<< this->GlyphSliceThresholdMax << "\n";
-  os << indent << " GlyphSliceThresholdMin = "<< this->GlyphSliceThresholdMin << "\n";
-  os << indent << " GlyphSliceScale = "<< this->GlyphSliceScale << "\n";
-  os << indent << " GlyphSliceSeed = "<< this->GlyphSliceSeed << "\n";
-
-  os << indent << " GridSliceScale = "<< this->GridSliceScale << "\n";
-  os << indent << " GridSliceSpacingMM = "<< this->GridSliceSpacingMM << "\n";
 }
 
 //---------------------------------------------------------------------------
