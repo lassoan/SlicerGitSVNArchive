@@ -29,10 +29,7 @@ Version:   $Revision: 1.3 $
 
 #include <sstream>
 
-const char InputReferenceRole[]="inputNode";
 const char ReferenceVolumeReferenceRole[] = "referenceVolume";
-const char OutputModelReferenceRole[] = "outputModel";
-
 
 //------------------------------------------------------------------------------
 vtkMRMLNodeNewMacro(vtkMRMLTransformDisplayNode);
