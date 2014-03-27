@@ -185,10 +185,18 @@ void qSlicerTransformsModuleWidget::onNodeSelected(vtkMRMLNode* node)
 
   // Enable/Disable CoordinateReference, identity buttons, MatrixViewGroupBox,
   // Min/Max translation inputs
+
+  d->InvertPushButton->setEnabled(transformNode != 0);
+
   d->CoordinateReferenceGroupBox->setEnabled(linearTransformNode != 0);
   d->IdentityPushButton->setEnabled(linearTransformNode != 0);
-  d->InvertPushButton->setEnabled(transformNode != 0);
   d->MatrixViewGroupBox->setEnabled(linearTransformNode != 0);
+
+  d->CoordinateReferenceGroupBox->setVisible(linearTransformNode != 0);
+  d->IdentityPushButton->setVisible(linearTransformNode != 0);
+  d->MatrixViewGroupBox->setVisible(linearTransformNode != 0);
+  d->TranslationSliders->setVisible(linearTransformNode != 0);
+  d->RotationSliders->setVisible(linearTransformNode != 0);
 
   QStringList nodeTypes;
   // If no transform node, it would show the entire scene, lets shown none

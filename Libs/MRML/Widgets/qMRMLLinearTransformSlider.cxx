@@ -113,7 +113,7 @@ qMRMLLinearTransformSlider::CoordinateReferenceType qMRMLLinearTransformSlider::
 void qMRMLLinearTransformSlider::setMRMLTransformNode(vtkMRMLLinearTransformNode* transformNode)
 {
   Q_D(qMRMLLinearTransformSlider);
-  
+
   if (d->MRMLTransformNode == transformNode) { return; }
 
   this->qvtkReconnect(d->MRMLTransformNode, transformNode,
@@ -192,6 +192,9 @@ void qMRMLLinearTransformSlider::onMRMLTransformNodeModified(vtkObject* caller)
 void qMRMLLinearTransformSlider::applyTransformation(double _sliderPosition)
 {
   Q_D(qMRMLLinearTransformSlider);
+
+  if (d->MRMLTransformNode == NULL) { return; }
+
   vtkNew<vtkTransform> transform;
   qMRMLUtils::getTransformInCoordinateSystem(d->MRMLTransformNode,
     d->CoordinateReference == qMRMLLinearTransformSlider::GLOBAL, transform.GetPointer());

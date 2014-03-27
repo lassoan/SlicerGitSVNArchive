@@ -40,6 +40,9 @@
       <widget class="qMRMLNodeComboBox" name="TransformNodeSelector">
        <property name="nodeTypes">
         <stringlist>
+         <string>vtkMRMLLinearTransformNode</string>
+         <string>vtkMRMLBSplineTransformNode</string>
+         <string>vtkMRMLGridTransformNode</string>
          <string>vtkMRMLTransformNode</string>
         </stringlist>
        </property>
@@ -146,6 +149,39 @@
          <number>2</number>
         </property>
         <item>
+         <widget class="QPushButton" name="IdentityPushButton">
+          <property name="enabled">
+           <bool>false</bool>
+          </property>
+          <property name="text">
+           <string>Identity</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="InvertPushButton">
+          <property name="enabled">
+           <bool>false</bool>
+          </property>
+          <property name="text">
+           <string>Invert</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <spacer name="horizontalSpacer">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>40</width>
+            <height>20</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+        <item>
          <widget class="QGroupBox" name="CoordinateReferenceGroupBox">
           <property name="enabled">
            <bool>false</bool>
@@ -172,39 +208,6 @@
             </widget>
            </item>
           </layout>
-         </widget>
-        </item>
-        <item>
-         <spacer name="horizontalSpacer">
-          <property name="orientation">
-           <enum>Qt::Horizontal</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>40</width>
-            <height>20</height>
-           </size>
-          </property>
-         </spacer>
-        </item>
-        <item>
-         <widget class="QPushButton" name="IdentityPushButton">
-          <property name="enabled">
-           <bool>false</bool>
-          </property>
-          <property name="text">
-           <string>Identity</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QPushButton" name="InvertPushButton">
-          <property name="enabled">
-           <bool>false</bool>
-          </property>
-          <property name="text">
-           <string>Invert</string>
-          </property>
          </widget>
         </item>
        </layout>
@@ -537,86 +540,6 @@
     <hint type="destinationlabel">
      <x>79</x>
      <y>430</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>TransformNodeSelector</sender>
-   <signal>currentNodeChanged(bool)</signal>
-   <receiver>MatrixViewGroupBox</receiver>
-   <slot>setEnabled(bool)</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>313</x>
-     <y>20</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>128</x>
-     <y>138</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>TransformNodeSelector</sender>
-   <signal>currentNodeChanged(bool)</signal>
-   <receiver>TranslationSliders</receiver>
-   <slot>setEnabled(bool)</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>389</x>
-     <y>20</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>223</x>
-     <y>265</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>TransformNodeSelector</sender>
-   <signal>currentNodeChanged(bool)</signal>
-   <receiver>RotationSliders</receiver>
-   <slot>setEnabled(bool)</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>389</x>
-     <y>20</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>289</x>
-     <y>430</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>TransformNodeSelector</sender>
-   <signal>currentNodeChanged(bool)</signal>
-   <receiver>CoordinateReferenceGroupBox</receiver>
-   <slot>setEnabled(bool)</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>389</x>
-     <y>20</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>134</x>
-     <y>487</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>TransformNodeSelector</sender>
-   <signal>currentNodeChanged(bool)</signal>
-   <receiver>IdentityPushButton</receiver>
-   <slot>setEnabled(bool)</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>389</x>
-     <y>20</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>303</x>
-     <y>473</y>
     </hint>
    </hints>
   </connection>
