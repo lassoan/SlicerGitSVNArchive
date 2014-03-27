@@ -9,14 +9,14 @@ set(${KIT}_SRCS
   qSlicer${MODULE_NAME}ModuleWidgetsPlugin.cxx
   qSlicer${MODULE_NAME}ModuleWidgetsPlugin.h
 
-  qMRML${MODULE_NAME}FiducialProjectionPropertyWidgetPlugin.cxx
-  qMRML${MODULE_NAME}FiducialProjectionPropertyWidgetPlugin.h
+  qMRMLTransformDisplayNodeWidgetPlugin.cxx
+  qMRMLTransformDisplayNodeWidgetPlugin.h
   )
 
 set(${KIT}_MOC_SRCS
   qSlicer${MODULE_NAME}ModuleWidgetsPlugin.h
 
-  qMRML${MODULE_NAME}FiducialProjectionPropertyWidgetPlugin.h
+  qMRMLTransformDisplayNodeWidgetPlugin.h
   )
 
 set(${KIT}_TARGET_LIBRARIES

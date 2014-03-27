@@ -52,7 +52,7 @@ public:
   static QList<vtkSmartPointer<vtkMRMLTransformableNode> > getSelectedNodes(qMRMLTreeView* tree);
   vtkSlicerTransformLogic*      logic()const;
   QButtonGroup*                 CoordinateReferenceButtonGroup;
-  vtkMRMLLinearTransformNode*   MRMLTransformNode;
+  vtkMRMLTransformNode*   MRMLTransformNode;
 };
 
 //-----------------------------------------------------------------------------
@@ -180,14 +180,15 @@ void qSlicerTransformsModuleWidget::onNodeSelected(vtkMRMLNode* node)
 {
   Q_D(qSlicerTransformsModuleWidget);
 
-  vtkMRMLLinearTransformNode* transformNode = vtkMRMLLinearTransformNode::SafeDownCast(node);
+  vtkMRMLTransformNode* transformNode = vtkMRMLTransformNode::SafeDownCast(node);
+  vtkMRMLLinearTransformNode* linearTransformNode = vtkMRMLLinearTransformNode::SafeDownCast(node);
 
   // Enable/Disable CoordinateReference, identity buttons, MatrixViewGroupBox,
   // Min/Max translation inputs
-  d->CoordinateReferenceGroupBox->setEnabled(transformNode != 0);
-  d->IdentityPushButton->setEnabled(transformNode != 0);
+  d->CoordinateReferenceGroupBox->setEnabled(linearTransformNode != 0);
+  d->IdentityPushButton->setEnabled(linearTransformNode != 0);
   d->InvertPushButton->setEnabled(transformNode != 0);
-  d->MatrixViewGroupBox->setEnabled(transformNode != 0);
+  d->MatrixViewGroupBox->setEnabled(linearTransformNode != 0);
 
   QStringList nodeTypes;
   // If no transform node, it would show the entire scene, lets shown none
@@ -217,7 +218,8 @@ void qSlicerTransformsModuleWidget::identity()
 {
   Q_D(qSlicerTransformsModuleWidget);
 
-  if (!d->MRMLTransformNode)
+  vtkMRMLLinearTransformNode* linearTransformNode=vtkMRMLLinearTransformNode::SafeDownCast(d->MRMLTransformNode);
+  if (!linearTransformNode)
     {
     return;
     }
@@ -226,7 +228,7 @@ void qSlicerTransformsModuleWidget::identity()
   d->RotationSliders->resetUnactiveSliders();
 
   vtkNew<vtkMatrix4x4> matrix; // initialized to identity by default
-  d->MRMLTransformNode->SetMatrixTransformToParent(matrix.GetPointer());
+  linearTransformNode->SetMatrixTransformToParent(matrix.GetPointer());
 }
 
 //-----------------------------------------------------------------------------

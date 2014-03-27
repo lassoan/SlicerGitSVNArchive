@@ -10,24 +10,23 @@ set(${KIT}_INCLUDE_DIRECTORIES
   )
 
 set(${KIT}_SRCS
-  qMRML${MODULE_NAME}FiducialProjectionPropertyWidget.cxx
-  qMRML${MODULE_NAME}FiducialProjectionPropertyWidget.h
+  qMRMLTransformDisplayNodeWidget.cxx
+  qMRMLTransformDisplayNodeWidget.h
   )
 
 set(${KIT}_MOC_SRCS
-  qMRML${MODULE_NAME}FiducialProjectionPropertyWidget.h
+  qMRMLTransformDisplayNodeWidget.h
   )
 
 set(${KIT}_UI_SRCS
-  Resources/UI/qMRML${MODULE_NAME}FiducialProjectionPropertyWidget.ui
+  Resources/UI/qMRMLTransformDisplayNodeWidget.ui
   )
 
 set(${KIT}_RESOURCES
+  Resources/qSlicer${MODULE_NAME}ModuleWidgets.qrc
   )
 
 set(${KIT}_TARGET_LIBRARIES
-  vtkSlicer${MODULE_NAME}ModuleMRML
-  #vtkSlicer${MODULE_NAME}ModuleLogic
   )
 
 #-----------------------------------------------------------------------------

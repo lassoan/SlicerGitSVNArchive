@@ -6,7 +6,7 @@
   or http://www.slicer.org/copyright/copyright.txt for details.
 
   Program:   3D Slicer
-  Module:    $RCSfile: vtkMRMLFiberBundleGlyphDisplayNode.h,v $
+  Module:    $RCSfile: vtkMRMLTransformDisplayNode.h,v $
   Date:      $Date: 2006/03/19 17:12:28 $
   Version:   $Revision: 1.6 $
 
@@ -15,27 +15,37 @@
 #ifndef __vtkMRMLTransformDisplayNode_h
 #define __vtkMRMLTransformDisplayNode_h
 
-#include "vtkSlicerTransformsModuleMRMLExport.h "
 #include "vtkMRMLDisplayNode.h"
 
 class vtkMRMLVolumeNode;
 
-class vtkDiffusionTensorGlyph;
-class vtkMatrix4x4;
-class vtkPolyData;
-
-/// \brief MRML node to represent display properties for transforms visualization in the slice viewers.
+/// \brief MRML node to represent display properties for transforms visualization in the slice and 3D viewers.
 ///
-/// vtkMRMLTransformDisplayNode nodes store display properties of trajectories
-/// from tractography in diffusion MRI data, including color type (by bundle, by fiber,
-/// or by scalar invariants), display on/off for tensor glyphs and display of
-/// trajectory as a line or tube.
-class VTK_SLICER_TRANSFORMS_MODULE_MRML_EXPORT vtkMRMLTransformDisplayNode : public vtkMRMLDisplayNode
+/// vtkMRMLTransformDisplayNode nodes store display properties of transforms.
+class VTK_MRML_EXPORT vtkMRMLTransformDisplayNode : public vtkMRMLDisplayNode
 {
  public:
   static vtkMRMLTransformDisplayNode *New (  );
   vtkTypeMacro ( vtkMRMLTransformDisplayNode,vtkMRMLDisplayNode );
   void PrintSelf ( ostream& os, vtkIndent indent );
+
+  enum VisualizationModes
+  {
+    VIS_MODE_2D_GLYPH=1,
+    VIS_MODE_2D_GRID=2,
+    VIS_MODE_2D_CONTOUR=4,
+    VIS_MODE_3D_GLYPH=8,
+    VIS_MODE_3D_GRID=16,
+    VIS_MODE_3D_CONTOUR=32,
+    VIS_MODE_3D_BLOCK=64
+  };
+
+  enum GlyphSources
+  {
+    GLYPH_ARROW_3D = 0,
+    GLYPH_CONE_3D,
+    GLYPH_SPHERE_3D,
+  };
 
   //--------------------------------------------------------------------------
   /// MRMLNode methods
@@ -70,14 +80,11 @@ class VTK_SLICER_TRANSFORMS_MODULE_MRML_EXPORT vtkMRMLTransformDisplayNode : pub
   /// Display options
   //--------------------------------------------------------------------------
 
-  vtkMRMLNode* GetInputNode();
-  void SetAndObserveInputNode(vtkMRMLNode* node);
-
   vtkMRMLVolumeNode* GetReferenceVolumeNode();
   void SetAndObserveReferenceVolumeNode(vtkMRMLNode* node);
 
-  vtkMRMLNode* GetOutputModelNode();
-  void SetAndObserveOutputModelNode(vtkMRMLNode* node);
+  vtkSetMacro(VisualizationMode, unsigned int);
+  vtkGetMacro(VisualizationMode, unsigned int);
 
   // Glyph Parameters
   vtkSetMacro(GlyphPointMax, int);
@@ -133,8 +140,7 @@ class VTK_SLICER_TRANSFORMS_MODULE_MRML_EXPORT vtkMRMLTransformDisplayNode : pub
   vtkGetMacro(BlockDisplacementCheck, int);
 
   // Contour Parameters
-  vtkSetMacro(ContourNumber, int);
-  vtkGetMacro(ContourNumber, int);
+  unsigned int GetNumberOfContourValues();
   void SetContourValues(double*, int size);
   double* GetContourValues();
   vtkSetMacro(ContourDecimation, float);
@@ -160,6 +166,10 @@ class VTK_SLICER_TRANSFORMS_MODULE_MRML_EXPORT vtkMRMLTransformDisplayNode : pub
 
 //Parameters
 protected:
+
+  // Bitfield specifying which visualization modes are enabled.
+  // Bits are specified by the VisualizationModes enum.
+  unsigned int VisualizationMode;
 
   // Glyph Parameters
   int GlyphPointMax;
@@ -195,8 +205,7 @@ protected:
   int BlockDisplacementCheck;
 
   // Contour Parameters
-  int ContourNumber;
-  double* ContourValues;
+  std::vector<double> ContourValues;
   float ContourDecimation;
 
   // Glyph Slice Parameters

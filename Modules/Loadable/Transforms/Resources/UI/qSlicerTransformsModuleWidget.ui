@@ -59,7 +59,7 @@
       </sizepolicy>
      </property>
      <property name="text">
-      <string>Display &amp;&amp; Edit</string>
+      <string>Edit</string>
      </property>
      <property name="contentsLineWidth">
       <number>0</number>
@@ -213,6 +213,21 @@
     </widget>
    </item>
    <item>
+    <widget class="ctkCollapsibleButton" name="CollapsibleButton">
+     <property name="text">
+      <string>Display</string>
+     </property>
+     <property name="checked">
+      <bool>false</bool>
+     </property>
+     <layout class="QVBoxLayout" name="verticalLayout_4">
+      <item>
+       <widget class="qMRMLTransformDisplayNodeWidget" name="TransformDisplayNodeWidget"/>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
     <widget class="ctkCollapsibleButton" name="TransformedCollapsibleButton">
      <property name="sizePolicy">
       <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
@@ -361,6 +376,7 @@
    <class>qMRMLNodeComboBox</class>
    <extends>QWidget</extends>
    <header>qMRMLNodeComboBox.h</header>
+   <container>1</container>
   </customwidget>
   <customwidget>
    <class>qMRMLTransformSliders</class>
@@ -374,10 +390,21 @@
    <header>qMRMLTreeView.h</header>
   </customwidget>
   <customwidget>
+   <class>qMRMLWidget</class>
+   <extends>QWidget</extends>
+   <header>qMRMLWidget.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
    <class>qSlicerWidget</class>
    <extends>QWidget</extends>
    <header>qSlicerWidget.h</header>
    <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>qMRMLTransformDisplayNodeWidget</class>
+   <extends>qMRMLWidget</extends>
+   <header>qMRMLTransformDisplayNodeWidget.h</header>
   </customwidget>
   <customwidget>
    <class>ctkCollapsibleButton</class>
@@ -412,8 +439,8 @@
      <y>502</y>
     </hint>
     <hint type="destinationlabel">
-     <x>199</x>
-     <y>816</y>
+     <x>177</x>
+     <y>789</y>
     </hint>
    </hints>
   </connection>
@@ -428,8 +455,8 @@
      <y>501</y>
     </hint>
     <hint type="destinationlabel">
-     <x>553</x>
-     <y>816</y>
+     <x>381</x>
+     <y>789</y>
     </hint>
    </hints>
   </connection>
@@ -444,8 +471,8 @@
      <y>6</y>
     </hint>
     <hint type="destinationlabel">
-     <x>349</x>
-     <y>90</y>
+     <x>389</x>
+     <y>20</y>
     </hint>
    </hints>
   </connection>
@@ -456,12 +483,12 @@
    <slot>setMRMLTransformNode(vtkMRMLNode*)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>244</x>
-     <y>90</y>
+     <x>336</x>
+     <y>20</y>
     </hint>
     <hint type="destinationlabel">
-     <x>154</x>
-     <y>318</y>
+     <x>163</x>
+     <y>315</y>
     </hint>
    </hints>
   </connection>
@@ -472,8 +499,8 @@
    <slot>setMRMLTransformNode(vtkMRMLNode*)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>420</x>
-     <y>90</y>
+     <x>389</x>
+     <y>20</y>
     </hint>
     <hint type="destinationlabel">
      <x>341</x>
@@ -488,12 +515,12 @@
    <slot>setMRMLTransformNode(vtkMRMLNode*)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>273</x>
-     <y>90</y>
+     <x>365</x>
+     <y>20</y>
     </hint>
     <hint type="destinationlabel">
-     <x>200</x>
-     <y>197</y>
+     <x>212</x>
+     <y>171</y>
     </hint>
    </hints>
   </connection>
@@ -520,8 +547,8 @@
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>221</x>
-     <y>90</y>
+     <x>313</x>
+     <y>20</y>
     </hint>
     <hint type="destinationlabel">
      <x>128</x>
@@ -536,8 +563,8 @@
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>313</x>
-     <y>90</y>
+     <x>389</x>
+     <y>20</y>
     </hint>
     <hint type="destinationlabel">
      <x>223</x>
@@ -552,8 +579,8 @@
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>325</x>
-     <y>90</y>
+     <x>389</x>
+     <y>20</y>
     </hint>
     <hint type="destinationlabel">
      <x>289</x>
@@ -568,12 +595,12 @@
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>332</x>
-     <y>90</y>
+     <x>389</x>
+     <y>20</y>
     </hint>
     <hint type="destinationlabel">
      <x>134</x>
-     <y>557</y>
+     <y>487</y>
     </hint>
    </hints>
   </connection>
@@ -584,12 +611,12 @@
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>449</x>
-     <y>90</y>
+     <x>389</x>
+     <y>20</y>
     </hint>
     <hint type="destinationlabel">
-     <x>475</x>
-     <y>543</y>
+     <x>303</x>
+     <y>473</y>
     </hint>
    </hints>
   </connection>
@@ -600,12 +627,12 @@
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>404</x>
-     <y>90</y>
+     <x>389</x>
+     <y>20</y>
     </hint>
     <hint type="destinationlabel">
-     <x>552</x>
-     <y>543</y>
+     <x>380</x>
+     <y>473</y>
     </hint>
    </hints>
   </connection>
@@ -616,12 +643,12 @@
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>438</x>
-     <y>80</y>
+     <x>389</x>
+     <y>20</y>
     </hint>
     <hint type="destinationlabel">
-     <x>282</x>
-     <y>684</y>
+     <x>204</x>
+     <y>646</y>
     </hint>
    </hints>
   </connection>
@@ -632,12 +659,12 @@
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>494</x>
-     <y>77</y>
+     <x>389</x>
+     <y>20</y>
     </hint>
     <hint type="destinationlabel">
-     <x>285</x>
-     <y>783</y>
+     <x>204</x>
+     <y>716</y>
     </hint>
    </hints>
   </connection>
@@ -664,12 +691,12 @@
    <slot>setDecimals(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>189</x>
-     <y>344</y>
+     <x>198</x>
+     <y>315</y>
     </hint>
     <hint type="destinationlabel">
-     <x>192</x>
-     <y>436</y>
+     <x>201</x>
+     <y>430</y>
     </hint>
    </hints>
   </connection>
@@ -680,12 +707,28 @@
    <slot>setDecimals(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>51</x>
-     <y>448</y>
+     <x>60</x>
+     <y>430</y>
     </hint>
     <hint type="destinationlabel">
      <x>60</x>
      <y>131</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>TransformNodeSelector</sender>
+   <signal>currentNodeChanged(vtkMRMLNode*)</signal>
+   <receiver>TransformDisplayNodeWidget</receiver>
+   <slot>setMRMLTransformNode(vtkMRMLNode*)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>240</x>
+     <y>10</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>195</x>
+     <y>535</y>
     </hint>
    </hints>
   </connection>

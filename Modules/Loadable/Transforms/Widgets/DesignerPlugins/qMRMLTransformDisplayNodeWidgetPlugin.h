@@ -22,19 +22,19 @@
 
 ==============================================================================*/
 
-#ifndef __qMRMLTransformsFiducialProjectionPropertyWidgetPlugin_h
-#define __qMRMLTransformsFiducialProjectionPropertyWidgetPlugin_h
+#ifndef __qMRMLTransformDisplayNodeWidgetPlugin_h
+#define __qMRMLTransformDisplayNodeWidgetPlugin_h
 
 #include "qSlicerTransformsModuleWidgetsAbstractPlugin.h"
 
 class Q_SLICER_MODULE_TRANSFORMS_WIDGETS_PLUGINS_EXPORT
-qMRMLTransformsFiducialProjectionPropertyWidgetPlugin
+qMRMLTransformDisplayNodeWidgetPlugin
   : public QObject, public qSlicerTransformsModuleWidgetsAbstractPlugin
 {
   Q_OBJECT
 
 public:
-  qMRMLTransformsFiducialProjectionPropertyWidgetPlugin(QObject *_parent = 0);
+  qMRMLTransformDisplayNodeWidgetPlugin(QObject *_parent = 0);
 
   QWidget *createWidget(QWidget *_parent);
   QString domXml() const;

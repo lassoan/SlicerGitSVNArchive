@@ -22,52 +22,52 @@
 
 ==============================================================================*/
 
-#include "qMRMLTransformsFiducialProjectionPropertyWidgetPlugin.h"
-#include "qMRMLTransformsFiducialProjectionPropertyWidget.h"
+#include "qMRMLTransformDisplayNodeWidgetPlugin.h"
+#include "qMRMLTransformDisplayNodeWidget.h"
 
 //------------------------------------------------------------------------------
-qMRMLTransformsFiducialProjectionPropertyWidgetPlugin
-::qMRMLTransformsFiducialProjectionPropertyWidgetPlugin(QObject *_parent)
+qMRMLTransformDisplayNodeWidgetPlugin
+::qMRMLTransformDisplayNodeWidgetPlugin(QObject *_parent)
   : QObject(_parent)
 {
 
 }
 
 //------------------------------------------------------------------------------
-QWidget *qMRMLTransformsFiducialProjectionPropertyWidgetPlugin
+QWidget *qMRMLTransformDisplayNodeWidgetPlugin
 ::createWidget(QWidget *_parent)
 {
-  qMRMLTransformsFiducialProjectionPropertyWidget* _widget
-    = new qMRMLTransformsFiducialProjectionPropertyWidget(_parent);
+  qMRMLTransformDisplayNodeWidget* _widget
+    = new qMRMLTransformDisplayNodeWidget(_parent);
   return _widget;
 }
 
 //------------------------------------------------------------------------------
-QString qMRMLTransformsFiducialProjectionPropertyWidgetPlugin
+QString qMRMLTransformDisplayNodeWidgetPlugin
 ::domXml() const
 {
-  return "<widget class=\"qMRMLTransformsFiducialProjectionPropertyWidget\" \
+  return "<widget class=\"qMRMLTransformDisplayNodeWidget\" \
           name=\"MRMLTransformsFiducialProjectionPropertyWidget\">\n"
           "</widget>\n";
 }
 
 //------------------------------------------------------------------------------
-QString qMRMLTransformsFiducialProjectionPropertyWidgetPlugin
+QString qMRMLTransformDisplayNodeWidgetPlugin
 ::includeFile() const
 {
-  return "qMRMLTransformsFiducialProjectionPropertyWidget.h";
+  return "qMRMLTransformDisplayNodeWidget.h";
 }
 
 //------------------------------------------------------------------------------
-bool qMRMLTransformsFiducialProjectionPropertyWidgetPlugin
+bool qMRMLTransformDisplayNodeWidgetPlugin
 ::isContainer() const
 {
   return false;
 }
 
 //------------------------------------------------------------------------------
-QString qMRMLTransformsFiducialProjectionPropertyWidgetPlugin
+QString qMRMLTransformDisplayNodeWidgetPlugin
 ::name() const
 {
-  return "qMRMLTransformsFiducialProjectionPropertyWidget";
+  return "qMRMLTransformDisplayNodeWidget";
 }

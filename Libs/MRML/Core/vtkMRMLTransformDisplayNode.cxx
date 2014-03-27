@@ -41,7 +41,10 @@ vtkMRMLNodeNewMacro(vtkMRMLTransformDisplayNode);
 vtkMRMLTransformDisplayNode::vtkMRMLTransformDisplayNode()
   :vtkMRMLDisplayNode()
 {
-    //Glyph Parameters
+
+  this->VisualizationMode=0;
+
+  //Glyph Parameters
   this->GlyphPointMax = 2000;
   this->GlyphScale = 1;
   this->GlyphThresholdMax = 1000;
@@ -73,9 +76,11 @@ vtkMRMLTransformDisplayNode::vtkMRMLTransformDisplayNode()
   this->BlockDisplacementCheck = 0;
 
   //Contour Parameters
-  this->ContourNumber = 4;
-  this->ContourValues = new double[this->ContourNumber];
-  this->ContourValues[0] = 1; this->ContourValues[1] = 2; this->ContourValues[2] = 3; this->ContourValues[3] = 4;
+  this->ContourValues.clear();
+  this->ContourValues.push_back(1);
+  this->ContourValues.push_back(2);
+  this->ContourValues.push_back(3);
+  this->ContourValues.push_back(4);
   this->ContourDecimation = 0.25;
 
   //Glyph Slice Parameters
@@ -94,7 +99,6 @@ vtkMRMLTransformDisplayNode::vtkMRMLTransformDisplayNode()
 //----------------------------------------------------------------------------
 vtkMRMLTransformDisplayNode::~vtkMRMLTransformDisplayNode()
 {
-  delete[] this->ContourValues;
 }
 
 //----------------------------------------------------------------------------
@@ -102,6 +106,14 @@ void vtkMRMLTransformDisplayNode::WriteXML(ostream& of, int nIndent)
 {
   Superclass::WriteXML(of, nIndent);
   vtkIndent indent(nIndent);
+
+  of << indent << " Show2dGlyph=\""<< (this->VisualizationMode&VIS_MODE_2D_GLYPH?1:0) << "\"";
+  of << indent << " Show2dGrid=\""<< (this->VisualizationMode&VIS_MODE_2D_GRID?1:0) << "\"";
+  of << indent << " Show2dContour=\""<< (this->VisualizationMode&VIS_MODE_2D_CONTOUR?1:0) << "\"";
+  of << indent << " Show3dGlyph=\""<< (this->VisualizationMode&VIS_MODE_3D_GLYPH?1:0) << "\"";
+  of << indent << " Show3dGrid=\""<< (this->VisualizationMode&VIS_MODE_3D_GRID?1:0) << "\"";
+  of << indent << " Show3dContour=\""<< (this->VisualizationMode&VIS_MODE_3D_CONTOUR?1:0) << "\"";
+  of << indent << " Show3dBlock=\""<< (this->VisualizationMode&VIS_MODE_3D_BLOCK?1:0) << "\"";
 
   of << indent << " GlyphPointMax=\""<< this->GlyphPointMax << "\"";
   of << indent << " GlyphScale=\""<< this->GlyphScale << "\"";
@@ -128,8 +140,16 @@ void vtkMRMLTransformDisplayNode::WriteXML(ostream& of, int nIndent)
   of << indent << " BlockScale=\""<< this->BlockScale << "\"";
   of << indent << " BlockDisplacementCheck=\""<< this->BlockDisplacementCheck << "\"";
 
-  of << indent << " ContourNumber=\""<< this->ContourNumber << "\"";
-  //of << indent << " ContourValues=\""<< this->ContourValues << "\"";
+  of << indent << " ContourValues=\"";
+  for (int i=0; i<this->ContourValues.size(); i++)
+  {
+    if (i>0)
+    {
+      of << " "; //separate numbers by a space
+    }
+    of << this->ContourValues[i];
+  }
+  of << "\"";
   of << indent << " ContourDecimation=\""<< this->ContourDecimation << "\"";
 
   of << indent << " GlyphSlicePointMax=\""<< this->GlyphSlicePointMax << "\"";
@@ -292,22 +312,21 @@ void vtkMRMLTransformDisplayNode::ReadXMLAttributes(const char** atts)
       ss >> this->BlockDisplacementCheck;
       continue;
     }
-
-
-    if (!strcmp(attName,"ContourNumber")){
-      std::stringstream ss;
-      ss << attValue;
-      ss >> this->ContourNumber;
-      continue;
-    }
-    /*
     if (!strcmp(attName,"ContourValues")){
-      std::stringstream ss;
-      ss << attValue;
-      ss >> this->ContourValues;
+      std::stringstream ss(attValue);
+      std::string itemString;
+      double itemDouble;
+      const char delim=' ';
+      this->ContourValues.clear();
+      while (std::getline(ss, itemString, delim))
+      {
+        std::stringstream itemStream;
+        itemStream << itemString;
+        itemStream >> itemDouble;
+        this->ContourValues.push_back(itemDouble);
+      }
       continue;
     }
-    */
     if (!strcmp(attName,"ContourDecimation")){
       std::stringstream ss;
       ss << attValue;
@@ -375,6 +394,8 @@ void vtkMRMLTransformDisplayNode::Copy(vtkMRMLNode *anode)
 
   vtkMRMLTransformDisplayNode *node = vtkMRMLTransformDisplayNode::SafeDownCast(anode);
 
+  this->VisualizationMode = node->VisualizationMode;
+
   this->GlyphPointMax = node->GlyphPointMax;
   this->GlyphThresholdMax = node->GlyphThresholdMax;
   this->GlyphThresholdMin = node->GlyphThresholdMin;
@@ -399,8 +420,7 @@ void vtkMRMLTransformDisplayNode::Copy(vtkMRMLNode *anode)
   this->BlockScale = node->BlockScale;
   this->BlockDisplacementCheck = node->BlockDisplacementCheck;
 
-  this->ContourNumber = node->ContourNumber;
-  //this->ContourValues = node->ContourValues;
+  this->ContourValues = node->ContourValues;
   this->ContourDecimation = node->ContourDecimation;
 
   this->GlyphSlicePointMax = node->GlyphSlicePointMax;
@@ -448,8 +468,17 @@ void vtkMRMLTransformDisplayNode::PrintSelf(ostream& os, vtkIndent indent)
   os << indent << " BlockScale = "<< this->BlockScale << "\n";
   os << indent << " BlockDisplacementCheck = "<< this->BlockDisplacementCheck << "\n";
 
-  os << indent << " ContourNumber = "<< this->ContourNumber << "\n";
-  //os << indent << " ContourValues = "<< this->ContourValues << "\n";
+  os << indent << " ContourValues = \"";
+  for (int i=0; i<this->ContourValues.size(); i++)
+  {
+    if (i>0)
+    {
+      os << " "; //separate numbers by a space
+    }
+    os << this->ContourValues[i];
+  }
+  os << "\"";
+
   os << indent << " ContourDecimation = "<< this->ContourDecimation << "\n";
 
   os << indent << " GlyphSlicePointMax = "<< this->GlyphSlicePointMax << "\n";
@@ -470,18 +499,6 @@ void vtkMRMLTransformDisplayNode::ProcessMRMLEvents ( vtkObject *caller, unsigne
 }
 
 //----------------------------------------------------------------------------
-vtkMRMLNode* vtkMRMLTransformDisplayNode::GetInputNode()
-{
-  return this->GetNodeReference(InputReferenceRole);
-}
-
-//----------------------------------------------------------------------------
-void vtkMRMLTransformDisplayNode::SetAndObserveInputNode(vtkMRMLNode* node)
-{
-  this->SetNthNodeReferenceID(InputReferenceRole,0,node->GetID());
-}
-
-//----------------------------------------------------------------------------
 vtkMRMLVolumeNode* vtkMRMLTransformDisplayNode::GetReferenceVolumeNode()
 {
   return vtkMRMLVolumeNode::SafeDownCast(this->GetNodeReference(ReferenceVolumeReferenceRole));
@@ -494,37 +511,25 @@ void vtkMRMLTransformDisplayNode::SetAndObserveReferenceVolumeNode(vtkMRMLNode* 
 }
 
 //----------------------------------------------------------------------------
-vtkMRMLNode* vtkMRMLTransformDisplayNode::GetOutputModelNode()
-{
-  return this->GetNodeReference(OutputModelReferenceRole);
-}
-
-//----------------------------------------------------------------------------
-void vtkMRMLTransformDisplayNode::SetAndObserveOutputModelNode(vtkMRMLNode* node)
-{
-  this->SetNthNodeReferenceID(OutputModelReferenceRole,0,node->GetID());
-}
-
-//----------------------------------------------------------------------------
 void vtkMRMLTransformDisplayNode::SetContourValues(double* values, int size)
 {
-  if (this->ContourValues) { delete [] this->ContourValues; }
-  this->ContourValues = new double[size];
-  if (values)
+  this->ContourValues.clear();
+  for (int i=0; i<size; i++)
   {
-    for (int i = 0;i<size;i++)
-    {
-      this->ContourValues[i] = values[i];
-    }
-  }
-  else
-  {
-    this->ContourValues = NULL;
+    this->ContourValues.push_back(values[i]);
   }
 }
 
 //----------------------------------------------------------------------------
 double* vtkMRMLTransformDisplayNode::GetContourValues()
 {
-  return this->ContourValues;
+  // std::vector values are guaranteed to be stored in a continuous block in memory,
+  // so we can return the address to the first one
+  return &(this->ContourValues[0]);
+}
+
+//----------------------------------------------------------------------------
+unsigned int vtkMRMLTransformDisplayNode::GetNumberOfContourValues()
+{
+  return this->ContourValues.size();
 }

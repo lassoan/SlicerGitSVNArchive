@@ -25,7 +25,7 @@
 #include <QDesignerCustomWidgetCollectionInterface>
 
 // Transforms includes
-#include "qMRMLTransformsFiducialProjectionPropertyWidgetPlugin.h"
+#include "qMRMLTransformDisplayNodeWidgetPlugin.h"
 
 // \class Group the plugins in one library
 class Q_SLICER_MODULE_TRANSFORMS_WIDGETS_PLUGINS_EXPORT qSlicerTransformsModuleWidgetsPlugin
@@ -39,7 +39,7 @@ public:
   QList<QDesignerCustomWidgetInterface*> customWidgets() const
     {
     QList<QDesignerCustomWidgetInterface *> plugins;
-    plugins << new qMRMLTransformsFiducialProjectionPropertyWidgetPlugin;
+    plugins << new qMRMLTransformDisplayNodeWidgetPlugin;
 
     return plugins;
     }
