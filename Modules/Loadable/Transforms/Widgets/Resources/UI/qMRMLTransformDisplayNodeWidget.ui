@@ -19,287 +19,11 @@
   <property name="windowTitle">
    <string>qMRMLTransformDisplayNodeWidget</string>
   </property>
-  <layout class="QVBoxLayout" name="verticalLayout">
-   <property name="spacing">
-    <number>4</number>
-   </property>
+  <layout class="QGridLayout" name="gridLayout_6">
    <property name="margin">
     <number>4</number>
    </property>
-   <item>
-    <widget class="ctkCollapsibleButton" name="VisualizationMode">
-     <property name="sizePolicy">
-      <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
-       <horstretch>0</horstretch>
-       <verstretch>0</verstretch>
-      </sizepolicy>
-     </property>
-     <property name="minimumSize">
-      <size>
-       <width>0</width>
-       <height>0</height>
-      </size>
-     </property>
-     <property name="maximumSize">
-      <size>
-       <width>16777215</width>
-       <height>170</height>
-      </size>
-     </property>
-     <property name="toolTip">
-      <string>Options for visualization of deformation field</string>
-     </property>
-     <property name="text">
-      <string>Visualization Mode</string>
-     </property>
-     <property name="autoRepeatInterval">
-      <number>100</number>
-     </property>
-     <layout class="QGridLayout" name="gridLayout_2">
-      <property name="margin">
-       <number>4</number>
-      </property>
-      <property name="spacing">
-       <number>4</number>
-      </property>
-      <item row="0" column="0">
-       <widget class="QPushButton" name="GlyphToggle">
-        <property name="enabled">
-         <bool>true</bool>
-        </property>
-        <property name="sizePolicy">
-         <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-          <horstretch>0</horstretch>
-          <verstretch>0</verstretch>
-         </sizepolicy>
-        </property>
-        <property name="minimumSize">
-         <size>
-          <width>0</width>
-          <height>60</height>
-         </size>
-        </property>
-        <property name="maximumSize">
-         <size>
-          <width>16777215</width>
-          <height>16777215</height>
-         </size>
-        </property>
-        <property name="focusPolicy">
-         <enum>Qt::StrongFocus</enum>
-        </property>
-        <property name="toolTip">
-         <string>Visualize deformation field using glyphs</string>
-        </property>
-        <property name="statusTip">
-         <string/>
-        </property>
-        <property name="layoutDirection">
-         <enum>Qt::LeftToRight</enum>
-        </property>
-        <property name="autoFillBackground">
-         <bool>false</bool>
-        </property>
-        <property name="inputMethodHints">
-         <set>Qt::ImhNone</set>
-        </property>
-        <property name="text">
-         <string>Glyph</string>
-        </property>
-        <property name="icon">
-         <iconset resource="../qSlicerTransformsModuleWidgets.qrc">
-          <normaloff>:/Icons/GlyphIcon.png</normaloff>:/Icons/GlyphIcon.png</iconset>
-        </property>
-        <property name="iconSize">
-         <size>
-          <width>48</width>
-          <height>48</height>
-         </size>
-        </property>
-        <property name="shortcut">
-         <string notr="true"/>
-        </property>
-        <property name="checkable">
-         <bool>true</bool>
-        </property>
-        <property name="checked">
-         <bool>true</bool>
-        </property>
-        <property name="autoExclusive">
-         <bool>true</bool>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="1">
-       <widget class="QPushButton" name="GridToggle">
-        <property name="sizePolicy">
-         <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-          <horstretch>0</horstretch>
-          <verstretch>0</verstretch>
-         </sizepolicy>
-        </property>
-        <property name="minimumSize">
-         <size>
-          <width>0</width>
-          <height>60</height>
-         </size>
-        </property>
-        <property name="maximumSize">
-         <size>
-          <width>16777215</width>
-          <height>16777215</height>
-         </size>
-        </property>
-        <property name="toolTip">
-         <string>Visualize deformation field using a 3D grid</string>
-        </property>
-        <property name="text">
-         <string>Grid</string>
-        </property>
-        <property name="icon">
-         <iconset resource="../qSlicerTransformsModuleWidgets.qrc">
-          <normaloff>:/Icons/GridIcon.png</normaloff>:/Icons/GridIcon.png</iconset>
-        </property>
-        <property name="iconSize">
-         <size>
-          <width>48</width>
-          <height>48</height>
-         </size>
-        </property>
-        <property name="checkable">
-         <bool>true</bool>
-        </property>
-        <property name="autoExclusive">
-         <bool>true</bool>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="2">
-       <widget class="QPushButton" name="ContourToggle">
-        <property name="enabled">
-         <bool>true</bool>
-        </property>
-        <property name="sizePolicy">
-         <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-          <horstretch>0</horstretch>
-          <verstretch>0</verstretch>
-         </sizepolicy>
-        </property>
-        <property name="minimumSize">
-         <size>
-          <width>0</width>
-          <height>60</height>
-         </size>
-        </property>
-        <property name="toolTip">
-         <string>Contour magnitude values of deformation field</string>
-        </property>
-        <property name="text">
-         <string>Contour</string>
-        </property>
-        <property name="icon">
-         <iconset resource="../qSlicerTransformsModuleWidgets.qrc">
-          <normaloff>:/Icons/ContourIcon.png</normaloff>:/Icons/ContourIcon.png</iconset>
-        </property>
-        <property name="iconSize">
-         <size>
-          <width>48</width>
-          <height>48</height>
-         </size>
-        </property>
-        <property name="checkable">
-         <bool>true</bool>
-        </property>
-        <property name="autoExclusive">
-         <bool>true</bool>
-        </property>
-       </widget>
-      </item>
-      <item row="4" column="0" colspan="3">
-       <layout class="QHBoxLayout" name="horizontalLayout">
-        <item>
-         <widget class="QLabel" name="ReferenceLabel_2">
-          <property name="toolTip">
-           <string>Reference image for visualizing transform nodes (will only use size, orientation and position)</string>
-          </property>
-          <property name="text">
-           <string>Region</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="qMRMLNodeComboBox" name="InputReferenceComboBox">
-          <property name="enabled">
-           <bool>false</bool>
-          </property>
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
-            <horstretch>0</horstretch>
-            <verstretch>0</verstretch>
-           </sizepolicy>
-          </property>
-          <property name="toolTip">
-           <string>Reference image for visualizing transform nodes (will only use size, orientation and position)</string>
-          </property>
-          <property name="nodeTypes">
-           <stringlist>
-            <string>vtkMRMLVolumeNode</string>
-           </stringlist>
-          </property>
-          <property name="baseName">
-           <string/>
-          </property>
-          <property name="noneEnabled">
-           <bool>true</bool>
-          </property>
-          <property name="addEnabled">
-           <bool>false</bool>
-          </property>
-          <property name="removeEnabled">
-           <bool>true</bool>
-          </property>
-          <property name="editEnabled">
-           <bool>true</bool>
-          </property>
-          <property name="renameEnabled">
-           <bool>true</bool>
-          </property>
-         </widget>
-        </item>
-       </layout>
-      </item>
-      <item row="3" column="1" colspan="2">
-       <widget class="QLabel" name="ReferenceDisabledLabel">
-        <property name="text">
-         <string>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
-&lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
-p, li { white-space: pre-wrap; }
-&lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'MS Shell Dlg 2'; font-size:8.25pt; font-weight:400; font-style:normal;&quot;&gt;
-&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-size:8pt; font-weight:600; color:#ff0000;&quot;&gt;No region of interest selected&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-        </property>
-        <property name="alignment">
-         <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
-        </property>
-       </widget>
-      </item>
-      <item row="3" column="0">
-       <widget class="QCheckBox" name="Visible3dCheckBox">
-        <property name="text">
-         <string>Visible in 3D view</string>
-        </property>
-       </widget>
-      </item>
-      <item row="2" column="0">
-       <widget class="QCheckBox" name="Visible2dCheckBox">
-        <property name="text">
-         <string>Visible in slice view</string>
-        </property>
-       </widget>
-      </item>
-     </layout>
-    </widget>
-   </item>
-   <item>
+   <item row="5" column="0" colspan="3">
     <widget class="ctkCollapsibleButton" name="Parameters">
      <property name="enabled">
       <bool>true</bool>
@@ -314,7 +38,7 @@ p, li { white-space: pre-wrap; }
       <string>Advanced</string>
      </property>
      <property name="checked">
-      <bool>true</bool>
+      <bool>false</bool>
      </property>
      <layout class="QVBoxLayout" name="verticalLayout_2">
       <property name="margin">
@@ -335,7 +59,7 @@ p, li { white-space: pre-wrap; }
             <string>Number of glyphs to generate</string>
            </property>
            <property name="text">
-            <string>Spacing</string>
+            <string>Spacing:</string>
            </property>
           </widget>
          </item>
@@ -379,7 +103,7 @@ p, li { white-space: pre-wrap; }
             <string>Only create glyphs within threshold values</string>
            </property>
            <property name="text">
-            <string>Visible range</string>
+            <string>Visible range:</string>
            </property>
           </widget>
          </item>
@@ -405,11 +129,11 @@ p, li { white-space: pre-wrap; }
             <string>Adjust amount to scale size of glyph</string>
            </property>
            <property name="text">
-            <string>Scale Factor</string>
+            <string>Scale Factor:</string>
            </property>
           </widget>
          </item>
-         <item row="1" column="1" colspan="2">
+         <item row="1" column="1" colspan="3">
           <widget class="ctkSliderWidget" name="GlyphScalePercent">
            <property name="sizePolicy">
             <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
@@ -452,7 +176,7 @@ p, li { white-space: pre-wrap; }
             <string>Choose a glyph type to use</string>
            </property>
            <property name="text">
-            <string>Glyph Type</string>
+            <string>Glyph Type:</string>
            </property>
           </widget>
          </item>
@@ -493,7 +217,7 @@ p, li { white-space: pre-wrap; }
             <string>Seed used for placement of glyphs</string>
            </property>
            <property name="text">
-            <string>Random Seed</string>
+            <string>Random Seed:</string>
            </property>
           </widget>
          </item>
@@ -562,7 +286,23 @@ p, li { white-space: pre-wrap; }
             <string>Number of glyphs to generate</string>
            </property>
            <property name="text">
-            <string>Max. Number</string>
+            <string>Max. Number:</string>
+           </property>
+          </widget>
+         </item>
+         <item row="6" column="2" colspan="2">
+          <widget class="QPushButton" name="GlyphGenerateRandomSeedButton">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="toolTip">
+            <string>Generate a random seed to use for the glyph visualization</string>
+           </property>
+           <property name="text">
+            <string>Generate Seed</string>
            </property>
           </widget>
          </item>
@@ -593,23 +333,13 @@ p, li { white-space: pre-wrap; }
             <property name="spacing">
              <number>4</number>
             </property>
-            <item row="0" column="0">
-             <widget class="QCheckBox" name="GlyphScaleDirectionalCheckBox">
-              <property name="toolTip">
-               <string>Scale glyph only along direction of vector</string>
-              </property>
-              <property name="text">
-               <string>Directional scaling</string>
-              </property>
-             </widget>
-            </item>
             <item row="1" column="0">
              <widget class="QLabel" name="GlyphDiameterMmLabel">
               <property name="toolTip">
                <string>Adjust radius of base of arrow tip</string>
               </property>
               <property name="text">
-               <string>Diameter</string>
+               <string>Diameter:</string>
               </property>
              </widget>
             </item>
@@ -641,7 +371,7 @@ p, li { white-space: pre-wrap; }
             <item row="2" column="0">
              <widget class="QLabel" name="GlyphDiameterPercentLabel">
               <property name="text">
-               <string>Diameter</string>
+               <string>Diameter:</string>
               </property>
              </widget>
             </item>
@@ -670,7 +400,7 @@ p, li { white-space: pre-wrap; }
                <string>Adjust radius of arrow shaft</string>
               </property>
               <property name="text">
-               <string>Shaft Diameter</string>
+               <string>Shaft Diameter:</string>
               </property>
              </widget>
             </item>
@@ -702,7 +432,7 @@ p, li { white-space: pre-wrap; }
                <string>Adjust how much of the tip the arrow will consist of as a decimal percentage</string>
               </property>
               <property name="text">
-               <string>Tip Length</string>
+               <string>Tip Length:</string>
               </property>
              </widget>
             </item>
@@ -737,7 +467,7 @@ p, li { white-space: pre-wrap; }
                <string>Adjust resolution of the glyph (higher value generates smoother curved lines but visualization may be slower)</string>
               </property>
               <property name="text">
-               <string>Resolution</string>
+               <string>Resolution:</string>
               </property>
              </widget>
             </item>
@@ -766,23 +496,24 @@ p, li { white-space: pre-wrap; }
               </property>
              </widget>
             </item>
+            <item row="0" column="1">
+             <widget class="QCheckBox" name="GlyphScaleDirectionalCheckBox">
+              <property name="toolTip">
+               <string>Scale glyph only along direction of vector</string>
+              </property>
+              <property name="text">
+               <string/>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="0">
+             <widget class="QLabel" name="label_6">
+              <property name="text">
+               <string>Directional Scaling:</string>
+              </property>
+             </widget>
+            </item>
            </layout>
-          </widget>
-         </item>
-         <item row="6" column="2" colspan="2">
-          <widget class="QPushButton" name="GlyphGenerateRandomSeedButton">
-           <property name="sizePolicy">
-            <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-             <horstretch>0</horstretch>
-             <verstretch>0</verstretch>
-            </sizepolicy>
-           </property>
-           <property name="toolTip">
-            <string>Generate a random seed to use for the glyph visualization</string>
-           </property>
-           <property name="text">
-            <string>Generate Seed</string>
-           </property>
           </widget>
          </item>
         </layout>
@@ -803,7 +534,7 @@ p, li { white-space: pre-wrap; }
             <string>Resample grid (spacing will be the distance between lines)</string>
            </property>
            <property name="text">
-            <string>Spacing</string>
+            <string>Spacing:</string>
            </property>
           </widget>
          </item>
@@ -847,7 +578,7 @@ p, li { white-space: pre-wrap; }
             <string>Adjust amount to scale deformation of grid</string>
            </property>
            <property name="text">
-            <string>Scale Factor</string>
+            <string>Scale Factor:</string>
            </property>
           </widget>
          </item>
@@ -904,7 +635,7 @@ p, li { white-space: pre-wrap; }
 &lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-size:8pt;&quot;&gt;Values to contour. Input as a comma-delimited list.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
            </property>
            <property name="text">
-            <string>Levels (mm)</string>
+            <string>Levels (mm):</string>
            </property>
           </widget>
          </item>
@@ -937,7 +668,7 @@ p, li { white-space: pre-wrap; }
             <string>Target decimation as a decimal percentage reduction in polygons (0 results in no decimation, 0.99 results in 99% reduction in polygons)</string>
            </property>
            <property name="text">
-            <string>Resolution</string>
+            <string>Resolution:</string>
            </property>
           </widget>
          </item>
@@ -981,7 +712,7 @@ p, li { white-space: pre-wrap; }
      </layout>
     </widget>
    </item>
-   <item>
+   <item row="6" column="0">
     <spacer name="verticalSpacer_2">
      <property name="orientation">
       <enum>Qt::Vertical</enum>
@@ -996,6 +727,260 @@ p, li { white-space: pre-wrap; }
       </size>
      </property>
     </spacer>
+   </item>
+   <item row="4" column="0">
+    <widget class="QPushButton" name="GlyphToggle">
+     <property name="enabled">
+      <bool>true</bool>
+     </property>
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+       <horstretch>0</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
+     </property>
+     <property name="minimumSize">
+      <size>
+       <width>0</width>
+       <height>60</height>
+      </size>
+     </property>
+     <property name="maximumSize">
+      <size>
+       <width>16777215</width>
+       <height>16777215</height>
+      </size>
+     </property>
+     <property name="focusPolicy">
+      <enum>Qt::StrongFocus</enum>
+     </property>
+     <property name="toolTip">
+      <string>Visualize deformation field using glyphs</string>
+     </property>
+     <property name="statusTip">
+      <string/>
+     </property>
+     <property name="layoutDirection">
+      <enum>Qt::LeftToRight</enum>
+     </property>
+     <property name="autoFillBackground">
+      <bool>false</bool>
+     </property>
+     <property name="inputMethodHints">
+      <set>Qt::ImhNone</set>
+     </property>
+     <property name="text">
+      <string>Glyph</string>
+     </property>
+     <property name="icon">
+      <iconset resource="../qSlicerTransformsModuleWidgets.qrc">
+       <normaloff>:/Icons/GlyphIcon.png</normaloff>:/Icons/GlyphIcon.png</iconset>
+     </property>
+     <property name="iconSize">
+      <size>
+       <width>48</width>
+       <height>48</height>
+      </size>
+     </property>
+     <property name="shortcut">
+      <string notr="true"/>
+     </property>
+     <property name="checkable">
+      <bool>true</bool>
+     </property>
+     <property name="checked">
+      <bool>true</bool>
+     </property>
+     <property name="autoExclusive">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+   <item row="4" column="1">
+    <widget class="QPushButton" name="GridToggle">
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+       <horstretch>0</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
+     </property>
+     <property name="minimumSize">
+      <size>
+       <width>0</width>
+       <height>60</height>
+      </size>
+     </property>
+     <property name="maximumSize">
+      <size>
+       <width>16777215</width>
+       <height>16777215</height>
+      </size>
+     </property>
+     <property name="toolTip">
+      <string>Visualize deformation field using a 3D grid</string>
+     </property>
+     <property name="text">
+      <string>Grid</string>
+     </property>
+     <property name="icon">
+      <iconset resource="../qSlicerTransformsModuleWidgets.qrc">
+       <normaloff>:/Icons/GridIcon.png</normaloff>:/Icons/GridIcon.png</iconset>
+     </property>
+     <property name="iconSize">
+      <size>
+       <width>48</width>
+       <height>48</height>
+      </size>
+     </property>
+     <property name="checkable">
+      <bool>true</bool>
+     </property>
+     <property name="autoExclusive">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+   <item row="4" column="2">
+    <widget class="QPushButton" name="ContourToggle">
+     <property name="enabled">
+      <bool>true</bool>
+     </property>
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+       <horstretch>0</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
+     </property>
+     <property name="minimumSize">
+      <size>
+       <width>0</width>
+       <height>60</height>
+      </size>
+     </property>
+     <property name="toolTip">
+      <string>Contour magnitude values of deformation field</string>
+     </property>
+     <property name="text">
+      <string>Contour</string>
+     </property>
+     <property name="icon">
+      <iconset resource="../qSlicerTransformsModuleWidgets.qrc">
+       <normaloff>:/Icons/ContourIcon.png</normaloff>:/Icons/ContourIcon.png</iconset>
+     </property>
+     <property name="iconSize">
+      <size>
+       <width>48</width>
+       <height>48</height>
+      </size>
+     </property>
+     <property name="checkable">
+      <bool>true</bool>
+     </property>
+     <property name="autoExclusive">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+   <item row="0" column="1">
+    <widget class="QCheckBox" name="Visible2dCheckBox">
+     <property name="text">
+      <string/>
+     </property>
+    </widget>
+   </item>
+   <item row="0" column="0">
+    <widget class="QLabel" name="label_3">
+     <property name="text">
+      <string>Visible in slice view:</string>
+     </property>
+    </widget>
+   </item>
+   <item row="1" column="0">
+    <widget class="QLabel" name="label_4">
+     <property name="text">
+      <string>Visible in 3D view:</string>
+     </property>
+    </widget>
+   </item>
+   <item row="1" column="1" colspan="2">
+    <layout class="QHBoxLayout" name="horizontalLayout_3">
+     <item>
+      <widget class="QCheckBox" name="Visible3dCheckBox">
+       <property name="text">
+        <string>  </string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLabel" name="ReferenceDisabledLabel">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="text">
+        <string>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
+&lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
+p, li { white-space: pre-wrap; }
+&lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'MS Shell Dlg 2'; font-size:8.25pt; font-weight:400; font-style:normal;&quot;&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-size:8pt; font-weight:600; color:#ff0000;&quot;&gt;Select a region!&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignCenter</set>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item row="2" column="0">
+    <widget class="QLabel" name="ReferenceLabel_2">
+     <property name="toolTip">
+      <string>Reference image for visualizing transform nodes (will only use size, orientation and position)</string>
+     </property>
+     <property name="text">
+      <string>Region:</string>
+     </property>
+    </widget>
+   </item>
+   <item row="2" column="1" colspan="2">
+    <widget class="qMRMLNodeComboBox" name="InputReferenceComboBox">
+     <property name="enabled">
+      <bool>false</bool>
+     </property>
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
+       <horstretch>0</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
+     </property>
+     <property name="toolTip">
+      <string>Reference image for visualizing transform nodes (will only use size, orientation and position)</string>
+     </property>
+     <property name="nodeTypes">
+      <stringlist>
+       <string>vtkMRMLVolumeNode</string>
+      </stringlist>
+     </property>
+     <property name="baseName">
+      <string/>
+     </property>
+     <property name="noneEnabled">
+      <bool>true</bool>
+     </property>
+     <property name="addEnabled">
+      <bool>false</bool>
+     </property>
+     <property name="removeEnabled">
+      <bool>true</bool>
+     </property>
+     <property name="editEnabled">
+      <bool>true</bool>
+     </property>
+     <property name="renameEnabled">
+      <bool>true</bool>
+     </property>
+    </widget>
    </item>
   </layout>
  </widget>
