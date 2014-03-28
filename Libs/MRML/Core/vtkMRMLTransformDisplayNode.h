@@ -15,18 +15,22 @@
 #ifndef __vtkMRMLTransformDisplayNode_h
 #define __vtkMRMLTransformDisplayNode_h
 
-#include "vtkMRMLDisplayNode.h"
+#include "vtkMRMLModelDisplayNode.h"
 
+class vtkPointSet;
+class vtkMatrix4x4;
+class vtkMRMLTransformNode;
 class vtkMRMLVolumeNode;
+
 
 /// \brief MRML node to represent display properties for transforms visualization in the slice and 3D viewers.
 ///
 /// vtkMRMLTransformDisplayNode nodes store display properties of transforms.
-class VTK_MRML_EXPORT vtkMRMLTransformDisplayNode : public vtkMRMLDisplayNode
+class VTK_MRML_EXPORT vtkMRMLTransformDisplayNode : public vtkMRMLModelDisplayNode
 {
  public:
   static vtkMRMLTransformDisplayNode *New (  );
-  vtkTypeMacro ( vtkMRMLTransformDisplayNode,vtkMRMLDisplayNode );
+  vtkTypeMacro ( vtkMRMLTransformDisplayNode,vtkMRMLModelDisplayNode );
   void PrintSelf ( ostream& os, vtkIndent indent );
 
   enum VisualizationModes
@@ -148,8 +152,47 @@ class VTK_MRML_EXPORT vtkMRMLTransformDisplayNode : public vtkMRMLDisplayNode
   vtkSetMacro(ContourResolutionMm, double);
   vtkGetMacro(ContourResolutionMm, double);
 
+  /// Return the glyph polydata for the input slice image.
+  /// This is the polydata to use in a 3D view.
+  /// Reimplemented to by-pass the check on the input polydata.
+  /// \sa GetSliceOutputPolyData(), GetOutputPort()
+  virtual vtkPolyData* GetOutputPolyData();
+
+  void GetVisualization2d(vtkPolyData* output, vtkMatrix4x4* sliceToRAS, double* fieldOfViewOrigin, double* fieldOfViewSize);
 
 protected:
+
+  /// Takes samples from the displacement field specified by the transformation on a uniform grid
+  /// and stores it in an unstructured grid.
+  /// gridToRAS specifies the grid origin, direction, and spacing
+  /// gridSize is a 3-component int array specifying the dimension of the grid
+  void GetTransformedPointSamples(vtkPointSet* outputPointSet, vtkMatrix4x4* gridToRAS, int* gridSize);
+
+  /// Takes samples from the displacement field specified by the transformation on a slice
+  /// and stores it in an unstructured grid.
+  /// pointGroupSize: the number of points will be N*pointGroupSize (the actual number will be returned in numGridPoints[0] and numGridPoints[1])
+  void GetTransformedPointSamplesOnSlice(vtkPointSet* outputPointSet, vtkMatrix4x4* sliceToRAS, double* fieldOfViewOrigin, double* fieldOfViewSize, double pointSpacing, int pointGroupSize=1, int* numGridPoints=NULL);
+
+  /// Takes samples from the displacement field mganitude, specified by the transformation on a uniform grid
+  /// and stores it in an image volume.
+  void GetTransformedPointSamplesAsImage(vtkImageData* magnitudeImage, vtkMatrix4x4* ijkToRAS, int* imageSize);
+
+  /// Takes samples from the displacement field mganitude, specified by the transformation on a slice
+  /// and stores it in an image volume.
+  void GetTransformedPointSamplesOnSliceAsImage(vtkImageData* magnitudeImage, vtkMatrix4x4* sliceToRAS, double* fieldOfViewOrigin, double* fieldOfViewSize, double pointSpacing, vtkMatrix4x4* ijkToRAS);
+
+  /// Generate polydata for 3D glyph visualization
+  /// roiToRAS defines the ROI origin and direction
+  /// roiSize defines the ROI size (in the ROI coordinate system spacing)
+  void GetGlyphVisualization3d(vtkPolyData* output, vtkMatrix4x4* roiToRAS, int* roiSize);
+
+  void GetGlyphVisualization2d(vtkPolyData* output, vtkMatrix4x4* sliceToRAS, double* fieldOfViewOrigin, double* fieldOfViewSize);
+
+  void GetGridVisualization2d(vtkPolyData* output, vtkMatrix4x4* sliceToRAS, double* fieldOfViewOrigin, double* fieldOfViewSize);
+
+  void GetContourVisualization2d(vtkPolyData* output, vtkMatrix4x4* sliceToRAS, double* fieldOfViewOrigin, double* fieldOfViewSize);
+
+  virtual vtkMRMLTransformNode* GetTransformNode();
 
   int VisualizationMode;
 
@@ -176,6 +219,9 @@ protected:
   // Contour Parameters
   std::vector<double> ContourLevelsMm;
   double ContourResolutionMm;
+
+  // 3D model of the visualized transform to be used in all 3D views
+  vtkPolyData* CachedPolyData3d;
 
  protected:
   vtkMRMLTransformDisplayNode ( );
