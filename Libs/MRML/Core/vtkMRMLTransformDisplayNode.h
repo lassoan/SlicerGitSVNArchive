@@ -31,19 +31,18 @@ class VTK_MRML_EXPORT vtkMRMLTransformDisplayNode : public vtkMRMLDisplayNode
 
   enum VisualizationModes
   {
-    VIS_MODE_2D_GLYPH=1,
-    VIS_MODE_2D_GRID=2,
-    VIS_MODE_2D_CONTOUR=4,
-    VIS_MODE_3D_GLYPH=8,
-    VIS_MODE_3D_GRID=16,
-    VIS_MODE_3D_CONTOUR=32,
+    VIS_MODE_GLYPH,
+    VIS_MODE_GRID,
+    VIS_MODE_CONTOUR,
+    VIS_MODE_LAST // this should be the last mode
   };
 
-  enum GlyphSources
+  enum GlyphTypes
   {
-    GLYPH_ARROW_3D = 0,
-    GLYPH_CONE_3D,
-    GLYPH_SPHERE_3D,
+    GLYPH_TYPE_ARROW,
+    GLYPH_TYPE_CONE,
+    GLYPH_TYPE_SPHERE,
+    GLYPH_TYPE_LAST // this should be the last glyph type
   };
 
   //--------------------------------------------------------------------------
@@ -82,105 +81,94 @@ class VTK_MRML_EXPORT vtkMRMLTransformDisplayNode : public vtkMRMLDisplayNode
   vtkMRMLVolumeNode* GetReferenceVolumeNode();
   void SetAndObserveReferenceVolumeNode(vtkMRMLNode* node);
 
-  vtkSetMacro(VisualizationMode, unsigned int);
-  vtkGetMacro(VisualizationMode, unsigned int);
+  vtkSetMacro(VisualizationMode, int);
+  vtkGetMacro(VisualizationMode, int);
+  /// Convert visualization mode index to a string for serialization.
+  /// Returns an empty string if the index is unknown.
+  static const char* ConvertVisualizationModeToString(int modeIndex);
+  /// Convert visualization mode string to an index that can be set in VisualizationMode.
+  /// Returns -1 if the string is unknown.
+  static int ConvertVisualizationModeFromString(const char* modeString);
 
   // Glyph Parameters
-  vtkSetMacro(GlyphPointMax, int);
-  vtkGetMacro(GlyphPointMax, int);
+  vtkSetMacro(GlyphMaxNumberOfPoints, int);
+  vtkGetMacro(GlyphMaxNumberOfPoints, int);
   vtkSetMacro(GlyphSpacingMm, double);
   vtkGetMacro(GlyphSpacingMm, double);
-  vtkSetMacro(GlyphScale, double);
-  vtkGetMacro(GlyphScale, double);
-  vtkSetMacro(GlyphThresholdMax, double);
-  vtkGetMacro(GlyphThresholdMax, double);
-  vtkSetMacro(GlyphThresholdMin, double);
-  vtkGetMacro(GlyphThresholdMin, double);
-  vtkSetMacro(GlyphSeed, int);
-  vtkGetMacro(GlyphSeed, int);
-  vtkSetMacro(GlyphSourceOption, int);
-  vtkGetMacro(GlyphSourceOption, int);
-  // Arrow Parameters
-  vtkSetMacro(GlyphArrowScaleDirectional, bool);
-  vtkGetMacro(GlyphArrowScaleDirectional, bool);
-  vtkSetMacro(GlyphArrowScaleIsotropic, bool);
-  vtkGetMacro(GlyphArrowScaleIsotropic, bool);
-  vtkSetMacro(GlyphArrowTipLength, double);
-  vtkGetMacro(GlyphArrowTipLength, double);
-  vtkSetMacro(GlyphArrowTipRadius, double);
-  vtkGetMacro(GlyphArrowTipRadius, double);
-  vtkSetMacro(GlyphArrowShaftRadius, double);
-  vtkGetMacro(GlyphArrowShaftRadius, double);
-  vtkSetMacro(GlyphArrowResolution, int);
-  vtkGetMacro(GlyphArrowResolution, int);
-  // Cone Parameters
-  vtkSetMacro(GlyphConeScaleDirectional, bool);
-  vtkGetMacro(GlyphConeScaleDirectional, bool);
-  vtkSetMacro(GlyphConeScaleIsotropic, bool);
-  vtkGetMacro(GlyphConeScaleIsotropic, bool);
-  vtkSetMacro(GlyphConeHeight, double);
-  vtkGetMacro(GlyphConeHeight, double);
-  vtkSetMacro(GlyphConeRadius, double);
-  vtkGetMacro(GlyphConeRadius, double);
-  vtkSetMacro(GlyphConeResolution, int);
-  vtkGetMacro(GlyphConeResolution, int);
-  // Sphere Parameters
-  vtkSetMacro(GlyphSphereResolution, int);
-  vtkGetMacro(GlyphSphereResolution, int);
+  vtkSetMacro(GlyphScalePercent, double);
+  vtkGetMacro(GlyphScalePercent, double);
+  vtkSetMacro(GlyphDisplayRangeMaxMm, double);
+  vtkGetMacro(GlyphDisplayRangeMaxMm, double);
+  vtkSetMacro(GlyphDisplayRangeMinMm, double);
+  vtkGetMacro(GlyphDisplayRangeMinMm, double);
+  vtkSetMacro(GlyphRandomSeed, int);
+  vtkGetMacro(GlyphRandomSeed, int);
+  vtkSetMacro(GlyphType, int);
+  vtkGetMacro(GlyphType, int);
+  /// Convert glyph type index to a string for serialization.
+  /// Returns an empty string if the index is unknown.
+  static const char* ConvertGlyphTypeToString(int typeIndex);
+  /// Convert glyph type string to an index that can be set in GlyphType.
+  /// Returns -1 if the string is unknown.
+  static int ConvertGlyphTypeFromString(const char* typeString);
+  // 3d parameters
+  vtkSetMacro(GlyphScaleDirectional, bool);
+  vtkGetMacro(GlyphScaleDirectional, bool);
+  vtkSetMacro(GlyphTipLengthPercent, double);
+  vtkGetMacro(GlyphTipLengthPercent, double);
+  vtkSetMacro(GlyphDiameterPercent, double);
+  vtkGetMacro(GlyphDiameterPercent, double);
+  vtkSetMacro(GlyphDiameterMm, double);
+  vtkGetMacro(GlyphDiameterMm, double);
+  vtkSetMacro(GlyphShaftDiameterPercent, double);
+  vtkGetMacro(GlyphShaftDiameterPercent, double);
+  vtkSetMacro(GlyphResolution, int);
+  vtkGetMacro(GlyphResolution, int);
 
   // Grid Parameters
-  vtkSetMacro(GridScale, double);
-  vtkGetMacro(GridScale, double);
+  vtkSetMacro(GridScalePercent, double);
+  vtkGetMacro(GridScalePercent, double);
   vtkSetMacro(GridSpacingMm, double);
   vtkGetMacro(GridSpacingMm, double);
 
   // Contour Parameters
-  unsigned int GetNumberOfContourValues();
-  void SetContourValues(double*, int size);
-  double* GetContourValues();
-  vtkSetMacro(ContourDecimation, double);
-  vtkGetMacro(ContourDecimation, double);
+  unsigned int GetNumberOfContourLevels();
+  void SetContourLevelsMm(double*, int size);
+  double* GetContourLevelsMm();
+  std::string GetContourLevelsMmAsString();
+  void SetContourLevelsMmFromString(const char* str, const char separator=' ');
 
-//Parameters
+  vtkSetMacro(ContourResolutionMm, double);
+  vtkGetMacro(ContourResolutionMm, double);
+
+
 protected:
 
-  // Bitfield specifying which visualization modes are enabled.
-  // Bits are specified by the VisualizationModes enum.
-  unsigned int VisualizationMode;
+  int VisualizationMode;
 
   // Glyph Parameters
   double GlyphSpacingMm;
-  double GlyphScale;
-  double GlyphThresholdMax;
-  double GlyphThresholdMin;
-  int GlyphPointMax;
-  int GlyphSeed;
-  int GlyphSourceOption; //0 - Arrow, 1 - Cone, 2 - Sphere
-  // Arrow Parameters
-  bool GlyphArrowScaleDirectional;
-  bool GlyphArrowScaleIsotropic;
-  double GlyphArrowTipLength;
-  double GlyphArrowTipRadius;
-  double GlyphArrowShaftRadius;
-  int GlyphArrowResolution;
-
-  // Cone Parameters
-  bool GlyphConeScaleDirectional;
-  bool GlyphConeScaleIsotropic;
-  double GlyphConeHeight;
-  double GlyphConeRadius;
-  int GlyphConeResolution;
-
-  // Sphere Parameters
-  int GlyphSphereResolution;
+  double GlyphScalePercent;
+  double GlyphDisplayRangeMaxMm;
+  double GlyphDisplayRangeMinMm;
+  int GlyphMaxNumberOfPoints;
+  int GlyphRandomSeed;
+  int GlyphType;
+  // 3d parameters
+  bool GlyphScaleDirectional;
+  double GlyphTipLengthPercent;
+  double GlyphDiameterPercent;
+  double GlyphDiameterMm;
+  double GlyphShaftDiameterPercent;
+  int GlyphResolution;
 
   // Grid Parameters
-  double GridScale;
+  double GridScalePercent;
   double GridSpacingMm;
 
   // Contour Parameters
-  std::vector<double> ContourValues;
-  double ContourDecimation;
+  std::vector<double> ContourLevelsMm;
+  double ContourResolutionMm;
 
  protected:
   vtkMRMLTransformDisplayNode ( );

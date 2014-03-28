@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>336</width>
-    <height>268</height>
+    <height>902</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -174,20 +174,6 @@
         </property>
        </widget>
       </item>
-      <item row="9" column="0" colspan="3">
-       <widget class="QLabel" name="ReferenceDisabledLabel">
-        <property name="text">
-         <string>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
-&lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
-p, li { white-space: pre-wrap; }
-&lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'MS Shell Dlg 2'; font-size:8.25pt; font-weight:400; font-style:normal;&quot;&gt;
-&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-size:8pt; font-weight:600; color:#ff0000;&quot;&gt;No region of interest selected&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-        </property>
-        <property name="alignment">
-         <set>Qt::AlignCenter</set>
-        </property>
-       </widget>
-      </item>
       <item row="0" column="2">
        <widget class="QPushButton" name="ContourToggle">
         <property name="enabled">
@@ -229,14 +215,7 @@ p, li { white-space: pre-wrap; }
         </property>
        </widget>
       </item>
-      <item row="7" column="0" colspan="3">
-       <widget class="Line" name="line">
-        <property name="orientation">
-         <enum>Qt::Horizontal</enum>
-        </property>
-       </widget>
-      </item>
-      <item row="8" column="0" colspan="3">
+      <item row="4" column="0" colspan="3">
        <layout class="QHBoxLayout" name="horizontalLayout">
         <item>
          <widget class="QLabel" name="ReferenceLabel_2">
@@ -289,23 +268,33 @@ p, li { white-space: pre-wrap; }
         </item>
        </layout>
       </item>
-      <item row="3" column="0" colspan="3">
-       <layout class="QHBoxLayout" name="horizontalLayout_2">
-        <item>
-         <widget class="QCheckBox" name="checkBox">
-          <property name="text">
-           <string>Display in slice view</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QCheckBox" name="checkBox_2">
-          <property name="text">
-           <string>Display in 3D view</string>
-          </property>
-         </widget>
-        </item>
-       </layout>
+      <item row="3" column="1" colspan="2">
+       <widget class="QLabel" name="ReferenceDisabledLabel">
+        <property name="text">
+         <string>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
+&lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
+p, li { white-space: pre-wrap; }
+&lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'MS Shell Dlg 2'; font-size:8.25pt; font-weight:400; font-style:normal;&quot;&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-size:8pt; font-weight:600; color:#ff0000;&quot;&gt;No region of interest selected&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="0">
+       <widget class="QCheckBox" name="Visible3dCheckBox">
+        <property name="text">
+         <string>Visible in 3D view</string>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="0">
+       <widget class="QCheckBox" name="Visible2dCheckBox">
+        <property name="text">
+         <string>Visible in slice view</string>
+        </property>
+       </widget>
       </item>
      </layout>
     </widget>
@@ -325,234 +314,150 @@ p, li { white-space: pre-wrap; }
       <string>Advanced</string>
      </property>
      <property name="checked">
-      <bool>false</bool>
+      <bool>true</bool>
      </property>
      <layout class="QVBoxLayout" name="verticalLayout_2">
-      <property name="spacing">
-       <number>4</number>
-      </property>
       <property name="margin">
        <number>4</number>
       </property>
       <item>
-       <widget class="ctkCollapsibleGroupBox" name="GlyphBox">
-        <property name="sizePolicy">
-         <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
-          <horstretch>0</horstretch>
-          <verstretch>0</verstretch>
-         </sizepolicy>
+       <widget class="QFrame" name="GlyphOptions">
+        <property name="frameShape">
+         <enum>QFrame::StyledPanel</enum>
         </property>
-        <property name="title">
-         <string>Glyph Options</string>
+        <property name="frameShadow">
+         <enum>QFrame::Raised</enum>
         </property>
-        <property name="collapsed">
-         <bool>false</bool>
-        </property>
-        <layout class="QGridLayout" name="gridLayout_3">
-         <property name="margin">
-          <number>4</number>
-         </property>
-         <property name="spacing">
-          <number>4</number>
-         </property>
-         <item row="9" column="1" colspan="3">
-          <widget class="ctkCollapsibleGroupBox" name="ArrowSourceOptions">
+        <layout class="QGridLayout" name="gridLayout_4">
+         <item row="0" column="0">
+          <widget class="QLabel" name="GlyphSpacingLabel">
+           <property name="toolTip">
+            <string>Number of glyphs to generate</string>
+           </property>
+           <property name="text">
+            <string>Spacing</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="1" colspan="3">
+          <widget class="ctkSliderWidget" name="GlyphSpacingMm">
            <property name="sizePolicy">
-            <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
+            <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
              <horstretch>0</horstretch>
              <verstretch>0</verstretch>
             </sizepolicy>
            </property>
-           <property name="title">
-            <string>Arrow Source</string>
+           <property name="toolTip">
+            <string>Number of glyphs to generate</string>
            </property>
-           <property name="checkable">
-            <bool>true</bool>
+           <property name="decimals">
+            <number>0</number>
            </property>
-           <property name="checked">
-            <bool>false</bool>
+           <property name="singleStep">
+            <double>0.500000000000000</double>
            </property>
-           <property name="collapsed">
-            <bool>true</bool>
+           <property name="pageStep">
+            <double>25.000000000000000</double>
            </property>
-           <layout class="QFormLayout" name="formLayout_2">
-            <property name="fieldGrowthPolicy">
-             <enum>QFormLayout::AllNonFixedFieldsGrow</enum>
-            </property>
-            <property name="horizontalSpacing">
-             <number>4</number>
-            </property>
-            <property name="verticalSpacing">
-             <number>4</number>
-            </property>
-            <property name="margin">
-             <number>4</number>
-            </property>
-            <item row="0" column="0">
-             <widget class="QRadioButton" name="InputGlyphArrowScaleIsotropic">
-              <property name="sizePolicy">
-               <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-                <horstretch>0</horstretch>
-                <verstretch>0</verstretch>
-               </sizepolicy>
-              </property>
-              <property name="toolTip">
-               <string>Scale glyph in all directions</string>
-              </property>
-              <property name="text">
-               <string>Isotropic Scaling</string>
-              </property>
-             </widget>
-            </item>
-            <item row="2" column="0">
-             <widget class="QLabel" name="TipLengthLabel">
-              <property name="toolTip">
-               <string>Adjust how much of the tip the arrow will consist of as a decimal percentage</string>
-              </property>
-              <property name="text">
-               <string>Tip Length</string>
-              </property>
-             </widget>
-            </item>
-            <item row="2" column="1">
-             <widget class="ctkSliderWidget" name="InputGlyphArrowTipLength">
-              <property name="toolTip">
-               <string>Adjust how much of the tip the arrow will consist of as a decimal percentage</string>
-              </property>
-              <property name="decimals">
-               <number>1</number>
-              </property>
-              <property name="singleStep">
-               <double>0.010000000000000</double>
-              </property>
-              <property name="pageStep">
-               <double>0.010000000000000</double>
-              </property>
-              <property name="maximum">
-               <double>1.000000000000000</double>
-              </property>
-              <property name="value">
-               <double>0.400000000000000</double>
-              </property>
-             </widget>
-            </item>
-            <item row="3" column="0">
-             <widget class="QLabel" name="TipRadiusLabel">
-              <property name="toolTip">
-               <string>Adjust radius of base of arrow tip</string>
-              </property>
-              <property name="text">
-               <string>Tip Base Radius</string>
-              </property>
-             </widget>
-            </item>
-            <item row="3" column="1">
-             <widget class="ctkSliderWidget" name="InputGlyphArrowTipRadius">
-              <property name="toolTip">
-               <string>Adjust radius of base of arrow tip</string>
-              </property>
-              <property name="singleStep">
-               <double>0.010000000000000</double>
-              </property>
-              <property name="pageStep">
-               <double>0.010000000000000</double>
-              </property>
-              <property name="maximum">
-               <double>5.000000000000000</double>
-              </property>
-              <property name="value">
-               <double>0.500000000000000</double>
-              </property>
-             </widget>
-            </item>
-            <item row="4" column="0">
-             <widget class="QLabel" name="ShaftRadiusLabel">
-              <property name="toolTip">
-               <string>Adjust radius of arrow shaft</string>
-              </property>
-              <property name="text">
-               <string>Shaft Radius</string>
-              </property>
-             </widget>
-            </item>
-            <item row="4" column="1">
-             <widget class="ctkSliderWidget" name="InputGlyphArrowShaftRadius">
-              <property name="toolTip">
-               <string>Adjust radius of arrow shaft</string>
-              </property>
-              <property name="singleStep">
-               <double>0.010000000000000</double>
-              </property>
-              <property name="pageStep">
-               <double>0.010000000000000</double>
-              </property>
-              <property name="maximum">
-               <double>1.000000000000000</double>
-              </property>
-              <property name="value">
-               <double>0.150000000000000</double>
-              </property>
-             </widget>
-            </item>
-            <item row="5" column="0">
-             <widget class="QLabel" name="ShaftResolutionLabel">
-              <property name="toolTip">
-               <string>Adjust resolution of arrow (lower is less detailed)</string>
-              </property>
-              <property name="text">
-               <string>Resolution</string>
-              </property>
-             </widget>
-            </item>
-            <item row="5" column="1">
-             <widget class="ctkSliderWidget" name="InputGlyphArrowResolution">
-              <property name="toolTip">
-               <string>Adjust resolution of arrow (lower is less detailed)</string>
-              </property>
-              <property name="decimals">
-               <number>1</number>
-              </property>
-              <property name="singleStep">
-               <double>1.000000000000000</double>
-              </property>
-              <property name="pageStep">
-               <double>1.000000000000000</double>
-              </property>
-              <property name="minimum">
-               <double>6.000000000000000</double>
-              </property>
-              <property name="maximum">
-               <double>24.000000000000000</double>
-              </property>
-              <property name="value">
-               <double>6.000000000000000</double>
-              </property>
-             </widget>
-            </item>
-            <item row="1" column="0">
-             <widget class="QRadioButton" name="InputGlyphArrowScaleDirectional">
-              <property name="sizePolicy">
-               <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-                <horstretch>0</horstretch>
-                <verstretch>0</verstretch>
-               </sizepolicy>
-              </property>
-              <property name="toolTip">
-               <string>Scale glyph only along direction of vector</string>
-              </property>
-              <property name="text">
-               <string>Directional Scaling</string>
-              </property>
-              <property name="checked">
-               <bool>true</bool>
-              </property>
-             </widget>
-            </item>
-           </layout>
+           <property name="minimum">
+            <double>1.000000000000000</double>
+           </property>
+           <property name="maximum">
+            <double>100.000000000000000</double>
+           </property>
+           <property name="value">
+            <double>10.000000000000000</double>
+           </property>
+           <property name="suffix">
+            <string> mm</string>
+           </property>
           </widget>
          </item>
-         <item row="7" column="2" colspan="2">
-          <widget class="ctkComboBox" name="GlyphSourceComboBox">
+         <item row="2" column="0">
+          <widget class="QLabel" name="label_10">
+           <property name="toolTip">
+            <string>Only create glyphs within threshold values</string>
+           </property>
+           <property name="text">
+            <string>Visible range</string>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="1" colspan="3">
+          <widget class="qMRMLRangeWidget" name="GlyphDisplayRangeMm">
+           <property name="singleStep">
+            <double>0.100000000000000</double>
+           </property>
+           <property name="maximum">
+            <double>100.000000000000000</double>
+           </property>
+           <property name="maximumValue">
+            <double>100.000000000000000</double>
+           </property>
+           <property name="suffix">
+            <string/>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="0">
+          <widget class="QLabel" name="label">
+           <property name="toolTip">
+            <string>Adjust amount to scale size of glyph</string>
+           </property>
+           <property name="text">
+            <string>Scale Factor</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1" colspan="2">
+          <widget class="ctkSliderWidget" name="GlyphScalePercent">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="toolTip">
+            <string>Adjust amount to scale size of glyph</string>
+           </property>
+           <property name="decimals">
+            <number>0</number>
+           </property>
+           <property name="singleStep">
+            <double>1.000000000000000</double>
+           </property>
+           <property name="pageStep">
+            <double>10.000000000000000</double>
+           </property>
+           <property name="maximum">
+            <double>1000.000000000000000</double>
+           </property>
+           <property name="value">
+            <double>100.000000000000000</double>
+           </property>
+           <property name="suffix">
+            <string>%</string>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="0">
+          <widget class="QLabel" name="label_2">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="toolTip">
+            <string>Choose a glyph type to use</string>
+           </property>
+           <property name="text">
+            <string>Glyph Type</string>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="1" colspan="3">
+          <widget class="ctkComboBox" name="GlyphTypeComboBox">
            <property name="sizePolicy">
             <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
              <horstretch>0</horstretch>
@@ -582,246 +487,7 @@ p, li { white-space: pre-wrap; }
            </item>
           </widget>
          </item>
-         <item row="7" column="1">
-          <widget class="QLabel" name="label_2">
-           <property name="sizePolicy">
-            <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-             <horstretch>0</horstretch>
-             <verstretch>0</verstretch>
-            </sizepolicy>
-           </property>
-           <property name="toolTip">
-            <string>Choose a glyph type to use</string>
-           </property>
-           <property name="text">
-            <string>Source</string>
-           </property>
-          </widget>
-         </item>
-         <item row="13" column="1" colspan="3">
-          <widget class="ctkCollapsibleGroupBox" name="ConeSourceOptions">
-           <property name="enabled">
-            <bool>false</bool>
-           </property>
-           <property name="sizePolicy">
-            <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
-             <horstretch>0</horstretch>
-             <verstretch>0</verstretch>
-            </sizepolicy>
-           </property>
-           <property name="visible">
-            <bool>false</bool>
-           </property>
-           <property name="toolTip">
-            <string/>
-           </property>
-           <property name="title">
-            <string>Cone Source</string>
-           </property>
-           <property name="checked">
-            <bool>false</bool>
-           </property>
-           <layout class="QFormLayout" name="formLayout_9">
-            <property name="fieldGrowthPolicy">
-             <enum>QFormLayout::AllNonFixedFieldsGrow</enum>
-            </property>
-            <item row="0" column="0">
-             <widget class="QRadioButton" name="InputGlyphConeScaleIsotropic">
-              <property name="sizePolicy">
-               <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-                <horstretch>0</horstretch>
-                <verstretch>0</verstretch>
-               </sizepolicy>
-              </property>
-              <property name="toolTip">
-               <string>Scale glyph in all directions</string>
-              </property>
-              <property name="text">
-               <string>Isotropic Scaling</string>
-              </property>
-             </widget>
-            </item>
-            <item row="1" column="0">
-             <widget class="QRadioButton" name="InputGlyphConeScaleDirectional">
-              <property name="sizePolicy">
-               <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-                <horstretch>0</horstretch>
-                <verstretch>0</verstretch>
-               </sizepolicy>
-              </property>
-              <property name="toolTip">
-               <string>Scale glyph only along direction of vector</string>
-              </property>
-              <property name="text">
-               <string>Directional Scaling</string>
-              </property>
-              <property name="checked">
-               <bool>true</bool>
-              </property>
-             </widget>
-            </item>
-            <item row="3" column="0">
-             <widget class="QLabel" name="label_3">
-              <property name="toolTip">
-               <string>Adjust height of cone</string>
-              </property>
-              <property name="text">
-               <string>Height</string>
-              </property>
-             </widget>
-            </item>
-            <item row="3" column="1">
-             <widget class="ctkSliderWidget" name="InputGlyphConeHeight">
-              <property name="toolTip">
-               <string>Adjust height of cone</string>
-              </property>
-              <property name="singleStep">
-               <double>0.020000000000000</double>
-              </property>
-              <property name="pageStep">
-               <double>0.010000000000000</double>
-              </property>
-              <property name="maximum">
-               <double>5.000000000000000</double>
-              </property>
-              <property name="value">
-               <double>1.000000000000000</double>
-              </property>
-             </widget>
-            </item>
-            <item row="4" column="0">
-             <widget class="QLabel" name="label_4">
-              <property name="toolTip">
-               <string>Adjust radius of base of cone</string>
-              </property>
-              <property name="text">
-               <string>Base Radius</string>
-              </property>
-             </widget>
-            </item>
-            <item row="4" column="1">
-             <widget class="ctkSliderWidget" name="InputGlyphConeRadius">
-              <property name="toolTip">
-               <string>Adjust radius of base of cone</string>
-              </property>
-              <property name="singleStep">
-               <double>0.020000000000000</double>
-              </property>
-              <property name="pageStep">
-               <double>0.010000000000000</double>
-              </property>
-              <property name="maximum">
-               <double>1.000000000000000</double>
-              </property>
-              <property name="value">
-               <double>1.000000000000000</double>
-              </property>
-             </widget>
-            </item>
-            <item row="5" column="0">
-             <widget class="QLabel" name="label_6">
-              <property name="toolTip">
-               <string>Adjust resolution of cone (lower is less detailed)</string>
-              </property>
-              <property name="text">
-               <string>Resolution</string>
-              </property>
-             </widget>
-            </item>
-            <item row="5" column="1">
-             <widget class="ctkSliderWidget" name="InputGlyphConeResolution">
-              <property name="toolTip">
-               <string>Adjust resolution of cone (lower is less detailed)</string>
-              </property>
-              <property name="decimals">
-               <number>1</number>
-              </property>
-              <property name="singleStep">
-               <double>1.000000000000000</double>
-              </property>
-              <property name="pageStep">
-               <double>1.000000000000000</double>
-              </property>
-              <property name="minimum">
-               <double>6.000000000000000</double>
-              </property>
-              <property name="maximum">
-               <double>24.000000000000000</double>
-              </property>
-              <property name="value">
-               <double>6.000000000000000</double>
-              </property>
-             </widget>
-            </item>
-           </layout>
-          </widget>
-         </item>
-         <item row="14" column="1" colspan="3">
-          <widget class="ctkCollapsibleGroupBox" name="SphereSourceOptions">
-           <property name="enabled">
-            <bool>false</bool>
-           </property>
-           <property name="sizePolicy">
-            <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
-             <horstretch>0</horstretch>
-             <verstretch>0</verstretch>
-            </sizepolicy>
-           </property>
-           <property name="visible">
-            <bool>false</bool>
-           </property>
-           <property name="toolTip">
-            <string/>
-           </property>
-           <property name="title">
-            <string>Sphere Source</string>
-           </property>
-           <property name="checked">
-            <bool>false</bool>
-           </property>
-           <layout class="QFormLayout" name="formLayout_10">
-            <property name="fieldGrowthPolicy">
-             <enum>QFormLayout::AllNonFixedFieldsGrow</enum>
-            </property>
-            <item row="0" column="0">
-             <widget class="QLabel" name="label_8">
-              <property name="toolTip">
-               <string>Adjust resolution of sphere (lower is less detailed)</string>
-              </property>
-              <property name="text">
-               <string>Resolution</string>
-              </property>
-             </widget>
-            </item>
-            <item row="0" column="1">
-             <widget class="ctkSliderWidget" name="InputGlyphSphereResolution">
-              <property name="toolTip">
-               <string>Adjust resolution of sphere (lower is less detailed)</string>
-              </property>
-              <property name="decimals">
-               <number>1</number>
-              </property>
-              <property name="singleStep">
-               <double>1.000000000000000</double>
-              </property>
-              <property name="pageStep">
-               <double>1.000000000000000</double>
-              </property>
-              <property name="minimum">
-               <double>6.000000000000000</double>
-              </property>
-              <property name="maximum">
-               <double>24.000000000000000</double>
-              </property>
-              <property name="value">
-               <double>6.000000000000000</double>
-              </property>
-             </widget>
-            </item>
-           </layout>
-          </widget>
-         </item>
-         <item row="15" column="1">
+         <item row="6" column="0">
           <widget class="QLabel" name="label_5">
            <property name="toolTip">
             <string>Seed used for placement of glyphs</string>
@@ -831,8 +497,36 @@ p, li { white-space: pre-wrap; }
            </property>
           </widget>
          </item>
-         <item row="15" column="2">
-          <widget class="QSpinBox" name="InputGlyphSeed">
+         <item row="5" column="1" colspan="3">
+          <widget class="ctkSliderWidget" name="GlyphMaxNumberOfPoints">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="toolTip">
+            <string>Number of glyphs to generate</string>
+           </property>
+           <property name="decimals">
+            <number>0</number>
+           </property>
+           <property name="singleStep">
+            <double>1.000000000000000</double>
+           </property>
+           <property name="pageStep">
+            <double>500.000000000000000</double>
+           </property>
+           <property name="maximum">
+            <double>10000.000000000000000</double>
+           </property>
+           <property name="value">
+            <double>2000.000000000000000</double>
+           </property>
+          </widget>
+         </item>
+         <item row="6" column="1">
+          <widget class="QSpinBox" name="GlyphRandomSeed">
            <property name="sizePolicy">
             <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
              <horstretch>0</horstretch>
@@ -862,8 +556,221 @@ p, li { white-space: pre-wrap; }
            </property>
           </widget>
          </item>
-         <item row="15" column="3">
-          <widget class="QPushButton" name="GenerateSeedButton">
+         <item row="5" column="0">
+          <widget class="QLabel" name="GlyphsMaxLabel">
+           <property name="toolTip">
+            <string>Number of glyphs to generate</string>
+           </property>
+           <property name="text">
+            <string>Max. Number</string>
+           </property>
+          </widget>
+         </item>
+         <item row="4" column="1" colspan="3">
+          <widget class="ctkCollapsibleGroupBox" name="GlyphSourceOptions">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="title">
+            <string>3D Glyph Settings</string>
+           </property>
+           <property name="checkable">
+            <bool>true</bool>
+           </property>
+           <property name="checked">
+            <bool>false</bool>
+           </property>
+           <property name="collapsed">
+            <bool>true</bool>
+           </property>
+           <layout class="QGridLayout" name="gridLayout_5">
+            <property name="margin">
+             <number>4</number>
+            </property>
+            <property name="spacing">
+             <number>4</number>
+            </property>
+            <item row="0" column="0">
+             <widget class="QCheckBox" name="GlyphScaleDirectionalCheckBox">
+              <property name="toolTip">
+               <string>Scale glyph only along direction of vector</string>
+              </property>
+              <property name="text">
+               <string>Directional scaling</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="0">
+             <widget class="QLabel" name="GlyphDiameterMmLabel">
+              <property name="toolTip">
+               <string>Adjust radius of base of arrow tip</string>
+              </property>
+              <property name="text">
+               <string>Diameter</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="1">
+             <widget class="ctkSliderWidget" name="GlyphDiameterMm">
+              <property name="toolTip">
+               <string>Base diameter of the widget in mm (fixed)</string>
+              </property>
+              <property name="decimals">
+               <number>0</number>
+              </property>
+              <property name="singleStep">
+               <double>0.100000000000000</double>
+              </property>
+              <property name="pageStep">
+               <double>0.500000000000000</double>
+              </property>
+              <property name="maximum">
+               <double>5.000000000000000</double>
+              </property>
+              <property name="value">
+               <double>0.500000000000000</double>
+              </property>
+              <property name="suffix">
+               <string> mm</string>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="0">
+             <widget class="QLabel" name="GlyphDiameterPercentLabel">
+              <property name="text">
+               <string>Diameter</string>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="1">
+             <widget class="ctkSliderWidget" name="GlyphDiameterPercent">
+              <property name="toolTip">
+               <string>Base diameter of the widget as percentage of displacement</string>
+              </property>
+              <property name="decimals">
+               <number>0</number>
+              </property>
+              <property name="maximum">
+               <double>500.000000000000000</double>
+              </property>
+              <property name="value">
+               <double>20.000000000000000</double>
+              </property>
+              <property name="suffix">
+               <string>%</string>
+              </property>
+             </widget>
+            </item>
+            <item row="3" column="0">
+             <widget class="QLabel" name="GlyphShaftDiameterLabel">
+              <property name="toolTip">
+               <string>Adjust radius of arrow shaft</string>
+              </property>
+              <property name="text">
+               <string>Shaft Diameter</string>
+              </property>
+             </widget>
+            </item>
+            <item row="3" column="1">
+             <widget class="ctkSliderWidget" name="GlyphShaftDiameterPercent">
+              <property name="toolTip">
+               <string>Diameter of the arrow shaft relative to the base diameter</string>
+              </property>
+              <property name="singleStep">
+               <double>1.000000000000000</double>
+              </property>
+              <property name="pageStep">
+               <double>10.000000000000000</double>
+              </property>
+              <property name="maximum">
+               <double>100.000000000000000</double>
+              </property>
+              <property name="value">
+               <double>20.000000000000000</double>
+              </property>
+              <property name="suffix">
+               <string>%</string>
+              </property>
+             </widget>
+            </item>
+            <item row="4" column="0">
+             <widget class="QLabel" name="GlyphTipLengthLabel">
+              <property name="toolTip">
+               <string>Adjust how much of the tip the arrow will consist of as a decimal percentage</string>
+              </property>
+              <property name="text">
+               <string>Tip Length</string>
+              </property>
+             </widget>
+            </item>
+            <item row="4" column="1">
+             <widget class="ctkSliderWidget" name="GlyphTipLengthPercent">
+              <property name="toolTip">
+               <string>Length of the arrow tip  as percentage of displacement</string>
+              </property>
+              <property name="decimals">
+               <number>0</number>
+              </property>
+              <property name="singleStep">
+               <double>1.000000000000000</double>
+              </property>
+              <property name="pageStep">
+               <double>10.000000000000000</double>
+              </property>
+              <property name="maximum">
+               <double>100.000000000000000</double>
+              </property>
+              <property name="value">
+               <double>30.000000000000000</double>
+              </property>
+              <property name="suffix">
+               <string>%</string>
+              </property>
+             </widget>
+            </item>
+            <item row="5" column="0">
+             <widget class="QLabel" name="GlyphShaftResolutionLabel">
+              <property name="toolTip">
+               <string>Adjust resolution of the glyph (higher value generates smoother curved lines but visualization may be slower)</string>
+              </property>
+              <property name="text">
+               <string>Resolution</string>
+              </property>
+             </widget>
+            </item>
+            <item row="5" column="1">
+             <widget class="ctkSliderWidget" name="GlyphResolution">
+              <property name="toolTip">
+               <string>Adjust resolution of arrow (lower is less detailed but rendered faster)</string>
+              </property>
+              <property name="decimals">
+               <number>0</number>
+              </property>
+              <property name="singleStep">
+               <double>1.000000000000000</double>
+              </property>
+              <property name="pageStep">
+               <double>1.000000000000000</double>
+              </property>
+              <property name="minimum">
+               <double>4.000000000000000</double>
+              </property>
+              <property name="maximum">
+               <double>50.000000000000000</double>
+              </property>
+              <property name="value">
+               <double>6.000000000000000</double>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+         </item>
+         <item row="6" column="2" colspan="2">
+          <widget class="QPushButton" name="GlyphGenerateRandomSeedButton">
            <property name="sizePolicy">
             <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
              <horstretch>0</horstretch>
@@ -878,227 +785,19 @@ p, li { white-space: pre-wrap; }
            </property>
           </widget>
          </item>
-         <item row="1" column="1">
-          <widget class="QLabel" name="label_10">
-           <property name="toolTip">
-            <string>Only create glyphs within threshold values</string>
-           </property>
-           <property name="text">
-            <string>Threshold</string>
-           </property>
-          </widget>
-         </item>
-         <item row="1" column="2" colspan="2">
-          <widget class="qMRMLRangeWidget" name="InputGlyphThreshold">
-           <property name="singleStep">
-            <double>0.250000000000000</double>
-           </property>
-           <property name="maximum">
-            <double>100.000000000000000</double>
-           </property>
-           <property name="maximumValue">
-            <double>100.000000000000000</double>
-           </property>
-          </widget>
-         </item>
-         <item row="2" column="1">
-          <widget class="QLabel" name="label">
-           <property name="toolTip">
-            <string>Adjust amount to scale size of glyph</string>
-           </property>
-           <property name="text">
-            <string>Scale Factor</string>
-           </property>
-          </widget>
-         </item>
-         <item row="2" column="2" colspan="2">
-          <widget class="ctkSliderWidget" name="InputGlyphScale">
-           <property name="sizePolicy">
-            <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-             <horstretch>0</horstretch>
-             <verstretch>0</verstretch>
-            </sizepolicy>
-           </property>
-           <property name="toolTip">
-            <string>Adjust amount to scale size of glyph</string>
-           </property>
-           <property name="decimals">
-            <number>1</number>
-           </property>
-           <property name="singleStep">
-            <double>0.050000000000000</double>
-           </property>
-           <property name="pageStep">
-            <double>0.100000000000000</double>
-           </property>
-           <property name="maximum">
-            <double>10.000000000000000</double>
-           </property>
-           <property name="value">
-            <double>1.000000000000000</double>
-           </property>
-          </widget>
-         </item>
-         <item row="10" column="1">
-          <widget class="QLabel" name="InputVolumeLabel_3">
-           <property name="toolTip">
-            <string>Number of glyphs to generate</string>
-           </property>
-           <property name="text">
-            <string>Glyphs</string>
-           </property>
-          </widget>
-         </item>
-         <item row="10" column="2" colspan="2">
-          <widget class="ctkSliderWidget" name="InputGlyphPointMax">
-           <property name="sizePolicy">
-            <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-             <horstretch>0</horstretch>
-             <verstretch>0</verstretch>
-            </sizepolicy>
-           </property>
-           <property name="toolTip">
-            <string>Number of glyphs to generate</string>
-           </property>
-           <property name="decimals">
-            <number>1</number>
-           </property>
-           <property name="singleStep">
-            <double>1.000000000000000</double>
-           </property>
-           <property name="pageStep">
-            <double>500.000000000000000</double>
-           </property>
-           <property name="maximum">
-            <double>10000.000000000000000</double>
-           </property>
-           <property name="value">
-            <double>2000.000000000000000</double>
-           </property>
-          </widget>
-         </item>
-         <item row="0" column="1">
-          <widget class="QLabel" name="InputVolumeLabel_4">
-           <property name="toolTip">
-            <string>Number of glyphs to generate</string>
-           </property>
-           <property name="text">
-            <string>Spacing</string>
-           </property>
-          </widget>
-         </item>
-         <item row="0" column="2" colspan="2">
-          <widget class="ctkSliderWidget" name="InputGlyphSpacing">
-           <property name="sizePolicy">
-            <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-             <horstretch>0</horstretch>
-             <verstretch>0</verstretch>
-            </sizepolicy>
-           </property>
-           <property name="toolTip">
-            <string>Number of glyphs to generate</string>
-           </property>
-           <property name="decimals">
-            <number>1</number>
-           </property>
-           <property name="singleStep">
-            <double>0.500000000000000</double>
-           </property>
-           <property name="pageStep">
-            <double>25.000000000000000</double>
-           </property>
-           <property name="minimum">
-            <double>1.000000000000000</double>
-           </property>
-           <property name="maximum">
-            <double>100.000000000000000</double>
-           </property>
-           <property name="value">
-            <double>10.000000000000000</double>
-           </property>
-           <property name="suffix">
-            <string> mm</string>
-           </property>
-          </widget>
-         </item>
         </layout>
        </widget>
       </item>
       <item>
-       <widget class="ctkCollapsibleGroupBox" name="GridBox">
-        <property name="enabled">
-         <bool>false</bool>
+       <widget class="QFrame" name="GridOptions">
+        <property name="frameShape">
+         <enum>QFrame::StyledPanel</enum>
         </property>
-        <property name="sizePolicy">
-         <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-          <horstretch>0</horstretch>
-          <verstretch>0</verstretch>
-         </sizepolicy>
+        <property name="frameShadow">
+         <enum>QFrame::Raised</enum>
         </property>
-        <property name="visible">
-         <bool>false</bool>
-        </property>
-        <property name="inputMethodHints">
-         <set>Qt::ImhNone</set>
-        </property>
-        <property name="title">
-         <string>Grid Options</string>
-        </property>
-        <property name="flat">
-         <bool>false</bool>
-        </property>
-        <property name="checkable">
-         <bool>true</bool>
-        </property>
-        <property name="checked">
-         <bool>true</bool>
-        </property>
-        <property name="collapsed">
-         <bool>false</bool>
-        </property>
-        <layout class="QFormLayout" name="formLayout_6">
-         <property name="fieldGrowthPolicy">
-          <enum>QFormLayout::AllNonFixedFieldsGrow</enum>
-         </property>
-         <item row="2" column="0">
-          <widget class="QLabel" name="GridScaleLabel">
-           <property name="toolTip">
-            <string>Adjust amount to scale deformation of grid</string>
-           </property>
-           <property name="text">
-            <string>Scale Factor</string>
-           </property>
-          </widget>
-         </item>
-         <item row="2" column="1">
-          <widget class="ctkSliderWidget" name="InputGridScale">
-           <property name="sizePolicy">
-            <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-             <horstretch>0</horstretch>
-             <verstretch>0</verstretch>
-            </sizepolicy>
-           </property>
-           <property name="toolTip">
-            <string>Adjust amount to scale deformation of grid</string>
-           </property>
-           <property name="decimals">
-            <number>1</number>
-           </property>
-           <property name="singleStep">
-            <double>0.050000000000000</double>
-           </property>
-           <property name="pageStep">
-            <double>0.100000000000000</double>
-           </property>
-           <property name="maximum">
-            <double>10.000000000000000</double>
-           </property>
-           <property name="value">
-            <double>1.000000000000000</double>
-           </property>
-          </widget>
-         </item>
-         <item row="1" column="0">
+        <layout class="QGridLayout" name="gridLayout_3">
+         <item row="0" column="0">
           <widget class="QLabel" name="GridSpacingLabel">
            <property name="toolTip">
             <string>Resample grid (spacing will be the distance between lines)</string>
@@ -1108,8 +807,8 @@ p, li { white-space: pre-wrap; }
            </property>
           </widget>
          </item>
-         <item row="1" column="1">
-          <widget class="ctkSliderWidget" name="InputGridSpacing">
+         <item row="0" column="1">
+          <widget class="ctkSliderWidget" name="GridSpacingMm">
            <property name="sizePolicy">
             <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
              <horstretch>0</horstretch>
@@ -1120,7 +819,7 @@ p, li { white-space: pre-wrap; }
             <string>Number of glyphs to generate</string>
            </property>
            <property name="decimals">
-            <number>1</number>
+            <number>0</number>
            </property>
            <property name="singleStep">
             <double>0.500000000000000</double>
@@ -1142,44 +841,61 @@ p, li { white-space: pre-wrap; }
            </property>
           </widget>
          </item>
+         <item row="1" column="0">
+          <widget class="QLabel" name="GridScaleLabel">
+           <property name="toolTip">
+            <string>Adjust amount to scale deformation of grid</string>
+           </property>
+           <property name="text">
+            <string>Scale Factor</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1">
+          <widget class="ctkSliderWidget" name="GridScalePercent">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="toolTip">
+            <string>Adjust amount to scale deformation of grid</string>
+           </property>
+           <property name="decimals">
+            <number>0</number>
+           </property>
+           <property name="singleStep">
+            <double>1.000000000000000</double>
+           </property>
+           <property name="pageStep">
+            <double>10.000000000000000</double>
+           </property>
+           <property name="maximum">
+            <double>1000.000000000000000</double>
+           </property>
+           <property name="value">
+            <double>100.000000000000000</double>
+           </property>
+           <property name="suffix">
+            <string>%</string>
+           </property>
+          </widget>
+         </item>
         </layout>
        </widget>
       </item>
       <item>
-       <widget class="ctkCollapsibleGroupBox" name="ContourBox">
-        <property name="enabled">
-         <bool>true</bool>
+       <widget class="QFrame" name="ContourOptions">
+        <property name="frameShape">
+         <enum>QFrame::StyledPanel</enum>
         </property>
-        <property name="sizePolicy">
-         <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-          <horstretch>0</horstretch>
-          <verstretch>0</verstretch>
-         </sizepolicy>
+        <property name="frameShadow">
+         <enum>QFrame::Raised</enum>
         </property>
-        <property name="visible">
-         <bool>false</bool>
-        </property>
-        <property name="inputMethodHints">
-         <set>Qt::ImhNone</set>
-        </property>
-        <property name="title">
-         <string>Contour Options</string>
-        </property>
-        <property name="flat">
-         <bool>false</bool>
-        </property>
-        <property name="checkable">
-         <bool>true</bool>
-        </property>
-        <property name="checked">
-         <bool>true</bool>
-        </property>
-        <property name="collapsed">
-         <bool>false</bool>
-        </property>
-        <layout class="QGridLayout" name="gridLayout_5">
+        <layout class="QGridLayout" name="gridLayout">
          <item row="0" column="0">
-          <widget class="QLabel" name="ContourValuesLabel">
+          <widget class="QLabel" name="ContourLevelsLabel">
            <property name="toolTip">
             <string>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
 &lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
@@ -1188,12 +904,12 @@ p, li { white-space: pre-wrap; }
 &lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-size:8pt;&quot;&gt;Values to contour. Input as a comma-delimited list.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
            </property>
            <property name="text">
-            <string>Levels (mm):</string>
+            <string>Levels (mm)</string>
            </property>
           </widget>
          </item>
          <item row="0" column="1">
-          <widget class="QLineEdit" name="InputContourValues">
+          <widget class="QLineEdit" name="ContourLevelsMm">
            <property name="toolTip">
             <string>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
 &lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
@@ -1215,8 +931,18 @@ p, li { white-space: pre-wrap; }
            </property>
           </widget>
          </item>
-         <item row="2" column="1">
-          <widget class="ctkSliderWidget" name="InputContourDecimation">
+         <item row="1" column="0">
+          <widget class="QLabel" name="ContourDecimationLabel">
+           <property name="toolTip">
+            <string>Target decimation as a decimal percentage reduction in polygons (0 results in no decimation, 0.99 results in 99% reduction in polygons)</string>
+           </property>
+           <property name="text">
+            <string>Resolution</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1">
+          <widget class="ctkSliderWidget" name="ContourResolutionMm">
            <property name="sizePolicy">
             <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
              <horstretch>0</horstretch>
@@ -1227,29 +953,25 @@ p, li { white-space: pre-wrap; }
             <string>Target decimation as a decimal percentage reduction in polygons (0 results in no decimation, 0.99 results in 99% reduction in polygons)</string>
            </property>
            <property name="decimals">
-            <number>2</number>
+            <number>1</number>
            </property>
            <property name="singleStep">
-            <double>0.010000000000000</double>
+            <double>0.500000000000000</double>
            </property>
            <property name="pageStep">
+            <double>1.000000000000000</double>
+           </property>
+           <property name="minimum">
             <double>0.100000000000000</double>
            </property>
            <property name="maximum">
-            <double>0.990000000000000</double>
+            <double>20.000000000000000</double>
            </property>
            <property name="value">
-            <double>0.250000000000000</double>
+            <double>5.000000000000000</double>
            </property>
-          </widget>
-         </item>
-         <item row="2" column="0">
-          <widget class="QLabel" name="ContourDecimationLabel">
-           <property name="toolTip">
-            <string>Target decimation as a decimal percentage reduction in polygons (0 results in no decimation, 0.99 results in 99% reduction in polygons)</string>
-           </property>
-           <property name="text">
-            <string>Decimate</string>
+           <property name="suffix">
+            <string>mm</string>
            </property>
           </widget>
          </item>
@@ -1257,9 +979,6 @@ p, li { white-space: pre-wrap; }
        </widget>
       </item>
      </layout>
-     <zorder>GridBox</zorder>
-     <zorder>ContourBox</zorder>
-     <zorder>GlyphBox</zorder>
     </widget>
    </item>
    <item>
@@ -1325,290 +1044,210 @@ p, li { white-space: pre-wrap; }
  </resources>
  <connections>
   <connection>
-   <sender>GridToggle</sender>
+   <sender>GlyphToggle</sender>
    <signal>toggled(bool)</signal>
-   <receiver>GlyphBox</receiver>
-   <slot>hide()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>221</x>
-     <y>423</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>172</x>
-     <y>697</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>GridToggle</sender>
-   <signal>toggled(bool)</signal>
-   <receiver>GlyphBox</receiver>
-   <slot>setDisabled(bool)</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>221</x>
-     <y>423</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>209</x>
-     <y>697</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>GridToggle</sender>
-   <signal>toggled(bool)</signal>
-   <receiver>GridBox</receiver>
+   <receiver>GlyphOptions</receiver>
    <slot>show()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>221</x>
-     <y>423</y>
+     <x>63</x>
+     <y>60</y>
     </hint>
     <hint type="destinationlabel">
-     <x>103</x>
-     <y>525</y>
+     <x>167</x>
+     <y>330</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>GlyphToggle</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>GridOptions</receiver>
+   <slot>hide()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>63</x>
+     <y>60</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>167</x>
+     <y>506</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>GlyphToggle</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>ContourOptions</receiver>
+   <slot>hide()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>63</x>
+     <y>60</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>167</x>
+     <y>578</y>
     </hint>
    </hints>
   </connection>
   <connection>
    <sender>GridToggle</sender>
    <signal>toggled(bool)</signal>
-   <receiver>GridBox</receiver>
-   <slot>setEnabled(bool)</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>221</x>
-     <y>423</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>103</x>
-     <y>525</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>ContourToggle</sender>
-   <signal>toggled(bool)</signal>
-   <receiver>GlyphBox</receiver>
+   <receiver>GlyphOptions</receiver>
    <slot>hide()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>106</x>
-     <y>487</y>
+     <x>173</x>
+     <y>60</y>
     </hint>
     <hint type="destinationlabel">
-     <x>307</x>
-     <y>697</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>ContourToggle</sender>
-   <signal>toggled(bool)</signal>
-   <receiver>GlyphBox</receiver>
-   <slot>setDisabled(bool)</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>106</x>
-     <y>487</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>273</x>
-     <y>697</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>ContourToggle</sender>
-   <signal>toggled(bool)</signal>
-   <receiver>GridBox</receiver>
-   <slot>hide()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>106</x>
-     <y>487</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>103</x>
-     <y>525</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>ContourToggle</sender>
-   <signal>toggled(bool)</signal>
-   <receiver>GridBox</receiver>
-   <slot>setDisabled(bool)</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>106</x>
-     <y>487</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>103</x>
-     <y>525</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>ContourToggle</sender>
-   <signal>toggled(bool)</signal>
-   <receiver>ContourBox</receiver>
-   <slot>setEnabled(bool)</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>106</x>
-     <y>487</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>111</x>
-     <y>752</y>
+     <x>167</x>
+     <y>330</y>
     </hint>
    </hints>
   </connection>
   <connection>
    <sender>GridToggle</sender>
    <signal>toggled(bool)</signal>
-   <receiver>ContourBox</receiver>
-   <slot>hide()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>221</x>
-     <y>423</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>111</x>
-     <y>752</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>GridToggle</sender>
-   <signal>toggled(bool)</signal>
-   <receiver>ContourBox</receiver>
-   <slot>setDisabled(bool)</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>221</x>
-     <y>423</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>111</x>
-     <y>752</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>ContourToggle</sender>
-   <signal>toggled(bool)</signal>
-   <receiver>ContourBox</receiver>
+   <receiver>GridOptions</receiver>
    <slot>show()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>106</x>
-     <y>487</y>
+     <x>173</x>
+     <y>60</y>
     </hint>
     <hint type="destinationlabel">
-     <x>111</x>
-     <y>752</y>
+     <x>167</x>
+     <y>506</y>
     </hint>
    </hints>
   </connection>
   <connection>
-   <sender>GlyphToggle</sender>
+   <sender>GridToggle</sender>
    <signal>toggled(bool)</signal>
-   <receiver>ContourBox</receiver>
+   <receiver>ContourOptions</receiver>
    <slot>hide()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>106</x>
-     <y>423</y>
+     <x>173</x>
+     <y>60</y>
     </hint>
     <hint type="destinationlabel">
-     <x>111</x>
-     <y>752</y>
+     <x>167</x>
+     <y>578</y>
     </hint>
    </hints>
   </connection>
   <connection>
-   <sender>GlyphToggle</sender>
+   <sender>ContourToggle</sender>
    <signal>toggled(bool)</signal>
-   <receiver>ContourBox</receiver>
-   <slot>setDisabled(bool)</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>106</x>
-     <y>423</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>111</x>
-     <y>752</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>GlyphToggle</sender>
-   <signal>toggled(bool)</signal>
-   <receiver>GridBox</receiver>
+   <receiver>GlyphOptions</receiver>
    <slot>hide()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>106</x>
-     <y>423</y>
+     <x>277</x>
+     <y>60</y>
     </hint>
     <hint type="destinationlabel">
-     <x>103</x>
-     <y>525</y>
+     <x>167</x>
+     <y>330</y>
     </hint>
    </hints>
   </connection>
   <connection>
-   <sender>GlyphToggle</sender>
+   <sender>ContourToggle</sender>
    <signal>toggled(bool)</signal>
-   <receiver>GridBox</receiver>
-   <slot>setDisabled(bool)</slot>
+   <receiver>GridOptions</receiver>
+   <slot>hide()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>106</x>
-     <y>423</y>
+     <x>277</x>
+     <y>60</y>
     </hint>
     <hint type="destinationlabel">
-     <x>103</x>
-     <y>525</y>
+     <x>167</x>
+     <y>506</y>
     </hint>
    </hints>
   </connection>
   <connection>
-   <sender>GlyphToggle</sender>
+   <sender>ContourToggle</sender>
    <signal>toggled(bool)</signal>
-   <receiver>GlyphBox</receiver>
-   <slot>setEnabled(bool)</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>106</x>
-     <y>423</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>65</x>
-     <y>697</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>GlyphToggle</sender>
-   <signal>toggled(bool)</signal>
-   <receiver>GlyphBox</receiver>
+   <receiver>ContourOptions</receiver>
    <slot>show()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>106</x>
-     <y>423</y>
+     <x>277</x>
+     <y>60</y>
     </hint>
     <hint type="destinationlabel">
-     <x>54</x>
-     <y>697</y>
+     <x>167</x>
+     <y>578</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>GlyphScaleDirectionalCheckBox</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>GlyphDiameterMmLabel</receiver>
+   <slot>setVisible(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>142</x>
+     <y>336</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>116</x>
+     <y>358</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>GlyphScaleDirectionalCheckBox</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>GlyphDiameterMm</receiver>
+   <slot>setVisible(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>142</x>
+     <y>336</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>253</x>
+     <y>358</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>GlyphScaleDirectionalCheckBox</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>GlyphDiameterPercentLabel</receiver>
+   <slot>setHidden(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>142</x>
+     <y>336</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>116</x>
+     <y>382</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>GlyphScaleDirectionalCheckBox</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>GlyphDiameterPercent</receiver>
+   <slot>setHidden(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>142</x>
+     <y>336</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>253</x>
+     <y>382</y>
     </hint>
    </hints>
   </connection>

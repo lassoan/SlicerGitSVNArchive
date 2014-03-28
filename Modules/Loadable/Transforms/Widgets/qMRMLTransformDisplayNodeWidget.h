@@ -60,32 +60,30 @@ public slots:
   /// It's useful to connect to vtkMRMLNode* signals
   void setMRMLTransformNode(vtkMRMLNode* node);
 
+  void setGlyphVisualizationMode(bool);
+  void setGridVisualizationMode(bool);
+  void setContourVisualizationMode(bool);
+
   void updateLabels();
   void updateGlyphSourceOptions(int sourceOption);
   void referenceVolumeChanged(vtkMRMLNode* node);
   void setGlyphSpacingMm(double spacing);
-  void setGlyphPointMax(double pointMax);
-  void setSeed();
-  void setGlyphSeed(int seed);
-  void setGlyphScale(double scale);
-  void setGlyphThreshold(double min, double max);
-  void setGlyphSourceOption(int option);
-  void setGlyphArrowScaleDirectional(bool state);
-  void setGlyphArrowScaleIsotropic(bool state);
-  void setGlyphArrowTipLength(double length);
-  void setGlyphArrowTipRadius(double radius);
-  void setGlyphArrowShaftRadius(double radius);
-  void setGlyphArrowResolution(double resolution);
-  void setGlyphConeScaleDirectional(bool state);
-  void setGlyphConeScaleIsotropic(bool state);
-  void setGlyphConeHeight(double height);
-  void setGlyphConeRadius(double radius);
-  void setGlyphConeResolution(double resolution);
-  void setGlyphSphereResolution(double resolution);
-  void setGridScale(double scale);
+  void setGlyphMaxNumberOfPoints(double pointMax);
+  void generateGlyphRandomSeed();
+  void setGlyphRandomSeed(int seed);
+  void setGlyphScalePercent(double scale);
+  void setGlyphDisplayRangeMm(double min, double max);
+  void setGlyphType(int glyphType);
+  void setGlyphScaleDirectional(bool state);
+  void setGlyphTipLengthPercent(double length);
+  void setGlyphDiameterMm(double diameterMm);
+  void setGlyphDiameterPercent(double diameterPercent);
+  void setGlyphShaftDiameterPercent(double diameterPercent);
+  void setGlyphResolution(double resolution);
+  void setGridScalePercent(double scale);
   void setGridSpacingMm(double spacing);
-  void setContourValues(QString values_str);
-  void setContourDecimation(double reduction);
+  void setContourLevelsMm(QString values_str);
+  void setContourResolutionMm(double resolutionMm);
 
 protected slots:
   void updateWidgetFromDisplayNode();

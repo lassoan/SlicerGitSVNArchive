@@ -38,44 +38,31 @@ vtkMRMLNodeNewMacro(vtkMRMLTransformDisplayNode);
 vtkMRMLTransformDisplayNode::vtkMRMLTransformDisplayNode()
   :vtkMRMLDisplayNode()
 {
+  this->VisualizationMode=VIS_MODE_GLYPH;
 
-  this->VisualizationMode=0;
+  this->GlyphSpacingMm=10.0;
+  this->GlyphScalePercent=100;
+  this->GlyphDisplayRangeMaxMm=1000;
+  this->GlyphDisplayRangeMinMm=0;
+  this->GlyphMaxNumberOfPoints=2000;
+  this->GlyphRandomSeed=687848400;
+  this->GlyphType=GLYPH_TYPE_ARROW;
+  this->GlyphScaleDirectional=true;
+  this->GlyphTipLengthPercent=15;
+  this->GlyphDiameterPercent=20;
+  this->GlyphDiameterMm=0.5;
+  this->GlyphShaftDiameterPercent=15;
+  this->GlyphResolution=6;
 
-  //Glyph Parameters
-  this->GlyphSpacingMm = 1;
-  this->GlyphScale = 1;
-  this->GlyphThresholdMax = 1000;
-  this->GlyphThresholdMin = 0;
-  this->GlyphPointMax = 2000;
-  this->GlyphSeed = 687848400;
-  this->GlyphSourceOption = 0;
-  //Arrow Parameters
-  this->GlyphArrowScaleDirectional = true;
-  this->GlyphArrowScaleIsotropic = false;
-  this->GlyphArrowTipLength = 0.35;
-  this->GlyphArrowTipRadius = 0.5;
-  this->GlyphArrowShaftRadius = 0.15;
-  this->GlyphArrowResolution = 6;
-  //Cone Parameters
-  this->GlyphConeScaleDirectional = true;
-  this->GlyphConeScaleIsotropic = false;
-  this->GlyphConeHeight = 1.0;
-  this->GlyphConeRadius = 0.6;
-  this->GlyphConeResolution = 6;
-  //Sphere Parameters
-  this->GlyphSphereResolution = 6;
+  this->GridScalePercent=100;
+  this->GridSpacingMm=15.0;
 
-  //Grid Parameters
-  this->GridScale = 1;
-  this->GridSpacingMm = 12;
-
-  //Contour Parameters
-  this->ContourValues.clear();
-  this->ContourValues.push_back(1);
-  this->ContourValues.push_back(2);
-  this->ContourValues.push_back(3);
-  this->ContourValues.push_back(4);
-  this->ContourDecimation = 0.25;
+  this->ContourResolutionMm=3.0;
+  this->ContourLevelsMm.clear();
+  this->ContourLevelsMm.push_back(1.0);
+  this->ContourLevelsMm.push_back(2.0);
+  this->ContourLevelsMm.push_back(3.0);
+  this->ContourLevelsMm.push_back(5.0);
 }
 
 
@@ -90,48 +77,38 @@ void vtkMRMLTransformDisplayNode::WriteXML(ostream& of, int nIndent)
   Superclass::WriteXML(of, nIndent);
   vtkIndent indent(nIndent);
 
-  of << indent << " Show2dGlyph=\""<< (this->VisualizationMode&VIS_MODE_2D_GLYPH?1:0) << "\"";
-  of << indent << " Show2dGrid=\""<< (this->VisualizationMode&VIS_MODE_2D_GRID?1:0) << "\"";
-  of << indent << " Show2dContour=\""<< (this->VisualizationMode&VIS_MODE_2D_CONTOUR?1:0) << "\"";
-  of << indent << " Show3dGlyph=\""<< (this->VisualizationMode&VIS_MODE_3D_GLYPH?1:0) << "\"";
-  of << indent << " Show3dGrid=\""<< (this->VisualizationMode&VIS_MODE_3D_GRID?1:0) << "\"";
-  of << indent << " Show3dContour=\""<< (this->VisualizationMode&VIS_MODE_3D_CONTOUR?1:0) << "\"";
+  of << indent << " VisualizationMode=\""<< ConvertVisualizationModeToString(this->VisualizationMode) << "\"";
 
   of << indent << " GlyphSpacingMm=\""<< this->GlyphSpacingMm << "\"";
-  of << indent << " GlyphPointMax=\""<< this->GlyphPointMax << "\"";
-  of << indent << " GlyphScale=\""<< this->GlyphScale << "\"";
-  of << indent << " GlyphThresholdMax=\""<< this->GlyphThresholdMax << "\"";
-  of << indent << " GlyphThresholdMin=\""<< this->GlyphThresholdMin << "\"";
-  of << indent << " GlyphSeed=\""<< this->GlyphSeed << "\"";
-  of << indent << " GlyphSourceOption=\""<< this->GlyphSourceOption << "\"";
-    of << indent << " GlyphArrowScaleDirectional=\"" << this->GlyphArrowScaleDirectional << "\"";
-    of << indent << " GlyphArrowScaleIsotropic=\"" << this->GlyphArrowScaleIsotropic << "\"";
-    of << indent << " GlyphArrowTipLength=\"" << this->GlyphArrowTipLength << "\"";
-    of << indent << " GlyphArrowTipRadius=\""<< this->GlyphArrowTipRadius << "\"";
-    of << indent << " GlyphArrowShaftRadius=\"" << this->GlyphArrowShaftRadius << "\"";
-    of << indent << " GlyphArrowResolution=\"" << this->GlyphArrowResolution << "\"";
-    of << indent << " GlyphConeScaleDirectional=\"" << this->GlyphConeScaleDirectional << "\"";
-    of << indent << " GlyphConeScaleIsotropic=\"" << this->GlyphConeScaleIsotropic << "\"";
-    of << indent << " GlyphConeHeight=\"" << this->GlyphConeHeight << "\"";
-    of << indent << " GlyphConeRadius=\"" << this->GlyphConeRadius << "\"";
-    of << indent << " GlyphConeResolution=\"" << this->GlyphConeResolution << "\"";
-    of << indent << " GlyphSphereResolution=\"" << this->GlyphSphereResolution << "\"";
+  of << indent << " GlyphScalePercent=\""<< this->GlyphScalePercent << "\"";
+  of << indent << " GlyphDisplayRangeMaxMm=\""<< this->GlyphDisplayRangeMaxMm << "\"";
+  of << indent << " GlyphDisplayRangeMinMm=\""<< this->GlyphDisplayRangeMinMm << "\"";
+  of << indent << " GlyphMaxNumberOfPoints=\""<< this->GlyphMaxNumberOfPoints << "\"";
+  of << indent << " GlyphRandomSeed=\""<< this->GlyphRandomSeed << "\"";
+  of << indent << " GlyphType=\""<< ConvertGlyphTypeToString(this->GlyphType) << "\"";
+  of << indent << " GlyphScaleDirectional=\"" << this->GlyphScaleDirectional << "\"";
+  of << indent << " GlyphTipLengthPercent=\"" << this->GlyphTipLengthPercent << "\"";
+  of << indent << " GlyphDiameterPercent=\"" << this->GlyphDiameterPercent << "\"";
+  of << indent << " GlyphDiameterMm=\""<< this->GlyphDiameterMm << "\"";
+  of << indent << " GlyphShaftDiameterPercent=\"" << this->GlyphShaftDiameterPercent << "\"";
+  of << indent << " GlyphResolution=\"" << this->GlyphResolution << "\"";
 
-  of << indent << " GridScale=\""<< this->GridScale << "\"";
+  of << indent << " GridScalePercent=\""<< this->GridScalePercent << "\"";
   of << indent << " GridSpacingMm=\""<< this->GridSpacingMm << "\"";
 
-  of << indent << " ContourValues=\"";
-  for (int i=0; i<this->ContourValues.size(); i++)
-  {
-    if (i>0)
-    {
-      of << " "; //separate numbers by a space
-    }
-    of << this->ContourValues[i];
-  }
-  of << "\"";
-  of << indent << " ContourDecimation=\""<< this->ContourDecimation << "\"";
+  of << indent << " ContourResolutionMm=\""<< this->ContourResolutionMm << "\"";
+  of << indent << " ContourLevelsMm=\"" << GetContourLevelsMmAsString() << "\"";
 }
+
+
+#define READ_FROM_ATT(varName)    \
+  if (!strcmp(attName,#varName))  \
+  {                               \
+    std::stringstream ss;         \
+    ss << attValue;               \
+    ss >> this->varName;          \
+    continue;                     \
+  }
 
 
 //----------------------------------------------------------------------------
@@ -143,162 +120,44 @@ void vtkMRMLTransformDisplayNode::ReadXMLAttributes(const char** atts)
 
   const char* attName;
   const char* attValue;
-  while (*atts != NULL){
+  while (*atts != NULL)
+  {
     attName = *(atts++);
     attValue = *(atts++);
-    if (!strcmp(attName,"GlyphSpacingMm")){
-      std::stringstream ss;
-      ss << attValue;
-      ss >> this->GridSpacingMm;
-      continue;
-    }
-    if (!strcmp(attName,"GlyphPointMax")){
-      std::stringstream ss;
-      ss << attValue;
-      ss >> this->GlyphPointMax;
-      continue;
-    }
-    if (!strcmp(attName,"GlyphScale")){
-      std::stringstream ss;
-      ss << attValue;
-      ss >> this->GlyphScale;
-      continue;
-    }
-    if (!strcmp(attName,"GlyphThresholdMax")){
-      std::stringstream ss;
-      ss << attValue;
-      ss >> this->GlyphThresholdMax;
-      continue;
-    }
-    if (!strcmp(attName,"GlyphThresholdMin")){
-      std::stringstream ss;
-      ss << attValue;
-      ss >> this->GlyphThresholdMin;
-      continue;
-    }
-    if (!strcmp(attName,"GlyphSeed")){
-      std::stringstream ss;
-      ss << attValue;
-      ss >> this->GlyphSeed;
-      continue;
-    }
-    if (!strcmp(attName,"GlyphSourceOption")){
-      std::stringstream ss;
-      ss << attValue;
-      ss >> this->GlyphSourceOption;
-      continue;
-    }
-      if (!strcmp(attName,"GlyphArrowScaleDirectional")){
-        std::stringstream ss;
-        ss << attValue;
-        ss >> this->GlyphArrowScaleDirectional;
-        continue;
-      }
-      if (!strcmp(attName,"GlyphArrowScaleIsotropic")){
-        std::stringstream ss;
-        ss << attValue;
-        ss >> this->GlyphArrowScaleIsotropic;
-        continue;
-      }
-      if (!strcmp(attName,"GlyphArrowTipLength")){
-        std::stringstream ss;
-        ss << attValue;
-        ss >> this->GlyphArrowTipLength;
-        continue;
-      }
-      if (!strcmp(attName,"GlyphArrowTipRadius")){
-        std::stringstream ss;
-        ss << attValue;
-        ss >> this->GlyphArrowTipRadius;
-        continue;
-      }
-      if (!strcmp(attName,"GlyphArrowShaftRadius")){
-        std::stringstream ss;
-        ss << attValue;
-        ss >> this->GlyphArrowShaftRadius;
-        continue;
-      }
-      if (!strcmp(attName,"GlyphArrowResolution")){
-        std::stringstream ss;
-        ss << attValue;
-        ss >> this->GlyphArrowResolution;
-        continue;
-      }
 
-      if (!strcmp(attName,"GlyphConeScaleDirectional")){
-        std::stringstream ss;
-        ss << attValue;
-        ss >> this->GlyphConeScaleDirectional;
-        continue;
-      }
-      if (!strcmp(attName,"GlyphConeScaleIsotropic")){
-        std::stringstream ss;
-        ss << attValue;
-        ss >> this->GlyphConeScaleIsotropic;
-        continue;
-      }
-      if (!strcmp(attName,"GlyphConeHeight")){
-        std::stringstream ss;
-        ss << attValue;
-        ss >> this->GlyphConeHeight;
-        continue;
-      }
-      if (!strcmp(attName,"GlyphConeRadius")){
-        std::stringstream ss;
-        ss << attValue;
-        ss >> this->GlyphConeRadius;
-        continue;
-      }
-      if (!strcmp(attName,"GlyphConeResolution")){
-        std::stringstream ss;
-        ss << attValue;
-        ss >> this->GlyphConeResolution;
-        continue;
-      }
-
-      if (!strcmp(attName,"GlyphSphereResolution")){
-        std::stringstream ss;
-        ss << attValue;
-        ss >> this->GlyphSphereResolution;
-        continue;
-      }
-
-    if (!strcmp(attName,"GridScale")){
-      std::stringstream ss;
-      ss << attValue;
-      ss >> this->GridScale;
+    if (!strcmp(attName,"VisualizationMode"))
+    {
+      this->VisualizationMode = ConvertVisualizationModeFromString(attValue);
       continue;
     }
-    if (!strcmp(attName,"GridSpacingMm")){
-      std::stringstream ss;
-      ss << attValue;
-      ss >> this->GridSpacingMm;
+    READ_FROM_ATT(GlyphSpacingMm);
+    READ_FROM_ATT(GlyphScalePercent);
+    READ_FROM_ATT(GlyphDisplayRangeMaxMm);
+    READ_FROM_ATT(GlyphDisplayRangeMinMm);
+    READ_FROM_ATT(GlyphMaxNumberOfPoints);
+    READ_FROM_ATT(GlyphRandomSeed);
+    if (!strcmp(attName,"GlyphType"))
+    {
+      this->VisualizationMode = ConvertGlyphTypeFromString(attValue);
       continue;
     }
-
-    if (!strcmp(attName,"ContourValues")){
-      std::stringstream ss(attValue);
-      std::string itemString;
-      double itemDouble;
-      const char delim=' ';
-      this->ContourValues.clear();
-      while (std::getline(ss, itemString, delim))
-      {
-        std::stringstream itemStream;
-        itemStream << itemString;
-        itemStream >> itemDouble;
-        this->ContourValues.push_back(itemDouble);
-      }
-      continue;
-    }
-    if (!strcmp(attName,"ContourDecimation")){
-      std::stringstream ss;
-      ss << attValue;
-      ss >> this->ContourDecimation;
+    READ_FROM_ATT(GlyphScaleDirectional);
+    READ_FROM_ATT(GlyphTipLengthPercent);
+    READ_FROM_ATT(GlyphDiameterPercent);
+    READ_FROM_ATT(GlyphDiameterMm);
+    READ_FROM_ATT(GlyphShaftDiameterPercent);
+    READ_FROM_ATT(GlyphResolution);
+    READ_FROM_ATT(GridScalePercent);
+    READ_FROM_ATT(GridSpacingMm);
+    READ_FROM_ATT(ContourResolutionMm);
+    if (!strcmp(attName,"ContourLevelsMm"))
+    {
+      SetContourLevelsMmFromString(attValue);
       continue;
     }
   }
 
+  this->Modified();
   this->EndModify(disabledModify);
 }
 
@@ -317,29 +176,24 @@ void vtkMRMLTransformDisplayNode::Copy(vtkMRMLNode *anode)
   this->VisualizationMode = node->VisualizationMode;
 
   this->GlyphSpacingMm = node->GlyphSpacingMm;
-  this->GlyphPointMax = node->GlyphPointMax;
-  this->GlyphThresholdMax = node->GlyphThresholdMax;
-  this->GlyphThresholdMin = node->GlyphThresholdMin;
-  this->GlyphSeed = node->GlyphSeed;
-  this->GlyphSourceOption = node->GlyphSourceOption;
-  this->GlyphArrowScaleDirectional = node->GlyphArrowScaleDirectional;
-  this->GlyphArrowScaleIsotropic = node->GlyphArrowScaleIsotropic;
-  this->GlyphArrowTipLength = node->GlyphArrowTipLength;
-  this->GlyphArrowTipRadius = node->GlyphArrowTipRadius;
-  this->GlyphArrowShaftRadius = node->GlyphArrowShaftRadius;
-  this->GlyphArrowResolution = node->GlyphArrowResolution;
-  this->GlyphConeScaleDirectional = node->GlyphConeScaleDirectional;
-  this->GlyphConeScaleIsotropic = node->GlyphConeScaleIsotropic;
-  this->GlyphConeHeight = node->GlyphConeHeight;
-  this->GlyphConeRadius = node->GlyphConeRadius;
-  this->GlyphConeResolution = node->GlyphConeResolution;
-  this->GlyphSphereResolution = node->GlyphSphereResolution;
+  this->GlyphScalePercent = node->GlyphScalePercent;
+  this->GlyphDisplayRangeMaxMm = node->GlyphDisplayRangeMaxMm;
+  this->GlyphDisplayRangeMinMm = node->GlyphDisplayRangeMinMm;
+  this->GlyphMaxNumberOfPoints = node->GlyphMaxNumberOfPoints;
+  this->GlyphRandomSeed = node->GlyphRandomSeed;
+  this->GlyphType = node->GlyphType;
+  this->GlyphScaleDirectional = node->GlyphScaleDirectional;
+  this->GlyphTipLengthPercent = node->GlyphTipLengthPercent;
+  this->GlyphDiameterPercent = node->GlyphDiameterPercent;
+  this->GlyphDiameterMm = node->GlyphDiameterMm;
+  this->GlyphShaftDiameterPercent = node->GlyphShaftDiameterPercent;
+  this->GlyphResolution = node->GlyphResolution;
 
-  this->GridScale = node->GridScale;
+  this->GridScalePercent = node->GridScalePercent;
   this->GridSpacingMm = node->GridSpacingMm;
 
-  this->ContourValues = node->ContourValues;
-  this->ContourDecimation = node->ContourDecimation;
+  this->ContourLevelsMm = node->ContourLevelsMm;
+  this->ContourResolutionMm = node->ContourResolutionMm;
 
   this->EndModify(disabledModify);
 }
@@ -349,44 +203,25 @@ void vtkMRMLTransformDisplayNode::PrintSelf(ostream& os, vtkIndent indent)
 {
   Superclass::PrintSelf(os,indent);
 
-  vtkIndent nextIndent=indent.GetNextIndent();
+  os << indent << "VisualizationMode = "<< ConvertVisualizationModeToString(this->VisualizationMode) << "\n";
+  os << indent << "GlyphScalePercent = "<< this->GlyphScalePercent << "\n";
+  os << indent << "GlyphDisplayRangeMaxMm = "<< this->GlyphDisplayRangeMaxMm << "\n";
+  os << indent << "GlyphDisplayRangeMinMm = "<< this->GlyphDisplayRangeMinMm << "\n";
+  os << indent << "GlyphMaxNumberOfPoints = "<< this->GlyphMaxNumberOfPoints << "\n";
+  os << indent << "GlyphRandomSeed = "<< this->GlyphRandomSeed << "\n";
+  os << indent << "GlyphType = "<< ConvertGlyphTypeToString(this->GlyphType) << "\n";
+  os << indent << "GlyphScaleDirectional = "<< this->GlyphScaleDirectional << "\n";
+  os << indent << "GlyphTipLengthPercent = " << this->GlyphTipLengthPercent << "\n";
+  os << indent << "GlyphDiameterPercent = " << this->GlyphDiameterPercent << "\n";
+  os << indent << "GlyphDiameterMm = " << this->GlyphDiameterMm << "\n";
+  os << indent << "GlyphShaftDiameterPercent = " << this->GlyphShaftDiameterPercent << "\n";
+  os << indent << "GlyphResolution = " << this->GlyphResolution << "\n";
 
-  os << indent << " GlyphSpacingMm = "<< this->GlyphSpacingMm << "\n";
-  os << indent << " GlyphPointMax = "<< this->GlyphPointMax << "\n";
-  os << indent << " GlyphScale = "<< this->GlyphScale << "\n";
-  os << indent << " GlyphThresholdMax = "<< this->GlyphThresholdMax << "\n";
-  os << indent << " GlyphThresholdMin = "<< this->GlyphThresholdMin << "\n";
-  os << indent << " GlyphSeed = "<< this->GlyphSeed << "\n";
-  os << indent << " GlyphSourceOption = "<< this->GlyphSourceOption << "\n";
-  os << nextIndent << "GlyphArrowScaleDirectional = " << this->GlyphArrowScaleDirectional << "\n";
-  os << nextIndent << "GlyphArrowScaleIsotropic =  " << this->GlyphArrowScaleIsotropic << "\n";
-  os << nextIndent << "GlyphArrowTipLength = " << this->GlyphArrowTipLength << "\n";
-  os << nextIndent << "GlyphArrowTipRadius = "<< this->GlyphArrowTipRadius << "\n";
-  os << nextIndent << "GlyphArrowShaftRadius =  " << this->GlyphArrowShaftRadius << "\n";
-  os << nextIndent << "GlyphArrowResolution = " << this->GlyphArrowResolution << "\n";
-  os << nextIndent << "GlyphConeScaleDirectional = " << this->GlyphConeScaleDirectional << "\n";
-  os << nextIndent << "GlyphConeScaleIsotropic =  " << this->GlyphConeScaleIsotropic << "\n";
-  os << nextIndent << "GlyphConeHeight = " << this->GlyphConeHeight << "\n";
-  os << nextIndent << "GlyphConeRadius = " << this->GlyphConeRadius << "\n";
-  os << nextIndent << "GlyphConeResolution = " << this->GlyphConeResolution << "\n";
-  os << nextIndent << "GlyphSphereResolution = " << this->GlyphSphereResolution << "\n";
+  os << indent << "GridScalePercent = " << this->GridScalePercent << "\n";
+  os << indent << "GridSpacingMm = " << this->GridSpacingMm << "\n";
 
-  os << indent << " GridScale = "<< this->GridScale << "\n";
-  os << indent << " GridSpacingMm = "<< this->GridSpacingMm << "\n";
-
-  os << indent << " ContourValues = \"";
-  for (int i=0; i<this->ContourValues.size(); i++)
-  {
-    if (i>0)
-    {
-      os << " "; //separate numbers by a space
-    }
-    os << this->ContourValues[i];
-  }
-  os << "\"";
-
-  os << indent << " ContourDecimation = "<< this->ContourDecimation << "\n";
-
+  os << indent << " ContourResolutionMm = "<< this->ContourResolutionMm << "\n";
+  os << indent << " ContourLevelsMm = " << GetContourLevelsMmAsString() << "\n";
 }
 
 //---------------------------------------------------------------------------
@@ -409,25 +244,116 @@ void vtkMRMLTransformDisplayNode::SetAndObserveReferenceVolumeNode(vtkMRMLNode* 
 }
 
 //----------------------------------------------------------------------------
-void vtkMRMLTransformDisplayNode::SetContourValues(double* values, int size)
+void vtkMRMLTransformDisplayNode::SetContourLevelsMm(double* values, int size)
 {
-  this->ContourValues.clear();
+  this->ContourLevelsMm.clear();
   for (int i=0; i<size; i++)
   {
-    this->ContourValues.push_back(values[i]);
+    this->ContourLevelsMm.push_back(values[i]);
+  }
+  Modified();
+}
+
+//----------------------------------------------------------------------------
+double* vtkMRMLTransformDisplayNode::GetContourLevelsMm()
+{
+  // std::vector values are guaranteed to be stored in a continuous block in memory,
+  // so we can return the address to the first one
+  return &(this->ContourLevelsMm[0]);
+}
+
+//----------------------------------------------------------------------------
+unsigned int vtkMRMLTransformDisplayNode::GetNumberOfContourLevels()
+{
+  return this->ContourLevelsMm.size();
+}
+
+//----------------------------------------------------------------------------
+const char* vtkMRMLTransformDisplayNode::ConvertVisualizationModeToString(int modeIndex)
+{
+  switch (modeIndex)
+  {
+  case VIS_MODE_GLYPH: return "GLYPH";
+  case VIS_MODE_GRID: return "GRID";
+  case VIS_MODE_CONTOUR: return "CONTOUR";
+  default: return "";
   }
 }
 
 //----------------------------------------------------------------------------
-double* vtkMRMLTransformDisplayNode::GetContourValues()
+int vtkMRMLTransformDisplayNode::ConvertVisualizationModeFromString(const char* modeString)
 {
-  // std::vector values are guaranteed to be stored in a continuous block in memory,
-  // so we can return the address to the first one
-  return &(this->ContourValues[0]);
+  if (modeString==NULL)
+  {
+    return -1;
+  }
+  for (int modeIndex=0; modeIndex<VIS_MODE_LAST; modeIndex++)
+  {
+    if (strcmp(modeString,ConvertVisualizationModeToString(modeIndex))==0)
+    {
+      return modeIndex;
+    }
+  }
+  return -1;
 }
 
 //----------------------------------------------------------------------------
-unsigned int vtkMRMLTransformDisplayNode::GetNumberOfContourValues()
+const char* vtkMRMLTransformDisplayNode::ConvertGlyphTypeToString(int modeIndex)
 {
-  return this->ContourValues.size();
+  switch (modeIndex)
+  {
+  case GLYPH_TYPE_ARROW: return "ARROW";
+  case GLYPH_TYPE_CONE: return "CONE";
+  case GLYPH_TYPE_SPHERE: return "SPHERE";
+  default: return "";
+  }
+}
+
+//----------------------------------------------------------------------------
+int vtkMRMLTransformDisplayNode::ConvertGlyphTypeFromString(const char* modeString)
+{
+  if (modeString==NULL)
+  {
+    return -1;
+  }
+  for (int modeIndex=0; modeIndex<GLYPH_TYPE_LAST; modeIndex++)
+  {
+    if (strcmp(modeString,ConvertGlyphTypeToString(modeIndex))==0)
+    {
+      return modeIndex;
+    }
+  }
+  return -1;
+}
+
+//----------------------------------------------------------------------------
+std::string vtkMRMLTransformDisplayNode::GetContourLevelsMmAsString()
+{
+  std::stringstream ss;
+  for (int i=0; i<this->ContourLevelsMm.size(); i++)
+  {
+    if (i>0)
+    {
+      ss << " "; //separate numbers by a space
+    }
+    ss << this->ContourLevelsMm[i];
+  }
+  return ss.str();
+}
+
+//----------------------------------------------------------------------------
+void vtkMRMLTransformDisplayNode::SetContourLevelsMmFromString(const char* str, const char separator/*=' '*/)
+{
+  this->ContourLevelsMm.clear();
+  std::stringstream ss(str);
+  std::string itemString;
+  double itemDouble;
+  while (std::getline(ss, itemString, separator))
+  {
+    std::stringstream itemStream;
+    itemStream << itemString;
+    itemStream >> itemDouble;
+    this->ContourLevelsMm.push_back(itemDouble);
+  }
+  Modified();
 }

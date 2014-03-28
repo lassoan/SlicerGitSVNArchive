@@ -64,38 +64,35 @@ void qMRMLTransformDisplayNodeWidgetPrivate
 
   QObject::connect(this->InputReferenceComboBox, SIGNAL(currentNodeChanged(vtkMRMLNode*)), q, SLOT(referenceVolumeChanged(vtkMRMLNode*)));
 
+  QObject::connect(this->GlyphToggle, SIGNAL(toggled(bool)), q, SLOT(setGlyphVisualizationMode(bool)));
+  QObject::connect(this->GridToggle, SIGNAL(toggled(bool)), q, SLOT(setGridVisualizationMode(bool)));
+  QObject::connect(this->ContourToggle, SIGNAL(toggled(bool)), q, SLOT(setContourVisualizationMode(bool)));
+
   // Glyph Parameters
-  QObject::connect(this->InputGlyphPointMax, SIGNAL(valueChanged(double)), q, SLOT(setGlyphPointMax(double)));
-  QObject::connect(this->InputGlyphScale, SIGNAL(valueChanged(double)), q, SLOT(setGlyphScale(double)));
-  QObject::connect(this->InputGlyphThreshold, SIGNAL(valuesChanged(double, double)), q, SLOT(setGlyphThreshold(double, double)));
-  QObject::connect(this->GenerateSeedButton, SIGNAL(clicked()), q, SLOT(setSeed()));
-  QObject::connect(this->InputGlyphSeed, SIGNAL(valueChanged(int)), q, SLOT(setGlyphSeed(int)));
-  QObject::connect(this->GlyphSourceComboBox, SIGNAL(currentIndexChanged(int)), q, SLOT(setGlyphSourceOption(int)));
-  // Arrow Parameters
-  QObject::connect(this->InputGlyphArrowScaleDirectional, SIGNAL(toggled(bool)), q, SLOT(setGlyphArrowScaleDirectional(bool)));
-  QObject::connect(this->InputGlyphArrowScaleIsotropic, SIGNAL(toggled(bool)), q, SLOT(setGlyphArrowScaleIsotropic(bool)));
-  QObject::connect(this->InputGlyphArrowTipLength, SIGNAL(valueChanged(double)), q, SLOT(setGlyphArrowTipLength(double)));
-  QObject::connect(this->InputGlyphArrowTipRadius, SIGNAL(valueChanged(double)), q, SLOT(setGlyphArrowTipRadius(double)));
-  QObject::connect(this->InputGlyphArrowShaftRadius, SIGNAL(valueChanged(double)), q, SLOT(setGlyphArrowShaftRadius(double)));
-  QObject::connect(this->InputGlyphArrowResolution, SIGNAL(valueChanged(double)), q, SLOT(setGlyphArrowResolution(double)));
-  // Cone Parameters
-  QObject::connect(this->InputGlyphConeScaleDirectional, SIGNAL(toggled(bool)), q, SLOT(setGlyphConeScaleDirectional(bool)));
-  QObject::connect(this->InputGlyphConeScaleIsotropic, SIGNAL(toggled(bool)), q, SLOT(setGlyphConeScaleIsotropic(bool)));
-  QObject::connect(this->InputGlyphConeHeight, SIGNAL(valueChanged(double)), q, SLOT(setGlyphConeHeight(double)));
-  QObject::connect(this->InputGlyphConeRadius, SIGNAL(valueChanged(double)), q, SLOT(setGlyphConeRadius(double)));
-  QObject::connect(this->InputGlyphConeResolution, SIGNAL(valueChanged(double)), q, SLOT(setGlyphConeResolution(double)));
-  // Sphere Parameters
-  QObject::connect(this->InputGlyphSphereResolution, SIGNAL(valueChanged(double)), q, SLOT(setGlyphSphereResolution(double)));
+  QObject::connect(this->GlyphSpacingMm, SIGNAL(valueChanged(double)), q, SLOT(setGlyphSpacingMm(double)));
+  QObject::connect(this->GlyphMaxNumberOfPoints, SIGNAL(valueChanged(double)), q, SLOT(setGlyphMaxNumberOfPoints(double)));
+  QObject::connect(this->GlyphScalePercent, SIGNAL(valueChanged(double)), q, SLOT(setGlyphScalePercent(double)));
+  QObject::connect(this->GlyphDisplayRangeMm, SIGNAL(valuesChanged(double, double)), q, SLOT(setGlyphThreshold(double, double)));
+  QObject::connect(this->GlyphGenerateRandomSeedButton, SIGNAL(clicked()), q, SLOT(generateGlyphRandomSeed()));
+  QObject::connect(this->GlyphRandomSeed, SIGNAL(valueChanged(int)), q, SLOT(setGlyphSeed(int)));
+  QObject::connect(this->GlyphTypeComboBox, SIGNAL(currentIndexChanged(int)), q, SLOT(setGlyphType(int)));
+  // 3D Glyph Parameters
+  QObject::connect(this->GlyphScaleDirectionalCheckBox, SIGNAL(toggled(bool)), q, SLOT(setGlyphScaleDirectional(bool)));
+  QObject::connect(this->GlyphDiameterMm, SIGNAL(valueChanged(double)), q, SLOT(setGlyphDiameterMm(double)));
+  QObject::connect(this->GlyphDiameterPercent, SIGNAL(valueChanged(double)), q, SLOT(setGlyphDiameterPercent(double)));
+  QObject::connect(this->GlyphTipLengthPercent, SIGNAL(valueChanged(double)), q, SLOT(setGlyphTipLengthPercent(double)));
+  QObject::connect(this->GlyphShaftDiameterPercent, SIGNAL(valueChanged(double)), q, SLOT(setGlyphShaftDiameterPercent(double)));
+  QObject::connect(this->GlyphResolution, SIGNAL(valueChanged(double)), q, SLOT(setGlyphResolution(double)));
 
   // Grid Parameters
-  QObject::connect(this->InputGridScale, SIGNAL(valueChanged(double)), q, SLOT(setGridScale(double)));
-  QObject::connect(this->InputGridSpacing, SIGNAL(valueChanged(double)), q, SLOT(setGridSpacingMM(double)));
+  QObject::connect(this->GridScalePercent, SIGNAL(valueChanged(double)), q, SLOT(setGridScalePercent(double)));
+  QObject::connect(this->GridSpacingMm, SIGNAL(valueChanged(double)), q, SLOT(setGridSpacingMm(double)));
 
   // Contour Parameters
   QRegExp rx("^(([0-9]+(.[0-9]+)?),+)*([0-9]+(.[0-9]+)?)$");
-  this->InputContourValues->setValidator(new QRegExpValidator(rx,q));
-  QObject::connect(this->InputContourValues, SIGNAL(textChanged(QString)), q, SLOT(setContourValues(QString)));
-  QObject::connect(this->InputContourDecimation, SIGNAL(valueChanged(double)), q, SLOT(setContourDecimation(double)));
+  this->ContourLevelsMm->setValidator(new QRegExpValidator(rx,q));
+  QObject::connect(this->ContourLevelsMm, SIGNAL(textChanged(QString)), q, SLOT(setContourLevelsMm(QString)));
+  QObject::connect(this->ContourResolutionMm, SIGNAL(valueChanged(double)), q, SLOT(setContourResolutionMm(double)));
 
   q->updateWidgetFromDisplayNode();
 }
@@ -163,38 +160,28 @@ void qMRMLTransformDisplayNodeWidget
 
   // Update Visualization Parameters
   // Glyph Parameters
-  d->InputGlyphSpacing->setValue(d->TransformDisplayNode->GetGlyphSpacingMm());
-  d->InputGlyphPointMax->setValue(d->TransformDisplayNode->GetGlyphPointMax());
-  d->InputGlyphSeed->setValue(d->TransformDisplayNode->GetGlyphSeed());
-  d->InputGlyphScale->setValue(d->TransformDisplayNode->GetGlyphScale());
-  d->InputGlyphThreshold->setMaximumValue(d->TransformDisplayNode->GetGlyphThresholdMax());
-  d->InputGlyphThreshold->setMinimumValue(d->TransformDisplayNode->GetGlyphThresholdMin());
-  d->GlyphSourceComboBox->setCurrentIndex(d->TransformDisplayNode->GetGlyphSourceOption());
-  // Arrow Parameters
-  d->InputGlyphArrowScaleDirectional->setChecked(d->TransformDisplayNode->GetGlyphArrowScaleDirectional());
-  d->InputGlyphArrowScaleIsotropic->setChecked(d->TransformDisplayNode->GetGlyphArrowScaleIsotropic());
-  d->InputGlyphArrowTipLength->setValue(d->TransformDisplayNode->GetGlyphArrowTipLength());
-  d->InputGlyphArrowTipRadius->setValue(d->TransformDisplayNode->GetGlyphArrowTipRadius());
-  d->InputGlyphArrowShaftRadius->setValue(d->TransformDisplayNode->GetGlyphArrowShaftRadius());
-  d->InputGlyphArrowResolution->setValue(d->TransformDisplayNode->GetGlyphArrowResolution());
-  // Cone Parameters
-  d->InputGlyphConeScaleDirectional->setChecked(d->TransformDisplayNode->GetGlyphConeScaleDirectional());
-  d->InputGlyphConeScaleIsotropic->setChecked(d->TransformDisplayNode->GetGlyphConeScaleIsotropic());
-  d->InputGlyphConeHeight->setValue(d->TransformDisplayNode->GetGlyphConeHeight());
-  d->InputGlyphConeRadius->setValue(d->TransformDisplayNode->GetGlyphConeRadius());
-  d->InputGlyphConeResolution->setValue(d->TransformDisplayNode->GetGlyphConeResolution());
-  // Sphere Parameters
-  d->InputGlyphSphereResolution->setValue(d->TransformDisplayNode->GetGlyphSphereResolution());
+  d->GlyphSpacingMm->setValue(d->TransformDisplayNode->GetGlyphSpacingMm());
+  d->GlyphMaxNumberOfPoints->setValue(d->TransformDisplayNode->GetGlyphMaxNumberOfPoints());
+  d->GlyphRandomSeed->setValue(d->TransformDisplayNode->GetGlyphRandomSeed());
+  d->GlyphScalePercent->setValue(d->TransformDisplayNode->GetGlyphScalePercent());
+  d->GlyphDisplayRangeMm->setMaximumValue(d->TransformDisplayNode->GetGlyphDisplayRangeMaxMm());
+  d->GlyphDisplayRangeMm->setMinimumValue(d->TransformDisplayNode->GetGlyphDisplayRangeMinMm());
+  d->GlyphTypeComboBox->setCurrentIndex(d->TransformDisplayNode->GetGlyphType());
+  // 3D Glyph Parameters
+  d->GlyphScaleDirectionalCheckBox->setChecked(d->TransformDisplayNode->GetGlyphScaleDirectional());
+  d->GlyphDiameterMm->setValue(d->TransformDisplayNode->GetGlyphDiameterMm());
+  d->GlyphDiameterPercent->setValue(d->TransformDisplayNode->GetGlyphDiameterPercent());
+  d->GlyphTipLengthPercent->setValue(d->TransformDisplayNode->GetGlyphTipLengthPercent());
+  d->GlyphShaftDiameterPercent->setValue(d->TransformDisplayNode->GetGlyphShaftDiameterPercent());
+  d->GlyphResolution->setValue(d->TransformDisplayNode->GetGlyphResolution());
 
   // Grid Parameters
-  d->InputGridScale->setValue(d->TransformDisplayNode->GetGridScale());
-  d->InputGridSpacing->setValue(d->TransformDisplayNode->GetGridSpacingMm());
+  d->GridScalePercent->setValue(d->TransformDisplayNode->GetGridScalePercent());
+  d->GridSpacingMm->setValue(d->TransformDisplayNode->GetGridSpacingMm());
 
   // Contour Parameters
-  //d->InputContourNumber->setValue(d->TransformDisplayNode->GetContourNumber());
-  //d->InputContourRange->setMaximumValue(d->TransformDisplayNode->GetContourMax());
-  //d->InputContourRange->setMinimumValue(d->TransformDisplayNode->GetContourMin());
-  d->InputContourDecimation->setValue(d->TransformDisplayNode->GetContourDecimation());
+  d->ContourLevelsMm->setText(QLatin1String(d->TransformDisplayNode->GetContourLevelsMmAsString().c_str()));
+  d->ContourResolutionMm->setValue(d->TransformDisplayNode->GetContourResolutionMm());
 
   this->updateLabels();
 }
@@ -209,36 +196,30 @@ void qMRMLTransformDisplayNodeWidget::updateLabels()
 }
 
 //-----------------------------------------------------------------------------
-void qMRMLTransformDisplayNodeWidget::updateGlyphSourceOptions(int sourceOption)
+void qMRMLTransformDisplayNodeWidget::updateGlyphSourceOptions(int glyphType)
 {
   Q_D(qMRMLTransformDisplayNodeWidget);
 
-  if (sourceOption == vtkMRMLTransformDisplayNode::GLYPH_ARROW_3D)
+  if (glyphType == vtkMRMLTransformDisplayNode::GLYPH_TYPE_ARROW)
   {
-    d->ArrowSourceOptions->setEnabled(true);
-    d->ArrowSourceOptions->setVisible(true);
-    d->ConeSourceOptions->setEnabled(false);
-    d->ConeSourceOptions->setVisible(false);
-    d->SphereSourceOptions->setEnabled(false);
-    d->SphereSourceOptions->setVisible(false);
+    d->GlyphShaftDiameterLabel->setVisible(true);
+    d->GlyphShaftDiameterPercent->setVisible(true);
+    d->GlyphTipLengthLabel->setVisible(true);
+    d->GlyphTipLengthPercent->setVisible(true);
   }
-  else if (sourceOption == vtkMRMLTransformDisplayNode::GLYPH_CONE_3D)
+  else if (glyphType == vtkMRMLTransformDisplayNode::GLYPH_TYPE_CONE)
   {
-    d->ArrowSourceOptions->setEnabled(false);
-    d->ArrowSourceOptions->setVisible(false);
-    d->ConeSourceOptions->setEnabled(true);
-    d->ConeSourceOptions->setVisible(true);
-    d->SphereSourceOptions->setEnabled(false);
-    d->SphereSourceOptions->setVisible(false);
+    d->GlyphShaftDiameterLabel->setVisible(false);
+    d->GlyphShaftDiameterPercent->setVisible(false);
+    d->GlyphTipLengthLabel->setVisible(true);
+    d->GlyphTipLengthPercent->setVisible(true);
   }
-  else if (sourceOption == vtkMRMLTransformDisplayNode::GLYPH_SPHERE_3D)
+  else if (glyphType == vtkMRMLTransformDisplayNode::GLYPH_TYPE_SPHERE)
   {
-    d->ArrowSourceOptions->setEnabled(false);
-    d->ArrowSourceOptions->setVisible(false);
-    d->ConeSourceOptions->setEnabled(false);
-    d->ConeSourceOptions->setVisible(false);
-    d->SphereSourceOptions->setEnabled(true);
-    d->SphereSourceOptions->setVisible(true);
+    d->GlyphShaftDiameterLabel->setVisible(false);
+    d->GlyphShaftDiameterPercent->setVisible(false);
+    d->GlyphTipLengthLabel->setVisible(false);
+    d->GlyphTipLengthPercent->setVisible(false);
   }
 }
 
@@ -250,7 +231,6 @@ void qMRMLTransformDisplayNodeWidget::referenceVolumeChanged(vtkMRMLNode* node)
     {
     return;
     }
-
   d->TransformDisplayNode->SetAndObserveReferenceVolumeNode(node);
   this->updateLabels();
 }
@@ -259,7 +239,6 @@ void qMRMLTransformDisplayNodeWidget::referenceVolumeChanged(vtkMRMLNode* node)
 void qMRMLTransformDisplayNodeWidget::setGlyphSpacingMm(double spacing)
 {
   Q_D(qMRMLTransformDisplayNodeWidget);
-
   if (!d->TransformDisplayNode)
   {
     return;
@@ -268,18 +247,87 @@ void qMRMLTransformDisplayNodeWidget::setGlyphSpacingMm(double spacing)
 }
 
 //-----------------------------------------------------------------------------
-void qMRMLTransformDisplayNodeWidget::setGlyphPointMax(double pointMax)
+void qMRMLTransformDisplayNodeWidget::setGlyphMaxNumberOfPoints(double pointMax)
 {
   Q_D(qMRMLTransformDisplayNodeWidget);
   if (!d->TransformDisplayNode)
     {
     return;
     }
-  d->TransformDisplayNode->SetGlyphPointMax(pointMax);
+  d->TransformDisplayNode->SetGlyphMaxNumberOfPoints(pointMax);
 }
 
 //-----------------------------------------------------------------------------
-void qMRMLTransformDisplayNodeWidget::setSeed()
+void qMRMLTransformDisplayNodeWidget::generateGlyphRandomSeed()
+{
+  Q_D(qMRMLTransformDisplayNodeWidget);
+  if (!d->TransformDisplayNode)
+  {
+    return;
+  }
+  d->TransformDisplayNode->SetGlyphRandomSeed(rand());
+  d->GlyphRandomSeed->setValue(d->TransformDisplayNode->GetGlyphRandomSeed());
+}
+
+//-----------------------------------------------------------------------------
+void qMRMLTransformDisplayNodeWidget::setGlyphRandomSeed(int seed)
+{
+  Q_D(qMRMLTransformDisplayNodeWidget);
+  if (!d->TransformDisplayNode)
+  {
+    return;
+  }
+  d->TransformDisplayNode->SetGlyphRandomSeed(seed);
+}
+
+//-----------------------------------------------------------------------------
+void qMRMLTransformDisplayNodeWidget::setGlyphScalePercent(double scale)
+{
+  Q_D(qMRMLTransformDisplayNodeWidget);
+  if (!d->TransformDisplayNode)
+  {
+    return;
+  }
+  d->TransformDisplayNode->SetGlyphScalePercent(scale);
+}
+
+//-----------------------------------------------------------------------------
+void qMRMLTransformDisplayNodeWidget::setGlyphDisplayRangeMm(double min, double max)
+{
+  Q_D(qMRMLTransformDisplayNodeWidget);
+  if (!d->TransformDisplayNode)
+  {
+    return;
+  }
+  d->TransformDisplayNode->SetGlyphDisplayRangeMinMm(min);
+  d->TransformDisplayNode->SetGlyphDisplayRangeMaxMm(max);
+}
+
+//-----------------------------------------------------------------------------
+void qMRMLTransformDisplayNodeWidget::setGlyphType(int glyphType)
+{
+  Q_D(qMRMLTransformDisplayNodeWidget);
+  if (!d->TransformDisplayNode)
+  {
+    return;
+  }
+  d->TransformDisplayNode->SetGlyphType(glyphType);
+  this->updateGlyphSourceOptions(glyphType);
+}
+
+//-----------------------------------------------------------------------------
+void qMRMLTransformDisplayNodeWidget::setGlyphScaleDirectional(bool state)
+{
+  Q_D(qMRMLTransformDisplayNodeWidget);
+  if (!d->TransformDisplayNode)
+  {
+    return;
+  }
+  d->TransformDisplayNode->SetGlyphScaleDirectional(state);
+}
+
+//-----------------------------------------------------------------------------
+void qMRMLTransformDisplayNodeWidget::setGlyphTipLengthPercent(double length)
 {
   Q_D(qMRMLTransformDisplayNodeWidget);
 
@@ -287,223 +335,68 @@ void qMRMLTransformDisplayNodeWidget::setSeed()
   {
     return;
   }
-  d->TransformDisplayNode->SetGlyphSeed(rand());
-  d->InputGlyphSeed->setValue(d->TransformDisplayNode->GetGlyphSeed());
+  d->TransformDisplayNode->SetGlyphTipLengthPercent(length);
 }
 
 //-----------------------------------------------------------------------------
-void qMRMLTransformDisplayNodeWidget::setGlyphSeed(int seed)
+void qMRMLTransformDisplayNodeWidget::setGlyphDiameterMm(double diameterMm)
 {
   Q_D(qMRMLTransformDisplayNodeWidget);
-
   if (!d->TransformDisplayNode)
   {
     return;
   }
-  d->TransformDisplayNode->SetGlyphSeed(seed);
+  d->TransformDisplayNode->SetGlyphDiameterMm(diameterMm);
 }
 
 //-----------------------------------------------------------------------------
-void qMRMLTransformDisplayNodeWidget::setGlyphScale(double scale)
+void qMRMLTransformDisplayNodeWidget::setGlyphDiameterPercent(double diameterPercent)
 {
   Q_D(qMRMLTransformDisplayNodeWidget);
-
   if (!d->TransformDisplayNode)
   {
     return;
   }
-  d->TransformDisplayNode->SetGlyphScale(scale);
+  d->TransformDisplayNode->SetGlyphDiameterPercent(diameterPercent);
 }
 
 //-----------------------------------------------------------------------------
-void qMRMLTransformDisplayNodeWidget::setGlyphThreshold(double min, double max)
+void qMRMLTransformDisplayNodeWidget::setGlyphShaftDiameterPercent(double diameterPercent)
 {
   Q_D(qMRMLTransformDisplayNodeWidget);
-
   if (!d->TransformDisplayNode)
   {
     return;
   }
-  d->TransformDisplayNode->SetGlyphThresholdMin(min);
-  d->TransformDisplayNode->SetGlyphThresholdMax(max);
+  d->TransformDisplayNode->SetGlyphShaftDiameterPercent(diameterPercent);
 }
 
 //-----------------------------------------------------------------------------
-void qMRMLTransformDisplayNodeWidget::setGlyphSourceOption(int option)
+void qMRMLTransformDisplayNodeWidget::setGlyphResolution(double resolution)
 {
   Q_D(qMRMLTransformDisplayNodeWidget);
-
   if (!d->TransformDisplayNode)
   {
     return;
   }
-  d->TransformDisplayNode->SetGlyphSourceOption(option);
-  this->updateGlyphSourceOptions(option);
+  d->TransformDisplayNode->SetGlyphResolution(resolution);
 }
 
 //-----------------------------------------------------------------------------
-void qMRMLTransformDisplayNodeWidget::setGlyphArrowScaleDirectional(bool state)
+void qMRMLTransformDisplayNodeWidget::setGridScalePercent(double scale)
 {
   Q_D(qMRMLTransformDisplayNodeWidget);
-
   if (!d->TransformDisplayNode)
   {
     return;
   }
-  d->TransformDisplayNode->SetGlyphArrowScaleDirectional(state);
-}
-
-//-----------------------------------------------------------------------------
-void qMRMLTransformDisplayNodeWidget::setGlyphArrowScaleIsotropic(bool state)
-{
-  Q_D(qMRMLTransformDisplayNodeWidget);
-
-  if (!d->TransformDisplayNode)
-  {
-    return;
-  }
-  d->TransformDisplayNode->SetGlyphArrowScaleIsotropic(state);
-}
-
-//-----------------------------------------------------------------------------
-void qMRMLTransformDisplayNodeWidget::setGlyphArrowTipLength(double length)
-{
-  Q_D(qMRMLTransformDisplayNodeWidget);
-
-  if (!d->TransformDisplayNode)
-  {
-    return;
-  }
-  d->TransformDisplayNode->SetGlyphArrowTipLength(length);
-}
-
-//-----------------------------------------------------------------------------
-void qMRMLTransformDisplayNodeWidget::setGlyphArrowTipRadius(double radius)
-{
-  Q_D(qMRMLTransformDisplayNodeWidget);
-
-  if (!d->TransformDisplayNode)
-  {
-    return;
-  }
-  d->TransformDisplayNode->SetGlyphArrowTipRadius(radius);
-}
-
-//-----------------------------------------------------------------------------
-void qMRMLTransformDisplayNodeWidget::setGlyphArrowShaftRadius(double radius)
-{
-  Q_D(qMRMLTransformDisplayNodeWidget);
-
-  if (!d->TransformDisplayNode)
-  {
-    return;
-  }
-  d->TransformDisplayNode->SetGlyphArrowShaftRadius(radius);
-}
-
-//-----------------------------------------------------------------------------
-void qMRMLTransformDisplayNodeWidget::setGlyphArrowResolution(double resolution)
-{
-  Q_D(qMRMLTransformDisplayNodeWidget);
-
-  if (!d->TransformDisplayNode)
-  {
-    return;
-  }
-  d->TransformDisplayNode->SetGlyphArrowResolution(resolution);
-}
-
-//-----------------------------------------------------------------------------
-void qMRMLTransformDisplayNodeWidget::setGlyphConeScaleDirectional(bool state)
-{
-  Q_D(qMRMLTransformDisplayNodeWidget);
-
-  if (!d->TransformDisplayNode)
-  {
-    return;
-  }
-  d->TransformDisplayNode->SetGlyphConeScaleDirectional(state);
-}
-
-//-----------------------------------------------------------------------------
-void qMRMLTransformDisplayNodeWidget::setGlyphConeScaleIsotropic(bool state)
-{
-  Q_D(qMRMLTransformDisplayNodeWidget);
-
-  if (!d->TransformDisplayNode)
-  {
-    return;
-  }
-  d->TransformDisplayNode->SetGlyphConeScaleIsotropic(state);
-}
-
-//-----------------------------------------------------------------------------
-void qMRMLTransformDisplayNodeWidget::setGlyphConeHeight(double height)
-{
-  Q_D(qMRMLTransformDisplayNodeWidget);
-
-  if (!d->TransformDisplayNode)
-  {
-    return;
-  }
-  d->TransformDisplayNode->SetGlyphConeHeight(height);
-}
-
-//-----------------------------------------------------------------------------
-void qMRMLTransformDisplayNodeWidget::setGlyphConeRadius(double radius)
-{
-  Q_D(qMRMLTransformDisplayNodeWidget);
-
-  if (!d->TransformDisplayNode)
-  {
-    return;
-  }
-  d->TransformDisplayNode->SetGlyphConeRadius(radius);
-}
-
-//-----------------------------------------------------------------------------
-void qMRMLTransformDisplayNodeWidget::setGlyphConeResolution(double resolution)
-{
-  Q_D(qMRMLTransformDisplayNodeWidget);
-
-  if (!d->TransformDisplayNode)
-  {
-    return;
-  }
-  d->TransformDisplayNode->SetGlyphConeResolution(resolution);
-}
-
-//-----------------------------------------------------------------------------
-// Sphere Parameters
-//-----------------------------------------------------------------------------
-void qMRMLTransformDisplayNodeWidget::setGlyphSphereResolution(double resolution)
-{
-  Q_D(qMRMLTransformDisplayNodeWidget);
-
-  if (!d->TransformDisplayNode)
-  {
-    return;
-  }
-  d->TransformDisplayNode->SetGlyphSphereResolution(resolution);
-}
-
-//-----------------------------------------------------------------------------
-void qMRMLTransformDisplayNodeWidget::setGridScale(double scale)
-{
-  Q_D(qMRMLTransformDisplayNodeWidget);
-
-  if (!d->TransformDisplayNode)
-  {
-    return;
-  }
-  d->TransformDisplayNode->SetGridScale(scale);
+  d->TransformDisplayNode->SetGridScalePercent(scale);
 }
 
 //-----------------------------------------------------------------------------
 void qMRMLTransformDisplayNodeWidget::setGridSpacingMm(double spacing)
 {
   Q_D(qMRMLTransformDisplayNodeWidget);
-
   if (!d->TransformDisplayNode)
   {
     return;
@@ -512,42 +405,68 @@ void qMRMLTransformDisplayNodeWidget::setGridSpacingMm(double spacing)
 }
 
 //-----------------------------------------------------------------------------
-void qMRMLTransformDisplayNodeWidget::setContourValues(QString values_str)
+void qMRMLTransformDisplayNodeWidget::setContourLevelsMm(QString values_str)
 {
   Q_D(qMRMLTransformDisplayNodeWidget);
-
   if (!d->TransformDisplayNode)
   {
     return;
   }
-  QStringList values_strlist = values_str.split(",");
-  QList<double> values_qlist;
-
-  int valuesSize = values_strlist.size();
-
-  for (int i=0; i<valuesSize; i++)
-  {
-    values_qlist.append(values_strlist[i].toDouble());
-  }
-
-  double* values_array = new double[valuesSize];
-
-  for (int j=0; j<valuesSize; j++)
-  {
-    values_array[j] = values_qlist[j];
-  }
-
-  d->TransformDisplayNode->SetContourValues(values_array, valuesSize);
+  d->TransformDisplayNode->SetContourLevelsMmFromString(values_str.toLatin1(), ',');
 }
 
 //-----------------------------------------------------------------------------
-void qMRMLTransformDisplayNodeWidget::setContourDecimation(double reduction)
+void qMRMLTransformDisplayNodeWidget::setContourResolutionMm(double resolutionMm)
 {
   Q_D(qMRMLTransformDisplayNodeWidget);
-
   if (!d->TransformDisplayNode)
   {
     return;
   }
-  d->TransformDisplayNode->SetContourDecimation(reduction);
+  d->TransformDisplayNode->SetContourResolutionMm(resolutionMm);
+}
+
+//-----------------------------------------------------------------------------
+void qMRMLTransformDisplayNodeWidget::setGlyphVisualizationMode(bool activate)
+{
+  Q_D(qMRMLTransformDisplayNodeWidget);
+  if (!activate)
+    {
+    return;
+    }
+  if (!d->TransformDisplayNode)
+  {
+    return;
+  }
+  d->TransformDisplayNode->SetVisualizationMode(vtkMRMLTransformDisplayNode::VIS_MODE_GLYPH);
+}
+
+//-----------------------------------------------------------------------------
+void qMRMLTransformDisplayNodeWidget::setGridVisualizationMode(bool activate)
+{
+  Q_D(qMRMLTransformDisplayNodeWidget);
+  if (!activate)
+    {
+    return;
+    }
+  if (!d->TransformDisplayNode)
+  {
+    return;
+  }
+  d->TransformDisplayNode->SetVisualizationMode(vtkMRMLTransformDisplayNode::VIS_MODE_GRID);
+}
+
+//-----------------------------------------------------------------------------
+void qMRMLTransformDisplayNodeWidget::setContourVisualizationMode(bool activate)
+{
+  Q_D(qMRMLTransformDisplayNodeWidget);
+  if (!activate)
+    {
+    return;
+    }
+  if (!d->TransformDisplayNode)
+  {
+    return;
+  }
+  d->TransformDisplayNode->SetVisualizationMode(vtkMRMLTransformDisplayNode::VIS_MODE_CONTOUR);
 }
