@@ -69,7 +69,7 @@ public slots:
 
   void updateLabels();
   void updateGlyphSourceOptions(int sourceOption);
-  void referenceVolumeChanged(vtkMRMLNode* node);
+  void regionNodeChanged(vtkMRMLNode* node);
   void setGlyphSpacingMm(double spacing);
   void setGlyphMaxNumberOfPoints(double pointMax);
   void generateGlyphRandomSeed();

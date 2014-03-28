@@ -65,7 +65,7 @@ void qMRMLTransformDisplayNodeWidgetPrivate
   QObject::connect(this->Visible2dCheckBox, SIGNAL(toggled(bool)), q, SLOT(setVisible2d(bool)));
   QObject::connect(this->Visible3dCheckBox, SIGNAL(toggled(bool)), q, SLOT(setVisible3d(bool)));
 
-  QObject::connect(this->InputReferenceComboBox, SIGNAL(currentNodeChanged(vtkMRMLNode*)), q, SLOT(referenceVolumeChanged(vtkMRMLNode*)));
+  QObject::connect(this->RegionNodeComboBox, SIGNAL(currentNodeChanged(vtkMRMLNode*)), q, SLOT(regionNodeChanged(vtkMRMLNode*)));
 
   QObject::connect(this->GlyphToggle, SIGNAL(toggled(bool)), q, SLOT(setGlyphVisualizationMode(bool)));
   QObject::connect(this->GridToggle, SIGNAL(toggled(bool)), q, SLOT(setGridVisualizationMode(bool)));
@@ -162,7 +162,7 @@ void qMRMLTransformDisplayNodeWidget
   d->Visible2dCheckBox->setChecked(d->TransformDisplayNode->GetSliceIntersectionVisibility());
   d->Visible3dCheckBox->setChecked(d->TransformDisplayNode->GetVisibility());
 
-  //d->InputReferenceComboBox->setCurrentNode(d->TransformDisplayNode->GetReferenceVolumeNode());
+  d->RegionNodeComboBox->setCurrentNode(d->TransformDisplayNode->GetRegionNode());
 
   // Update Visualization Parameters
   // Glyph Parameters
@@ -239,14 +239,14 @@ void qMRMLTransformDisplayNodeWidget::updateGlyphSourceOptions(int glyphType)
 }
 
 //-----------------------------------------------------------------------------
-void qMRMLTransformDisplayNodeWidget::referenceVolumeChanged(vtkMRMLNode* node)
+void qMRMLTransformDisplayNodeWidget::regionNodeChanged(vtkMRMLNode* node)
 {
   Q_D(qMRMLTransformDisplayNodeWidget);
   if (!d->TransformDisplayNode)
     {
     return;
     }
-  d->TransformDisplayNode->SetAndObserveReferenceVolumeNode(node);
+  d->TransformDisplayNode->SetAndObserveRegionNode(node);
   this->updateLabels();
 }
 

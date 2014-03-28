@@ -655,5 +655,21 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>qSlicerTransformsModuleWidget</sender>
+   <signal>mrmlSceneChanged(vtkMRMLScene*)</signal>
+   <receiver>TransformDisplayNodeWidget</receiver>
+   <slot>setMRMLScene(vtkMRMLScene*)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>195</x>
+     <y>463</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>195</x>
+     <y>535</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
 </ui>

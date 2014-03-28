@@ -29,7 +29,7 @@ Version:   $Revision: 1.3 $
 
 #include <sstream>
 
-const char ReferenceVolumeReferenceRole[] = "referenceVolume";
+const char RegionReferenceRole[] = "region";
 
 const char CONTOUR_LEVEL_SEPARATOR=' ';
 
@@ -234,15 +234,22 @@ void vtkMRMLTransformDisplayNode::ProcessMRMLEvents ( vtkObject *caller, unsigne
 }
 
 //----------------------------------------------------------------------------
-vtkMRMLVolumeNode* vtkMRMLTransformDisplayNode::GetReferenceVolumeNode()
+vtkMRMLNode* vtkMRMLTransformDisplayNode::GetRegionNode()
 {
-  return vtkMRMLVolumeNode::SafeDownCast(this->GetNodeReference(ReferenceVolumeReferenceRole));
+  return this->GetNodeReference(RegionReferenceRole);
 }
 
 //----------------------------------------------------------------------------
-void vtkMRMLTransformDisplayNode::SetAndObserveReferenceVolumeNode(vtkMRMLNode* node)
+void vtkMRMLTransformDisplayNode::SetAndObserveRegionNode(vtkMRMLNode* node)
 {
-  this->SetNthNodeReferenceID(ReferenceVolumeReferenceRole,0,node->GetID());
+  if (node)
+  {
+    this->SetNthNodeReferenceID(RegionReferenceRole,0,node->GetID());
+  }
+  else
+  {
+    this->RemoveNthNodeReferenceID(RegionReferenceRole,0);
+  }
 }
 
 //----------------------------------------------------------------------------

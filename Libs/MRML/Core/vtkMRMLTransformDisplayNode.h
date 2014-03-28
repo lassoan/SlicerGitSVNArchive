@@ -78,8 +78,10 @@ class VTK_MRML_EXPORT vtkMRMLTransformDisplayNode : public vtkMRMLDisplayNode
   /// Display options
   //--------------------------------------------------------------------------
 
-  vtkMRMLVolumeNode* GetReferenceVolumeNode();
-  void SetAndObserveReferenceVolumeNode(vtkMRMLNode* node);
+  /// A node that defines the region of interest where the transform should be
+  /// displayed.
+  vtkMRMLNode* GetRegionNode();
+  void SetAndObserveRegionNode(vtkMRMLNode* node);
 
   vtkSetMacro(VisualizationMode, int);
   vtkGetMacro(VisualizationMode, int);
