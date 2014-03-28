@@ -135,8 +135,13 @@ class VTK_MRML_EXPORT vtkMRMLTransformDisplayNode : public vtkMRMLDisplayNode
   unsigned int GetNumberOfContourLevels();
   void SetContourLevelsMm(double*, int size);
   double* GetContourLevelsMm();
+  void GetContourLevelsMm(std::vector<double> &levels);
   std::string GetContourLevelsMmAsString();
-  void SetContourLevelsMmFromString(const char* str, const char separator=' ');
+  void SetContourLevelsMmFromString(const char* str);
+  static std::vector<double> ConvertContourLevelsFromString(const char* str);
+  static std::string ConvertContourLevelsToString(const std::vector<double>& levels);
+  static bool ContourLevelsEqual(const std::vector<double>& levels1, const std::vector<double>& levels2);
+
 
   vtkSetMacro(ContourResolutionMm, double);
   vtkGetMacro(ContourResolutionMm, double);

@@ -60,6 +60,9 @@ public slots:
   /// It's useful to connect to vtkMRMLNode* signals
   void setMRMLTransformNode(vtkMRMLNode* node);
 
+  void setVisible2d(bool);
+  void setVisible3d(bool);
+
   void setGlyphVisualizationMode(bool);
   void setGridVisualizationMode(bool);
   void setContourVisualizationMode(bool);

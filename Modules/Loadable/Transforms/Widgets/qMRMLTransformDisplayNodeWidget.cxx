@@ -62,6 +62,9 @@ void qMRMLTransformDisplayNodeWidgetPrivate
   Q_Q(qMRMLTransformDisplayNodeWidget);
   this->setupUi(q);
 
+  QObject::connect(this->Visible2dCheckBox, SIGNAL(toggled(bool)), q, SLOT(setVisible2d(bool)));
+  QObject::connect(this->Visible3dCheckBox, SIGNAL(toggled(bool)), q, SLOT(setVisible3d(bool)));
+
   QObject::connect(this->InputReferenceComboBox, SIGNAL(currentNodeChanged(vtkMRMLNode*)), q, SLOT(referenceVolumeChanged(vtkMRMLNode*)));
 
   QObject::connect(this->GlyphToggle, SIGNAL(toggled(bool)), q, SLOT(setGlyphVisualizationMode(bool)));
@@ -89,7 +92,7 @@ void qMRMLTransformDisplayNodeWidgetPrivate
   QObject::connect(this->GridSpacingMm, SIGNAL(valueChanged(double)), q, SLOT(setGridSpacingMm(double)));
 
   // Contour Parameters
-  QRegExp rx("^(([0-9]+(.[0-9]+)?),+)*([0-9]+(.[0-9]+)?)$");
+  QRegExp rx("^(([0-9]+(.[0-9]+)?)[ ]?)*([0-9]+(.[0-9]+)?)[ ]?$");
   this->ContourLevelsMm->setValidator(new QRegExpValidator(rx,q));
   QObject::connect(this->ContourLevelsMm, SIGNAL(textChanged(QString)), q, SLOT(setContourLevelsMm(QString)));
   QObject::connect(this->ContourResolutionMm, SIGNAL(valueChanged(double)), q, SLOT(setContourResolutionMm(double)));
@@ -156,6 +159,9 @@ void qMRMLTransformDisplayNodeWidget
 
   // Update widget if different from MRML node
 
+  d->Visible2dCheckBox->setChecked(d->TransformDisplayNode->GetSliceIntersectionVisibility());
+  d->Visible3dCheckBox->setChecked(d->TransformDisplayNode->GetVisibility());
+
   //d->InputReferenceComboBox->setCurrentNode(d->TransformDisplayNode->GetReferenceVolumeNode());
 
   // Update Visualization Parameters
@@ -180,7 +186,16 @@ void qMRMLTransformDisplayNodeWidget
   d->GridSpacingMm->setValue(d->TransformDisplayNode->GetGridSpacingMm());
 
   // Contour Parameters
-  d->ContourLevelsMm->setText(QLatin1String(d->TransformDisplayNode->GetContourLevelsMmAsString().c_str()));
+
+  // Only update the text in the editbox if it is changed (to not interfere with editing of the values)
+  std::vector<double> levelsInWidget=vtkMRMLTransformDisplayNode::ConvertContourLevelsFromString(d->ContourLevelsMm->text().toLatin1());
+  std::vector<double> levelsInMRML;
+  d->TransformDisplayNode->GetContourLevelsMm(levelsInMRML);
+  if (!vtkMRMLTransformDisplayNode::ContourLevelsEqual(levelsInWidget,levelsInMRML))
+  {
+    d->ContourLevelsMm->setText(QLatin1String(d->TransformDisplayNode->GetContourLevelsMmAsString().c_str()));
+  }
+
   d->ContourResolutionMm->setValue(d->TransformDisplayNode->GetContourResolutionMm());
 
   this->updateLabels();
@@ -412,7 +427,7 @@ void qMRMLTransformDisplayNodeWidget::setContourLevelsMm(QString values_str)
   {
     return;
   }
-  d->TransformDisplayNode->SetContourLevelsMmFromString(values_str.toLatin1(), ',');
+  d->TransformDisplayNode->SetContourLevelsMmFromString(values_str.toLatin1());
 }
 
 //-----------------------------------------------------------------------------
@@ -469,4 +484,26 @@ void qMRMLTransformDisplayNodeWidget::setContourVisualizationMode(bool activate)
     return;
   }
   d->TransformDisplayNode->SetVisualizationMode(vtkMRMLTransformDisplayNode::VIS_MODE_CONTOUR);
+}
+
+//-----------------------------------------------------------------------------
+void qMRMLTransformDisplayNodeWidget::setVisible2d(bool visible)
+{
+  Q_D(qMRMLTransformDisplayNodeWidget);
+  if (!d->TransformDisplayNode)
+  {
+    return;
+  }
+  d->TransformDisplayNode->SetSliceIntersectionVisibility(visible);
+}
+
+//-----------------------------------------------------------------------------
+void qMRMLTransformDisplayNodeWidget::setVisible3d(bool visible)
+{
+  Q_D(qMRMLTransformDisplayNodeWidget);
+  if (!d->TransformDisplayNode)
+  {
+    return;
+  }
+  d->TransformDisplayNode->SetVisibility(visible);
 }

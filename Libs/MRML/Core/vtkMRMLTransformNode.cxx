@@ -452,7 +452,7 @@ void  vtkMRMLTransformNode::GetTransformToNode(vtkMRMLTransformNode* node,
         }
       }
     }
-  else if (this->IsTransformNodeMyChild(node)) 
+  else if (this->IsTransformNodeMyChild(node))
     {
     vtkMRMLTransformNode *parent = node->GetParentTransformNode();
     if (parent != NULL) 

@@ -31,6 +31,8 @@ Version:   $Revision: 1.3 $
 
 const char ReferenceVolumeReferenceRole[] = "referenceVolume";
 
+const char CONTOUR_LEVEL_SEPARATOR=' ';
+
 //------------------------------------------------------------------------------
 vtkMRMLNodeNewMacro(vtkMRMLTransformDisplayNode);
 
@@ -57,7 +59,7 @@ vtkMRMLTransformDisplayNode::vtkMRMLTransformDisplayNode()
   this->GridScalePercent=100;
   this->GridSpacingMm=15.0;
 
-  this->ContourResolutionMm=3.0;
+  this->ContourResolutionMm=5.0;
   this->ContourLevelsMm.clear();
   this->ContourLevelsMm.push_back(1.0);
   this->ContourLevelsMm.push_back(2.0);
@@ -257,6 +259,10 @@ void vtkMRMLTransformDisplayNode::SetContourLevelsMm(double* values, int size)
 //----------------------------------------------------------------------------
 double* vtkMRMLTransformDisplayNode::GetContourLevelsMm()
 {
+  if (this->ContourLevelsMm.size()==0)
+  {
+    return NULL;
+  }
   // std::vector values are guaranteed to be stored in a continuous block in memory,
   // so we can return the address to the first one
   return &(this->ContourLevelsMm[0]);
@@ -329,31 +335,74 @@ int vtkMRMLTransformDisplayNode::ConvertGlyphTypeFromString(const char* modeStri
 //----------------------------------------------------------------------------
 std::string vtkMRMLTransformDisplayNode::GetContourLevelsMmAsString()
 {
+  return ConvertContourLevelsToString(this->ContourLevelsMm);
+}
+
+//----------------------------------------------------------------------------
+void vtkMRMLTransformDisplayNode::SetContourLevelsMmFromString(const char* str)
+{
+  std::vector<double> newLevels=ConvertContourLevelsFromString(str);
+  if (ContourLevelsEqual(newLevels, this->ContourLevelsMm))
+  {
+    // no change
+    return;
+  }
+  this->ContourLevelsMm=newLevels;
+  Modified();
+}
+
+//----------------------------------------------------------------------------
+std::vector<double> vtkMRMLTransformDisplayNode::ConvertContourLevelsFromString(const char* str)
+{
+  std::vector<double> contourLevels;
+  std::stringstream ss(str);
+  std::string itemString;
+  double itemDouble;
+  while (std::getline(ss, itemString, CONTOUR_LEVEL_SEPARATOR))
+  {
+    std::stringstream itemStream;
+    itemStream << itemString;
+    itemStream >> itemDouble;
+    contourLevels.push_back(itemDouble);
+  }
+  return contourLevels;
+}
+
+//----------------------------------------------------------------------------
+std::string vtkMRMLTransformDisplayNode::ConvertContourLevelsToString(const std::vector<double>& levels)
+{
   std::stringstream ss;
-  for (int i=0; i<this->ContourLevelsMm.size(); i++)
+  for (int i=0; i<levels.size(); i++)
   {
     if (i>0)
     {
-      ss << " "; //separate numbers by a space
+      ss << CONTOUR_LEVEL_SEPARATOR;
     }
-    ss << this->ContourLevelsMm[i];
+    ss << levels[i];
   }
   return ss.str();
 }
 
 //----------------------------------------------------------------------------
-void vtkMRMLTransformDisplayNode::SetContourLevelsMmFromString(const char* str, const char separator/*=' '*/)
+bool vtkMRMLTransformDisplayNode::ContourLevelsEqual(const std::vector<double>& levels1, const std::vector<double>& levels2)
 {
-  this->ContourLevelsMm.clear();
-  std::stringstream ss(str);
-  std::string itemString;
-  double itemDouble;
-  while (std::getline(ss, itemString, separator))
+  if (levels1.size()!=levels2.size())
   {
-    std::stringstream itemStream;
-    itemStream << itemString;
-    itemStream >> itemDouble;
-    this->ContourLevelsMm.push_back(itemDouble);
+    return false;
   }
-  Modified();
+  const double COMPARISON_TOLERANCE=0.01;
+  for (int i=0; i<levels1.size(); i++)
+  {
+    if (fabs(levels1[i]-levels2[i])>COMPARISON_TOLERANCE)
+    {
+      return false;
+    }
+  }
+  return true;
+}
+
+//----------------------------------------------------------------------------
+void vtkMRMLTransformDisplayNode::GetContourLevelsMm(std::vector<double> &levels)
+{
+  levels=this->ContourLevelsMm;
 }
