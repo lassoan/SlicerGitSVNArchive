@@ -48,6 +48,10 @@ vtkTransformVisualizerGlyph3D::vtkTransformVisualizerGlyph3D()
   this->FillCellData = 0;
   this->SourceTransform = 0;
 
+  this->MagnitudeThresholding = 0;
+  this->MagnitudeThresholdLower = 0.0;
+  this->MagnitudeThresholdUpper = 100.0;
+
   // by default process active point scalars
   this->SetInputArrayToProcess(0,0,0,vtkDataObject::FIELD_ASSOCIATION_POINTS, vtkDataSetAttributes::SCALARS);
   // by default process active point vectors
@@ -150,12 +154,12 @@ int vtkTransformVisualizerGlyph3D::RequestData(
 
   newScalars = vtkFloatArray::New();
   newScalars->Allocate(numPts*numSourcePts);
-  newScalars->SetName("VectorMagnitude");
+  newScalars->SetName("DisplacementMagnitude");
 
   newVectors = vtkFloatArray::New();
   newVectors->SetNumberOfComponents(3);
   newVectors->Allocate(3*numPts*numSourcePts);
-  newVectors->SetName("GlyphVector");
+  newVectors->SetName("DisplacementVector");
 
   // Setting up for calls to PolyData::InsertNextCell()
   output->Allocate(this->GetSource(0, inputVector[1]), 3*numPts*numSourceCells, numPts*numSourceCells);
@@ -192,6 +196,11 @@ int vtkTransformVisualizerGlyph3D::RequestData(
     v[2] = 0;
     array3D->GetTuple(inPtId, v);
     vMag = vtkMath::Norm(v);
+
+    if (this->MagnitudeThresholding && (vMag<this->MagnitudeThresholdLower || vMag>this->MagnitudeThresholdUpper))
+    {
+      continue;
+    }
 
     scalex = scaley = scalez = vMag;
 

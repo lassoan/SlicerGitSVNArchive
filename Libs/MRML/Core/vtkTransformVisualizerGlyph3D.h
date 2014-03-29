@@ -22,12 +22,23 @@ public:
   vtkSetMacro(ScaleDirectional,bool);
   vtkGetMacro(ScaleDirectional,bool);
 
+  vtkSetMacro(MagnitudeThresholding,bool);
+  vtkGetMacro(MagnitudeThresholding,bool);
+  vtkSetMacro(MagnitudeThresholdLower,double);
+  vtkGetMacro(MagnitudeThresholdLower,double);
+  vtkSetMacro(MagnitudeThresholdUpper,double);
+  vtkGetMacro(MagnitudeThresholdUpper,double);
+
 protected:
   vtkTransformVisualizerGlyph3D();
   ~vtkTransformVisualizerGlyph3D() {};
 
   double ScaleFactor;
   bool ScaleDirectional;
+
+  bool MagnitudeThresholding; // if nonzero then points with magnitude outside the lower/upper range are ignored
+  double MagnitudeThresholdLower;
+  double MagnitudeThresholdUpper;
 
   virtual int RequestData(vtkInformation *, vtkInformationVector **, vtkInformationVector *);
 

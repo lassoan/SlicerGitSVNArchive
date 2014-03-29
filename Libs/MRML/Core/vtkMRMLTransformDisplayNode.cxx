@@ -72,21 +72,22 @@ vtkMRMLTransformDisplayNode::vtkMRMLTransformDisplayNode()
   this->GlyphRandomSeed=687848400;
   this->GlyphType=GLYPH_TYPE_ARROW;
   this->GlyphScaleDirectional=true;
-  this->GlyphTipLengthPercent=15;
+  this->GlyphTipLengthPercent=30;
   this->GlyphDiameterPercent=20;
   this->GlyphDiameterMm=0.5;
-  this->GlyphShaftDiameterPercent=15;
+  this->GlyphShaftDiameterPercent=40;
   this->GlyphResolution=6;
 
   this->GridScalePercent=100;
   this->GridSpacingMm=15.0;
 
   this->ContourResolutionMm=5.0;
+
   this->ContourLevelsMm.clear();
-  this->ContourLevelsMm.push_back(1.0);
-  this->ContourLevelsMm.push_back(2.0);
-  this->ContourLevelsMm.push_back(3.0);
-  this->ContourLevelsMm.push_back(5.0);
+  for (double level=2.0; level<20.0; level+=2.0)
+  {
+    this->ContourLevelsMm.push_back(level);
+  }
 
   this->CachedPolyData3d=vtkPolyData::New();
 }
@@ -446,19 +447,26 @@ vtkPolyData* vtkMRMLTransformDisplayNode::GetOutputPolyData()
   if (this->CachedPolyData3d->GetMTime()<this->GetMTime())
   {
     // cached polydata is obsolete, recompute it now
-    vtkNew<vtkMatrix4x4> sliceToRAS;
-    int fieldOfViewSize[3]={50,50,50};
+    vtkNew<vtkMatrix4x4> ijkToRAS;
+    int regionSize[3]={50,50,50};
     vtkMRMLVolumeNode* volumeRoi=vtkMRMLVolumeNode::SafeDownCast(this->GetRegionNode());
     if (volumeRoi)
     {
-      volumeRoi->GetIJKToRASMatrix(sliceToRAS.GetPointer());
+      volumeRoi->GetIJKToRASMatrix(ijkToRAS.GetPointer());
+      if (volumeRoi->GetImageData())
+      {
+        int* volumeExtent=volumeRoi->GetImageData()->GetExtent();
+        regionSize[0]=volumeExtent[1]-volumeExtent[0]+1;
+        regionSize[1]=volumeExtent[3]-volumeExtent[2]+1;
+        regionSize[2]=volumeExtent[5]-volumeExtent[4]+1;
+      }
     }
     vtkMRMLTransformNode* transformNode=GetTransformNode();
     if (!volumeRoi || !transformNode)
     {
       return NULL;
     }
-    GetGlyphVisualization3d(this->CachedPolyData3d, sliceToRAS.GetPointer(), fieldOfViewSize);
+    GetGlyphVisualization3d(this->CachedPolyData3d, ijkToRAS.GetPointer(), regionSize);
   }
 
   return this->CachedPolyData3d;
@@ -646,31 +654,6 @@ void vtkMRMLTransformDisplayNode::GetTransformedPointSamplesAsImage(vtkImageData
 }
 
 //----------------------------------------------------------------------------
-void vtkMRMLTransformDisplayNode::GetTransformedPointSamplesOnSliceAsImage(vtkImageData* magnitudeImage, vtkMatrix4x4* sliceToRAS, double* fieldOfViewOrigin, double* fieldOfViewSize, double pointSpacing, vtkMatrix4x4* ijkToRAS)
-{
-
-  int numOfPointsX=ceil(fieldOfViewSize[0]/pointSpacing);
-  int numOfPointsY=ceil(fieldOfViewSize[0]/pointSpacing);
-  double xOfs = -fieldOfViewSize[0]/2+fieldOfViewOrigin[0];
-  double yOfs = -fieldOfViewSize[1]/2+fieldOfViewOrigin[1];
-
-  ijkToRAS->DeepCopy(sliceToRAS);
-  vtkNew<vtkMatrix4x4> ijkOffset;
-  ijkOffset->Element[0][3]=xOfs;
-  ijkOffset->Element[1][3]=yOfs;
-  vtkMatrix4x4::Multiply4x4(ijkToRAS,ijkOffset.GetPointer(),ijkToRAS);
-  vtkNew<vtkMatrix4x4> voxelSpacing;
-  voxelSpacing->Element[0][0]=pointSpacing;
-  voxelSpacing->Element[1][1]=pointSpacing;
-  voxelSpacing->Element[2][2]=pointSpacing;
-  vtkMatrix4x4::Multiply4x4(ijkToRAS,voxelSpacing.GetPointer(),ijkToRAS);
-
-  int imageSize[3]={numOfPointsX, numOfPointsY,1};
-
-  GetTransformedPointSamplesAsImage(magnitudeImage, ijkToRAS, imageSize);
-}
-
-//----------------------------------------------------------------------------
 void vtkMRMLTransformDisplayNode::GetGlyphVisualization3d(vtkPolyData* output, vtkMatrix4x4* roiToRAS, int* roiSize)
 {
   //Pre-processing
@@ -711,6 +694,10 @@ void vtkMRMLTransformDisplayNode::GetGlyphVisualization3d(vtkPolyData* output, v
   glyphFilter->OrientOn();
   glyphFilter->SetInput(pointSet);
 
+  glyphFilter->SetMagnitudeThresholdLower(this->GlyphDisplayRangeMinMm);
+  glyphFilter->SetMagnitudeThresholdUpper(this->GlyphDisplayRangeMaxMm);
+  glyphFilter->SetMagnitudeThresholding(true);
+
   switch (this->GetGlyphType())
   {
     //Arrows
@@ -739,7 +726,7 @@ void vtkMRMLTransformDisplayNode::GetGlyphVisualization3d(vtkPolyData* output, v
     case vtkMRMLTransformDisplayNode::GLYPH_TYPE_SPHERE:
     {
       vtkSmartPointer<vtkSphereSource> sphereSource = vtkSmartPointer<vtkSphereSource>::New();
-      sphereSource->SetRadius(1);
+      sphereSource->SetRadius(0.5);
       sphereSource->SetThetaResolution(this->GetGlyphResolution());
       sphereSource->SetPhiResolution(this->GetGlyphResolution());
       glyphFilter->SetSourceConnection(sphereSource->GetOutputPort());
@@ -806,6 +793,11 @@ void vtkMRMLTransformDisplayNode::GetGlyphVisualization2d(vtkPolyData* output, v
   glyphFilter->SetSourceTransform(rotateArrow);
   glyphFilter->SetSourceConnection(glyph2DSource->GetOutputPort());
   glyphFilter->SetInput(pointSet);
+
+  glyphFilter->SetMagnitudeThresholdLower(this->GlyphDisplayRangeMinMm);
+  glyphFilter->SetMagnitudeThresholdUpper(this->GlyphDisplayRangeMaxMm);
+  glyphFilter->SetMagnitudeThresholding(true);
+
   glyphFilter->Update();
 
   output->ShallowCopy(glyphFilter->GetOutput());
@@ -873,7 +865,26 @@ void vtkMRMLTransformDisplayNode::GetContourVisualization2d(vtkPolyData* output,
   double pointSpacing=this->GetContourResolutionMm();
 
   vtkNew<vtkMatrix4x4> ijkToRAS;
-  GetTransformedPointSamplesOnSliceAsImage(magnitudeImage.GetPointer(), sliceToRAS, fieldOfViewOrigin, fieldOfViewSize, pointSpacing, ijkToRAS.GetPointer());
+
+  int numOfPointsX=ceil(fieldOfViewSize[0]/pointSpacing);
+  int numOfPointsY=ceil(fieldOfViewSize[0]/pointSpacing);
+  double xOfs = -fieldOfViewSize[0]/2+fieldOfViewOrigin[0];
+  double yOfs = -fieldOfViewSize[1]/2+fieldOfViewOrigin[1];
+
+  ijkToRAS->DeepCopy(sliceToRAS);
+  vtkNew<vtkMatrix4x4> ijkOffset;
+  ijkOffset->Element[0][3]=xOfs;
+  ijkOffset->Element[1][3]=yOfs;
+  vtkMatrix4x4::Multiply4x4(ijkToRAS.GetPointer(),ijkOffset.GetPointer(),ijkToRAS.GetPointer());
+  vtkNew<vtkMatrix4x4> voxelSpacing;
+  voxelSpacing->Element[0][0]=pointSpacing;
+  voxelSpacing->Element[1][1]=pointSpacing;
+  voxelSpacing->Element[2][2]=pointSpacing;
+  vtkMatrix4x4::Multiply4x4(ijkToRAS.GetPointer(),voxelSpacing.GetPointer(),ijkToRAS.GetPointer());
+
+  int imageSize[3]={numOfPointsX, numOfPointsY,1};
+
+  GetTransformedPointSamplesAsImage(magnitudeImage.GetPointer(), ijkToRAS.GetPointer(), imageSize);
 
   vtkNew<vtkContourFilter> contourFilter;
   double* levels=this->GetContourLevelsMm();

@@ -177,10 +177,6 @@ protected:
   /// and stores it in an image volume.
   void GetTransformedPointSamplesAsImage(vtkImageData* magnitudeImage, vtkMatrix4x4* ijkToRAS, int* imageSize);
 
-  /// Takes samples from the displacement field mganitude, specified by the transformation on a slice
-  /// and stores it in an image volume.
-  void GetTransformedPointSamplesOnSliceAsImage(vtkImageData* magnitudeImage, vtkMatrix4x4* sliceToRAS, double* fieldOfViewOrigin, double* fieldOfViewSize, double pointSpacing, vtkMatrix4x4* ijkToRAS);
-
   /// Generate polydata for 3D glyph visualization
   /// roiToRAS defines the ROI origin and direction
   /// roiSize defines the ROI size (in the ROI coordinate system spacing)

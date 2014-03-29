@@ -64,6 +64,8 @@ protected slots:
   void untransformSelectedNodes();
   void hardenSelectedNodes();
 
+  void onDisplaySectionClicked(bool);
+
 protected:
   ///
   /// Convenient method to return the coordinate system currently selected

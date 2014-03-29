@@ -35,6 +35,8 @@
 
 // MRML includes
 #include "vtkMRMLLinearTransformNode.h"
+#include "vtkMRMLTransformDisplayNode.h"
+#include "vtkMRMLScene.h"
 
 // VTK includes
 #include <vtkNew.h>
@@ -152,6 +154,11 @@ void qSlicerTransformsModuleWidget::setup()
   this->connect(d->HardenToolButton, SIGNAL(clicked()),
                 SLOT(hardenSelectedNodes()));
 
+  // Connect identity button
+  this->connect(d->DisplayCollapsibleButton,
+                SIGNAL(clicked(bool)),
+                SLOT(onDisplaySectionClicked(bool)));
+
   // Icons
   QIcon rightIcon =
     QApplication::style()->standardIcon(QStyle::SP_ArrowRight);
@@ -219,6 +226,16 @@ void qSlicerTransformsModuleWidget::onNodeSelected(vtkMRMLNode* node)
   d->TransformableTreeView->sortFilterProxyModel()
     ->setHiddenNodeIDs(hiddenNodeIDs);
   d->MRMLTransformNode = transformNode;
+
+  vtkMRMLTransformDisplayNode* dispNode = NULL;
+  if (transformNode)
+  {
+    dispNode = vtkMRMLTransformDisplayNode::SafeDownCast(transformNode->GetDisplayNode());
+  }
+  if (dispNode==NULL)
+  {
+    d->DisplayCollapsibleButton->setCollapsed(true);
+  }
 }
 
 //-----------------------------------------------------------------------------
@@ -312,4 +329,33 @@ void qSlicerTransformsModuleWidget::hardenSelectedNodes()
     {
     d->logic()->hardenTransform(vtkMRMLTransformableNode::SafeDownCast(node));
     }
+}
+
+//-----------------------------------------------------------------------------
+void qSlicerTransformsModuleWidget::onDisplaySectionClicked(bool clicked)
+{
+  Q_D(qSlicerTransformsModuleWidget);
+  // If the display section is opened and there is no display node then create one
+  if (!clicked)
+  {
+    return;
+  }
+  if (d->MRMLTransformNode==NULL)
+  {
+    return;
+  }
+  if (vtkMRMLTransformDisplayNode::SafeDownCast(d->MRMLTransformNode->GetDisplayNode())!=NULL)
+  {
+    // display node exists
+    return;
+  }
+  vtkNew<vtkMRMLTransformDisplayNode> dispNode;
+  dispNode->SetVisibility(false);
+  dispNode->SetSliceIntersectionVisibility(false);
+
+  d->MRMLTransformNode->GetScene()->AddNode(dispNode.GetPointer());
+  d->MRMLTransformNode->SetAndObserveDisplayNodeID(dispNode->GetID());
+
+  d->TransformDisplayNodeWidget->setMRMLTransformNode(d->MRMLTransformNode);
+  //d->TransformDisplayNodeWidget->setEnabled(true);
 }

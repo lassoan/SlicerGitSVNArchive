@@ -216,7 +216,7 @@
     </widget>
    </item>
    <item>
-    <widget class="ctkCollapsibleButton" name="CollapsibleButton">
+    <widget class="ctkCollapsibleButton" name="DisplayCollapsibleButton">
      <property name="text">
       <string>Display</string>
      </property>
