@@ -17,8 +17,10 @@ Version:   $Revision: 1.3 $
 
 #include "vtkMRMLTransformDisplayNode.h"
 
+#include "vtkMRMLModelNode.h"
 #include "vtkMRMLTransformNode.h"
 #include "vtkMRMLScene.h"
+#include "vtkMRMLSliceNode.h"
 #include "vtkMRMLVolumeNode.h"
 
 #include "vtkTransformVisualizerGlyph3D.h"
@@ -62,19 +64,21 @@ vtkMRMLNodeNewMacro(vtkMRMLTransformDisplayNode);
 vtkMRMLTransformDisplayNode::vtkMRMLTransformDisplayNode()
   :vtkMRMLModelDisplayNode()
 {
+  this->OutputPolyDataRAS = true;
+
   this->VisualizationMode=VIS_MODE_GLYPH;
 
   this->GlyphSpacingMm=10.0;
   this->GlyphScalePercent=100;
-  this->GlyphDisplayRangeMaxMm=1000;
-  this->GlyphDisplayRangeMinMm=0;
+  this->GlyphDisplayRangeMaxMm=100;
+  this->GlyphDisplayRangeMinMm=0.01;
   this->GlyphMaxNumberOfPoints=2000;
   this->GlyphRandomSeed=687848400;
   this->GlyphType=GLYPH_TYPE_ARROW;
   this->GlyphScaleDirectional=true;
   this->GlyphTipLengthPercent=30;
   this->GlyphDiameterPercent=20;
-  this->GlyphDiameterMm=0.5;
+  this->GlyphDiameterMm=5.0;
   this->GlyphShaftDiameterPercent=40;
   this->GlyphResolution=6;
 
@@ -256,8 +260,16 @@ void vtkMRMLTransformDisplayNode::PrintSelf(ostream& os, vtkIndent indent)
 //---------------------------------------------------------------------------
 void vtkMRMLTransformDisplayNode::ProcessMRMLEvents ( vtkObject *caller, unsigned long event, void *callData )
 {
-  // Calls "UpdatePolyDataPipeline"
-  this->Superclass::ProcessMRMLEvents(caller, event, callData);
+  if (caller!=NULL
+    && (event==vtkCommand::ModifiedEvent || event==vtkMRMLTransformableNode::TransformModifiedEvent)
+    && caller==GetRegionNode())
+  {
+    // update visualization if the region node is changed
+    // Note: this updates all the 2D views as well, so instead of a generic modified event a separate
+    // even for 2D and 3D views could be useful
+    this->Modified();
+  }
+  else this->Superclass::ProcessMRMLEvents(caller, event, callData);
 }
 
 //----------------------------------------------------------------------------
@@ -271,7 +283,10 @@ void vtkMRMLTransformDisplayNode::SetAndObserveRegionNode(vtkMRMLNode* node)
 {
   if (node)
   {
-    this->SetNthNodeReferenceID(RegionReferenceRole,0,node->GetID());
+    vtkNew<vtkIntArray> events;
+    events->InsertNextValue(vtkCommand::ModifiedEvent);
+    events->InsertNextValue(vtkMRMLTransformableNode::TransformModifiedEvent);
+    this->SetAndObserveNthNodeReferenceID(RegionReferenceRole,0,node->GetID(),events.GetPointer());
   }
   else
   {
@@ -444,29 +459,76 @@ void vtkMRMLTransformDisplayNode::GetContourLevelsMm(std::vector<double> &levels
 //----------------------------------------------------------------------------
 vtkPolyData* vtkMRMLTransformDisplayNode::GetOutputPolyData()
 {
-  if (this->CachedPolyData3d->GetMTime()<this->GetMTime())
+  vtkMRMLTransformNode* transformNode=GetTransformNode();
+  if (transformNode==NULL)
+  {
+    return NULL;
+  }
+  vtkMRMLNode* regionNode=this->GetRegionNode();
+  if (regionNode==NULL)
+  {
+    return NULL;
+  }
+
+  if (this->CachedPolyData3d->GetMTime()<this->GetMTime()
+    || this->CachedPolyData3d->GetMTime()<transformNode->GetMTime()
+    || this->CachedPolyData3d->GetMTime()<transformNode->GetTransformToWorldMTime()
+    || this->CachedPolyData3d->GetMTime()<regionNode->GetMTime())
   {
     // cached polydata is obsolete, recompute it now
     vtkNew<vtkMatrix4x4> ijkToRAS;
-    int regionSize[3]={50,50,50};
-    vtkMRMLVolumeNode* volumeRoi=vtkMRMLVolumeNode::SafeDownCast(this->GetRegionNode());
-    if (volumeRoi)
+    int regionSize_IJK[3]={0};
+    vtkMRMLSliceNode* sliceNode=vtkMRMLSliceNode::SafeDownCast(regionNode);
+    vtkMRMLDisplayableNode* displayableNode=vtkMRMLDisplayableNode::SafeDownCast(regionNode);
+    if (sliceNode!=NULL)
     {
-      volumeRoi->GetIJKToRASMatrix(ijkToRAS.GetPointer());
-      if (volumeRoi->GetImageData())
-      {
-        int* volumeExtent=volumeRoi->GetImageData()->GetExtent();
-        regionSize[0]=volumeExtent[1]-volumeExtent[0]+1;
-        regionSize[1]=volumeExtent[3]-volumeExtent[2]+1;
-        regionSize[2]=volumeExtent[5]-volumeExtent[4]+1;
-      }
+      double pointSpacing=this->GetGlyphSpacingMm();
+
+      vtkMatrix4x4* sliceToRAS=sliceNode->GetSliceToRAS();
+      double* fieldOfViewSize=sliceNode->GetFieldOfView();
+      double* fieldOfViewOrigin=sliceNode->GetXYZOrigin();
+
+      int numOfPointsX=floor(fieldOfViewSize[0]/pointSpacing+0.5);
+      int numOfPointsY=floor(fieldOfViewSize[1]/pointSpacing+0.5);
+      double xOfs = -fieldOfViewSize[0]/2+fieldOfViewOrigin[0];
+      double yOfs = -fieldOfViewSize[1]/2+fieldOfViewOrigin[1];
+
+      ijkToRAS->DeepCopy(sliceToRAS);
+      vtkNew<vtkMatrix4x4> ijkOffset;
+      ijkOffset->Element[0][3]=xOfs;
+      ijkOffset->Element[1][3]=yOfs;
+      vtkMatrix4x4::Multiply4x4(ijkToRAS.GetPointer(),ijkOffset.GetPointer(),ijkToRAS.GetPointer());
+      vtkNew<vtkMatrix4x4> voxelSpacing;
+      voxelSpacing->Element[0][0]=pointSpacing;
+      voxelSpacing->Element[1][1]=pointSpacing;
+      voxelSpacing->Element[2][2]=pointSpacing;
+      vtkMatrix4x4::Multiply4x4(ijkToRAS.GetPointer(),voxelSpacing.GetPointer(),ijkToRAS.GetPointer());
+
+      regionSize_IJK[0]=numOfPointsX;
+      regionSize_IJK[1]=numOfPointsY;
+      regionSize_IJK[2]=1;
     }
-    vtkMRMLTransformNode* transformNode=GetTransformNode();
-    if (!volumeRoi || !transformNode)
+    else if (displayableNode!=NULL)
     {
+      double bounds_RAS[6]={0};
+      displayableNode->GetRASBounds(bounds_RAS);
+      ijkToRAS->SetElement(0,3,bounds_RAS[0]);
+      ijkToRAS->SetElement(1,3,bounds_RAS[2]);
+      ijkToRAS->SetElement(2,3,bounds_RAS[4]);
+      regionSize_IJK[0]=floor(bounds_RAS[1]-bounds_RAS[0]);
+      regionSize_IJK[1]=floor(bounds_RAS[3]-bounds_RAS[2]);
+      regionSize_IJK[2]=floor(bounds_RAS[5]-bounds_RAS[4]);
+    }
+    else
+    {
+      vtkWarningMacro("Failed to show transform in 3D: unsupported ROI type");
       return NULL;
     }
-    GetGlyphVisualization3d(this->CachedPolyData3d, ijkToRAS.GetPointer(), regionSize);
+    GetGlyphVisualization3d(this->CachedPolyData3d, ijkToRAS.GetPointer(), regionSize_IJK);
+  }
+  else
+  {
+    //vtkDebugMacro("Update was not needed"); TODO: this can be removed, used only for testing
   }
 
   return this->CachedPolyData3d;
@@ -677,11 +739,14 @@ void vtkMRMLTransformDisplayNode::GetGlyphVisualization3d(vtkPolyData* output, v
   gridScaling->Element[2][2]=this->GlyphSpacingMm/roiSpacing[2];
   vtkMatrix4x4::Multiply4x4(gridToRas.GetPointer(),gridScaling.GetPointer(),gridToRas.GetPointer());
 
+  // We need rounding (floor(...+0.5)) because otherwise due to minor numerical differences
+  // we could have one more or one less grid size when the roiSpacing does not match exactly the
+  // glyph spacing.
   int gridSize[3]=
   {
-    ceil(roiSize[0]*roiSpacing[0]/this->GlyphSpacingMm),
-    ceil(roiSize[1]*roiSpacing[1]/this->GlyphSpacingMm),
-    ceil(roiSize[2]*roiSpacing[2]/this->GlyphSpacingMm)
+    floor(roiSize[0]*roiSpacing[0]/this->GlyphSpacingMm+0.5),
+    floor(roiSize[1]*roiSpacing[1]/this->GlyphSpacingMm+0.5),
+    floor(roiSize[2]*roiSpacing[2]/this->GlyphSpacingMm+0.5)
   };
   GetTransformedPointSamples(pointSet, gridToRas.GetPointer(), gridSize);
 
@@ -867,7 +932,7 @@ void vtkMRMLTransformDisplayNode::GetContourVisualization2d(vtkPolyData* output,
   vtkNew<vtkMatrix4x4> ijkToRAS;
 
   int numOfPointsX=ceil(fieldOfViewSize[0]/pointSpacing);
-  int numOfPointsY=ceil(fieldOfViewSize[0]/pointSpacing);
+  int numOfPointsY=ceil(fieldOfViewSize[1]/pointSpacing);
   double xOfs = -fieldOfViewSize[0]/2+fieldOfViewOrigin[0];
   double yOfs = -fieldOfViewSize[1]/2+fieldOfViewOrigin[1];
 

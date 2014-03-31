@@ -200,7 +200,6 @@ void qSlicerTransformsModuleWidget::onNodeSelected(vtkMRMLNode* node)
   d->MatrixViewGroupBox->setEnabled(linearTransformNode != 0);
 
   d->CoordinateReferenceGroupBox->setVisible(linearTransformNode != 0);
-  d->IdentityPushButton->setVisible(linearTransformNode != 0);
   d->MatrixViewGroupBox->setVisible(linearTransformNode != 0);
   d->TranslationSliders->setVisible(linearTransformNode != 0);
   d->RotationSliders->setVisible(linearTransformNode != 0);

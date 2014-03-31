@@ -274,6 +274,9 @@ public:
   /// The flag is set so that the ReadWriteAsTransformToParent points to the forward transform
   void SetReadWriteAsTransformToParentAuto();
 
+  /// Get the latest modification time of the stored transform
+  unsigned long GetTransformToWorldMTime();
+
 protected:
   vtkMRMLTransformNode();
   ~vtkMRMLTransformNode();

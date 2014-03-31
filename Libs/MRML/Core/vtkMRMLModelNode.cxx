@@ -28,7 +28,9 @@ Version:   $Revision: 1.3 $
 #include <vtkCellData.h>
 #include <vtkColorTransferFunction.h>
 #include <vtkFloatArray.h>
+#include <vtkGeneralTransform.h>
 #include <vtkMatrix4x4.h>
+#include <vtkNew.h>
 #include <vtkObjectFactory.h>
 #include <vtkPointData.h>
 #include <vtkSmartPointer.h>
@@ -63,7 +65,7 @@ void vtkMRMLModelNode::Copy(vtkMRMLNode *anode)
   if (modelNode && modelNode->GetPolyData())
     {
     // Only copy bulk data if it exists - this handles the case
-    // of restoring from SceneViews, where the nodes will not 
+    // of restoring from SceneViews, where the nodes will not
     // have bulk data.
     this->SetAndObservePolyData(modelNode->GetPolyData());
     }
@@ -322,7 +324,7 @@ int vtkMRMLModelNode::CompositeScalars(const char* backgroundName, const char* o
       {
       haveCurvScalars = true;
       }
-    
+
     // get the scalars to composite, putting any curv file in scalars 1
     vtkDataArray *scalars1, *scalars2;
     if (!haveCurvScalars ||
@@ -361,7 +363,7 @@ int vtkMRMLModelNode::CompositeScalars(const char* backgroundName, const char* o
     composedScalars->SetName(composedName.c_str());
     composedScalars->Allocate( cValues );
     composedScalars->SetNumberOfComponents( 1 );
-   
+
     // For each value, check the overlay value. If it's < min, use
     // the background value. If we're reversing, reverse the overlay
     // value. If we're not showing one side, use the background
@@ -375,7 +377,7 @@ int vtkMRMLModelNode::CompositeScalars(const char* backgroundName, const char* o
       {
       background = scalars1->GetTuple1(nValue);
       overlay = scalars2->GetTuple1(nValue);
-      
+
       if( reverseOverlay )
         {
         overlay = -overlay;
@@ -384,12 +386,12 @@ int vtkMRMLModelNode::CompositeScalars(const char* backgroundName, const char* o
         {
         overlay = 0;
         }
-      
+
       if( overlay < 0 && !showOverlayNegative )
         {
         overlay = 0;
         }
-      
+
       // Insert the appropriate color into the composed array.
       if( overlay < overlayMin &&
           overlay > -overlayMin )
@@ -401,7 +403,7 @@ int vtkMRMLModelNode::CompositeScalars(const char* backgroundName, const char* o
         composedScalars->InsertNextValue( overlay );
         }
       }
-    
+
     // set up a colour node
     vtkMRMLProceduralColorNode *colorNode = vtkMRMLProceduralColorNode::New();
     colorNode->SetName(composedName.c_str());
@@ -413,7 +415,7 @@ int vtkMRMLModelNode::CompositeScalars(const char* backgroundName, const char* o
     // other heat overlay
     const double EPS = 0.00001; // epsilon
     double curvatureMin = 0;
-    
+
     if (haveCurvScalars)
       {
       curvatureMin = 0.5;
@@ -427,7 +429,7 @@ int vtkMRMLModelNode::CompositeScalars(const char* backgroundName, const char* o
     func->AddRGBPoint( -overlayMax, 0, 1, 1 );
     func->AddRGBPoint( -overlayMid, 0, 0, 1 );
     func->AddRGBPoint( -overlayMin, 0, 0, 1 );
-    
+
     if( bUseGray && overlayMin != 0 )
       {
       func->AddRGBPoint( -overlayMin + EPS, 0.5, 0.5, 0.5 );
@@ -443,7 +445,7 @@ int vtkMRMLModelNode::CompositeScalars(const char* backgroundName, const char* o
       func->AddRGBPoint(  EPS,          0.4, 0.4, 0.4 );
       func->AddRGBPoint(  curvatureMin, 0.4, 0.4, 0.4 );
       }
-    
+
     if ( bUseGray && overlayMin != 0 )
       {
       if( haveCurvScalars )
@@ -456,9 +458,9 @@ int vtkMRMLModelNode::CompositeScalars(const char* backgroundName, const char* o
     func->AddRGBPoint( overlayMin, 1, 0, 0 );
     func->AddRGBPoint( overlayMid, 1, 0, 0 );
     func->AddRGBPoint( overlayMax, 1, 1, 0 );
-    
+
     func->Build();
-    
+
     // use the new colornode
     this->Scene->AddNode(colorNode);
     vtkDebugMacro("CompositeScalars: created color transfer function, and added proc color node to scene, id = " << colorNode->GetID());
@@ -467,7 +469,7 @@ int vtkMRMLModelNode::CompositeScalars(const char* backgroundName, const char* o
       this->GetModelDisplayNode()->SetAndObserveColorNodeID(colorNode->GetID());
       this->GetModelDisplayNode()->SetScalarRange(-overlayMax, overlayMax);
       }
-    
+
     // add the new scalars
     this->AddPointScalars(composedScalars);
 
@@ -479,7 +481,7 @@ int vtkMRMLModelNode::CompositeScalars(const char* backgroundName, const char* o
     colorNode = NULL;
     composedScalars->Delete();
     composedScalars = NULL;
-    
+
     return 1;
 }
 
@@ -531,57 +533,63 @@ void vtkMRMLModelNode::GetRASBounds(double bounds[6])
   double boundsLocal[6];
   this->PolyData->GetBounds(boundsLocal);
 
-  vtkMatrix4x4 *localToRas = vtkMatrix4x4::New();
-  localToRas->Identity();
+  TransformBoundsToRAS(boundsLocal, bounds);
+
+}
+
+//---------------------------------------------------------------------------
+void vtkMRMLModelNode::TransformBoundsToRAS(double inputBounds_Local[6], double outputBounds_RAS[6])
+{
   vtkMRMLTransformNode *transformNode = this->GetParentTransformNode();
-  if ( transformNode )
+  if ( !transformNode )
     {
-    vtkMatrix4x4 *rasToRAS = vtkMatrix4x4::New();;
-    transformNode->GetMatrixTransformToWorld(rasToRAS);
-    vtkMatrix4x4::Multiply4x4(rasToRAS, localToRas, localToRas);
-    rasToRAS->Delete();
+    // node is not transformed, therefore RAS=local
+    for (int i=0; i<6; i++)
+      {
+      outputBounds_RAS[i]=inputBounds_Local[i];
+      }
+    return;
     }
 
-  double minBounds[3], maxBounds[3];
-  int i;
-  for ( i=0; i<3; i++)
-    {
-    minBounds[i] = 1.0e10;
-    maxBounds[i] = -1.0e10;
-    }
+  vtkNew<vtkGeneralTransform> transformLocalToRAS;
+  transformNode->GetTransformToWorld(transformLocalToRAS.GetPointer());
 
-  double ras[4];
-  double pnts[8][4] = {
-    {boundsLocal[0], boundsLocal[2], boundsLocal[4], 1},
-    {boundsLocal[0], boundsLocal[3], boundsLocal[4], 1},
-    {boundsLocal[0], boundsLocal[2], boundsLocal[5], 1},
-    {boundsLocal[0], boundsLocal[3], boundsLocal[5], 1},
-    {boundsLocal[1], boundsLocal[2], boundsLocal[4], 1},
-    {boundsLocal[1], boundsLocal[3], boundsLocal[4], 1},
-    {boundsLocal[1], boundsLocal[2], boundsLocal[5], 1},
-    {boundsLocal[1], boundsLocal[3], boundsLocal[5], 1}
+  double cornerPoints_Local[8][4] =
+  {
+    {inputBounds_Local[0], inputBounds_Local[2], inputBounds_Local[4], 1},
+    {inputBounds_Local[0], inputBounds_Local[3], inputBounds_Local[4], 1},
+    {inputBounds_Local[0], inputBounds_Local[2], inputBounds_Local[5], 1},
+    {inputBounds_Local[0], inputBounds_Local[3], inputBounds_Local[5], 1},
+    {inputBounds_Local[1], inputBounds_Local[2], inputBounds_Local[4], 1},
+    {inputBounds_Local[1], inputBounds_Local[3], inputBounds_Local[4], 1},
+    {inputBounds_Local[1], inputBounds_Local[2], inputBounds_Local[5], 1},
+    {inputBounds_Local[1], inputBounds_Local[3], inputBounds_Local[5], 1}
   };
 
-  for ( i=0; i<8; i++)
+  // initialize bounds with point 0
+  double* cornerPoint_RAS = transformLocalToRAS->TransformDoublePoint(cornerPoints_Local[0]);
+  for ( int i=0; i<3; i++)
     {
-    localToRas->MultiplyPoint( pnts[i], ras );
-    for (int n=0; n<3; n++) {
-      if (ras[n] < minBounds[n])
+    outputBounds_RAS[2*i]   = cornerPoint_RAS[i];
+    outputBounds_RAS[2*i+1] = cornerPoint_RAS[i];
+    }
+
+  // update bounds with the rest of the points
+  for ( int i=1; i<8; i++)
+    {
+    cornerPoint_RAS = transformLocalToRAS->TransformPoint( cornerPoints_Local[i] );
+    for (int n=0; n<3; n++)
+      {
+      if (cornerPoint_RAS[n] < outputBounds_RAS[2*n]) // min bound
         {
-        minBounds[n] = ras[n];
+        outputBounds_RAS[2*n] = cornerPoint_RAS[n];
         }
-      if (ras[n] > maxBounds[n])
+      if (cornerPoint_RAS[n] > outputBounds_RAS[2*n+1]) // max bound
         {
-        maxBounds[n] = ras[n];
+        outputBounds_RAS[2*n+1] = cornerPoint_RAS[n];
         }
       }
-     }
-   localToRas->Delete();
-   for ( i=0; i<3; i++)
-    {
-    bounds[2*i]   = minBounds[i];
-    bounds[2*i+1] = maxBounds[i];
-    }
+   }
 }
 
 //---------------------------------------------------------------------------

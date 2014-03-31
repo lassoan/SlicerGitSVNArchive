@@ -155,7 +155,6 @@ class VTK_MRML_EXPORT vtkMRMLTransformDisplayNode : public vtkMRMLModelDisplayNo
   /// Return the glyph polydata for the input slice image.
   /// This is the polydata to use in a 3D view.
   /// Reimplemented to by-pass the check on the input polydata.
-  /// \sa GetSliceOutputPolyData(), GetOutputPort()
   virtual vtkPolyData* GetOutputPolyData();
 
   void GetVisualization2d(vtkPolyData* output, vtkMatrix4x4* sliceToRAS, double* fieldOfViewOrigin, double* fieldOfViewSize);

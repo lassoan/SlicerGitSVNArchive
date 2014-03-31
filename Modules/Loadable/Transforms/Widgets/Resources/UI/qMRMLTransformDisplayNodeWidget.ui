@@ -349,19 +349,19 @@
                <string>Base diameter of the widget in mm (fixed)</string>
               </property>
               <property name="decimals">
-               <number>0</number>
+               <number>1</number>
               </property>
               <property name="singleStep">
-               <double>0.100000000000000</double>
+               <double>0.500000000000000</double>
               </property>
               <property name="pageStep">
-               <double>0.500000000000000</double>
+               <double>2.000000000000000</double>
               </property>
               <property name="maximum">
                <double>15.000000000000000</double>
               </property>
               <property name="value">
-               <double>0.500000000000000</double>
+               <double>5.000000000000000</double>
               </property>
               <property name="suffix">
                <string> mm</string>
@@ -906,11 +906,11 @@ p, li { white-space: pre-wrap; }
     </widget>
    </item>
    <item row="1" column="1" colspan="2">
-    <layout class="QHBoxLayout" name="horizontalLayout_3">
+    <layout class="QHBoxLayout" name="horizontalLayout">
      <item>
       <widget class="QCheckBox" name="Visible3dCheckBox">
        <property name="sizePolicy">
-        <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
+        <sizepolicy hsizetype="MinimumExpanding" vsizetype="Preferred">
          <horstretch>1</horstretch>
          <verstretch>0</verstretch>
         </sizepolicy>
@@ -924,75 +924,58 @@ p, li { white-space: pre-wrap; }
       </widget>
      </item>
      <item>
-      <widget class="QLabel" name="RegionWarningLabel">
+      <widget class="QLabel" name="RegionLabel">
+       <property name="toolTip">
+        <string>Reference image for visualizing transform nodes (will only use size, orientation and position)</string>
+       </property>
+       <property name="text">
+        <string>Region:</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="qMRMLNodeComboBox" name="RegionNodeComboBox">
+       <property name="enabled">
+        <bool>true</bool>
+       </property>
        <property name="sizePolicy">
-        <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
-         <horstretch>10</horstretch>
+        <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
+         <horstretch>9</horstretch>
          <verstretch>0</verstretch>
         </sizepolicy>
        </property>
-       <property name="text">
-        <string>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
-&lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
-p, li { white-space: pre-wrap; }
-&lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'MS Shell Dlg 2'; font-size:8.25pt; font-weight:400; font-style:normal;&quot;&gt;
-&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-size:8pt; font-weight:600; color:#ff0000;&quot;&gt;Select a region!&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+       <property name="toolTip">
+        <string>Region for visualizing transform nodes (will only use size, orientation and position)</string>
        </property>
-       <property name="alignment">
-        <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+       <property name="nodeTypes">
+        <stringlist>
+         <string>vtkMRMLModelNode</string>
+         <string>vtkMRMLVolumeNode</string>
+         <string>vtkMRMLSliceNode</string>
+         <string>vtkMRMLMarkupsFiducialNode</string>
+        </stringlist>
+       </property>
+       <property name="baseName">
+        <string/>
+       </property>
+       <property name="noneEnabled">
+        <bool>true</bool>
+       </property>
+       <property name="addEnabled">
+        <bool>false</bool>
+       </property>
+       <property name="removeEnabled">
+        <bool>true</bool>
+       </property>
+       <property name="editEnabled">
+        <bool>true</bool>
+       </property>
+       <property name="renameEnabled">
+        <bool>true</bool>
        </property>
       </widget>
      </item>
     </layout>
-   </item>
-   <item row="2" column="0">
-    <widget class="QLabel" name="RegionLabel">
-     <property name="toolTip">
-      <string>Reference image for visualizing transform nodes (will only use size, orientation and position)</string>
-     </property>
-     <property name="text">
-      <string>3D region:</string>
-     </property>
-    </widget>
-   </item>
-   <item row="2" column="1" colspan="2">
-    <widget class="qMRMLNodeComboBox" name="RegionNodeComboBox">
-     <property name="enabled">
-      <bool>true</bool>
-     </property>
-     <property name="sizePolicy">
-      <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
-       <horstretch>0</horstretch>
-       <verstretch>0</verstretch>
-      </sizepolicy>
-     </property>
-     <property name="toolTip">
-      <string>Region for visualizing transform nodes (will only use size, orientation and position)</string>
-     </property>
-     <property name="nodeTypes">
-      <stringlist>
-       <string>vtkMRMLVolumeNode</string>
-      </stringlist>
-     </property>
-     <property name="baseName">
-      <string/>
-     </property>
-     <property name="noneEnabled">
-      <bool>true</bool>
-     </property>
-     <property name="addEnabled">
-      <bool>false</bool>
-     </property>
-     <property name="removeEnabled">
-      <bool>true</bool>
-     </property>
-     <property name="editEnabled">
-      <bool>true</bool>
-     </property>
-     <property name="renameEnabled">
-      <bool>true</bool>
-     </property>
-    </widget>
    </item>
   </layout>
  </widget>
@@ -1251,54 +1234,6 @@ p, li { white-space: pre-wrap; }
     <hint type="destinationlabel">
      <x>312</x>
      <y>182</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>Visible3dCheckBox</sender>
-   <signal>toggled(bool)</signal>
-   <receiver>RegionLabel</receiver>
-   <slot>setVisible(bool)</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>125</x>
-     <y>30</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>56</x>
-     <y>53</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>Visible3dCheckBox</sender>
-   <signal>toggled(bool)</signal>
-   <receiver>RegionNodeComboBox</receiver>
-   <slot>setVisible(bool)</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>125</x>
-     <y>30</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>223</x>
-     <y>53</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>Visible3dCheckBox</sender>
-   <signal>pressed()</signal>
-   <receiver>RegionWarningLabel</receiver>
-   <slot>hide()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>125</x>
-     <y>30</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>235</x>
-     <y>30</y>
     </hint>
    </hints>
   </connection>
