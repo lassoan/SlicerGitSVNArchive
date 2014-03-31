@@ -26,11 +26,16 @@
 #include "qSlicerCoreIOManager.h"
 #include "qSlicerNodeWriter.h"
 #include "vtkSlicerTransformLogic.h"
+#include "vtkMRMLSliceViewDisplayableManagerFactory.h"
 
 // Transforms includes
 #include "qSlicerTransformsModule.h"
 #include "qSlicerTransformsModuleWidget.h"
 #include "qSlicerTransformsReader.h"
+#include "vtkMRMLTransformsDisplayableManager2D.h"
+
+// VTK includes
+#include "vtkSmartPointer.h"
 
 //-----------------------------------------------------------------------------
 Q_EXPORT_PLUGIN2(qSlicerTransformsModule, qSlicerTransformsModule);
@@ -133,4 +138,11 @@ void qSlicerTransformsModule::setup()
   app->coreIOManager()->registerIO(new qSlicerNodeWriter(
     "Transforms", QString("TransformFile"),
     QStringList() << "vtkMRMLTransformNode", this));
+
+  // Use the displayable manager class to make sure the the containing library is loaded
+  vtkSmartPointer<vtkMRMLTransformsDisplayableManager2D> dm=vtkSmartPointer<vtkMRMLTransformsDisplayableManager2D>::New();
+
+  // Register displayable managers
+  vtkMRMLSliceViewDisplayableManagerFactory::GetInstance()->RegisterDisplayableManager("vtkMRMLTransformsDisplayableManager2D");
+
 }
