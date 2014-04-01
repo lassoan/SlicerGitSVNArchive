@@ -72,8 +72,6 @@ vtkMRMLTransformDisplayNode::vtkMRMLTransformDisplayNode()
   this->GlyphScalePercent=100;
   this->GlyphDisplayRangeMaxMm=100;
   this->GlyphDisplayRangeMinMm=0.01;
-  this->GlyphMaxNumberOfPoints=2000;
-  this->GlyphRandomSeed=687848400;
   this->GlyphType=GLYPH_TYPE_ARROW;
   this->GlyphScaleDirectional=true;
   this->GlyphTipLengthPercent=30;
@@ -117,8 +115,6 @@ void vtkMRMLTransformDisplayNode::WriteXML(ostream& of, int nIndent)
   of << indent << " GlyphScalePercent=\""<< this->GlyphScalePercent << "\"";
   of << indent << " GlyphDisplayRangeMaxMm=\""<< this->GlyphDisplayRangeMaxMm << "\"";
   of << indent << " GlyphDisplayRangeMinMm=\""<< this->GlyphDisplayRangeMinMm << "\"";
-  of << indent << " GlyphMaxNumberOfPoints=\""<< this->GlyphMaxNumberOfPoints << "\"";
-  of << indent << " GlyphRandomSeed=\""<< this->GlyphRandomSeed << "\"";
   of << indent << " GlyphType=\""<< ConvertGlyphTypeToString(this->GlyphType) << "\"";
   of << indent << " GlyphScaleDirectional=\"" << this->GlyphScaleDirectional << "\"";
   of << indent << " GlyphTipLengthPercent=\"" << this->GlyphTipLengthPercent << "\"";
@@ -169,8 +165,6 @@ void vtkMRMLTransformDisplayNode::ReadXMLAttributes(const char** atts)
     READ_FROM_ATT(GlyphScalePercent);
     READ_FROM_ATT(GlyphDisplayRangeMaxMm);
     READ_FROM_ATT(GlyphDisplayRangeMinMm);
-    READ_FROM_ATT(GlyphMaxNumberOfPoints);
-    READ_FROM_ATT(GlyphRandomSeed);
     if (!strcmp(attName,"GlyphType"))
     {
       this->GlyphType = ConvertGlyphTypeFromString(attValue);
@@ -215,8 +209,6 @@ void vtkMRMLTransformDisplayNode::Copy(vtkMRMLNode *anode)
   this->GlyphScalePercent = node->GlyphScalePercent;
   this->GlyphDisplayRangeMaxMm = node->GlyphDisplayRangeMaxMm;
   this->GlyphDisplayRangeMinMm = node->GlyphDisplayRangeMinMm;
-  this->GlyphMaxNumberOfPoints = node->GlyphMaxNumberOfPoints;
-  this->GlyphRandomSeed = node->GlyphRandomSeed;
   this->GlyphType = node->GlyphType;
   this->GlyphScaleDirectional = node->GlyphScaleDirectional;
   this->GlyphTipLengthPercent = node->GlyphTipLengthPercent;
@@ -244,8 +236,6 @@ void vtkMRMLTransformDisplayNode::PrintSelf(ostream& os, vtkIndent indent)
   os << indent << "GlyphScalePercent = "<< this->GlyphScalePercent << "\n";
   os << indent << "GlyphDisplayRangeMaxMm = "<< this->GlyphDisplayRangeMaxMm << "\n";
   os << indent << "GlyphDisplayRangeMinMm = "<< this->GlyphDisplayRangeMinMm << "\n";
-  os << indent << "GlyphMaxNumberOfPoints = "<< this->GlyphMaxNumberOfPoints << "\n";
-  os << indent << "GlyphRandomSeed = "<< this->GlyphRandomSeed << "\n";
   os << indent << "GlyphType = "<< ConvertGlyphTypeToString(this->GlyphType) << "\n";
   os << indent << "GlyphScaleDirectional = "<< this->GlyphScaleDirectional << "\n";
   os << indent << "GlyphTipLengthPercent = " << this->GlyphTipLengthPercent << "\n";

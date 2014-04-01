@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>336</width>
-    <height>902</height>
+    <width>314</width>
+    <height>554</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -24,7 +24,7 @@
     <number>4</number>
    </property>
    <item row="5" column="0" colspan="3">
-    <widget class="ctkCollapsibleButton" name="Parameters">
+    <widget class="ctkCollapsibleButton" name="AdvancedParameters">
      <property name="enabled">
       <bool>true</bool>
      </property>
@@ -38,7 +38,13 @@
       <string>Advanced</string>
      </property>
      <property name="checked">
+      <bool>true</bool>
+     </property>
+     <property name="collapsed">
       <bool>false</bool>
+     </property>
+     <property name="collapsedHeight">
+      <number>4</number>
      </property>
      <layout class="QVBoxLayout" name="verticalLayout_2">
       <property name="margin">
@@ -63,7 +69,7 @@
            </property>
           </widget>
          </item>
-         <item row="0" column="1" colspan="3">
+         <item row="0" column="1" colspan="2">
           <widget class="ctkSliderWidget" name="GlyphSpacingMm">
            <property name="sizePolicy">
             <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
@@ -103,11 +109,11 @@
             <string>Only create glyphs within threshold values</string>
            </property>
            <property name="text">
-            <string>Visible range:</string>
+            <string>Visible Range:</string>
            </property>
           </widget>
          </item>
-         <item row="2" column="1" colspan="3">
+         <item row="2" column="1" colspan="2">
           <widget class="qMRMLRangeWidget" name="GlyphDisplayRangeMm">
            <property name="singleStep">
             <double>0.100000000000000</double>
@@ -133,7 +139,7 @@
            </property>
           </widget>
          </item>
-         <item row="1" column="1" colspan="3">
+         <item row="1" column="1" colspan="2">
           <widget class="ctkSliderWidget" name="GlyphScalePercent">
            <property name="sizePolicy">
             <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
@@ -180,7 +186,7 @@
            </property>
           </widget>
          </item>
-         <item row="3" column="1" colspan="3">
+         <item row="3" column="1" colspan="2">
           <widget class="ctkComboBox" name="GlyphTypeComboBox">
            <property name="sizePolicy">
             <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
@@ -211,102 +217,7 @@
            </item>
           </widget>
          </item>
-         <item row="6" column="0">
-          <widget class="QLabel" name="label_5">
-           <property name="toolTip">
-            <string>Seed used for placement of glyphs</string>
-           </property>
-           <property name="text">
-            <string>Random Seed:</string>
-           </property>
-          </widget>
-         </item>
-         <item row="5" column="1" colspan="3">
-          <widget class="ctkSliderWidget" name="GlyphMaxNumberOfPoints">
-           <property name="sizePolicy">
-            <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-             <horstretch>0</horstretch>
-             <verstretch>0</verstretch>
-            </sizepolicy>
-           </property>
-           <property name="toolTip">
-            <string>Number of glyphs to generate</string>
-           </property>
-           <property name="decimals">
-            <number>0</number>
-           </property>
-           <property name="singleStep">
-            <double>1.000000000000000</double>
-           </property>
-           <property name="pageStep">
-            <double>500.000000000000000</double>
-           </property>
-           <property name="maximum">
-            <double>10000.000000000000000</double>
-           </property>
-           <property name="value">
-            <double>2000.000000000000000</double>
-           </property>
-          </widget>
-         </item>
-         <item row="6" column="1">
-          <widget class="QSpinBox" name="GlyphRandomSeed">
-           <property name="sizePolicy">
-            <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-             <horstretch>0</horstretch>
-             <verstretch>0</verstretch>
-            </sizepolicy>
-           </property>
-           <property name="toolTip">
-            <string>Seed used for placement of glyphs</string>
-           </property>
-           <property name="inputMethodHints">
-            <set>Qt::ImhDigitsOnly</set>
-           </property>
-           <property name="alignment">
-            <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-           </property>
-           <property name="minimum">
-            <number>1</number>
-           </property>
-           <property name="maximum">
-            <number>2147483647</number>
-           </property>
-           <property name="singleStep">
-            <number>54723</number>
-           </property>
-           <property name="value">
-            <number>687848400</number>
-           </property>
-          </widget>
-         </item>
-         <item row="5" column="0">
-          <widget class="QLabel" name="GlyphsMaxLabel">
-           <property name="toolTip">
-            <string>Number of glyphs to generate</string>
-           </property>
-           <property name="text">
-            <string>Max. Number:</string>
-           </property>
-          </widget>
-         </item>
-         <item row="6" column="2" colspan="2">
-          <widget class="QPushButton" name="GlyphGenerateRandomSeedButton">
-           <property name="sizePolicy">
-            <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-             <horstretch>0</horstretch>
-             <verstretch>0</verstretch>
-            </sizepolicy>
-           </property>
-           <property name="toolTip">
-            <string>Generate a random seed to use for the glyph visualization</string>
-           </property>
-           <property name="text">
-            <string>Generate Seed</string>
-           </property>
-          </widget>
-         </item>
-         <item row="4" column="1" colspan="3">
+         <item row="4" column="0" colspan="3">
           <widget class="ctkCollapsibleGroupBox" name="GlyphSourceOptions">
            <property name="sizePolicy">
             <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
@@ -349,7 +260,7 @@
                <string>Base diameter of the widget in mm (fixed)</string>
               </property>
               <property name="decimals">
-               <number>1</number>
+               <number>0</number>
               </property>
               <property name="singleStep">
                <double>0.500000000000000</double>
@@ -550,7 +461,7 @@
             <string>Number of glyphs to generate</string>
            </property>
            <property name="decimals">
-            <number>0</number>
+            <number>1</number>
            </property>
            <property name="singleStep">
             <double>0.500000000000000</double>
@@ -594,7 +505,7 @@
             <string>Adjust amount to scale deformation of grid</string>
            </property>
            <property name="decimals">
-            <number>0</number>
+            <number>1</number>
            </property>
            <property name="singleStep">
             <double>1.000000000000000</double>
@@ -650,6 +561,9 @@
       </item>
       <item>
        <widget class="QFrame" name="ContourOptions">
+        <property name="enabled">
+         <bool>true</bool>
+        </property>
         <property name="frameShape">
          <enum>QFrame::StyledPanel</enum>
         </property>
@@ -740,6 +654,24 @@ p, li { white-space: pre-wrap; }
          </item>
         </layout>
        </widget>
+      </item>
+      <item>
+       <layout class="QHBoxLayout" name="horizontalLayout_2">
+        <item>
+         <widget class="QLabel" name="ColorTableLabel">
+          <property name="text">
+           <string>Color Table:</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="qMRMLColorTableComboBox" name="ColorTableNodeComboBox">
+          <property name="showHidden">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+       </layout>
       </item>
      </layout>
     </widget>
@@ -1013,6 +945,11 @@ p, li { white-space: pre-wrap; }
  </widget>
  <customwidgets>
   <customwidget>
+   <class>qMRMLColorTableComboBox</class>
+   <extends>qMRMLNodeComboBox</extends>
+   <header>qMRMLColorTableComboBox.h</header>
+  </customwidget>
+  <customwidget>
    <class>qMRMLNodeComboBox</class>
    <extends>QWidget</extends>
    <header>qMRMLNodeComboBox.h</header>
@@ -1282,6 +1219,22 @@ p, li { white-space: pre-wrap; }
     <hint type="destinationlabel">
      <x>223</x>
      <y>53</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>qMRMLTransformDisplayNodeWidget</sender>
+   <signal>mrmlSceneChanged(vtkMRMLScene*)</signal>
+   <receiver>ColorTableNodeComboBox</receiver>
+   <slot>setMRMLScene(vtkMRMLScene*)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>167</x>
+     <y>450</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>199</x>
+     <y>534</y>
     </hint>
    </hints>
   </connection>

@@ -62,6 +62,12 @@ void qMRMLTransformDisplayNodeWidgetPrivate
   Q_Q(qMRMLTransformDisplayNodeWidget);
   this->setupUi(q);
 
+  this->AdvancedParameters->setCollapsed(true);
+
+  // by default the glyph option is selected, so hide the parameter sets for the other options
+  this->ContourOptions->hide();
+  this->GridOptions->hide();
+
   QObject::connect(this->Visible2dCheckBox, SIGNAL(toggled(bool)), q, SLOT(setVisible2d(bool)));
   QObject::connect(this->Visible3dCheckBox, SIGNAL(toggled(bool)), q, SLOT(setVisible3d(bool)));
 
@@ -73,11 +79,8 @@ void qMRMLTransformDisplayNodeWidgetPrivate
 
   // Glyph Parameters
   QObject::connect(this->GlyphSpacingMm, SIGNAL(valueChanged(double)), q, SLOT(setGlyphSpacingMm(double)));
-  QObject::connect(this->GlyphMaxNumberOfPoints, SIGNAL(valueChanged(double)), q, SLOT(setGlyphMaxNumberOfPoints(double)));
   QObject::connect(this->GlyphScalePercent, SIGNAL(valueChanged(double)), q, SLOT(setGlyphScalePercent(double)));
   QObject::connect(this->GlyphDisplayRangeMm, SIGNAL(valuesChanged(double, double)), q, SLOT(setGlyphDisplayRangeMm(double, double)));
-  QObject::connect(this->GlyphGenerateRandomSeedButton, SIGNAL(clicked()), q, SLOT(generateGlyphRandomSeed()));
-  QObject::connect(this->GlyphRandomSeed, SIGNAL(valueChanged(int)), q, SLOT(setGlyphRandomSeed(int)));
   QObject::connect(this->GlyphTypeComboBox, SIGNAL(currentIndexChanged(int)), q, SLOT(setGlyphType(int)));
   // 3D Glyph Parameters
   QObject::connect(this->GlyphScaleDirectionalCheckBox, SIGNAL(toggled(bool)), q, SLOT(setGlyphScaleDirectional(bool)));
@@ -175,8 +178,6 @@ void qMRMLTransformDisplayNodeWidget
   // Update Visualization Parameters
   // Glyph Parameters
   d->GlyphSpacingMm->setValue(d->TransformDisplayNode->GetGlyphSpacingMm());
-  d->GlyphMaxNumberOfPoints->setValue(d->TransformDisplayNode->GetGlyphMaxNumberOfPoints());
-  d->GlyphRandomSeed->setValue(d->TransformDisplayNode->GetGlyphRandomSeed());
   d->GlyphScalePercent->setValue(d->TransformDisplayNode->GetGlyphScalePercent());
   d->GlyphDisplayRangeMm->setMaximumValue(d->TransformDisplayNode->GetGlyphDisplayRangeMaxMm());
   d->GlyphDisplayRangeMm->setMinimumValue(d->TransformDisplayNode->GetGlyphDisplayRangeMinMm());
@@ -286,40 +287,6 @@ void qMRMLTransformDisplayNodeWidget::setGlyphSpacingMm(double spacing)
     return;
   }
   d->TransformDisplayNode->SetGlyphSpacingMm(spacing);
-}
-
-//-----------------------------------------------------------------------------
-void qMRMLTransformDisplayNodeWidget::setGlyphMaxNumberOfPoints(double pointMax)
-{
-  Q_D(qMRMLTransformDisplayNodeWidget);
-  if (!d->TransformDisplayNode)
-    {
-    return;
-    }
-  d->TransformDisplayNode->SetGlyphMaxNumberOfPoints(pointMax);
-}
-
-//-----------------------------------------------------------------------------
-void qMRMLTransformDisplayNodeWidget::generateGlyphRandomSeed()
-{
-  Q_D(qMRMLTransformDisplayNodeWidget);
-  if (!d->TransformDisplayNode)
-  {
-    return;
-  }
-  d->TransformDisplayNode->SetGlyphRandomSeed(rand());
-  d->GlyphRandomSeed->setValue(d->TransformDisplayNode->GetGlyphRandomSeed());
-}
-
-//-----------------------------------------------------------------------------
-void qMRMLTransformDisplayNodeWidget::setGlyphRandomSeed(int seed)
-{
-  Q_D(qMRMLTransformDisplayNodeWidget);
-  if (!d->TransformDisplayNode)
-  {
-    return;
-  }
-  d->TransformDisplayNode->SetGlyphRandomSeed(seed);
 }
 
 //-----------------------------------------------------------------------------

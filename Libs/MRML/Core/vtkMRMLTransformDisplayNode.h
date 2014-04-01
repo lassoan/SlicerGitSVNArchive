@@ -97,8 +97,6 @@ class VTK_MRML_EXPORT vtkMRMLTransformDisplayNode : public vtkMRMLModelDisplayNo
   static int ConvertVisualizationModeFromString(const char* modeString);
 
   // Glyph Parameters
-  vtkSetMacro(GlyphMaxNumberOfPoints, int);
-  vtkGetMacro(GlyphMaxNumberOfPoints, int);
   vtkSetMacro(GlyphSpacingMm, double);
   vtkGetMacro(GlyphSpacingMm, double);
   vtkSetMacro(GlyphScalePercent, double);
@@ -107,8 +105,6 @@ class VTK_MRML_EXPORT vtkMRMLTransformDisplayNode : public vtkMRMLModelDisplayNo
   vtkGetMacro(GlyphDisplayRangeMaxMm, double);
   vtkSetMacro(GlyphDisplayRangeMinMm, double);
   vtkGetMacro(GlyphDisplayRangeMinMm, double);
-  vtkSetMacro(GlyphRandomSeed, int);
-  vtkGetMacro(GlyphRandomSeed, int);
   vtkSetMacro(GlyphType, int);
   vtkGetMacro(GlyphType, int);
   /// Convert glyph type index to a string for serialization.
@@ -209,8 +205,6 @@ protected:
   double GlyphScalePercent;
   double GlyphDisplayRangeMaxMm;
   double GlyphDisplayRangeMinMm;
-  int GlyphMaxNumberOfPoints;
-  int GlyphRandomSeed;
   int GlyphType;
   // 3d parameters
   bool GlyphScaleDirectional;
