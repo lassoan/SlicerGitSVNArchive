@@ -85,6 +85,7 @@ public slots:
   void setGlyphResolution(double resolution);
   void setGridScalePercent(double scale);
   void setGridSpacingMm(double spacing);
+  void setGridLineDiameterMm(double diameterMm);
   void setContourLevelsMm(QString values_str);
   void setContourResolutionMm(double resolutionMm);
 

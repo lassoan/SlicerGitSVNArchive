@@ -84,6 +84,7 @@ vtkMRMLTransformDisplayNode::vtkMRMLTransformDisplayNode()
 
   this->GridScalePercent=100;
   this->GridSpacingMm=15.0;
+  this->GridLineDiameterMm=1.0;
 
   this->ContourResolutionMm=5.0;
 
@@ -128,6 +129,7 @@ void vtkMRMLTransformDisplayNode::WriteXML(ostream& of, int nIndent)
 
   of << indent << " GridScalePercent=\""<< this->GridScalePercent << "\"";
   of << indent << " GridSpacingMm=\""<< this->GridSpacingMm << "\"";
+  of << indent << " GridLineDiameterMm=\""<< this->GridLineDiameterMm << "\"";
 
   of << indent << " ContourResolutionMm=\""<< this->ContourResolutionMm << "\"";
   of << indent << " ContourLevelsMm=\"" << GetContourLevelsMmAsString() << "\"";
@@ -182,6 +184,7 @@ void vtkMRMLTransformDisplayNode::ReadXMLAttributes(const char** atts)
     READ_FROM_ATT(GlyphResolution);
     READ_FROM_ATT(GridScalePercent);
     READ_FROM_ATT(GridSpacingMm);
+    READ_FROM_ATT(GridLineDiameterMm);
     READ_FROM_ATT(ContourResolutionMm);
     if (!strcmp(attName,"ContourLevelsMm"))
     {
@@ -224,6 +227,7 @@ void vtkMRMLTransformDisplayNode::Copy(vtkMRMLNode *anode)
 
   this->GridScalePercent = node->GridScalePercent;
   this->GridSpacingMm = node->GridSpacingMm;
+  this->GridLineDiameterMm = node->GridLineDiameterMm;
 
   this->ContourLevelsMm = node->ContourLevelsMm;
   this->ContourResolutionMm = node->ContourResolutionMm;
@@ -252,6 +256,7 @@ void vtkMRMLTransformDisplayNode::PrintSelf(ostream& os, vtkIndent indent)
 
   os << indent << "GridScalePercent = " << this->GridScalePercent << "\n";
   os << indent << "GridSpacingMm = " << this->GridSpacingMm << "\n";
+  os << indent << "GridLineDiameterMm = " << this->GridLineDiameterMm << "\n";
 
   os << indent << " ContourResolutionMm = "<< this->ContourResolutionMm << "\n";
   os << indent << " ContourLevelsMm = " << GetContourLevelsMmAsString() << "\n";
@@ -978,7 +983,7 @@ void vtkMRMLTransformDisplayNode::GetGridVisualization3d(vtkPolyData* output, vt
 
   vtkNew<vtkTubeFilter> tubeFilter;
   tubeFilter->SetInput(warpedGridPolyData.GetPointer());
-  tubeFilter->SetRadius(this->GetGlyphDiameterMm()*0.5);
+  tubeFilter->SetRadius(this->GetGridLineDiameterMm()*0.5);
   tubeFilter->Update();
 
   output->ShallowCopy(tubeFilter->GetOutput());

@@ -136,6 +136,8 @@ class VTK_MRML_EXPORT vtkMRMLTransformDisplayNode : public vtkMRMLModelDisplayNo
   vtkGetMacro(GridScalePercent, double);
   vtkSetMacro(GridSpacingMm, double);
   vtkGetMacro(GridSpacingMm, double);
+  vtkSetMacro(GridLineDiameterMm, double);
+  vtkGetMacro(GridLineDiameterMm, double);
 
   // Contour Parameters
   unsigned int GetNumberOfContourLevels();
@@ -221,6 +223,7 @@ protected:
   // Grid Parameters
   double GridScalePercent;
   double GridSpacingMm;
+  double GridLineDiameterMm;
 
   // Contour Parameters
   std::vector<double> ContourLevelsMm;

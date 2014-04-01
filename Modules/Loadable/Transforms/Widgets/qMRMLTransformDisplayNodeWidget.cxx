@@ -90,6 +90,7 @@ void qMRMLTransformDisplayNodeWidgetPrivate
   // Grid Parameters
   QObject::connect(this->GridScalePercent, SIGNAL(valueChanged(double)), q, SLOT(setGridScalePercent(double)));
   QObject::connect(this->GridSpacingMm, SIGNAL(valueChanged(double)), q, SLOT(setGridSpacingMm(double)));
+  QObject::connect(this->GridLineDiameterMm, SIGNAL(valueChanged(double)), q, SLOT(setGridLineDiameterMm(double)));
 
   // Contour Parameters
   QRegExp rx("^(([0-9]+(.[0-9]+)?)[ ]?)*([0-9]+(.[0-9]+)?)[ ]?$");
@@ -191,6 +192,7 @@ void qMRMLTransformDisplayNodeWidget
   // Grid Parameters
   d->GridScalePercent->setValue(d->TransformDisplayNode->GetGridScalePercent());
   d->GridSpacingMm->setValue(d->TransformDisplayNode->GetGridSpacingMm());
+  d->GridLineDiameterMm->setValue(d->TransformDisplayNode->GetGridLineDiameterMm());
 
   // Contour Parameters
 
@@ -442,6 +444,17 @@ void qMRMLTransformDisplayNodeWidget::setGridSpacingMm(double spacing)
     return;
   }
   d->TransformDisplayNode->SetGridSpacingMm(spacing);
+}
+
+//-----------------------------------------------------------------------------
+void qMRMLTransformDisplayNodeWidget::setGridLineDiameterMm(double diameterMm)
+{
+  Q_D(qMRMLTransformDisplayNodeWidget);
+  if (!d->TransformDisplayNode)
+  {
+    return;
+  }
+  d->TransformDisplayNode->SetGridLineDiameterMm(diameterMm);
 }
 
 //-----------------------------------------------------------------------------
