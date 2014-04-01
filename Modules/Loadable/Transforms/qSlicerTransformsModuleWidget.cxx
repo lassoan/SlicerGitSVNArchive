@@ -343,18 +343,10 @@ void qSlicerTransformsModuleWidget::onDisplaySectionClicked(bool clicked)
   {
     return;
   }
-  if (vtkMRMLTransformDisplayNode::SafeDownCast(d->MRMLTransformNode->GetDisplayNode())!=NULL)
+  if (vtkMRMLTransformDisplayNode::SafeDownCast(d->MRMLTransformNode->GetDisplayNode())==NULL)
   {
-    // display node exists
-    return;
+    d->MRMLTransformNode->CreateDefaultDisplayNodes();
+    // Refresh the display node section
+    d->TransformDisplayNodeWidget->setMRMLTransformNode(d->MRMLTransformNode);
   }
-  vtkNew<vtkMRMLTransformDisplayNode> dispNode;
-  dispNode->SetVisibility(false);
-  dispNode->SetSliceIntersectionVisibility(false);
-
-  d->MRMLTransformNode->GetScene()->AddNode(dispNode.GetPointer());
-  d->MRMLTransformNode->SetAndObserveDisplayNodeID(dispNode->GetID());
-
-  d->TransformDisplayNodeWidget->setMRMLTransformNode(d->MRMLTransformNode);
-  //d->TransformDisplayNodeWidget->setEnabled(true);
 }

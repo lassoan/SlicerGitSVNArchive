@@ -12,9 +12,12 @@ Version:   $Revision: 1.14 $
 
 =========================================================================auto=*/
 
-// MRML includes
 #include "vtkMRMLTransformNode.h"
+
+// MRML includes
+#include "vtkMRMLScene.h"
 #include "vtkMRMLTransformStorageNode.h"
+#include "vtkMRMLTransformDisplayNode.h"
 
 // VTK includes
 #include <vtkCommand.h>
@@ -574,6 +577,24 @@ void vtkMRMLTransformNode::ApplyTransform(vtkAbstractTransform* transform)
 vtkMRMLStorageNode* vtkMRMLTransformNode::CreateDefaultStorageNode()
 {
   return vtkMRMLTransformStorageNode::New();
+}
+
+//----------------------------------------------------------------------------
+void vtkMRMLTransformNode::CreateDefaultDisplayNodes()
+{
+  if (vtkMRMLTransformDisplayNode::SafeDownCast(this->GetDisplayNode())!=NULL)
+  {
+    // display node already exists
+    return;
+  }
+  if (this->GetScene()==NULL)
+  {
+    vtkErrorMacro("vtkMRMLTransformNode::CreateDefaultDisplayNodes failed: scene is invalid");
+    return;
+  }
+  vtkNew<vtkMRMLTransformDisplayNode> dispNode;
+  this->GetScene()->AddNode(dispNode.GetPointer());
+  this->SetAndObserveDisplayNodeID(dispNode->GetID());
 }
 
 //---------------------------------------------------------------------------

@@ -127,6 +127,10 @@ public:
   /// Create default storage node or NULL if does not have one
   virtual vtkMRMLStorageNode* CreateDefaultStorageNode();
 
+  ///
+  /// Create and observe default display node
+  virtual void CreateDefaultDisplayNodes();
+
   /// Get/Set for ReadWriteAsTransformToParent
   /// Typically only a non-inverse transform can be written to file,
   /// so this flag should be set to read/write the forward transform.

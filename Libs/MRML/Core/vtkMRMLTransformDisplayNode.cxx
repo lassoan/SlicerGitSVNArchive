@@ -64,6 +64,11 @@ vtkMRMLNodeNewMacro(vtkMRMLTransformDisplayNode);
 vtkMRMLTransformDisplayNode::vtkMRMLTransformDisplayNode()
   :vtkMRMLModelDisplayNode()
 {
+  // Don't show transform nodes by default
+  // to allow the users to adjust visualization parameters first
+  this->Visibility = 0;
+  this->SliceIntersectionVisibility = 0;
+
   this->OutputPolyDataRAS = true;
 
   this->VisualizationMode=VIS_MODE_GLYPH;
@@ -1120,3 +1125,44 @@ void vtkMRMLTransformDisplayNode::GetVisualization3d(vtkPolyData* output, vtkMat
     break;
   }
 }
+
+/*
+
+CreateDefaultColorTableNode()
+
+call it when the model is generated and there is no selected color table yet
+
+if (outputModelNode->GetModelDisplayNode()->GetColorNode()==NULL)
+  {
+    vtkSmartPointer<vtkMRMLColorTableNode> colorTableNode = vtkSmartPointer<vtkMRMLColorTableNode>::New();
+    this->GetMRMLScene()->AddNode(colorTableNode);
+
+    colorTableNode->SetName("Deformation Field Colors");
+    colorTableNode->SetAttribute("Category", "User Generated");
+    colorTableNode->SetTypeToUser();
+    colorTableNode->SetNumberOfColors(4);
+    colorTableNode->GetLookupTable();
+    colorTableNode->AddColor("negligible", 0.0, 0.0, 0.5, 1.0);
+    colorTableNode->AddColor(       "low", 0.0, 1.0, 0.0, 1.0);
+    colorTableNode->AddColor(    "medium", 1.0, 1.0, 0.0, 1.0);
+    colorTableNode->AddColor(      "high", 1.0, 0.0, 0.0, 1.0);
+
+    outputModelNode->GetModelDisplayNode()->SetAndObserveColorNodeID(colorTableNode->GetID());
+  }
+
+  vtkMRMLColorTableNode *colorNode = vtkMRMLColorTableNode::SafeDownCast(outputModelNode->GetModelDisplayNode()->GetColorNode());
+
+
+
+      vtkDebugMacro("Color by mean fiber orientation");
+    this->ScalarVisibilityOn( );
+    this->ColorLinesByOrientation->SetColorMode(
+      this->ColorLinesByOrientation->colorModeMeanFiberOrientation);
+    this->TubeFilter->SetInputConnection(this->ColorLinesByOrientation->GetOutputPort());
+    vtkMRMLNode* ColorNode = this->GetScene()->GetNodeByID("vtkMRMLColorTableNodeFullRainbow");
+    if (ColorNode)
+      {
+      this->SetAndObserveColorNodeID(ColorNode->GetID());
+      }
+
+*/
