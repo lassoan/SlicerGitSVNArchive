@@ -157,9 +157,37 @@ class VTK_MRML_EXPORT vtkMRMLTransformDisplayNode : public vtkMRMLModelDisplayNo
   /// Reimplemented to by-pass the check on the input polydata.
   virtual vtkPolyData* GetOutputPolyData();
 
+  /// Generate polydata for 2D transform visualization
+  /// sliceToRAS, fieldOfViewOrigin, and fieldOfViewSize should be set from the slice node
   void GetVisualization2d(vtkPolyData* output, vtkMatrix4x4* sliceToRAS, double* fieldOfViewOrigin, double* fieldOfViewSize);
 
 protected:
+
+  void GetGlyphVisualization2d(vtkPolyData* output, vtkMatrix4x4* sliceToRAS, double* fieldOfViewOrigin, double* fieldOfViewSize);
+  void GetGridVisualization2d(vtkPolyData* output, vtkMatrix4x4* sliceToRAS, double* fieldOfViewOrigin, double* fieldOfViewSize);
+  void GetContourVisualization2d(vtkPolyData* output, vtkMatrix4x4* sliceToRAS, double* fieldOfViewOrigin, double* fieldOfViewSize);
+
+  /// Generate polydata for 3D transform visualization
+  /// roiToRAS defines the ROI origin and direction
+  /// roiSize defines the ROI size (in the ROI coordinate system spacing)
+  void GetVisualization3d(vtkPolyData* output, vtkMatrix4x4* roiToRAS, int* roiSize);
+  void GetGlyphVisualization3d(vtkPolyData* output, vtkMatrix4x4* roiToRAS, int* roiSize);
+  void GetGridVisualization3d(vtkPolyData* output, vtkMatrix4x4* roiToRAS, int* roiSize);
+  void GetContourVisualization3d(vtkPolyData* output, vtkMatrix4x4* roiToRAS, int* roiSize);
+
+  /// Takes samples from the displacement field specified by the transformation on a 3D ROI
+  /// and stores it in an unstructured grid.
+  /// pointGroupSize: the number of points will be N*pointGroupSize (the actual number will be returned in numGridPoints[3])
+  void GetTransformedPointSamplesOnRoi(vtkPointSet* pointSet, vtkMatrix4x4* roiToRAS, int* roiSize, double pointSpacingMm, int pointGroupSize=1, int* numGridPoints=NULL);
+
+  /// Takes samples from the displacement field specified by the transformation on a slice
+  /// and stores it in an unstructured grid.
+  /// pointGroupSize: the number of points will be N*pointGroupSize (the actual number will be returned in numGridPoints[3])
+  void GetTransformedPointSamplesOnSlice(vtkPointSet* outputPointSet, vtkMatrix4x4* sliceToRAS, double* fieldOfViewOrigin, double* fieldOfViewSize, double pointSpacing, int pointGroupSize=1, int* numGridPoints=NULL);
+
+  /// Takes samples from the displacement field mganitude, specified by the transformation on a uniform grid
+  /// and stores it in an image volume.
+  void GetTransformedPointSamplesAsImage(vtkImageData* magnitudeImage, vtkMatrix4x4* ijkToRAS, int* imageSize);
 
   /// Takes samples from the displacement field specified by the transformation on a uniform grid
   /// and stores it in an unstructured grid.
@@ -167,25 +195,8 @@ protected:
   /// gridSize is a 3-component int array specifying the dimension of the grid
   void GetTransformedPointSamples(vtkPointSet* outputPointSet, vtkMatrix4x4* gridToRAS, int* gridSize);
 
-  /// Takes samples from the displacement field specified by the transformation on a slice
-  /// and stores it in an unstructured grid.
-  /// pointGroupSize: the number of points will be N*pointGroupSize (the actual number will be returned in numGridPoints[0] and numGridPoints[1])
-  void GetTransformedPointSamplesOnSlice(vtkPointSet* outputPointSet, vtkMatrix4x4* sliceToRAS, double* fieldOfViewOrigin, double* fieldOfViewSize, double pointSpacing, int pointGroupSize=1, int* numGridPoints=NULL);
-
-  /// Takes samples from the displacement field mganitude, specified by the transformation on a uniform grid
-  /// and stores it in an image volume.
-  void GetTransformedPointSamplesAsImage(vtkImageData* magnitudeImage, vtkMatrix4x4* ijkToRAS, int* imageSize);
-
-  /// Generate polydata for 3D glyph visualization
-  /// roiToRAS defines the ROI origin and direction
-  /// roiSize defines the ROI size (in the ROI coordinate system spacing)
-  void GetGlyphVisualization3d(vtkPolyData* output, vtkMatrix4x4* roiToRAS, int* roiSize);
-
-  void GetGlyphVisualization2d(vtkPolyData* output, vtkMatrix4x4* sliceToRAS, double* fieldOfViewOrigin, double* fieldOfViewSize);
-
-  void GetGridVisualization2d(vtkPolyData* output, vtkMatrix4x4* sliceToRAS, double* fieldOfViewOrigin, double* fieldOfViewSize);
-
-  void GetContourVisualization2d(vtkPolyData* output, vtkMatrix4x4* sliceToRAS, double* fieldOfViewOrigin, double* fieldOfViewSize);
+  /// Extends the gridPolyData points to a grid. If warpedGrid is specified then a warped grid is generated, too.
+  void CreateGrid(vtkPolyData* gridPolyData, int numGridPoints[3], int gridSubdivision, vtkPolyData* warpedGrid=NULL);
 
   virtual vtkMRMLTransformNode* GetTransformNode();
 
