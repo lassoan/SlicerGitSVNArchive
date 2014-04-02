@@ -26,6 +26,7 @@
 #include "ui_qMRMLTransformDisplayNodeWidget.h"
 
 // MRML includes
+#include <vtkMRMLColorNode.h>
 #include <vtkMRMLTransformNode.h>
 #include <vtkMRMLTransformDisplayNode.h>
 
@@ -100,6 +101,8 @@ void qMRMLTransformDisplayNodeWidgetPrivate
   this->ContourLevelsMm->setValidator(new QRegExpValidator(rx,q));
   QObject::connect(this->ContourLevelsMm, SIGNAL(textChanged(QString)), q, SLOT(setContourLevelsMm(QString)));
   QObject::connect(this->ContourResolutionMm, SIGNAL(valueChanged(double)), q, SLOT(setContourResolutionMm(double)));
+
+  QObject::connect(this->ColorTableNodeComboBox, SIGNAL(currentNodeChanged(vtkMRMLNode*)), q, SLOT(setColorTableNode(vtkMRMLNode*)));
 
   q->updateWidgetFromDisplayNode();
 }
@@ -207,6 +210,13 @@ void qMRMLTransformDisplayNodeWidget
   }
 
   d->ContourResolutionMm->setValue(d->TransformDisplayNode->GetContourResolutionMm());
+
+  if (d->TransformDisplayNode->GetColorNode()==NULL)
+  {
+    // color node does not exist yet, create a default one
+    d->TransformDisplayNode->SetDefaultColorTableNode();
+  }
+  d->ColorTableNodeComboBox->setCurrentNode(d->TransformDisplayNode->GetColorNode());
 
   this->updateLabels();
 }
@@ -511,4 +521,15 @@ void qMRMLTransformDisplayNodeWidget::setVisible3d(bool visible)
     return;
   }
   d->TransformDisplayNode->SetVisibility(visible);
+}
+
+//-----------------------------------------------------------------------------
+void qMRMLTransformDisplayNodeWidget::setColorTableNode(vtkMRMLNode* colorTableNode)
+{
+  Q_D(qMRMLTransformDisplayNodeWidget);
+  if (!d->TransformDisplayNode)
+  {
+    return;
+  }
+  d->TransformDisplayNode->SetAndObserveColorNodeID(colorTableNode?colorTableNode->GetID():NULL);
 }

@@ -146,7 +146,6 @@ class VTK_MRML_EXPORT vtkMRMLTransformDisplayNode : public vtkMRMLModelDisplayNo
   static std::string ConvertContourLevelsToString(const std::vector<double>& levels);
   static bool ContourLevelsEqual(const std::vector<double>& levels1, const std::vector<double>& levels2);
 
-
   vtkSetMacro(ContourResolutionMm, double);
   vtkGetMacro(ContourResolutionMm, double);
 
@@ -158,6 +157,12 @@ class VTK_MRML_EXPORT vtkMRMLTransformDisplayNode : public vtkMRMLModelDisplayNo
   /// Generate polydata for 2D transform visualization
   /// sliceToRAS, fieldOfViewOrigin, and fieldOfViewSize should be set from the slice node
   void GetVisualization2d(vtkPolyData* output, vtkMatrix4x4* sliceToRAS, double* fieldOfViewOrigin, double* fieldOfViewSize);
+
+  /// Set the default color table
+  /// If the default "Displacement magnitude" color table already exists in the scene
+  /// then that will be used. Otherwise a new default color node will be created and
+  /// that will be used.
+  void SetDefaultColorTableNode();
 
 protected:
 

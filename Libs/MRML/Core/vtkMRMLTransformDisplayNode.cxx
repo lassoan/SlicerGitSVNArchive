@@ -17,6 +17,7 @@ Version:   $Revision: 1.3 $
 
 #include "vtkMRMLTransformDisplayNode.h"
 
+#include "vtkMRMLColorTableNode.h"
 #include "vtkMRMLModelNode.h"
 #include "vtkMRMLTransformNode.h"
 #include "vtkMRMLScene.h"
@@ -27,6 +28,7 @@ Version:   $Revision: 1.3 $
 
 #include "vtkAbstractTransform.h"
 #include "vtkArrowSource.h"
+#include "vtkCollection.h"
 #include "vtkConeSource.h"
 #include "vtkContourFilter.h"
 #include "vtkCellArray.h"
@@ -54,8 +56,9 @@ Version:   $Revision: 1.3 $
 
 const char RegionReferenceRole[] = "region";
 
+const char* DEFAULT_COLOR_TABLE_NAME = "Displacement magnitude";
 const char CONTOUR_LEVEL_SEPARATOR=' ';
-
+const char* DISPLACEMENT_MAGNITUDE_SCALAR_NAME = "DisplacementMagnitude";
 
 //------------------------------------------------------------------------------
 vtkMRMLNodeNewMacro(vtkMRMLTransformDisplayNode);
@@ -595,8 +598,9 @@ void vtkMRMLTransformDisplayNode::GetTransformedPointSamples(vtkPointSet* output
   norm->SetInput(outputPointSet);
   norm->Update();
   vtkDataArray* vectorMagnitude = norm->GetOutput()->GetPointData()->GetScalars();
-  vectorMagnitude->SetName("DisplacementMagnitude");
-  outputPointSet->GetPointData()->AddArray(vectorMagnitude);
+  vectorMagnitude->SetName(DISPLACEMENT_MAGNITUDE_SCALAR_NAME);
+  int idx=pointData->AddArray(vectorMagnitude);
+  pointData->SetActiveAttribute(idx, vtkDataSetAttributes::SCALARS);
 }
 
 //----------------------------------------------------------------------------
@@ -943,7 +947,8 @@ void vtkMRMLTransformDisplayNode::CreateGrid(vtkPolyData* gridPolyData, int numG
     warp->SetScaleFactor(this->GetGridScalePercent()*0.01);
     warp->Update();
     vtkPolyData* polyoutput = warp->GetPolyDataOutput();
-    polyoutput->GetPointData()->AddArray(gridPolyData->GetPointData()->GetArray("VectorMagnitude"));
+    int idx=polyoutput->GetPointData()->AddArray(gridPolyData->GetPointData()->GetArray(DISPLACEMENT_MAGNITUDE_SCALAR_NAME));
+    polyoutput->GetPointData()->SetActiveAttribute(idx, vtkDataSetAttributes::SCALARS);
     warpedGrid->ShallowCopy(warp->GetPolyDataOutput());
     warpedGrid->Update();
   }
@@ -1126,43 +1131,40 @@ void vtkMRMLTransformDisplayNode::GetVisualization3d(vtkPolyData* output, vtkMat
   }
 }
 
-/*
 
-CreateDefaultColorTableNode()
-
-call it when the model is generated and there is no selected color table yet
-
-if (outputModelNode->GetModelDisplayNode()->GetColorNode()==NULL)
+//----------------------------------------------------------------------------
+void vtkMRMLTransformDisplayNode::SetDefaultColorTableNode()
+{
+  if (!this->GetScene())
   {
-    vtkSmartPointer<vtkMRMLColorTableNode> colorTableNode = vtkSmartPointer<vtkMRMLColorTableNode>::New();
-    this->GetMRMLScene()->AddNode(colorTableNode);
-
-    colorTableNode->SetName("Deformation Field Colors");
-    colorTableNode->SetAttribute("Category", "User Generated");
-    colorTableNode->SetTypeToUser();
-    colorTableNode->SetNumberOfColors(4);
-    colorTableNode->GetLookupTable();
-    colorTableNode->AddColor("negligible", 0.0, 0.0, 0.5, 1.0);
-    colorTableNode->AddColor(       "low", 0.0, 1.0, 0.0, 1.0);
-    colorTableNode->AddColor(    "medium", 1.0, 1.0, 0.0, 1.0);
-    colorTableNode->AddColor(      "high", 1.0, 0.0, 0.0, 1.0);
-
-    outputModelNode->GetModelDisplayNode()->SetAndObserveColorNodeID(colorTableNode->GetID());
+    vtkErrorMacro("vtkMRMLTransformDisplayNode::SetDefaultColorTableNode failed: scene is not set");
+    return;
   }
 
-  vtkMRMLColorTableNode *colorNode = vtkMRMLColorTableNode::SafeDownCast(outputModelNode->GetModelDisplayNode()->GetColorNode());
+  vtkSmartPointer<vtkCollection> existingDefaultColorNodes=vtkSmartPointer<vtkCollection>::Take(this->GetScene()->GetNodesByClassByName("vtkMRMLColorTableNode", DEFAULT_COLOR_TABLE_NAME));
+  if (existingDefaultColorNodes->GetNumberOfItems()>0)
+  {
+    // found a default color node
+    vtkMRMLColorTableNode* foundDefaultNode=vtkMRMLColorTableNode::SafeDownCast(existingDefaultColorNodes->GetItemAsObject(0));
+    if (foundDefaultNode!=NULL)
+    {
+      this->SetAndObserveColorNodeID(foundDefaultNode->GetID());
+      return;
+    }
+    vtkWarningMacro("Default transform color table node is invalid. Creating a new one.");
+  }
 
-
-
-      vtkDebugMacro("Color by mean fiber orientation");
-    this->ScalarVisibilityOn( );
-    this->ColorLinesByOrientation->SetColorMode(
-      this->ColorLinesByOrientation->colorModeMeanFiberOrientation);
-    this->TubeFilter->SetInputConnection(this->ColorLinesByOrientation->GetOutputPort());
-    vtkMRMLNode* ColorNode = this->GetScene()->GetNodeByID("vtkMRMLColorTableNodeFullRainbow");
-    if (ColorNode)
-      {
-      this->SetAndObserveColorNodeID(ColorNode->GetID());
-      }
-
-*/
+  // Create and set a new color table node
+  vtkNew<vtkMRMLColorTableNode> colorTableNode;
+  colorTableNode->SetName(DEFAULT_COLOR_TABLE_NAME);
+  colorTableNode->SetAttribute("Category", "User Generated");
+  colorTableNode->SetTypeToUser();
+  colorTableNode->SetNumberOfColors(4);
+  colorTableNode->GetLookupTable();
+  colorTableNode->AddColor("negligible", 0.0, 0.0, 0.5, 1.0);
+  colorTableNode->AddColor(       "low", 0.0, 1.0, 0.0, 1.0);
+  colorTableNode->AddColor(    "medium", 1.0, 1.0, 0.0, 1.0);
+  colorTableNode->AddColor(      "high", 1.0, 0.0, 0.0, 1.0);
+  this->GetScene()->AddNode(colorTableNode.GetPointer());
+  SetAndObserveColorNodeID(colorTableNode->GetID());
+}

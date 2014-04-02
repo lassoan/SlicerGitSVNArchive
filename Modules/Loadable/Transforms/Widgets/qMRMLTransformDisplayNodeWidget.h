@@ -86,6 +86,8 @@ public slots:
   void setContourLevelsMm(QString values_str);
   void setContourResolutionMm(double resolutionMm);
 
+  void setColorTableNode(vtkMRMLNode* colorTableNode);
+
 protected slots:
   void updateWidgetFromDisplayNode();
 
