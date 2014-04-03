@@ -301,18 +301,7 @@ void vtkMRMLSliceLogic::UpdateSliceCompositeNode()
     return;
     }
   // find SliceCompositeNode in the scene
-  vtkMRMLSliceCompositeNode *node= 0;
-  int nnodes = this->GetMRMLScene()->GetNumberOfNodesByClass("vtkMRMLSliceCompositeNode");
-  for (int n=0; n<nnodes; n++)
-    {
-    node = vtkMRMLSliceCompositeNode::SafeDownCast (
-          this->GetMRMLScene()->GetNthNodeByClass(n, "vtkMRMLSliceCompositeNode"));
-    if (node->GetLayoutName() && !strcmp(node->GetLayoutName(), this->GetName()))
-      {
-      break;
-      }
-    node = 0;
-    }
+  vtkMRMLSliceCompositeNode *node= vtkMRMLSliceLogic::GetSliceCompositeNode(this->GetMRMLScene(), this->GetName());
 
   if ( this->SliceCompositeNode != 0 && node != 0 &&
        (this->SliceCompositeNode->GetID() == 0 ||
@@ -437,9 +426,9 @@ void vtkMRMLSliceLogic::SetupCrosshairNode()
   for (crosshairs->InitTraversal(it);
        (node = (vtkMRMLNode*)crosshairs->GetNextItemAsObject(it)) ;)
     {
-    vtkMRMLCrosshairNode* crosshairNode = 
+    vtkMRMLCrosshairNode* crosshairNode =
       vtkMRMLCrosshairNode::SafeDownCast(node);
-    if (crosshairNode 
+    if (crosshairNode
         && crosshairNode->GetCrosshairName() == std::string("default"))
       {
       foundDefault = true;
@@ -477,6 +466,7 @@ void vtkMRMLSliceLogic::OnMRMLNodeModified(vtkMRMLNode* node)
     if ( sliceDisplayNode)
       {
       sliceDisplayNode->SetVisibility( this->SliceNode->GetSliceVisible() );
+      sliceDisplayNode->SetViewNodeIDs( this->SliceNode->GetThreeDViewIDs());
       }
     }
   else if (node == this->SliceCompositeNode)
@@ -744,8 +734,8 @@ void vtkMRMLSliceLogic::SetLabelOpacity(double labelOpacity)
 void vtkMRMLSliceLogic
 ::SetBackgroundWindowLevel(double newWindow, double newLevel)
 {
-  vtkMRMLScalarVolumeNode* volumeNode = 
-    vtkMRMLScalarVolumeNode::SafeDownCast( this->GetLayerVolumeNode (0) ); 
+  vtkMRMLScalarVolumeNode* volumeNode =
+    vtkMRMLScalarVolumeNode::SafeDownCast( this->GetLayerVolumeNode (0) );
     // 0 is background layer, defined in this::GetLayerVolumeNode
   vtkMRMLScalarVolumeDisplayNode* volumeDisplayNode =
     volumeNode ? volumeNode->GetScalarVolumeDisplayNode() : 0;
@@ -1107,10 +1097,9 @@ void vtkMRMLSliceLogic::UpdatePipeline()
     vtkMRMLDisplayNode* displayNode = this->SliceModelNode ? this->SliceModelNode->GetModelDisplayNode() : 0;
     if ( displayNode && this->SliceNode )
       {
-      if (displayNode->GetVisibility() != this->SliceNode->GetSliceVisible() )
-        {
-        displayNode->SetVisibility( this->SliceNode->GetSliceVisible() );
-        }
+      displayNode->SetVisibility( this->SliceNode->GetSliceVisible() );
+      displayNode->SetViewNodeIDs( this->SliceNode->GetThreeDViewIDs());
+
       if ( (this->SliceNode->GetSliceResolutionMode() != vtkMRMLSliceNode::SliceResolutionMatch2DView &&
           !((backgroundImageUVW != 0) || (foregroundImageUVW != 0) || (labelImageUVW != 0) ) ) ||
           (this->SliceNode->GetSliceResolutionMode() == vtkMRMLSliceNode::SliceResolutionMatch2DView &&
@@ -2355,30 +2344,37 @@ int vtkMRMLSliceLogic::GetSliceIndexFromOffset(double sliceOffset)
 }
 
 //----------------------------------------------------------------------------
-vtkMRMLSliceCompositeNode* vtkMRMLSliceLogic::GetSliceCompositeNode(vtkMRMLSliceNode* sliceNode)
+vtkMRMLSliceCompositeNode* vtkMRMLSliceLogic
+::GetSliceCompositeNode(vtkMRMLSliceNode* sliceNode)
 {
-  vtkMRMLSliceCompositeNode* sliceCompositeNode = 0;
-  vtkMRMLScene* scene = sliceNode ? sliceNode->GetScene() : 0;
-  if (!scene || !sliceNode->GetLayoutName())
+  return sliceNode ? vtkMRMLSliceLogic::GetSliceCompositeNode(
+    sliceNode->GetScene(), sliceNode->GetLayoutName()) : 0;
+}
+
+//----------------------------------------------------------------------------
+vtkMRMLSliceCompositeNode* vtkMRMLSliceLogic
+::GetSliceCompositeNode(vtkMRMLScene* scene, const char* layoutName)
+{
+  if (!scene || !layoutName)
     {
-    return sliceCompositeNode;
+    return 0;
     }
   vtkMRMLNode* node;
   vtkCollectionSimpleIterator it;
   for (scene->GetNodes()->InitTraversal(it);
        (node = (vtkMRMLNode*)scene->GetNodes()->GetNextItemAsObject(it)) ;)
     {
-    sliceCompositeNode = vtkMRMLSliceCompositeNode::SafeDownCast(node);
+    vtkMRMLSliceCompositeNode* sliceCompositeNode =
+      vtkMRMLSliceCompositeNode::SafeDownCast(node);
     if (sliceCompositeNode &&
         sliceCompositeNode->GetLayoutName() &&
-        !strcmp(sliceCompositeNode->GetLayoutName(), sliceNode->GetLayoutName()))
+        !strcmp(sliceCompositeNode->GetLayoutName(), layoutName))
       {
       return sliceCompositeNode;
       }
     }
   return 0;
 }
-
 
 //----------------------------------------------------------------------------
 bool vtkMRMLSliceLogic::IsSliceModelNode(vtkMRMLNode *mrmlNode)

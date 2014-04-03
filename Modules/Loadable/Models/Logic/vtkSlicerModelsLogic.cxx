@@ -231,6 +231,7 @@ vtkMRMLModelNode* vtkSlicerModelsLogic::AddModel (const char* filename)
   else
     {
     vtkErrorMacro("Couldn't read file: " << filename);
+    return 0;
     }
 
   return modelNode.GetPointer();
@@ -456,9 +457,9 @@ void vtkSlicerModelsLogic::SetAllModelsVisibility(int flag)
     {
     return;
     }
-  
+
   int numModels = this->GetMRMLScene()->GetNumberOfNodesByClass("vtkMRMLModelNode");
-  
+
   // go into batch processing mode
   this->GetMRMLScene()->StartState(vtkMRMLScene::BatchProcessState);
   for (int i = 0; i < numModels; i++)
