@@ -1029,7 +1029,7 @@ void vtkMRMLTransformDisplayNode::GetGridVisualization3d(vtkPolyData* output, vt
   vtkNew<vtkTubeFilter> tubeFilter;
   tubeFilter->SetInput(warpedGridPolyData.GetPointer());
   tubeFilter->SetRadius(this->GetGridLineDiameterMm()*0.5);
-  tubeFilter->SetNumberOfSides(16);
+  tubeFilter->SetNumberOfSides(8);
   tubeFilter->Update();
   output->ShallowCopy(tubeFilter->GetOutput());
 
