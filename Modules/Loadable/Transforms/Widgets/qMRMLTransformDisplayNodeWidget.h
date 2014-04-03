@@ -93,6 +93,7 @@ public slots:
   void onColorAxesModified();
   void colorUpdateRange();
   void onColorInteractionEvent();
+  void onColorModifiedEvent();
 
 protected slots:
   void updateWidgetFromDisplayNode();

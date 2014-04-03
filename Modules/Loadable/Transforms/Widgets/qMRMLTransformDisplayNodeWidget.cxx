@@ -46,9 +46,13 @@ protected:
   qMRMLTransformDisplayNodeWidget* const q_ptr;
 public:
   qMRMLTransformDisplayNodeWidgetPrivate(qMRMLTransformDisplayNodeWidget& object);
+  ~qMRMLTransformDisplayNodeWidgetPrivate();
   void init();
 
+  static bool isEqual(vtkColorTransferFunction* tf1, vtkColorTransferFunction* tf2);
+
   vtkMRMLTransformDisplayNode* TransformDisplayNode;
+  vtkColorTransferFunction* ColorTransferFunction;
 };
 
 //-----------------------------------------------------------------------------
@@ -60,6 +64,15 @@ qMRMLTransformDisplayNodeWidgetPrivate
   : q_ptr(&object)
 {
   this->TransformDisplayNode = NULL;
+  this->ColorTransferFunction = vtkColorTransferFunction::New();
+}
+
+//-----------------------------------------------------------------------------
+qMRMLTransformDisplayNodeWidgetPrivate
+::~qMRMLTransformDisplayNodeWidgetPrivate()
+{
+  this->ColorTransferFunction->Delete();
+  this->ColorTransferFunction = NULL;
 }
 
 //-----------------------------------------------------------------------------
@@ -73,6 +86,7 @@ void qMRMLTransformDisplayNodeWidgetPrivate
 
   this->ColorMapWidget->view()->setValidBounds(validBounds);
   this->ColorMapWidget->view()->addColorTransferFunction(0);
+  this->ColorMapWidget->view()->setColorTransferFunctionToPlots(this->ColorTransferFunction);
   //double chartBounds[8]={0,50,0,100,0,4,0,6};
   double chartBounds[8]={0};
   this->ColorMapWidget->view()->chartBounds(chartBounds);
@@ -86,6 +100,14 @@ void qMRMLTransformDisplayNodeWidgetPrivate
 
   QObject::connect(this->ColorMapWidget, SIGNAL(axesModified()),
                    q, SLOT(onColorAxesModified()), Qt::QueuedConnection);
+
+  q->qvtkConnect(this->ColorTransferFunction, vtkCommand::EndInteractionEvent,
+                    q, SLOT(onColorInteractionEvent()), 0., Qt::QueuedConnection);
+  q->qvtkConnect(this->ColorTransferFunction, vtkCommand::EndEvent,
+                    q, SLOT(onColorInteractionEvent()), 0., Qt::QueuedConnection);
+  q->qvtkConnect(this->ColorTransferFunction, vtkCommand::ModifiedEvent,
+                    q, SLOT(onColorModifiedEvent()), 0., Qt::QueuedConnection);
+
 
   this->AdvancedParameters->setCollapsed(true);
 
@@ -131,6 +153,39 @@ void qMRMLTransformDisplayNodeWidgetPrivate
   QObject::connect(this->ColorTableNodeComboBox, SIGNAL(currentNodeChanged(vtkMRMLNode*)), q, SLOT(setColorTableNode(vtkMRMLNode*)));
 
   q->updateWidgetFromDisplayNode();
+}
+
+//-----------------------------------------------------------------------------
+bool qMRMLTransformDisplayNodeWidgetPrivate
+::isEqual(vtkColorTransferFunction* tf1, vtkColorTransferFunction* tf2)
+{
+  if (tf1==NULL && tf2==NULL)
+  {
+    return true;
+  }
+  if (tf1==NULL || tf2==NULL)
+  {
+    return false;
+  }
+  if (tf1->GetSize()!=tf2->GetSize())
+  {
+    return false;
+  }
+  int n=4*tf1->GetSize();
+  if (n==0)
+  {
+    return true;
+  }
+  double* dp1=tf1->GetDataPointer();
+  double* dp2=tf2->GetDataPointer();
+  for (int i=0; i<n; i++)
+  {
+    if (dp1[i] != dp2[i])
+    {
+      return false;
+    }
+  }
+  return true;
 }
 
 //-----------------------------------------------------------------------------
@@ -248,15 +303,15 @@ void qMRMLTransformDisplayNodeWidget
   */
 
   // ColorMap editor
-  vtkColorTransferFunction* colorTransferFunction=d->TransformDisplayNode->GetColorMap();
-  d->ColorMapWidget->view()->setColorTransferFunctionToPlots(colorTransferFunction);
-
-  this->qvtkConnect(colorTransferFunction, vtkCommand::EndInteractionEvent,
-                    this, SLOT(onColorInteractionEvent()), 0., Qt::QueuedConnection);
-  this->qvtkConnect(colorTransferFunction, vtkCommand::EndEvent,
-                    this, SLOT(onColorInteractionEvent()), 0., Qt::QueuedConnection);
-
-  this->colorUpdateRange();
+  vtkColorTransferFunction* colorTransferFunctionInNode=d->TransformDisplayNode->GetColorMap();
+  if (colorTransferFunctionInNode)
+  {
+    if (!qMRMLTransformDisplayNodeWidgetPrivate::isEqual(d->ColorTransferFunction,colorTransferFunctionInNode))
+    {
+      d->ColorTransferFunction->DeepCopy(colorTransferFunctionInNode);
+      this->colorUpdateRange();
+    }
+  }
 
   this->updateLabels();
 }
@@ -651,10 +706,25 @@ void qMRMLTransformDisplayNodeWidget::onColorInteractionEvent()
     return;
   }
   colorUpdateRange();
+}
+
+// ----------------------------------------------------------------------------
+void qMRMLTransformDisplayNodeWidget::onColorModifiedEvent()
+{
+  Q_D(qMRMLTransformDisplayNodeWidget);
+  if (!d->TransformDisplayNode)
+  {
+    return;
+  }
   // The procedural display node does not observe changes in the colormap,
   // so we need to signal the change manually
   if (d->TransformDisplayNode->GetColorNode())
   {
-    d->TransformDisplayNode->GetColorNode()->Modified();
+    vtkColorTransferFunction* colorTransferFunctionInNode=d->TransformDisplayNode->GetColorMap();
+    if (colorTransferFunctionInNode && !qMRMLTransformDisplayNodeWidgetPrivate::isEqual(d->ColorTransferFunction,colorTransferFunctionInNode))
+    {
+      colorTransferFunctionInNode->DeepCopy(d->ColorTransferFunction);
+      d->TransformDisplayNode->GetColorNode()->Modified();
+    }
   }
 }
