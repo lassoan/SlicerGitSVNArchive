@@ -165,10 +165,8 @@ class VTK_MRML_EXPORT vtkMRMLTransformDisplayNode : public vtkMRMLModelDisplayNo
   void GetVisualization2d(vtkPolyData* output, vtkMatrix4x4* sliceToRAS, double* fieldOfViewOrigin, double* fieldOfViewSize);
 
   /// Set the default color table
-  /// If the default "Displacement magnitude" color table already exists in the scene
-  /// then that will be used. Otherwise a new default color node will be created and
-  /// that will be used.
-  void SetDefaultColorTableNode();
+  /// Create and a procedural color node with default colors and use it for visualization.
+  void SetDefaultColors();
 
   vtkColorTransferFunction* GetColorMap();
 

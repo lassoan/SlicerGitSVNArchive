@@ -98,9 +98,6 @@ void qMRMLTransformDisplayNodeWidgetPrivate
   this->ColorMapWidget->view()->setPlotsUserBounds(chartBounds);
   this->ColorMapWidget->view()->update();
 
-  QObject::connect(this->ColorMapWidget, SIGNAL(axesModified()),
-                   q, SLOT(onColorAxesModified()), Qt::QueuedConnection);
-
   q->qvtkConnect(this->ColorTransferFunction, vtkCommand::EndInteractionEvent,
                     q, SLOT(onColorInteractionEvent()), 0., Qt::QueuedConnection);
   q->qvtkConnect(this->ColorTransferFunction, vtkCommand::EndEvent,
@@ -149,8 +146,6 @@ void qMRMLTransformDisplayNodeWidgetPrivate
   QObject::connect(this->ContourLevelsMm, SIGNAL(textChanged(QString)), q, SLOT(setContourLevelsMm(QString)));
   QObject::connect(this->ContourResolutionMm, SIGNAL(valueChanged(double)), q, SLOT(setContourResolutionMm(double)));
   QObject::connect(this->ContourOpacity, SIGNAL(valueChanged(double)), q, SLOT(setContourOpacity(double)));
-
-  QObject::connect(this->ColorTableNodeComboBox, SIGNAL(currentNodeChanged(vtkMRMLNode*)), q, SLOT(setColorTableNode(vtkMRMLNode*)));
 
   q->updateWidgetFromDisplayNode();
 }
@@ -292,15 +287,6 @@ void qMRMLTransformDisplayNodeWidget
   {
     d->ContourLevelsMm->setText(QLatin1String(d->TransformDisplayNode->GetContourLevelsMmAsString().c_str()));
   }
-
-  /*
-  if (d->TransformDisplayNode->GetColorNode()==NULL)
-  {
-    // color node does not exist yet, create a default one
-    d->TransformDisplayNode->SetDefaultColorTableNode();
-  }
-  d->ColorTableNodeComboBox->setCurrentNode(d->TransformDisplayNode->GetColorNode());
-  */
 
   // ColorMap editor
   vtkColorTransferFunction* colorTransferFunctionInNode=d->TransformDisplayNode->GetColorMap();
@@ -650,26 +636,6 @@ void qMRMLTransformDisplayNodeWidget::setColorTableNode(vtkMRMLNode* colorTableN
     return;
   }
   d->TransformDisplayNode->SetAndObserveColorNodeID(colorTableNode?colorTableNode->GetID():NULL);
-}
-
-// ----------------------------------------------------------------------------
-void qMRMLTransformDisplayNodeWidget::onColorAxesModified()
-{
-  Q_D(qMRMLTransformDisplayNodeWidget);
-  /*
-  //return;
-  ctkVTKScalarsToColorsWidget* senderWidget =
-    qobject_cast<ctkVTKScalarsToColorsWidget*>(this->sender());
-
-  double xRange[2] = {0.,0.};
-  senderWidget->xRange(xRange);
-  if (senderWidget != this->ColorMapWidget)
-    {
-    bool wasBlocking = this->ColorMapWidget->blockSignals(true);
-    d->ColorMapWidget->setXRange(xRange[0], xRange[1]);
-    d->ColorMapWidget->blockSignals(wasBlocking);
-    }
-    */
 }
 
 // ----------------------------------------------------------------------------

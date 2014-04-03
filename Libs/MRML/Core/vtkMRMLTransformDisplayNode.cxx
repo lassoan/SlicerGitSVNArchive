@@ -59,7 +59,7 @@ Version:   $Revision: 1.3 $
 
 const char RegionReferenceRole[] = "region";
 
-const char* DEFAULT_COLOR_TABLE_NAME = "Displacement magnitude";
+const char* DEFAULT_COLOR_TABLE_NAME = "Displacement to color";
 const char CONTOUR_LEVEL_SEPARATOR=' ';
 const char* DISPLACEMENT_MAGNITUDE_SCALAR_NAME = "DisplacementMagnitude";
 
@@ -1201,52 +1201,28 @@ void vtkMRMLTransformDisplayNode::GetVisualization3d(vtkPolyData* output, vtkMat
 }
 
 //----------------------------------------------------------------------------
-void vtkMRMLTransformDisplayNode::SetDefaultColorTableNode()
+void vtkMRMLTransformDisplayNode::SetDefaultColors()
 {
   if (!this->GetScene())
   {
-    vtkErrorMacro("vtkMRMLTransformDisplayNode::SetDefaultColorTableNode failed: scene is not set");
+    vtkErrorMacro("vtkMRMLTransformDisplayNode::SetDefaultColors failed: scene is not set");
     return;
   }
 
-  /*
-  vtkSmartPointer<vtkCollection> existingDefaultColorNodes=vtkSmartPointer<vtkCollection>::Take(this->GetScene()->GetNodesByClassByName("vtkMRMLColorTableNode", DEFAULT_COLOR_TABLE_NAME));
-  if (existingDefaultColorNodes->GetNumberOfItems()>0)
-  {
-    // found a default color node
-    vtkMRMLColorTableNode* foundDefaultNode=vtkMRMLColorTableNode::SafeDownCast(existingDefaultColorNodes->GetItemAsObject(0));
-    if (foundDefaultNode!=NULL)
-    {
-      this->SetAndObserveColorNodeID(foundDefaultNode->GetID());
-      return;
-    }
-    vtkWarningMacro("Default transform color table node is invalid. Creating a new one.");
-  }
-  */
-
   // Create and set a new color table node
-  //vtkNew<vtkMRMLColorTableNode> colorTableNode;
-  vtkNew<vtkMRMLProceduralColorNode> colorTableNode;
-  colorTableNode->SetName(DEFAULT_COLOR_TABLE_NAME);
-  colorTableNode->SetAttribute("Category", "User Generated");
-  //colorTableNode->SetTypeToUser();
+  vtkNew<vtkMRMLProceduralColorNode> colorNode;
+  colorNode->SetName(this->GetScene()->GenerateUniqueName(DEFAULT_COLOR_TABLE_NAME).c_str());
+  colorNode->SetAttribute("Category", "Transform display");
 
-  vtkColorTransferFunction* colorMap=colorTableNode->GetColorTransferFunction();
+  vtkColorTransferFunction* colorMap=colorNode->GetColorTransferFunction();
+  // Map: mm -> RGB
   colorMap->AddRGBPoint( 1.0,  0.2, 0.2, 0.2);
   colorMap->AddRGBPoint( 2.0,  0.0, 1.0, 0.0);
   colorMap->AddRGBPoint( 5.0,  1.0, 1.0, 0.0);
   colorMap->AddRGBPoint(10.0,  1.0, 0.0, 0.0);
 
-/*
-  colorTableNode->SetNumberOfColors(4);
-  colorTableNode->GetLookupTable();
-  colorTableNode->AddColor("negligible", 0.0, 0.0, 0.5, 1.0);
-  colorTableNode->AddColor(       "low", 0.0, 1.0, 0.0, 1.0);
-  colorTableNode->AddColor(    "medium", 1.0, 1.0, 0.0, 1.0);
-  colorTableNode->AddColor(      "high", 1.0, 0.0, 0.0, 1.0);
-  */
-  this->GetScene()->AddNode(colorTableNode.GetPointer());
-  SetAndObserveColorNodeID(colorTableNode->GetID());
+  this->GetScene()->AddNode(colorNode.GetPointer());
+  SetAndObserveColorNodeID(colorNode->GetID());
 }
 
 //----------------------------------------------------------------------------
@@ -1262,7 +1238,7 @@ vtkColorTransferFunction* vtkMRMLTransformDisplayNode::GetColorMap()
   vtkMRMLProceduralColorNode* colorNode=vtkMRMLProceduralColorNode::SafeDownCast(GetColorNode());
   if (colorNode==NULL)
   {
-    SetDefaultColorTableNode();
+    SetDefaultColors();
     colorNode=vtkMRMLProceduralColorNode::SafeDownCast(GetColorNode());
     if (colorNode==NULL)
       {

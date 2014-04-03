@@ -90,7 +90,6 @@ public slots:
 
   void setColorTableNode(vtkMRMLNode* colorTableNode);
 
-  void onColorAxesModified();
   void colorUpdateRange();
   void onColorInteractionEvent();
   void onColorModifiedEvent();
