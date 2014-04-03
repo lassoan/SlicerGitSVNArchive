@@ -83,10 +83,16 @@ public slots:
   void setGridScalePercent(double scale);
   void setGridSpacingMm(double spacing);
   void setGridLineDiameterMm(double diameterMm);
+  void setGridResolutionMm(double resolutionMm);
   void setContourLevelsMm(QString values_str);
   void setContourResolutionMm(double resolutionMm);
+  void setContourOpacity(double opacity);
 
   void setColorTableNode(vtkMRMLNode* colorTableNode);
+
+  void onColorAxesModified();
+  void colorUpdateRange();
+  void onColorInteractionEvent();
 
 protected slots:
   void updateWidgetFromDisplayNode();

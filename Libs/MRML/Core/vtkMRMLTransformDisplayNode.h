@@ -17,8 +17,10 @@
 
 #include "vtkMRMLModelDisplayNode.h"
 
+class vtkColorTransferFunction;
 class vtkPointSet;
 class vtkMatrix4x4;
+class vtkMRMLProceduralColorNode;
 class vtkMRMLTransformNode;
 class vtkMRMLVolumeNode;
 
@@ -134,6 +136,8 @@ class VTK_MRML_EXPORT vtkMRMLTransformDisplayNode : public vtkMRMLModelDisplayNo
   vtkGetMacro(GridSpacingMm, double);
   vtkSetMacro(GridLineDiameterMm, double);
   vtkGetMacro(GridLineDiameterMm, double);
+  vtkSetMacro(GridResolutionMm, double);
+  vtkGetMacro(GridResolutionMm, double);
 
   // Contour Parameters
   unsigned int GetNumberOfContourLevels();
@@ -148,6 +152,8 @@ class VTK_MRML_EXPORT vtkMRMLTransformDisplayNode : public vtkMRMLModelDisplayNo
 
   vtkSetMacro(ContourResolutionMm, double);
   vtkGetMacro(ContourResolutionMm, double);
+  vtkSetMacro(ContourOpacity, double);
+  vtkGetMacro(ContourOpacity, double);
 
   /// Return the glyph polydata for the input slice image.
   /// This is the polydata to use in a 3D view.
@@ -163,6 +169,8 @@ class VTK_MRML_EXPORT vtkMRMLTransformDisplayNode : public vtkMRMLModelDisplayNo
   /// then that will be used. Otherwise a new default color node will be created and
   /// that will be used.
   void SetDefaultColorTableNode();
+
+  vtkColorTransferFunction* GetColorMap();
 
 protected:
 
@@ -199,7 +207,7 @@ protected:
   void GetTransformedPointSamples(vtkPointSet* outputPointSet, vtkMatrix4x4* gridToRAS, int* gridSize);
 
   /// Extends the gridPolyData points to a grid. If warpedGrid is specified then a warped grid is generated, too.
-  void CreateGrid(vtkPolyData* gridPolyData, int numGridPoints[3], int gridSubdivision, vtkPolyData* warpedGrid=NULL);
+  void CreateGrid(vtkPolyData* gridPolyData, int numGridPoints[3], vtkPolyData* warpedGrid=NULL);
 
   virtual vtkMRMLTransformNode* GetTransformNode();
 
@@ -223,10 +231,18 @@ protected:
   double GridScalePercent;
   double GridSpacingMm;
   double GridLineDiameterMm;
+  /// Determines how densely the grid is sampled. Higher value results in more faithful representation of the
+  /// deformed lines, but needs more computation time.
+  double GridResolutionMm;
 
   // Contour Parameters
-  std::vector<double> ContourLevelsMm;
   double ContourResolutionMm;
+  /// Opacity of the 3D contour. Between 0 and 1.
+  double ContourOpacity;
+  std::vector<double> ContourLevelsMm;
+
+  vtkColorTransferFunction* ColorMap;
+  vtkMRMLProceduralColorNode* ColorMapNode;
 
   // 3D model of the visualized transform to be used in all 3D views
   vtkPolyData* CachedPolyData3d;
@@ -236,6 +252,9 @@ protected:
   ~vtkMRMLTransformDisplayNode ( );
   vtkMRMLTransformDisplayNode ( const vtkMRMLTransformDisplayNode& );
   void operator= ( const vtkMRMLTransformDisplayNode& );
+
+  // Return the number of samples in each grid
+  int GetGridSubdivision();
 
 };
 

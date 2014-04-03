@@ -30,6 +30,12 @@
 #include <vtkMRMLTransformNode.h>
 #include <vtkMRMLTransformDisplayNode.h>
 
+// VTK includes
+#include "vtkColorTransferFunction.h"
+
+// CTK includes
+#include "ctkVTKScalarsToColorsView.h"
+
 //-----------------------------------------------------------------------------
 /// \ingroup Slicer_QtModules_Transforms
 class qMRMLTransformDisplayNodeWidgetPrivate
@@ -63,6 +69,24 @@ void qMRMLTransformDisplayNodeWidgetPrivate
   Q_Q(qMRMLTransformDisplayNodeWidget);
   this->setupUi(q);
 
+  double validBounds[4] = {VTK_DOUBLE_MIN, VTK_DOUBLE_MAX, 0., 1.};
+
+  this->ColorMapWidget->view()->setValidBounds(validBounds);
+  this->ColorMapWidget->view()->addColorTransferFunction(0);
+  //double chartBounds[8]={0,50,0,100,0,4,0,6};
+  double chartBounds[8]={0};
+  this->ColorMapWidget->view()->chartBounds(chartBounds);
+  chartBounds[2] = 0;
+  chartBounds[3] = 100;
+  this->ColorMapWidget->view()->setChartUserBounds(chartBounds);
+  chartBounds[2] = 1;
+  chartBounds[3] = 50;
+  this->ColorMapWidget->view()->setPlotsUserBounds(chartBounds);
+  this->ColorMapWidget->view()->update();
+
+  QObject::connect(this->ColorMapWidget, SIGNAL(axesModified()),
+                   q, SLOT(onColorAxesModified()), Qt::QueuedConnection);
+
   this->AdvancedParameters->setCollapsed(true);
 
   // by default the glyph option is selected, so hide the parameter sets for the other options
@@ -95,12 +119,14 @@ void qMRMLTransformDisplayNodeWidgetPrivate
   QObject::connect(this->GridScalePercent, SIGNAL(valueChanged(double)), q, SLOT(setGridScalePercent(double)));
   QObject::connect(this->GridSpacingMm, SIGNAL(valueChanged(double)), q, SLOT(setGridSpacingMm(double)));
   QObject::connect(this->GridLineDiameterMm, SIGNAL(valueChanged(double)), q, SLOT(setGridLineDiameterMm(double)));
+  QObject::connect(this->GridResolutionMm, SIGNAL(valueChanged(double)), q, SLOT(setGridResolutionMm(double)));
 
   // Contour Parameters
   QRegExp rx("^(([0-9]+(.[0-9]+)?)[ ]?)*([0-9]+(.[0-9]+)?)[ ]?$");
   this->ContourLevelsMm->setValidator(new QRegExpValidator(rx,q));
   QObject::connect(this->ContourLevelsMm, SIGNAL(textChanged(QString)), q, SLOT(setContourLevelsMm(QString)));
   QObject::connect(this->ContourResolutionMm, SIGNAL(valueChanged(double)), q, SLOT(setContourResolutionMm(double)));
+  QObject::connect(this->ContourOpacity, SIGNAL(valueChanged(double)), q, SLOT(setContourOpacity(double)));
 
   QObject::connect(this->ColorTableNodeComboBox, SIGNAL(currentNodeChanged(vtkMRMLNode*)), q, SLOT(setColorTableNode(vtkMRMLNode*)));
 
@@ -197,9 +223,12 @@ void qMRMLTransformDisplayNodeWidget
   d->GridScalePercent->setValue(d->TransformDisplayNode->GetGridScalePercent());
   d->GridSpacingMm->setValue(d->TransformDisplayNode->GetGridSpacingMm());
   d->GridLineDiameterMm->setValue(d->TransformDisplayNode->GetGridLineDiameterMm());
+  d->GridResolutionMm->setValue(d->TransformDisplayNode->GetGridResolutionMm());
 
   // Contour Parameters
 
+  d->ContourResolutionMm->setValue(d->TransformDisplayNode->GetContourResolutionMm());
+  d->ContourOpacity->setValue(d->TransformDisplayNode->GetContourOpacity());
   // Only update the text in the editbox if it is changed (to not interfere with editing of the values)
   std::vector<double> levelsInWidget=vtkMRMLTransformDisplayNode::ConvertContourLevelsFromString(d->ContourLevelsMm->text().toLatin1());
   std::vector<double> levelsInMRML;
@@ -209,14 +238,25 @@ void qMRMLTransformDisplayNodeWidget
     d->ContourLevelsMm->setText(QLatin1String(d->TransformDisplayNode->GetContourLevelsMmAsString().c_str()));
   }
 
-  d->ContourResolutionMm->setValue(d->TransformDisplayNode->GetContourResolutionMm());
-
+  /*
   if (d->TransformDisplayNode->GetColorNode()==NULL)
   {
     // color node does not exist yet, create a default one
     d->TransformDisplayNode->SetDefaultColorTableNode();
   }
   d->ColorTableNodeComboBox->setCurrentNode(d->TransformDisplayNode->GetColorNode());
+  */
+
+  // ColorMap editor
+  vtkColorTransferFunction* colorTransferFunction=d->TransformDisplayNode->GetColorMap();
+  d->ColorMapWidget->view()->setColorTransferFunctionToPlots(colorTransferFunction);
+
+  this->qvtkConnect(colorTransferFunction, vtkCommand::EndInteractionEvent,
+                    this, SLOT(onColorInteractionEvent()), 0., Qt::QueuedConnection);
+  this->qvtkConnect(colorTransferFunction, vtkCommand::EndEvent,
+                    this, SLOT(onColorInteractionEvent()), 0., Qt::QueuedConnection);
+
+  this->colorUpdateRange();
 
   this->updateLabels();
 }
@@ -435,6 +475,17 @@ void qMRMLTransformDisplayNodeWidget::setGridLineDiameterMm(double diameterMm)
 }
 
 //-----------------------------------------------------------------------------
+void qMRMLTransformDisplayNodeWidget::setGridResolutionMm(double resolutionMm)
+{
+  Q_D(qMRMLTransformDisplayNodeWidget);
+  if (!d->TransformDisplayNode)
+  {
+    return;
+  }
+  d->TransformDisplayNode->SetGridResolutionMm(resolutionMm);
+}
+
+//-----------------------------------------------------------------------------
 void qMRMLTransformDisplayNodeWidget::setContourLevelsMm(QString values_str)
 {
   Q_D(qMRMLTransformDisplayNodeWidget);
@@ -455,6 +506,18 @@ void qMRMLTransformDisplayNodeWidget::setContourResolutionMm(double resolutionMm
   }
   d->TransformDisplayNode->SetContourResolutionMm(resolutionMm);
 }
+
+//-----------------------------------------------------------------------------
+void qMRMLTransformDisplayNodeWidget::setContourOpacity(double opacity)
+{
+  Q_D(qMRMLTransformDisplayNodeWidget);
+  if (!d->TransformDisplayNode)
+  {
+    return;
+  }
+  d->TransformDisplayNode->SetContourOpacity(opacity);
+}
+
 
 //-----------------------------------------------------------------------------
 void qMRMLTransformDisplayNodeWidget::setGlyphVisualizationMode(bool activate)
@@ -532,4 +595,66 @@ void qMRMLTransformDisplayNodeWidget::setColorTableNode(vtkMRMLNode* colorTableN
     return;
   }
   d->TransformDisplayNode->SetAndObserveColorNodeID(colorTableNode?colorTableNode->GetID():NULL);
+}
+
+// ----------------------------------------------------------------------------
+void qMRMLTransformDisplayNodeWidget::onColorAxesModified()
+{
+  Q_D(qMRMLTransformDisplayNodeWidget);
+  /*
+  //return;
+  ctkVTKScalarsToColorsWidget* senderWidget =
+    qobject_cast<ctkVTKScalarsToColorsWidget*>(this->sender());
+
+  double xRange[2] = {0.,0.};
+  senderWidget->xRange(xRange);
+  if (senderWidget != this->ColorMapWidget)
+    {
+    bool wasBlocking = this->ColorMapWidget->blockSignals(true);
+    d->ColorMapWidget->setXRange(xRange[0], xRange[1]);
+    d->ColorMapWidget->blockSignals(wasBlocking);
+    }
+    */
+}
+
+// ----------------------------------------------------------------------------
+void qMRMLTransformDisplayNodeWidget::colorUpdateRange()
+{
+  Q_D(qMRMLTransformDisplayNodeWidget);
+
+  if (!d->TransformDisplayNode)
+  {
+    return;
+  }
+  // Rescale the chart so that all the points are visible
+  vtkColorTransferFunction* colorMap=d->TransformDisplayNode->GetColorMap();
+  if (colorMap==NULL)
+  {
+    return;
+  }
+  double range[2] = {0.0, 10.0};
+  colorMap->GetRange(range);
+  double chartBounds[8] = {0};
+  d->ColorMapWidget->view()->chartBounds(chartBounds);
+  chartBounds[2] = 0;
+  chartBounds[3] = range[1]*1.1;
+  d->ColorMapWidget->view()->setChartUserBounds(chartBounds);
+  d->ColorMapWidget->view()->update();
+}
+
+// ----------------------------------------------------------------------------
+void qMRMLTransformDisplayNodeWidget::onColorInteractionEvent()
+{
+  Q_D(qMRMLTransformDisplayNodeWidget);
+  if (!d->TransformDisplayNode)
+  {
+    return;
+  }
+  colorUpdateRange();
+  // The procedural display node does not observe changes in the colormap,
+  // so we need to signal the change manually
+  if (d->TransformDisplayNode->GetColorNode())
+  {
+    d->TransformDisplayNode->GetColorNode()->Modified();
+  }
 }

@@ -65,6 +65,7 @@ protected slots:
   void hardenSelectedNodes();
 
   void onDisplaySectionClicked(bool);
+  void onTransformableSectionClicked(bool);
 
 protected:
   ///

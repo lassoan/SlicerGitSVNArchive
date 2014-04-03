@@ -154,10 +154,16 @@ void qSlicerTransformsModuleWidget::setup()
   this->connect(d->HardenToolButton, SIGNAL(clicked()),
                 SLOT(hardenSelectedNodes()));
 
-  // Connect identity button
+  // Observe display section, if opened, then add display node
   this->connect(d->DisplayCollapsibleButton,
                 SIGNAL(clicked(bool)),
                 SLOT(onDisplaySectionClicked(bool)));
+
+  // Observe Apply transform section to maintain a nice layout
+  // even when the section is closed.
+  this->connect(d->TransformedCollapsibleButton,
+                SIGNAL(clicked(bool)),
+                SLOT(onTransformableSectionClicked(bool)));
 
   // Icons
   QIcon rightIcon =
@@ -348,5 +354,22 @@ void qSlicerTransformsModuleWidget::onDisplaySectionClicked(bool clicked)
     d->MRMLTransformNode->CreateDefaultDisplayNodes();
     // Refresh the display node section
     d->TransformDisplayNodeWidget->setMRMLTransformNode(d->MRMLTransformNode);
+  }
+}
+
+//-----------------------------------------------------------------------------
+void qSlicerTransformsModuleWidget::onTransformableSectionClicked(bool clicked)
+{
+  Q_D(qSlicerTransformsModuleWidget);
+  if (clicked)
+  {
+    // the transformable section is open, so no need for spacer
+    d->BottomSpacer->changeSize(0,0, QSizePolicy::Fixed, QSizePolicy::Fixed);
+  }
+  else
+  {
+    // the transformable section is open, add spacer to prevent stretching of
+    // the remaining sections
+    d->BottomSpacer->changeSize(1,1, QSizePolicy::Fixed, QSizePolicy::Expanding);
   }
 }

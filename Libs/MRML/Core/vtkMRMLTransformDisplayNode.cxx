@@ -19,6 +19,7 @@ Version:   $Revision: 1.3 $
 
 #include "vtkMRMLColorTableNode.h"
 #include "vtkMRMLModelNode.h"
+#include "vtkMRMLProceduralColorNode.h"
 #include "vtkMRMLTransformNode.h"
 #include "vtkMRMLScene.h"
 #include "vtkMRMLSliceNode.h"
@@ -29,6 +30,7 @@ Version:   $Revision: 1.3 $
 #include "vtkAbstractTransform.h"
 #include "vtkArrowSource.h"
 #include "vtkCollection.h"
+#include "vtkColorTransferFunction.h"
 #include "vtkConeSource.h"
 #include "vtkContourFilter.h"
 #include "vtkCellArray.h"
@@ -37,6 +39,7 @@ Version:   $Revision: 1.3 $
 #include "vtkGlyphSource2D.h"
 #include "vtkImageData.h"
 #include "vtkLine.h"
+#include "vtkLookupTable.h"
 #include "vtkMath.h"
 #include "vtkMatrix4x4.h"
 #include "vtkMinimalStandardRandomSequence.h"
@@ -72,6 +75,9 @@ vtkMRMLTransformDisplayNode::vtkMRMLTransformDisplayNode()
   this->Visibility = 0;
   this->SliceIntersectionVisibility = 0;
 
+  this->ScalarVisibility=1;
+  this->SetActiveScalarName(DISPLACEMENT_MAGNITUDE_SCALAR_NAME);
+
   this->OutputPolyDataRAS = true;
 
   this->VisualizationMode=VIS_MODE_GLYPH;
@@ -91,9 +97,10 @@ vtkMRMLTransformDisplayNode::vtkMRMLTransformDisplayNode()
   this->GridScalePercent=100;
   this->GridSpacingMm=15.0;
   this->GridLineDiameterMm=1.0;
+  this->GridResolutionMm=5.0;
 
   this->ContourResolutionMm=5.0;
-
+  this->ContourOpacity=0.8;
   this->ContourLevelsMm.clear();
   for (double level=2.0; level<20.0; level+=2.0)
   {
@@ -101,6 +108,17 @@ vtkMRMLTransformDisplayNode::vtkMRMLTransformDisplayNode()
   }
 
   this->CachedPolyData3d=vtkPolyData::New();
+
+  //this->ColorMapNode=vtkMRMLProceduralColorNode::New();
+
+  //this->ColorMap=NULL;
+  /*
+    this->ColorMap=vtkColorTransferFunction::New();
+  this->ColorMap->AddRGBPoint( 1.0,  0.2, 0.2, 0.2);
+  this->ColorMap->AddRGBPoint( 2.0,  0.0, 1.0, 0.0);
+  this->ColorMap->AddRGBPoint( 5.0,  1.0, 1.0, 0.0);
+  this->ColorMap->AddRGBPoint(10.0,  1.0, 0.0, 0.0);
+  */
 }
 
 
@@ -109,6 +127,10 @@ vtkMRMLTransformDisplayNode::~vtkMRMLTransformDisplayNode()
 {
   this->CachedPolyData3d->Delete();
   this->CachedPolyData3d=NULL;
+  //this->ColorMap->Delete();
+  //this->ColorMap=NULL;
+  //this->ColorMapNode->Delete();
+  //this->ColorMapNode=NULL;
 }
 
 //----------------------------------------------------------------------------
@@ -134,9 +156,14 @@ void vtkMRMLTransformDisplayNode::WriteXML(ostream& of, int nIndent)
   of << indent << " GridScalePercent=\""<< this->GridScalePercent << "\"";
   of << indent << " GridSpacingMm=\""<< this->GridSpacingMm << "\"";
   of << indent << " GridLineDiameterMm=\""<< this->GridLineDiameterMm << "\"";
+  of << indent << " GridResolutionMm=\""<< this->GridResolutionMm << "\"";
 
   of << indent << " ContourResolutionMm=\""<< this->ContourResolutionMm << "\"";
   of << indent << " ContourLevelsMm=\"" << GetContourLevelsMmAsString() << "\"";
+  of << indent << " ContourOpacity=\""<< this->ContourOpacity << "\"";
+
+  //TODO: implement colormap writing
+  //of << indent << " ColorMap="<< this->ColorMap->PrintSelf(os, indent.GetNextIndent()) <<;
 }
 
 
@@ -187,12 +214,15 @@ void vtkMRMLTransformDisplayNode::ReadXMLAttributes(const char** atts)
     READ_FROM_ATT(GridScalePercent);
     READ_FROM_ATT(GridSpacingMm);
     READ_FROM_ATT(GridLineDiameterMm);
+    READ_FROM_ATT(GridResolutionMm);
     READ_FROM_ATT(ContourResolutionMm);
+    READ_FROM_ATT(ContourOpacity);
     if (!strcmp(attName,"ContourLevelsMm"))
     {
       SetContourLevelsMmFromString(attValue);
       continue;
     }
+    //TODO: implement colormap reading
   }
 
   this->Modified();
@@ -228,9 +258,13 @@ void vtkMRMLTransformDisplayNode::Copy(vtkMRMLNode *anode)
   this->GridScalePercent = node->GridScalePercent;
   this->GridSpacingMm = node->GridSpacingMm;
   this->GridLineDiameterMm = node->GridLineDiameterMm;
+  this->GridResolutionMm = node->GridResolutionMm;
 
-  this->ContourLevelsMm = node->ContourLevelsMm;
   this->ContourResolutionMm = node->ContourResolutionMm;
+  this->ContourOpacity = node->ContourOpacity;
+  this->ContourLevelsMm = node->ContourLevelsMm;
+
+  //this->ColorMap->DeepCopy(node->GetColorMap());
 
   this->EndModify(disabledModify);
 }
@@ -255,9 +289,14 @@ void vtkMRMLTransformDisplayNode::PrintSelf(ostream& os, vtkIndent indent)
   os << indent << "GridScalePercent = " << this->GridScalePercent << "\n";
   os << indent << "GridSpacingMm = " << this->GridSpacingMm << "\n";
   os << indent << "GridLineDiameterMm = " << this->GridLineDiameterMm << "\n";
+  os << indent << "GridResolutionMm = " << this->GridResolutionMm << "\n";
 
-  os << indent << " ContourResolutionMm = "<< this->ContourResolutionMm << "\n";
-  os << indent << " ContourLevelsMm = " << GetContourLevelsMmAsString() << "\n";
+  os << indent << "ContourResolutionMm = "<< this->ContourResolutionMm << "\n";
+  os << indent << "ContourOpacity = " << this->ContourOpacity << "\n";
+  os << indent << "ContourLevelsMm = " << GetContourLevelsMmAsString() << "\n";
+
+  os << indent << "ColorMap = \n";
+  this->ColorMap->PrintSelf(os, indent.GetNextIndent());
 }
 
 //---------------------------------------------------------------------------
@@ -270,6 +309,13 @@ void vtkMRMLTransformDisplayNode::ProcessMRMLEvents ( vtkObject *caller, unsigne
     // update visualization if the region node is changed
     // Note: this updates all the 2D views as well, so instead of a generic modified event a separate
     // even for 2D and 3D views could be useful
+    this->Modified();
+  }
+  if (caller!=NULL
+    && event==vtkCommand::ModifiedEvent
+    && caller==GetColorNode())
+  {
+    // update visualization if the color node is changed
     this->Modified();
   }
   else this->Superclass::ProcessMRMLEvents(caller, event, callData);
@@ -779,7 +825,7 @@ void vtkMRMLTransformDisplayNode::GetGlyphVisualization3d(vtkPolyData* output, v
   glyphFilter->SetScaleModeToScaleByVector();
   glyphFilter->SetScaleFactor(this->GetGlyphScalePercent()*0.01);
   glyphFilter->SetScaleDirectional(false);
-  glyphFilter->SetColorModeToColorByVector();
+  glyphFilter->SetColorModeToColorByScalar();
   glyphFilter->SetScaleDirectional(this->GetGlyphScaleDirectional());
   glyphFilter->OrientOn();
   glyphFilter->SetInput(pointSet);
@@ -876,7 +922,7 @@ void vtkMRMLTransformDisplayNode::GetGlyphVisualization2d(vtkPolyData* output, v
   glyphFilter->SetScaleModeToScaleByVector();
   glyphFilter->SetScaleFactor(this->GetGlyphScalePercent()*0.01);
   glyphFilter->SetScaleDirectional(false);
-  glyphFilter->SetColorModeToColorByVector();
+  glyphFilter->SetColorModeToColorByScalar();
   glyphFilter->SetSourceTransform(rotateArrow);
   glyphFilter->SetSourceConnection(glyph2DSource->GetOutputPort());
   glyphFilter->SetInput(pointSet);
@@ -891,10 +937,12 @@ void vtkMRMLTransformDisplayNode::GetGlyphVisualization2d(vtkPolyData* output, v
 }
 
 //----------------------------------------------------------------------------
-void vtkMRMLTransformDisplayNode::CreateGrid(vtkPolyData* gridPolyData, int numGridPoints[3], int gridSubdivision, vtkPolyData* warpedGrid/*=NULL*/)
+void vtkMRMLTransformDisplayNode::CreateGrid(vtkPolyData* gridPolyData, int numGridPoints[3], vtkPolyData* warpedGrid/*=NULL*/)
 {
   vtkSmartPointer<vtkCellArray> grid = vtkSmartPointer<vtkCellArray>::New();
   vtkSmartPointer<vtkLine> line = vtkSmartPointer<vtkLine>::New();
+
+  int gridSubdivision=this->GetGridSubdivision();
 
   // Create lines along i
   for (int k = 0; k < numGridPoints[2]; k+=gridSubdivision)
@@ -957,36 +1005,37 @@ void vtkMRMLTransformDisplayNode::CreateGrid(vtkPolyData* gridPolyData, int numG
 //----------------------------------------------------------------------------
 void vtkMRMLTransformDisplayNode::GetGridVisualization2d(vtkPolyData* output, vtkMatrix4x4* sliceToRAS, double* fieldOfViewOrigin, double* fieldOfViewSize)
 {
-  int gridSubdivision=2;
-  double pointSpacing=this->GetGridSpacingMm()/gridSubdivision;
+  double pointSpacing=this->GetGridSpacingMm()/this->GetGridSubdivision();
   int numGridPoints[3]={0};
 
   vtkSmartPointer<vtkPolyData> gridPolyData=vtkSmartPointer<vtkPolyData>::New();
-  GetTransformedPointSamplesOnSlice(gridPolyData, sliceToRAS, fieldOfViewOrigin, fieldOfViewSize, pointSpacing, gridSubdivision, numGridPoints);
+  GetTransformedPointSamplesOnSlice(gridPolyData, sliceToRAS, fieldOfViewOrigin, fieldOfViewSize, pointSpacing, this->GetGridSubdivision(), numGridPoints);
 
-  CreateGrid(gridPolyData, numGridPoints, gridSubdivision, output);
+  CreateGrid(gridPolyData, numGridPoints, output);
 }
 
 //----------------------------------------------------------------------------
 void vtkMRMLTransformDisplayNode::GetGridVisualization3d(vtkPolyData* output, vtkMatrix4x4* roiToRAS, int* roiSize)
 {
-  int gridSubdivision=2;
-  double pointSpacing=this->GetGridSpacingMm()/gridSubdivision;
+  double pointSpacing=this->GetGridSpacingMm()/this->GetGridSubdivision();
   int numGridPoints[3]={0};
 
   vtkNew<vtkPolyData> gridPolyData;
-  GetTransformedPointSamplesOnRoi(gridPolyData.GetPointer(), roiToRAS, roiSize, pointSpacing, gridSubdivision, numGridPoints);
+  GetTransformedPointSamplesOnRoi(gridPolyData.GetPointer(), roiToRAS, roiSize, pointSpacing, this->GetGridSubdivision(), numGridPoints);
 
-//  SetEdgeVisibility(1);
   vtkNew<vtkPolyData> warpedGridPolyData;
-  CreateGrid(gridPolyData.GetPointer(), numGridPoints, gridSubdivision, warpedGridPolyData.GetPointer());
+  CreateGrid(gridPolyData.GetPointer(), numGridPoints, warpedGridPolyData.GetPointer());
 
   vtkNew<vtkTubeFilter> tubeFilter;
   tubeFilter->SetInput(warpedGridPolyData.GetPointer());
   tubeFilter->SetRadius(this->GetGridLineDiameterMm()*0.5);
+  tubeFilter->SetNumberOfSides(16);
   tubeFilter->Update();
-
   output->ShallowCopy(tubeFilter->GetOutput());
+
+  // Copy the displacement magnitude to the output (for coloring)
+  //int idx=output->GetPointData()->AddArray(warpedGridPolyData->GetPointData()->GetArray(DISPLACEMENT_MAGNITUDE_SCALAR_NAME));
+  //output->GetPointData()->SetActiveAttribute(idx, vtkDataSetAttributes::SCALARS);
 }
 
 //----------------------------------------------------------------------------
@@ -1097,6 +1146,13 @@ vtkMRMLTransformNode* vtkMRMLTransformDisplayNode::GetTransformNode()
 //----------------------------------------------------------------------------
 void vtkMRMLTransformDisplayNode::GetVisualization2d(vtkPolyData* output, vtkMatrix4x4* sliceToRAS, double* fieldOfViewOrigin, double* fieldOfViewSize)
 {
+  this->AutoScalarRangeOff();
+  if (GetColorNode() && GetColorNode()->GetLookupTable())
+    {
+    double* range = GetColorNode()->GetLookupTable()->GetRange();
+    this->SetScalarRange(range[0], range[1]);
+    }
+
   switch (this->GetVisualizationMode())
   {
   case vtkMRMLTransformDisplayNode::VIS_MODE_GLYPH:
@@ -1114,23 +1170,35 @@ void vtkMRMLTransformDisplayNode::GetVisualization2d(vtkPolyData* output, vtkMat
 //----------------------------------------------------------------------------
 void vtkMRMLTransformDisplayNode::GetVisualization3d(vtkPolyData* output, vtkMatrix4x4* roiToRAS, int* roiSize)
 {
+  this->AutoScalarRangeOff();
+  if (GetColorNode() && GetColorNode()->GetLookupTable())
+    {
+    double* range = GetColorNode()->GetLookupTable()->GetRange();
+    this->SetScalarRange(range[0], range[1]);
+    }
+
+  //this->SetScalarRange(0,4);
+
+  this->ScalarVisibility=1;
   switch (this->GetVisualizationMode())
   {
   case vtkMRMLTransformDisplayNode::VIS_MODE_GLYPH:
     this->BackfaceCulling=1;
+    this->Opacity=1;
     GetGlyphVisualization3d(output, roiToRAS, roiSize);
     break;
   case vtkMRMLTransformDisplayNode::VIS_MODE_GRID:
     this->BackfaceCulling=1;
+    this->Opacity=1;
     GetGridVisualization3d(output, roiToRAS, roiSize);
     break;
   case vtkMRMLTransformDisplayNode::VIS_MODE_CONTOUR:
     this->BackfaceCulling=0;
+    this->Opacity=this->ContourOpacity;
     GetContourVisualization3d(output, roiToRAS, roiSize);
     break;
   }
 }
-
 
 //----------------------------------------------------------------------------
 void vtkMRMLTransformDisplayNode::SetDefaultColorTableNode()
@@ -1141,6 +1209,7 @@ void vtkMRMLTransformDisplayNode::SetDefaultColorTableNode()
     return;
   }
 
+  /*
   vtkSmartPointer<vtkCollection> existingDefaultColorNodes=vtkSmartPointer<vtkCollection>::Take(this->GetScene()->GetNodesByClassByName("vtkMRMLColorTableNode", DEFAULT_COLOR_TABLE_NAME));
   if (existingDefaultColorNodes->GetNumberOfItems()>0)
   {
@@ -1153,18 +1222,54 @@ void vtkMRMLTransformDisplayNode::SetDefaultColorTableNode()
     }
     vtkWarningMacro("Default transform color table node is invalid. Creating a new one.");
   }
+  */
 
   // Create and set a new color table node
-  vtkNew<vtkMRMLColorTableNode> colorTableNode;
+  //vtkNew<vtkMRMLColorTableNode> colorTableNode;
+  vtkNew<vtkMRMLProceduralColorNode> colorTableNode;
   colorTableNode->SetName(DEFAULT_COLOR_TABLE_NAME);
   colorTableNode->SetAttribute("Category", "User Generated");
-  colorTableNode->SetTypeToUser();
+  //colorTableNode->SetTypeToUser();
+
+  vtkColorTransferFunction* colorMap=colorTableNode->GetColorTransferFunction();
+  colorMap->AddRGBPoint( 1.0,  0.2, 0.2, 0.2);
+  colorMap->AddRGBPoint( 2.0,  0.0, 1.0, 0.0);
+  colorMap->AddRGBPoint( 5.0,  1.0, 1.0, 0.0);
+  colorMap->AddRGBPoint(10.0,  1.0, 0.0, 0.0);
+
+/*
   colorTableNode->SetNumberOfColors(4);
   colorTableNode->GetLookupTable();
   colorTableNode->AddColor("negligible", 0.0, 0.0, 0.5, 1.0);
   colorTableNode->AddColor(       "low", 0.0, 1.0, 0.0, 1.0);
   colorTableNode->AddColor(    "medium", 1.0, 1.0, 0.0, 1.0);
   colorTableNode->AddColor(      "high", 1.0, 0.0, 0.0, 1.0);
+  */
   this->GetScene()->AddNode(colorTableNode.GetPointer());
   SetAndObserveColorNodeID(colorTableNode->GetID());
+}
+
+//----------------------------------------------------------------------------
+int vtkMRMLTransformDisplayNode::GetGridSubdivision()
+{
+  return floor(this->GridSpacingMm/this->GridResolutionMm+0.5);
+}
+
+
+//----------------------------------------------------------------------------
+vtkColorTransferFunction* vtkMRMLTransformDisplayNode::GetColorMap()
+{
+  vtkMRMLProceduralColorNode* colorNode=vtkMRMLProceduralColorNode::SafeDownCast(GetColorNode());
+  if (colorNode==NULL)
+  {
+    SetDefaultColorTableNode();
+    colorNode=vtkMRMLProceduralColorNode::SafeDownCast(GetColorNode());
+    if (colorNode==NULL)
+      {
+      vtkErrorMacro("vtkMRMLTransformDisplayNode::GetColorMap failed: could not create default color table");
+      return NULL;
+      }
+  }
+  vtkColorTransferFunction* colorMap=colorNode->GetColorTransferFunction();
+  return colorMap;
 }
