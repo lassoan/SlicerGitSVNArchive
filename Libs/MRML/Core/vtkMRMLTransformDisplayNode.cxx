@@ -109,16 +109,6 @@ vtkMRMLTransformDisplayNode::vtkMRMLTransformDisplayNode()
 
   this->CachedPolyData3d=vtkPolyData::New();
 
-  //this->ColorMapNode=vtkMRMLProceduralColorNode::New();
-
-  //this->ColorMap=NULL;
-  /*
-    this->ColorMap=vtkColorTransferFunction::New();
-  this->ColorMap->AddRGBPoint( 1.0,  0.2, 0.2, 0.2);
-  this->ColorMap->AddRGBPoint( 2.0,  0.0, 1.0, 0.0);
-  this->ColorMap->AddRGBPoint( 5.0,  1.0, 1.0, 0.0);
-  this->ColorMap->AddRGBPoint(10.0,  1.0, 0.0, 0.0);
-  */
 }
 
 
@@ -127,10 +117,6 @@ vtkMRMLTransformDisplayNode::~vtkMRMLTransformDisplayNode()
 {
   this->CachedPolyData3d->Delete();
   this->CachedPolyData3d=NULL;
-  //this->ColorMap->Delete();
-  //this->ColorMap=NULL;
-  //this->ColorMapNode->Delete();
-  //this->ColorMapNode=NULL;
 }
 
 //----------------------------------------------------------------------------
@@ -159,11 +145,8 @@ void vtkMRMLTransformDisplayNode::WriteXML(ostream& of, int nIndent)
   of << indent << " GridResolutionMm=\""<< this->GridResolutionMm << "\"";
 
   of << indent << " ContourResolutionMm=\""<< this->ContourResolutionMm << "\"";
-  of << indent << " ContourLevelsMm=\"" << GetContourLevelsMmAsString() << "\"";
+  of << indent << " ContourLevelsMm=\"" << this->GetContourLevelsMmAsString() << "\"";
   of << indent << " ContourOpacity=\""<< this->ContourOpacity << "\"";
-
-  //TODO: implement colormap writing
-  //of << indent << " ColorMap="<< this->ColorMap->PrintSelf(os, indent.GetNextIndent()) <<;
 }
 
 
@@ -222,7 +205,6 @@ void vtkMRMLTransformDisplayNode::ReadXMLAttributes(const char** atts)
       SetContourLevelsMmFromString(attValue);
       continue;
     }
-    //TODO: implement colormap reading
   }
 
   this->Modified();
@@ -264,8 +246,6 @@ void vtkMRMLTransformDisplayNode::Copy(vtkMRMLNode *anode)
   this->ContourOpacity = node->ContourOpacity;
   this->ContourLevelsMm = node->ContourLevelsMm;
 
-  //this->ColorMap->DeepCopy(node->GetColorMap());
-
   this->EndModify(disabledModify);
 }
 
@@ -295,8 +275,6 @@ void vtkMRMLTransformDisplayNode::PrintSelf(ostream& os, vtkIndent indent)
   os << indent << "ContourOpacity = " << this->ContourOpacity << "\n";
   os << indent << "ContourLevelsMm = " << GetContourLevelsMmAsString() << "\n";
 
-  os << indent << "ColorMap = \n";
-  this->ColorMap->PrintSelf(os, indent.GetNextIndent());
 }
 
 //---------------------------------------------------------------------------
@@ -440,7 +418,7 @@ std::string vtkMRMLTransformDisplayNode::GetContourLevelsMmAsString()
 void vtkMRMLTransformDisplayNode::SetContourLevelsMmFromString(const char* str)
 {
   std::vector<double> newLevels=ConvertContourLevelsFromString(str);
-  if (ContourLevelsEqual(newLevels, this->ContourLevelsMm))
+  if (IsContourLevelEqual(newLevels, this->ContourLevelsMm))
   {
     // no change
     return;
@@ -452,7 +430,13 @@ void vtkMRMLTransformDisplayNode::SetContourLevelsMmFromString(const char* str)
 //----------------------------------------------------------------------------
 std::vector<double> vtkMRMLTransformDisplayNode::ConvertContourLevelsFromString(const char* str)
 {
-  std::vector<double> contourLevels;
+  return StringToDoubleVector(str);
+}
+
+//----------------------------------------------------------------------------
+std::vector<double> vtkMRMLTransformDisplayNode::StringToDoubleVector(const char* str)
+{
+  std::vector<double> values;
   std::stringstream ss(str);
   std::string itemString;
   double itemDouble;
@@ -461,28 +445,34 @@ std::vector<double> vtkMRMLTransformDisplayNode::ConvertContourLevelsFromString(
     std::stringstream itemStream;
     itemStream << itemString;
     itemStream >> itemDouble;
-    contourLevels.push_back(itemDouble);
+    values.push_back(itemDouble);
   }
-  return contourLevels;
+  return values;
 }
 
 //----------------------------------------------------------------------------
 std::string vtkMRMLTransformDisplayNode::ConvertContourLevelsToString(const std::vector<double>& levels)
 {
+  return DoubleVectorToString(&(levels[0]), levels.size());
+}
+
+//----------------------------------------------------------------------------
+std::string vtkMRMLTransformDisplayNode::DoubleVectorToString(const double* values, int numberOfValues)
+{
   std::stringstream ss;
-  for (int i=0; i<levels.size(); i++)
+  for (int i=0; i<numberOfValues; i++)
   {
     if (i>0)
     {
       ss << CONTOUR_LEVEL_SEPARATOR;
     }
-    ss << levels[i];
+    ss << values[i];
   }
   return ss.str();
 }
 
 //----------------------------------------------------------------------------
-bool vtkMRMLTransformDisplayNode::ContourLevelsEqual(const std::vector<double>& levels1, const std::vector<double>& levels2)
+bool vtkMRMLTransformDisplayNode::IsContourLevelEqual(const std::vector<double>& levels1, const std::vector<double>& levels2)
 {
   if (levels1.size()!=levels2.size())
   {
@@ -1238,14 +1228,37 @@ vtkColorTransferFunction* vtkMRMLTransformDisplayNode::GetColorMap()
   vtkMRMLProceduralColorNode* colorNode=vtkMRMLProceduralColorNode::SafeDownCast(GetColorNode());
   if (colorNode==NULL)
   {
+    // We don't have a color node or it is not the right type
     SetDefaultColors();
     colorNode=vtkMRMLProceduralColorNode::SafeDownCast(GetColorNode());
     if (colorNode==NULL)
       {
-      vtkErrorMacro("vtkMRMLTransformDisplayNode::GetColorMap failed: could not create default color table");
+      vtkErrorMacro("vtkMRMLTransformDisplayNode::GetColorMap failed: could not create default color node");
       return NULL;
       }
   }
   vtkColorTransferFunction* colorMap=colorNode->GetColorTransferFunction();
   return colorMap;
+}
+
+//----------------------------------------------------------------------------
+void vtkMRMLTransformDisplayNode::SetColorMap(vtkColorTransferFunction* newColorMap)
+{
+  int oldModified=this->StartModify();
+  vtkMRMLProceduralColorNode* colorNode=vtkMRMLProceduralColorNode::SafeDownCast(GetColorNode());
+  if (colorNode==NULL)
+  {
+    // We don't have a color node or it is not the right type
+    SetDefaultColors();
+    colorNode=vtkMRMLProceduralColorNode::SafeDownCast(GetColorNode());
+  }
+  if (colorNode!=NULL)
+  {
+    colorNode->DeepCopyColorTransferFunction(newColorMap);
+  }
+  else
+  {
+    vtkErrorMacro("vtkMRMLTransformDisplayNode::SetColorMap failed: could not create default color node");
+  }
+  this->EndModify(oldModified);
 }

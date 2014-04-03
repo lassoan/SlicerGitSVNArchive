@@ -29,6 +29,7 @@
 #include <vtkMRMLColorNode.h>
 #include <vtkMRMLTransformNode.h>
 #include <vtkMRMLTransformDisplayNode.h>
+#include <vtkMRMLProceduralColorNode.h>
 
 // VTK includes
 #include "vtkColorTransferFunction.h"
@@ -48,8 +49,6 @@ public:
   qMRMLTransformDisplayNodeWidgetPrivate(qMRMLTransformDisplayNodeWidget& object);
   ~qMRMLTransformDisplayNodeWidgetPrivate();
   void init();
-
-  static bool isEqual(vtkColorTransferFunction* tf1, vtkColorTransferFunction* tf2);
 
   vtkMRMLTransformDisplayNode* TransformDisplayNode;
   vtkColorTransferFunction* ColorTransferFunction;
@@ -109,6 +108,7 @@ void qMRMLTransformDisplayNodeWidgetPrivate
   this->AdvancedParameters->setCollapsed(true);
 
   // by default the glyph option is selected, so hide the parameter sets for the other options
+  this->GlyphOptions->show();
   this->ContourOptions->hide();
   this->GridOptions->hide();
 
@@ -148,39 +148,6 @@ void qMRMLTransformDisplayNodeWidgetPrivate
   QObject::connect(this->ContourOpacity, SIGNAL(valueChanged(double)), q, SLOT(setContourOpacity(double)));
 
   q->updateWidgetFromDisplayNode();
-}
-
-//-----------------------------------------------------------------------------
-bool qMRMLTransformDisplayNodeWidgetPrivate
-::isEqual(vtkColorTransferFunction* tf1, vtkColorTransferFunction* tf2)
-{
-  if (tf1==NULL && tf2==NULL)
-  {
-    return true;
-  }
-  if (tf1==NULL || tf2==NULL)
-  {
-    return false;
-  }
-  if (tf1->GetSize()!=tf2->GetSize())
-  {
-    return false;
-  }
-  int n=4*tf1->GetSize();
-  if (n==0)
-  {
-    return true;
-  }
-  double* dp1=tf1->GetDataPointer();
-  double* dp2=tf2->GetDataPointer();
-  for (int i=0; i<n; i++)
-  {
-    if (dp1[i] != dp2[i])
-    {
-      return false;
-    }
-  }
-  return true;
 }
 
 //-----------------------------------------------------------------------------
@@ -283,17 +250,19 @@ void qMRMLTransformDisplayNodeWidget
   std::vector<double> levelsInWidget=vtkMRMLTransformDisplayNode::ConvertContourLevelsFromString(d->ContourLevelsMm->text().toLatin1());
   std::vector<double> levelsInMRML;
   d->TransformDisplayNode->GetContourLevelsMm(levelsInMRML);
-  if (!vtkMRMLTransformDisplayNode::ContourLevelsEqual(levelsInWidget,levelsInMRML))
+  if (!vtkMRMLTransformDisplayNode::IsContourLevelEqual(levelsInWidget,levelsInMRML))
   {
     d->ContourLevelsMm->setText(QLatin1String(d->TransformDisplayNode->GetContourLevelsMmAsString().c_str()));
   }
 
-  // ColorMap editor
+  // Update ColorMap
   vtkColorTransferFunction* colorTransferFunctionInNode=d->TransformDisplayNode->GetColorMap();
   if (colorTransferFunctionInNode)
   {
-    if (!qMRMLTransformDisplayNodeWidgetPrivate::isEqual(d->ColorTransferFunction,colorTransferFunctionInNode))
+    if (!vtkMRMLProceduralColorNode::IsColorMapEqual(d->ColorTransferFunction,colorTransferFunctionInNode))
     {
+      // only update the range if the colormap is changed to avoid immediate update,
+      // because we don't want to change the colormap plot range while dragging the control point
       d->ColorTransferFunction->DeepCopy(colorTransferFunctionInNode);
       this->colorUpdateRange();
     }
@@ -682,15 +651,5 @@ void qMRMLTransformDisplayNodeWidget::onColorModifiedEvent()
   {
     return;
   }
-  // The procedural display node does not observe changes in the colormap,
-  // so we need to signal the change manually
-  if (d->TransformDisplayNode->GetColorNode())
-  {
-    vtkColorTransferFunction* colorTransferFunctionInNode=d->TransformDisplayNode->GetColorMap();
-    if (colorTransferFunctionInNode && !qMRMLTransformDisplayNodeWidgetPrivate::isEqual(d->ColorTransferFunction,colorTransferFunctionInNode))
-    {
-      colorTransferFunctionInNode->DeepCopy(d->ColorTransferFunction);
-      d->TransformDisplayNode->GetColorNode()->Modified();
-    }
-  }
+  d->TransformDisplayNode->SetColorMap(d->ColorTransferFunction);
 }

@@ -39,6 +39,7 @@ Version:   $Revision: 1.18 $
 #include "vtkMRMLLinearTransformNode.h"
 #include "vtkMRMLModelNode.h"
 #include "vtkMRMLModelHierarchyNode.h"
+#include "vtkMRMLProceduralColorNode.h"
 #include "vtkMRMLROINode.h"
 #include "vtkMRMLROIListNode.h"
 #include "vtkMRMLScriptedModuleNode.h"
@@ -187,6 +188,7 @@ vtkMRMLScene::vtkMRMLScene()
   this->RegisterNodeClass( vtkSmartPointer< vtkMRMLUnstructuredGridStorageNode >::New() );
   this->RegisterNodeClass( vtkSmartPointer< vtkMRMLColorTableNode >::New() );
   this->RegisterNodeClass( vtkSmartPointer< vtkMRMLColorTableStorageNode >::New() );
+  this->RegisterNodeClass( vtkSmartPointer< vtkMRMLProceduralColorNode >::New() );
   this->RegisterNodeClass( vtkSmartPointer< vtkMRMLTransformDisplayNode >::New() );
   this->RegisterNodeClass( vtkSmartPointer< vtkMRMLTransformStorageNode >::New() );
   this->RegisterNodeClass( vtkSmartPointer< vtkMRMLTransformNode >::New() );
