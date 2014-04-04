@@ -26,48 +26,40 @@
 #include "qMRMLTransformDisplayNodeWidget.h"
 
 //------------------------------------------------------------------------------
-qMRMLTransformDisplayNodeWidgetPlugin
-::qMRMLTransformDisplayNodeWidgetPlugin(QObject *_parent)
+qMRMLTransformDisplayNodeWidgetPlugin::qMRMLTransformDisplayNodeWidgetPlugin(QObject *_parent)
   : QObject(_parent)
 {
-
 }
 
 //------------------------------------------------------------------------------
-QWidget *qMRMLTransformDisplayNodeWidgetPlugin
-::createWidget(QWidget *_parent)
+QWidget *qMRMLTransformDisplayNodeWidgetPlugin::createWidget(QWidget *_parent)
 {
-  qMRMLTransformDisplayNodeWidget* _widget
-    = new qMRMLTransformDisplayNodeWidget(_parent);
+  qMRMLTransformDisplayNodeWidget* _widget = new qMRMLTransformDisplayNodeWidget(_parent);
   return _widget;
 }
 
 //------------------------------------------------------------------------------
-QString qMRMLTransformDisplayNodeWidgetPlugin
-::domXml() const
+QString qMRMLTransformDisplayNodeWidgetPlugin::domXml() const
 {
   return "<widget class=\"qMRMLTransformDisplayNodeWidget\" \
-          name=\"MRMLTransformsFiducialProjectionPropertyWidget\">\n"
+          name=\"MRMLTransformDisplayNodeWidget\">\n"
           "</widget>\n";
 }
 
 //------------------------------------------------------------------------------
-QString qMRMLTransformDisplayNodeWidgetPlugin
-::includeFile() const
+QString qMRMLTransformDisplayNodeWidgetPlugin::includeFile() const
 {
   return "qMRMLTransformDisplayNodeWidget.h";
 }
 
 //------------------------------------------------------------------------------
-bool qMRMLTransformDisplayNodeWidgetPlugin
-::isContainer() const
+bool qMRMLTransformDisplayNodeWidgetPlugin::isContainer() const
 {
   return false;
 }
 
 //------------------------------------------------------------------------------
-QString qMRMLTransformDisplayNodeWidgetPlugin
-::name() const
+QString qMRMLTransformDisplayNodeWidgetPlugin::name() const
 {
   return "qMRMLTransformDisplayNodeWidget";
 }

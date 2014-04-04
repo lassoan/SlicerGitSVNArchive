@@ -70,8 +70,16 @@ public:
   virtual vtkAbstractTransform* GetTransformToParent();
 
   ///
+  /// Get a human-readable description of the transform
+  virtual const char* GetTransformToParentInfo();
+
+  ///
   /// Transform of this node from parent
   virtual vtkAbstractTransform* GetTransformFromParent();
+
+  ///
+  /// Get a human-readable description of the transform
+  virtual const char* GetTransformFromParentInfo();
 
   ///
   /// 1 if all the transforms to the top are linear, 0 otherwise
@@ -281,6 +289,8 @@ public:
   /// Get the latest modification time of the stored transform
   unsigned long GetTransformToWorldMTime();
 
+  const char* GetTransformInfo(vtkAbstractTransform* inputTransform);
+
 protected:
   vtkMRMLTransformNode();
   ~vtkMRMLTransformNode();
@@ -311,6 +321,9 @@ protected:
 
   int DisableTransformModifiedEvent;
   int TransformModifiedEventPending;
+
+  // Temporary buffers used for returning transform info as char*
+  std::string TransformInfo;
 };
 
 #endif

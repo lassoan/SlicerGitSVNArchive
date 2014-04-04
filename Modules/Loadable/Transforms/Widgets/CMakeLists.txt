@@ -12,14 +12,18 @@ set(${KIT}_INCLUDE_DIRECTORIES
 set(${KIT}_SRCS
   qMRMLTransformDisplayNodeWidget.cxx
   qMRMLTransformDisplayNodeWidget.h
+  qMRMLTransformInfoWidget.cxx
+  qMRMLTransformInfoWidget.h
   )
 
 set(${KIT}_MOC_SRCS
   qMRMLTransformDisplayNodeWidget.h
+  qMRMLTransformInfoWidget.h
   )
 
 set(${KIT}_UI_SRCS
   Resources/UI/qMRMLTransformDisplayNodeWidget.ui
+  Resources/UI/qMRMLTransformInfoWidget.ui
   )
 
 set(${KIT}_RESOURCES
@@ -44,3 +48,8 @@ SlicerMacroBuildModuleWidgets(
 
 #-----------------------------------------------------------------------------
 add_subdirectory(DesignerPlugins)
+
+#-----------------------------------------------------------------------------
+if(BUILD_TESTING)
+  add_subdirectory(Testing)
+endif()

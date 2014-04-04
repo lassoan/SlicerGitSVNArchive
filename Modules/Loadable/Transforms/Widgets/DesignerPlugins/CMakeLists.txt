@@ -11,12 +11,15 @@ set(${KIT}_SRCS
 
   qMRMLTransformDisplayNodeWidgetPlugin.cxx
   qMRMLTransformDisplayNodeWidgetPlugin.h
+  qMRMLTransformInfoWidgetPlugin.cxx
+  qMRMLTransformInfoWidgetPlugin.h
   )
 
 set(${KIT}_MOC_SRCS
   qSlicer${MODULE_NAME}ModuleWidgetsPlugin.h
 
   qMRMLTransformDisplayNodeWidgetPlugin.h
+  qMRMLTransformInfoWidgetPlugin.h
   )
 
 set(${KIT}_TARGET_LIBRARIES
