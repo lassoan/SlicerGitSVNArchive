@@ -28,6 +28,7 @@ Version:   $Revision: 1.3 $
 #include "vtkTransformVisualizerGlyph3D.h"
 
 #include "vtkAbstractTransform.h"
+#include "vtkAppendPolyData.h"
 #include "vtkArrowSource.h"
 #include "vtkCollection.h"
 #include "vtkColorTransferFunction.h"
@@ -35,6 +36,7 @@ Version:   $Revision: 1.3 $
 #include "vtkContourFilter.h"
 #include "vtkCellArray.h"
 #include "vtkDoubleArray.h"
+#include "vtkFloatArray.h"
 #include "vtkGeneralTransform.h"
 #include "vtkGlyphSource2D.h"
 #include "vtkImageData.h"
@@ -98,6 +100,7 @@ vtkMRMLTransformDisplayNode::vtkMRMLTransformDisplayNode()
   this->GridSpacingMm=15.0;
   this->GridLineDiameterMm=1.0;
   this->GridResolutionMm=5.0;
+  this->GridShowNonWarped=false;
 
   this->ContourResolutionMm=5.0;
   this->ContourOpacity=0.8;
@@ -143,6 +146,7 @@ void vtkMRMLTransformDisplayNode::WriteXML(ostream& of, int nIndent)
   of << indent << " GridSpacingMm=\""<< this->GridSpacingMm << "\"";
   of << indent << " GridLineDiameterMm=\""<< this->GridLineDiameterMm << "\"";
   of << indent << " GridResolutionMm=\""<< this->GridResolutionMm << "\"";
+  of << indent << " GridShowNonWarped=\""<< this->GridShowNonWarped << "\"";
 
   of << indent << " ContourResolutionMm=\""<< this->ContourResolutionMm << "\"";
   of << indent << " ContourLevelsMm=\"" << this->GetContourLevelsMmAsString() << "\"";
@@ -198,6 +202,7 @@ void vtkMRMLTransformDisplayNode::ReadXMLAttributes(const char** atts)
     READ_FROM_ATT(GridSpacingMm);
     READ_FROM_ATT(GridLineDiameterMm);
     READ_FROM_ATT(GridResolutionMm);
+    READ_FROM_ATT(GridShowNonWarped);
     READ_FROM_ATT(ContourResolutionMm);
     READ_FROM_ATT(ContourOpacity);
     if (!strcmp(attName,"ContourLevelsMm"))
@@ -241,6 +246,7 @@ void vtkMRMLTransformDisplayNode::Copy(vtkMRMLNode *anode)
   this->GridSpacingMm = node->GridSpacingMm;
   this->GridLineDiameterMm = node->GridLineDiameterMm;
   this->GridResolutionMm = node->GridResolutionMm;
+  this->GridShowNonWarped = node->GridShowNonWarped;
 
   this->ContourResolutionMm = node->ContourResolutionMm;
   this->ContourOpacity = node->ContourOpacity;
@@ -270,6 +276,7 @@ void vtkMRMLTransformDisplayNode::PrintSelf(ostream& os, vtkIndent indent)
   os << indent << "GridSpacingMm = " << this->GridSpacingMm << "\n";
   os << indent << "GridLineDiameterMm = " << this->GridLineDiameterMm << "\n";
   os << indent << "GridResolutionMm = " << this->GridResolutionMm << "\n";
+  os << indent << "GridShowNonWarped = " << this->GridShowNonWarped << "\n";
 
   os << indent << "ContourResolutionMm = "<< this->ContourResolutionMm << "\n";
   os << indent << "ContourOpacity = " << this->ContourOpacity << "\n";
@@ -985,6 +992,12 @@ void vtkMRMLTransformDisplayNode::CreateGrid(vtkPolyData* gridPolyData, int numG
     warp->SetScaleFactor(this->GetGridScalePercent()*0.01);
     warp->Update();
     vtkPolyData* polyoutput = warp->GetPolyDataOutput();
+
+    /*
+    vtkNew<vtkDoubleArray> zeroDisplacementMagnitudeScalars;
+    zeroDisplacementMagnitudeScalars->DeepCopy(gridPolyData->GetPointData()->GetArray(DISPLACEMENT_MAGNITUDE_SCALAR_NAME));
+    int idx=polyoutput->GetPointData()->AddArray(zeroDisplacementMagnitudeScalars.GetPointer());
+    */
     int idx=polyoutput->GetPointData()->AddArray(gridPolyData->GetPointData()->GetArray(DISPLACEMENT_MAGNITUDE_SCALAR_NAME));
     polyoutput->GetPointData()->SetActiveAttribute(idx, vtkDataSetAttributes::SCALARS);
     warpedGrid->ShallowCopy(warp->GetPolyDataOutput());
@@ -1001,7 +1014,41 @@ void vtkMRMLTransformDisplayNode::GetGridVisualization2d(vtkPolyData* output, vt
   vtkSmartPointer<vtkPolyData> gridPolyData=vtkSmartPointer<vtkPolyData>::New();
   GetTransformedPointSamplesOnSlice(gridPolyData, sliceToRAS, fieldOfViewOrigin, fieldOfViewSize, pointSpacing, this->GetGridSubdivision(), numGridPoints);
 
-  CreateGrid(gridPolyData, numGridPoints, output);
+  if (this->GridShowNonWarped)
+  {
+    // Show both the original (non-warped) and the warped grid
+
+    // Create the grids
+    vtkNew<vtkPolyData> warpedGridPolyData;
+    CreateGrid(gridPolyData, numGridPoints, warpedGridPolyData.GetPointer());
+
+    // Set the displacement magnitude DataArray in the non-warped grid data to zero.
+    // Create a new DataArray, because the same array is used by both the warped
+    // and the non-warped grid.
+    vtkDataArray* displacementMagnitudeScalars=gridPolyData->GetPointData()->GetArray(DISPLACEMENT_MAGNITUDE_SCALAR_NAME);
+    vtkSmartPointer<vtkDataArray> zeroDisplacementMagnitudeScalars=vtkSmartPointer<vtkDataArray>::Take(displacementMagnitudeScalars->NewInstance());
+    zeroDisplacementMagnitudeScalars->SetName(DISPLACEMENT_MAGNITUDE_SCALAR_NAME);
+    zeroDisplacementMagnitudeScalars->SetNumberOfTuples(displacementMagnitudeScalars->GetNumberOfTuples());
+    zeroDisplacementMagnitudeScalars->FillComponent(0,0.0);
+
+    // Replace the DataArray in the non-warped grid
+    gridPolyData->GetPointData()->RemoveArray(DISPLACEMENT_MAGNITUDE_SCALAR_NAME);
+    int idx=gridPolyData->GetPointData()->AddArray(zeroDisplacementMagnitudeScalars);
+    gridPolyData->GetPointData()->SetActiveAttribute(idx, vtkDataSetAttributes::SCALARS);
+
+    // Create the output by combining the warped and non-warped grid
+    vtkNew<vtkAppendPolyData> appender;
+    appender->AddInput(gridPolyData);
+    appender->AddInput(warpedGridPolyData.GetPointer());
+    appender->Update();
+    output->ShallowCopy(appender->GetOutput());
+    output->GetPointData()->SetActiveAttribute(DISPLACEMENT_MAGNITUDE_SCALAR_NAME, vtkDataSetAttributes::SCALARS);
+  }
+  else
+  {
+    // The output is the warped grid
+    CreateGrid(gridPolyData, numGridPoints, output);
+  }
 }
 
 //----------------------------------------------------------------------------

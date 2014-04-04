@@ -283,7 +283,13 @@ void vtkMRMLProceduralColorNode::SetColorMapFromString(const char* str)
     return;
   }
 
-  this->ColorTransferFunction->FillFromDataPointer(values.size(),&(values[0]));
+  if (values.size()==0)
+  {
+    vtkErrorMacro("vtkMRMLProceduralColorNode::SetColorTransferFunctionFromString failed: no values are defined");
+    return;
+  }
+
+  this->ColorTransferFunction->FillFromDataPointer(values.size()/4,&(values[0]));
 }
 
 //----------------------------------------------------------------------------

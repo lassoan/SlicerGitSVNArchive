@@ -138,6 +138,8 @@ class VTK_MRML_EXPORT vtkMRMLTransformDisplayNode : public vtkMRMLModelDisplayNo
   vtkGetMacro(GridLineDiameterMm, double);
   vtkSetMacro(GridResolutionMm, double);
   vtkGetMacro(GridResolutionMm, double);
+  vtkSetMacro(GridShowNonWarped, bool);
+  vtkGetMacro(GridShowNonWarped, bool);
 
   // Contour Parameters
   unsigned int GetNumberOfContourLevels();
@@ -207,7 +209,7 @@ protected:
   /// gridSize is a 3-component int array specifying the dimension of the grid
   void GetTransformedPointSamples(vtkPointSet* outputPointSet, vtkMatrix4x4* gridToRAS, int* gridSize);
 
-  /// Extends the gridPolyData points to a grid. If warpedGrid is specified then a warped grid is generated, too.
+  /// Add lines to the gridPolyData to make it a grid. If warpedGrid is specified then a warped grid is generated, too.
   void CreateGrid(vtkPolyData* gridPolyData, int numGridPoints[3], vtkPolyData* warpedGrid=NULL);
 
   virtual vtkMRMLTransformNode* GetTransformNode();
@@ -238,6 +240,9 @@ protected:
   /// Determines how densely the grid is sampled. Higher value results in more faithful representation of the
   /// deformed lines, but needs more computation time.
   double GridResolutionMm;
+  /// If true then the non-warped original grid will be also shown. Only used in the slice view, as in the
+  /// 3D view it would make the visualization very cluttered.
+  bool GridShowNonWarped;
 
   // Contour Parameters
   double ContourResolutionMm;

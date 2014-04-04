@@ -53,7 +53,7 @@
       <enum>Qt::StrongFocus</enum>
      </property>
      <property name="toolTip">
-      <string>Visualize deformation field using glyphs</string>
+      <string>Visualize transform using glyphs</string>
      </property>
      <property name="statusTip">
       <string/>
@@ -115,7 +115,7 @@
       </size>
      </property>
      <property name="toolTip">
-      <string>Visualize deformation field using a 3D grid</string>
+      <string>Visualize transform using a warped grid</string>
      </property>
      <property name="text">
       <string>Grid</string>
@@ -156,7 +156,7 @@
       </size>
      </property>
      <property name="toolTip">
-      <string>Contour magnitude values of deformation field</string>
+      <string>Visualize transform by isoline/isosurface contours of the displacement magnitude</string>
      </property>
      <property name="text">
       <string>Contour</string>
@@ -181,6 +181,9 @@
    </item>
    <item row="0" column="1">
     <widget class="QCheckBox" name="Visible2dCheckBox">
+     <property name="toolTip">
+      <string>Show transform in the slice views</string>
+     </property>
      <property name="text">
       <string/>
      </property>
@@ -212,6 +215,9 @@
          <horstretch>1</horstretch>
          <verstretch>0</verstretch>
         </sizepolicy>
+       </property>
+       <property name="toolTip">
+        <string>Show transform in the 3D views</string>
        </property>
        <property name="text">
         <string/>
@@ -306,7 +312,7 @@
          <item row="0" column="0">
           <widget class="QLabel" name="GlyphSpacingLabel">
            <property name="toolTip">
-            <string>Number of glyphs to generate</string>
+            <string>Distance between the glyph points</string>
            </property>
            <property name="text">
             <string>Spacing:</string>
@@ -322,7 +328,7 @@
             </sizepolicy>
            </property>
            <property name="toolTip">
-            <string>Number of glyphs to generate</string>
+            <string>Distance between the glyph points</string>
            </property>
            <property name="decimals">
             <number>0</number>
@@ -350,7 +356,7 @@
          <item row="2" column="0">
           <widget class="QLabel" name="label_10">
            <property name="toolTip">
-            <string>Only create glyphs within threshold values</string>
+            <string>Glyphs are shown if the displacement magnitude is within this range</string>
            </property>
            <property name="text">
             <string>Visible Range:</string>
@@ -359,6 +365,9 @@
          </item>
          <item row="2" column="1" colspan="2">
           <widget class="qMRMLRangeWidget" name="GlyphDisplayRangeMm">
+           <property name="toolTip">
+            <string>Glyphs are shown if the displacement magnitude is within this range</string>
+           </property>
            <property name="singleStep">
             <double>0.100000000000000</double>
            </property>
@@ -376,7 +385,7 @@
          <item row="1" column="0">
           <widget class="QLabel" name="label">
            <property name="toolTip">
-            <string>Adjust amount to scale size of glyph</string>
+            <string>Percentage of displacement usef for setting the glyph size. 100% means the glyph size equals the actual displacement.</string>
            </property>
            <property name="text">
             <string>Scale Factor:</string>
@@ -392,7 +401,7 @@
             </sizepolicy>
            </property>
            <property name="toolTip">
-            <string>Adjust amount to scale size of glyph</string>
+            <string>Percentage of displacement usef for setting the glyph size. 100% means the glyph size equals the actual displacement.</string>
            </property>
            <property name="decimals">
             <number>0</number>
@@ -686,7 +695,7 @@
          <item row="0" column="0">
           <widget class="QLabel" name="GridSpacingLabel">
            <property name="toolTip">
-            <string>Resample grid (spacing will be the distance between lines)</string>
+            <string>Distance between the gridlines</string>
            </property>
            <property name="text">
             <string>Spacing:</string>
@@ -702,7 +711,7 @@
             </sizepolicy>
            </property>
            <property name="toolTip">
-            <string>Number of glyphs to generate</string>
+            <string>Distance between the gridlines</string>
            </property>
            <property name="decimals">
             <number>1</number>
@@ -730,7 +739,7 @@
          <item row="1" column="0">
           <widget class="QLabel" name="GridScaleLabel">
            <property name="toolTip">
-            <string>Adjust amount to scale deformation of grid</string>
+            <string>Percentage of displacement applied to the gridpoints. 100% means that the grid is deformed with the actual displacement.</string>
            </property>
            <property name="text">
             <string>Scale Factor:</string>
@@ -746,7 +755,7 @@
             </sizepolicy>
            </property>
            <property name="toolTip">
-            <string>Adjust amount to scale deformation of grid</string>
+            <string>Percentage of displacement applied to the gridpoints. 100% means that the grid is deformed with the actual displacement.</string>
            </property>
            <property name="decimals">
             <number>1</number>
@@ -768,15 +777,21 @@
            </property>
           </widget>
          </item>
-         <item row="2" column="0">
+         <item row="3" column="0">
           <widget class="QLabel" name="GridLineDiameterLabel">
+           <property name="toolTip">
+            <string>Thickness of the gridlines in the 3D view</string>
+           </property>
            <property name="text">
             <string>3D Gridline Diameter:</string>
            </property>
           </widget>
          </item>
-         <item row="2" column="1">
+         <item row="3" column="1">
           <widget class="ctkSliderWidget" name="GridLineDiameterMm">
+           <property name="toolTip">
+            <string>Thickness of the gridlines in the 3D view</string>
+           </property>
            <property name="decimals">
             <number>1</number>
            </property>
@@ -800,15 +815,21 @@
            </property>
           </widget>
          </item>
-         <item row="3" column="0">
+         <item row="4" column="0">
           <widget class="QLabel" name="label_7">
+           <property name="toolTip">
+            <string>Distance between sample points along the gridlines. Lower values result in gridlines that follow more closely the actual displacement vectors, but require more computation time.</string>
+           </property>
            <property name="text">
             <string>Resolution:</string>
            </property>
           </widget>
          </item>
-         <item row="3" column="1">
+         <item row="4" column="1">
           <widget class="ctkSliderWidget" name="GridResolutionMm">
+           <property name="toolTip">
+            <string>Distance between sample points along the gridlines. Lower values result in gridlines that follow more closely the actual displacement vectors, but require more computation time.</string>
+           </property>
            <property name="decimals">
             <number>1</number>
            </property>
@@ -832,6 +853,23 @@
            </property>
           </widget>
          </item>
+         <item row="2" column="0">
+          <widget class="QLabel" name="label_8">
+           <property name="toolTip">
+            <string>Show non-warped grid in the slice view</string>
+           </property>
+           <property name="text">
+            <string>Show Original Grid:</string>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="1">
+          <widget class="ctkCheckBox" name="GridShowNonWarped">
+           <property name="toolTip">
+            <string>Show non-warped grid in the slice view</string>
+           </property>
+          </widget>
+         </item>
         </layout>
        </widget>
       </item>
@@ -850,11 +888,7 @@
          <item row="0" column="0">
           <widget class="QLabel" name="ContourLevelsLabel">
            <property name="toolTip">
-            <string>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
-&lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
-p, li { white-space: pre-wrap; }
-&lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'MS Shell Dlg 2'; font-size:8.25pt; font-weight:400; font-style:normal;&quot;&gt;
-&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-size:8pt;&quot;&gt;Values to contour. Input as a comma-delimited list.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+            <string>Values defining the isolines and isosurfaces to contour. Values are separated by spaces.</string>
            </property>
            <property name="text">
             <string>Levels (mm):</string>
@@ -864,11 +898,7 @@ p, li { white-space: pre-wrap; }
          <item row="0" column="1">
           <widget class="QLineEdit" name="ContourLevelsMm">
            <property name="toolTip">
-            <string>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
-&lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
-p, li { white-space: pre-wrap; }
-&lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'MS Shell Dlg 2'; font-size:8.25pt; font-weight:400; font-style:normal;&quot;&gt;
-&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-size:8pt;&quot;&gt;Displacement values to contour. Separate values by spaces.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+            <string>Values defining the isolines and isosurfaces to contour. Values are separated by spaces.</string>
            </property>
            <property name="inputMethodHints">
             <set>Qt::ImhNone</set>
@@ -887,7 +917,7 @@ p, li { white-space: pre-wrap; }
          <item row="1" column="0">
           <widget class="QLabel" name="ContourDecimationLabel">
            <property name="toolTip">
-            <string>Target decimation as a decimal percentage reduction in polygons (0 results in no decimation, 0.99 results in 99% reduction in polygons)</string>
+            <string>Sampling distance for discretizing the displacement field. Lower values result in more accurate contours, but require more computation time.</string>
            </property>
            <property name="text">
             <string>Resolution:</string>
@@ -903,7 +933,7 @@ p, li { white-space: pre-wrap; }
             </sizepolicy>
            </property>
            <property name="toolTip">
-            <string>Target decimation as a decimal percentage reduction in polygons (0 results in no decimation, 0.99 results in 99% reduction in polygons)</string>
+            <string>Sampling distance for discretizing the displacement field. Lower values result in more accurate contours, but require more computation time.</string>
            </property>
            <property name="decimals">
             <number>1</number>
@@ -930,6 +960,9 @@ p, li { white-space: pre-wrap; }
          </item>
          <item row="2" column="0">
           <widget class="QLabel" name="label_5">
+           <property name="toolTip">
+            <string>Opacity of the contours in the 3D view</string>
+           </property>
            <property name="text">
             <string>3D opacity:</string>
            </property>
@@ -937,6 +970,9 @@ p, li { white-space: pre-wrap; }
          </item>
          <item row="2" column="1">
           <widget class="ctkDoubleSlider" name="ContourOpacity">
+           <property name="toolTip">
+            <string>Opacity of the contours in the 3D view</string>
+           </property>
            <property name="sliderPosition">
             <double>1.000000000000000</double>
            </property>
@@ -1006,6 +1042,11 @@ p, li { white-space: pre-wrap; }
    <class>ctkVTKScalarsToColorsWidget</class>
    <extends>QWidget</extends>
    <header>ctkVTKScalarsToColorsWidget.h</header>
+  </customwidget>
+  <customwidget>
+   <class>ctkCheckBox</class>
+   <extends>QCheckBox</extends>
+   <header>ctkCheckBox.h</header>
   </customwidget>
   <customwidget>
    <class>ctkCollapsibleGroupBox</class>
