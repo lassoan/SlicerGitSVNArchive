@@ -39,6 +39,7 @@ Version:   $Revision: 1.18 $
 #include "vtkMRMLLinearTransformNode.h"
 #include "vtkMRMLModelNode.h"
 #include "vtkMRMLModelHierarchyNode.h"
+#include "vtkMRMLProceduralColorNode.h"
 #include "vtkMRMLROINode.h"
 #include "vtkMRMLROIListNode.h"
 #include "vtkMRMLScriptedModuleNode.h"
@@ -187,6 +188,7 @@ vtkMRMLScene::vtkMRMLScene()
   this->RegisterNodeClass( vtkSmartPointer< vtkMRMLUnstructuredGridStorageNode >::New() );
   this->RegisterNodeClass( vtkSmartPointer< vtkMRMLColorTableNode >::New() );
   this->RegisterNodeClass( vtkSmartPointer< vtkMRMLColorTableStorageNode >::New() );
+  this->RegisterNodeClass( vtkSmartPointer< vtkMRMLProceduralColorNode >::New() );
   this->RegisterNodeClass( vtkSmartPointer< vtkMRMLTransformDisplayNode >::New() );
   this->RegisterNodeClass( vtkSmartPointer< vtkMRMLTransformStorageNode >::New() );
   this->RegisterNodeClass( vtkSmartPointer< vtkMRMLTransformNode >::New() );
@@ -556,7 +558,7 @@ int bitwiseOr(int firstValue, int secondValue)
 //------------------------------------------------------------------------------
 int vtkMRMLScene::GetStates()const
 {
-  
+
   return std::accumulate(this->States.begin(), this->States.end(),
                          0x0000, bitwiseOr);
 }
@@ -2722,16 +2724,8 @@ int vtkMRMLScene::IsFilePathRelative(const char * filepath)
       }
     }
 
-  std::vector<std::string> components;
-  vtksys::SystemTools::SplitPath((const char*)filepath, components);
-  if (components[0] == "")
-    {
-    return 1;
-    }
-  else
-    {
-    return 0;
-    }
+  const bool absoluteFilePath = vtksys::SystemTools::FileIsFullPath(filepath);
+  return absoluteFilePath ? 0 : 1;
 }
 
 //------------------------------------------------------------------------------
@@ -2965,7 +2959,7 @@ void vtkMRMLScene::ClearNodeIDs()
   if (this->Nodes)
     {
     this->NodeIDs.clear();
-    this->NodeIDsMTime = this->Nodes->GetMTime();    
+    this->NodeIDsMTime = this->Nodes->GetMTime();
   }
 }
 

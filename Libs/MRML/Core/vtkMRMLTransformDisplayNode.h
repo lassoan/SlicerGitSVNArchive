@@ -148,7 +148,7 @@ class VTK_MRML_EXPORT vtkMRMLTransformDisplayNode : public vtkMRMLModelDisplayNo
   void SetContourLevelsMmFromString(const char* str);
   static std::vector<double> ConvertContourLevelsFromString(const char* str);
   static std::string ConvertContourLevelsToString(const std::vector<double>& levels);
-  static bool ContourLevelsEqual(const std::vector<double>& levels1, const std::vector<double>& levels2);
+  static bool IsContourLevelEqual(const std::vector<double>& levels1, const std::vector<double>& levels2);
 
   vtkSetMacro(ContourResolutionMm, double);
   vtkGetMacro(ContourResolutionMm, double);
@@ -169,6 +169,9 @@ class VTK_MRML_EXPORT vtkMRMLTransformDisplayNode : public vtkMRMLModelDisplayNo
   void SetDefaultColors();
 
   vtkColorTransferFunction* GetColorMap();
+  void SetColorMap(vtkColorTransferFunction* newColorMap);
+  //std::string GetColorMapAsString();
+  //void SetColorMapFromString(const char* str);
 
 protected:
 
@@ -209,6 +212,9 @@ protected:
 
   virtual vtkMRMLTransformNode* GetTransformNode();
 
+  static std::vector<double> StringToDoubleVector(const char* sourceStr);
+  static std::string DoubleVectorToString(const double* values, int numberOfValues);
+
   int VisualizationMode;
 
   // Glyph Parameters
@@ -239,7 +245,6 @@ protected:
   double ContourOpacity;
   std::vector<double> ContourLevelsMm;
 
-  vtkColorTransferFunction* ColorMap;
   vtkMRMLProceduralColorNode* ColorMapNode;
 
   // 3D model of the visualized transform to be used in all 3D views

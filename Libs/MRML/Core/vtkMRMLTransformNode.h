@@ -38,30 +38,30 @@ public:
 
   virtual vtkMRMLNode* CreateNodeInstance();
 
-  /// 
+  ///
   /// Read node attributes from XML file
   virtual void ReadXMLAttributes( const char** atts);
 
-  /// 
+  ///
   /// Write this node's information to a MRML file in XML format.
   virtual void WriteXML(ostream& of, int indent);
 
-  /// 
+  ///
   /// Copy the node's attributes to this object
   virtual void Copy(vtkMRMLNode *node);
 
-  /// 
+  ///
   /// Get node XML tag name (like Volume, Model)
   virtual const char* GetNodeTagName() {return "Transform";};
 
-  /// 
+  ///
   /// Finds the storage node and read the data
   virtual void UpdateScene(vtkMRMLScene *scene)
     {
      Superclass::UpdateScene(scene);
     };
 
-  /// 
+  ///
   /// 1 if transfrom is linear, 0 otherwise
   virtual int IsLinear() { return 0; }
 
@@ -70,22 +70,30 @@ public:
   virtual vtkAbstractTransform* GetTransformToParent();
 
   ///
+  /// Get a human-readable description of the transform
+  virtual const char* GetTransformToParentInfo();
+
+  ///
   /// Transform of this node from parent
   virtual vtkAbstractTransform* GetTransformFromParent();
 
-  /// 
+  ///
+  /// Get a human-readable description of the transform
+  virtual const char* GetTransformFromParentInfo();
+
+  ///
   /// 1 if all the transforms to the top are linear, 0 otherwise
   int  IsTransformToWorldLinear() ;
 
-  /// 
+  ///
   /// 1 if all the transforms between nodes are linear, 0 otherwise
   int  IsTransformToNodeLinear(vtkMRMLTransformNode* node);
 
-  /// 
+  ///
   /// Get concatenated transforms to the top
   void GetTransformToWorld(vtkGeneralTransform* transformToWorld);
 
-  /// 
+  ///
   /// Get concatenated transforms from the top
   void GetTransformFromWorld(vtkGeneralTransform* transformToWorld);
 
@@ -94,7 +102,7 @@ public:
   void GetTransformToNode(vtkMRMLTransformNode* node,
                           vtkGeneralTransform* transformToNode);
 
-  /// 
+  ///
   /// Get concatenated transforms to the top.
   /// This method and probably needs to be moved down a level in the
   /// hierarchy because this node cannot satisfy the call.
@@ -102,19 +110,19 @@ public:
   /// Returns 0 if the transform is not linear (cannot be described by a matrix).
   virtual int GetMatrixTransformToWorld(vtkMatrix4x4* transformToWorld);
 
-  /// 
+  ///
   /// Get concatenated transforms between nodes
   /// This method and probably needs to be moved down a level in the
   /// hierarchy because this node cannot satisfy the call.
   /// Must be overridden in linear transform node classses.
   /// Returns 0 if the transform is not linear (cannot be described by a matrix).
-  virtual int GetMatrixTransformToNode(vtkMRMLTransformNode* node, 
+  virtual int GetMatrixTransformToNode(vtkMRMLTransformNode* node,
                                        vtkMatrix4x4* transformToNode);
-  /// 
+  ///
   /// Returns 1 if this node is one of the node's descendents
   int IsTransformNodeMyParent(vtkMRMLTransformNode* node);
 
-  /// 
+  ///
   /// Returns 1 if the node is one of the this node's descendents
   int IsTransformNodeMyChild(vtkMRMLTransformNode* node);
 
@@ -123,7 +131,7 @@ public:
   /// Reimplemented from vtkMRMLTransformableNode
   virtual void ApplyTransform(vtkAbstractTransform* transform);
 
-  /// 
+  ///
   /// Create default storage node or NULL if does not have one
   virtual vtkMRMLStorageNode* CreateDefaultStorageNode();
 
@@ -281,6 +289,8 @@ public:
   /// Get the latest modification time of the stored transform
   unsigned long GetTransformToWorldMTime();
 
+  const char* GetTransformInfo(vtkAbstractTransform* inputTransform);
+
 protected:
   vtkMRMLTransformNode();
   ~vtkMRMLTransformNode();
@@ -311,6 +321,9 @@ protected:
 
   int DisableTransformModifiedEvent;
   int TransformModifiedEventPending;
+
+  // Temporary buffers used for returning transform info as char*
+  std::string TransformInfo;
 };
 
 #endif

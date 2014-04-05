@@ -44,7 +44,7 @@ vtkITKArchetypeImageSeriesVectorReaderSeries::vtkITKArchetypeImageSeriesVectorRe
 }
 
 //----------------------------------------------------------------------------
-vtkITKArchetypeImageSeriesVectorReaderSeries::~vtkITKArchetypeImageSeriesVectorReaderSeries() 
+vtkITKArchetypeImageSeriesVectorReaderSeries::~vtkITKArchetypeImageSeriesVectorReaderSeries()
 {
 }
 
@@ -66,7 +66,7 @@ void vtkITKExecuteDataFromSeriesVector(
   typedef itk::ImageSource<image> FilterType;
   typename FilterType::Pointer filter;
   typename itk::ImageSeriesReader<image>::Pointer reader =
-  itk::ImageSeriesReader<image>::New();
+    itk::ImageSeriesReader<image>::New();
   itk::CStyleCommand::Pointer pcl=itk::CStyleCommand::New();
   pcl->SetCallback((itk::CStyleCommand::FunctionPointer)&self->ReadProgressCallback);
   pcl->SetClientData(self);
@@ -117,11 +117,11 @@ void vtkITKArchetypeImageSeriesVectorReaderSeries::ExecuteData(vtkDataObject *ou
   if (this->FileNames.size() == 1)
     {
     vtkErrorMacro("ImageSeriesVectorReaderSeries: only one file: " << this->FileNames[0].c_str() << " use the VectorReaderFile instead!");
-    }    
+    }
   else
     {
     // use the series reader
-    try 
+    try
       {
       switch (this->OutputScalarType)
         {

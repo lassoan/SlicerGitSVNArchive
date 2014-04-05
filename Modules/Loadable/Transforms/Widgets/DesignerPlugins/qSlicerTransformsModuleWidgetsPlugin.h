@@ -26,6 +26,7 @@
 
 // Transforms includes
 #include "qMRMLTransformDisplayNodeWidgetPlugin.h"
+#include "qMRMLTransformInfoWidgetPlugin.h"
 
 // \class Group the plugins in one library
 class Q_SLICER_MODULE_TRANSFORMS_WIDGETS_PLUGINS_EXPORT qSlicerTransformsModuleWidgetsPlugin
@@ -40,6 +41,7 @@ public:
     {
     QList<QDesignerCustomWidgetInterface *> plugins;
     plugins << new qMRMLTransformDisplayNodeWidgetPlugin;
+    plugins << new qMRMLTransformInfoWidgetPlugin;
 
     return plugins;
     }

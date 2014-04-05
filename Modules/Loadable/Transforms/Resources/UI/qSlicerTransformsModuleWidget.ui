@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>391</width>
-    <height>867</height>
+    <height>1223</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -52,6 +52,33 @@
       </widget>
      </item>
     </layout>
+   </item>
+   <item>
+    <widget class="ctkCollapsibleButton" name="InfoCollapsibleWidget">
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+       <horstretch>0</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
+     </property>
+     <property name="text">
+      <string>Information</string>
+     </property>
+     <property name="checked">
+      <bool>false</bool>
+     </property>
+     <property name="collapsedHeight">
+      <number>14</number>
+     </property>
+     <property name="contentsFrameShape">
+      <enum>QFrame::NoFrame</enum>
+     </property>
+     <layout class="QVBoxLayout" name="verticalLayout_8">
+      <item>
+       <widget class="qMRMLTransformInfoWidget" name="TransformInfoWidget"/>
+      </item>
+     </layout>
+    </widget>
    </item>
    <item>
     <widget class="ctkCollapsibleButton" name="DisplayEditCollapsibleWidget">
@@ -434,6 +461,11 @@
    <header>qMRMLTransformDisplayNodeWidget.h</header>
   </customwidget>
   <customwidget>
+   <class>qMRMLTransformInfoWidget</class>
+   <extends>qMRMLWidget</extends>
+   <header>qMRMLTransformInfoWidget.h</header>
+  </customwidget>
+  <customwidget>
    <class>ctkCollapsibleButton</class>
    <extends>QWidget</extends>
    <header>ctkCollapsibleButton.h</header>
@@ -692,6 +724,22 @@
     <hint type="destinationlabel">
      <x>195</x>
      <y>535</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>TransformNodeSelector</sender>
+   <signal>currentNodeChanged(vtkMRMLNode*)</signal>
+   <receiver>TransformInfoWidget</receiver>
+   <slot>setMRMLTransformNode(vtkMRMLNode*)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>240</x>
+     <y>10</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>195</x>
+     <y>152</y>
     </hint>
    </hints>
   </connection>

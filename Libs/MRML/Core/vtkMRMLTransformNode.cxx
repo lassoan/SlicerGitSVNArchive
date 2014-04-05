@@ -19,6 +19,8 @@ Version:   $Revision: 1.14 $
 #include "vtkMRMLTransformStorageNode.h"
 #include "vtkMRMLTransformDisplayNode.h"
 
+#include "vtkITKBSplineTransform.h"
+
 // VTK includes
 #include <vtkCommand.h>
 #include <vtkCollection.h>
@@ -908,4 +910,125 @@ unsigned long vtkMRMLTransformNode::GetTransformToWorldMTime()
       }
     }
   return latestMTime;
+}
+
+//----------------------------------------------------------------------------
+const char* vtkMRMLTransformNode::GetTransformToParentInfo()
+{
+  if (this->TransformToParent==NULL)
+  {
+    if (this->TransformFromParent==NULL)
+    {
+      this->TransformInfo="Not specified";
+    }
+    else
+    {
+      this->TransformInfo="Computed from transform from parent";
+    }
+    return this->TransformInfo.c_str();
+  }
+  return GetTransformInfo(this->TransformToParent);
+}
+
+//----------------------------------------------------------------------------
+const char* vtkMRMLTransformNode::GetTransformFromParentInfo()
+{
+  if (this->TransformFromParent==NULL)
+  {
+    if (this->TransformToParent==NULL)
+    {
+      this->TransformInfo="Not specified";
+    }
+    else
+    {
+      this->TransformInfo="Computed from transform from parent";
+    }
+    return this->TransformInfo.c_str();
+  }
+  return GetTransformInfo(this->TransformFromParent);
+}
+
+
+//----------------------------------------------------------------------------
+const char* vtkMRMLTransformNode::GetTransformInfo(vtkAbstractTransform* inputTransform)
+{
+  this->TransformInfo="Not specified";
+  if (inputTransform==NULL)
+  {
+    // invalid
+    return this->TransformInfo.c_str();
+  }
+  vtkNew<vtkCollection> transformList;
+  FlattenGeneralTransform(transformList.GetPointer(), inputTransform);
+
+  if (transformList->GetNumberOfItems()==0)
+  {
+    // empty generic transform
+    return this->TransformInfo.c_str();
+  }
+
+  std::stringstream ss;
+  vtkAbstractTransform* concatenatedTransform = NULL;
+  for (int i=0; i<transformList->GetNumberOfItems(); i++)
+    {
+    if (transformList->GetNumberOfItems()>1)
+      {
+      if (i>0)
+        {
+        ss << std::endl;
+        }
+      ss << "Transform "<<i+1<<":";
+      }
+    vtkObject* transform=transformList->GetItemAsObject(i);
+
+    vtkMatrixToLinearTransform* linearTransform=vtkMatrixToLinearTransform::SafeDownCast(transform);
+    vtkITKBSplineTransform* bsplineTransform=vtkITKBSplineTransform::SafeDownCast(transform);
+    vtkGridTransform* gridTransform=vtkGridTransform::SafeDownCast(transform);
+    if (linearTransform!=NULL)
+      {
+      ss << " Linear";
+      }
+    else if (bsplineTransform!=NULL)
+      {
+      ss << " B-spline:";
+      unsigned int gridSize[3]={0};
+      bsplineTransform->GetGridSize(gridSize);
+      ss << std::endl << "  Grid size: " << gridSize[0] << "x" << gridSize[1] << "x" <<gridSize[2] <<".";
+      if (bsplineTransform->GetBulkTransform()!=0)
+        {
+        ss << std::endl << "  Bulk transform is used.";
+        }
+      if (bsplineTransform->GetInverseFlag())
+        {
+        ss << std::endl << "  Computed from its inverse.";
+        }
+      }
+    else if (gridTransform!=NULL)
+      {
+      ss << " Displacement field:";
+      vtkImageData* displacementField=gridTransform->GetDisplacementGrid();
+      if (displacementField!=NULL)
+        {
+        int* extent=displacementField->GetExtent();
+        ss << std::endl << "  Grid size: " << extent[1]-extent[0] << "x" << extent[3]-extent[2] << "x" << extent[5]-extent[4]<<".";
+        }
+      else
+        {
+        ss << std::endl << "  Displacement field is invalid.";
+        }
+      if (gridTransform->GetInverseFlag())
+        {
+        ss << std::endl << "  Computed from its inverse.";
+        }
+      }
+    else
+      {
+      const char* className=transform->GetClassName();
+      ss << " " << (className?className:"invalid");
+      }
+    }
+
+  ss << std::ends;
+  this->TransformInfo=ss.str();
+  return this->TransformInfo.c_str();
 }

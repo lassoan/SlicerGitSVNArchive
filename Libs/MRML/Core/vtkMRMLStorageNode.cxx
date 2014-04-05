@@ -29,6 +29,7 @@ Version:   $Revision: 1.1.1.1 $
 #include <vtksys/SystemTools.hxx>
 
 // STD includes
+#include <algorithm>
 #include <sstream>
 
 //----------------------------------------------------------------------------
@@ -58,12 +59,12 @@ vtkMRMLStorageNode::vtkMRMLStorageNode()
 //----------------------------------------------------------------------------
 vtkMRMLStorageNode::~vtkMRMLStorageNode()
 {
-  if (this->FileName) 
+  if (this->FileName)
     {
     delete [] this->FileName;
     this->FileName = NULL;
     }
-  if (this->TempFileName) 
+  if (this->TempFileName)
     {
     delete [] this->TempFileName;
     this->TempFileName = NULL;
@@ -102,7 +103,7 @@ void vtkMRMLStorageNode::WriteXML(ostream& of, int nIndent)
   Superclass::WriteXML(of, nIndent);
   vtkIndent indent(nIndent);
 
-  if (this->FileName != NULL) 
+  if (this->FileName != NULL)
     {
     // convert to relative filename
     std::string name = this->FileName;
@@ -110,9 +111,9 @@ void vtkMRMLStorageNode::WriteXML(ostream& of, int nIndent)
       {
       name = vtksys::SystemTools::RelativePath(this->GetScene()->GetRootDirectory(), this->FileName);
       }
-    
+
     of << indent << " fileName=\"" << vtkMRMLNode::URLEncodeString(name.c_str()) << "\"";
-    
+
     // if there is a file list, add the archetype to it. add file will check
     // that it's not already there. currently needed for reading in multi
     // volume files with the vtk itk io factory 10/17/08. - NOT TESTED YET
@@ -126,7 +127,7 @@ void vtkMRMLStorageNode::WriteXML(ostream& of, int nIndent)
       // now that we've written out the relative path, go back to keeping an
       // absolute one here so that any future saves in different scene root
       // directories will be able to compute the correct relative path.
-      
+
       const char * absFilePath = this->GetAbsoluteFilePath(this->FileName);
       if (absFilePath)
         {
@@ -172,8 +173,8 @@ void vtkMRMLStorageNode::WriteXML(ostream& of, int nIndent)
   for (int i = 0; i < this->GetNumberOfURIs(); i++)
     {
     of << indent << " uriListMember" << i << "=\"" << vtkMRMLNode::URLEncodeString(this->GetNthURI(i)) << "\"";
-    } 
-  
+    }
+
   std::stringstream ss;
   ss << this->UseCompression;
   of << indent << " useCompression=\"" << ss.str() << "\"";
@@ -193,11 +194,11 @@ void vtkMRMLStorageNode::ReadXMLAttributes(const char** atts)
   this->ResetURIList();
   const char* attName;
   const char* attValue;
-  while (*atts != NULL) 
+  while (*atts != NULL)
     {
     attName = *(atts++);
     attValue = *(atts++);
-    if (!strcmp(attName, "fileName")) 
+    if (!strcmp(attName, "fileName"))
       {
       std::string filename = vtkMRMLNode::URLDecodeString(attValue);
 
@@ -211,19 +212,19 @@ void vtkMRMLStorageNode::ReadXMLAttributes(const char** atts)
           name = name + std::string("/");
           }
         }
-      
+
       name += filename;
       // use collapse full path, since if there's a sym link somewhere in the
       // relative path, the readers will fail
       std::string collapsedFullPath = vtksys::SystemTools::CollapseFullPath(name.c_str());
       vtkDebugMacro("ReadXMLAttributes: collapsed path = " << collapsedFullPath.c_str());
-      
+
       this->SetFileName(collapsedFullPath.c_str());
       }
     if (!strncmp(attName, "fileListMember", 14))
       {
       std::string filename = vtkMRMLNode::URLDecodeString(attValue);
-      
+
       // convert to absolute filename
       std::string name;
       if (this->GetSceneRootDir() && this->IsFilePathRelative(filename.c_str()))
@@ -234,7 +235,7 @@ void vtkMRMLStorageNode::ReadXMLAttributes(const char** atts)
           name = name + std::string("/");
           }
         }
-      
+
       name += filename;
       std::string collapsedFullPath = vtksys::SystemTools::CollapseFullPath(name.c_str());
       vtkDebugMacro("ReadXMLAttributes: collapsed path for " << attName << " = " << collapsedFullPath.c_str());
@@ -277,7 +278,7 @@ void vtkMRMLStorageNode::ReadXMLAttributes(const char** atts)
       std::string uri = vtkMRMLNode::URLDecodeString(attValue);
       this->AddURI(uri.c_str());
       }
-    else if (!strcmp(attName, "useCompression")) 
+    else if (!strcmp(attName, "useCompression"))
       {
       std::stringstream ss;
       ss << attValue;
@@ -310,11 +311,7 @@ void vtkMRMLStorageNode::Copy(vtkMRMLNode *anode)
   Superclass::Copy(anode);
   vtkMRMLStorageNode *node = (vtkMRMLStorageNode *) anode;
   this->SetFileName(node->FileName);
-  this->ResetFileNameList();
-  for (int i = 0; i < node->GetNumberOfFileNames(); i++)
-    {
-    this->AddFileName(node->GetNthFileName(i));
-    }
+  this->FileNameList = node->FileNameList; // a loop on AddFileName would be n log(n)
   this->SetURI(node->URI);
   this->ResetURIList();
   for (int i = 0; i < node->GetNumberOfURIs(); i++)
@@ -352,7 +349,7 @@ void vtkMRMLStorageNode::PrintSelf(ostream& os, vtkIndent indent)
   os << indent << "SupportedWriteFileTypes: \n";
   for(int i=0; i<this->SupportedWriteFileTypes->GetNumberOfTuples(); i++)
     {
-    os << indent << "FileType: " << 
+    os << indent << "FileType: " <<
       this->SupportedWriteFileTypes->GetValue(i) << "\n";
     }
   os << indent << "WriteFileFormat: " <<
@@ -364,7 +361,7 @@ void vtkMRMLStorageNode::PrintSelf(ostream& os, vtkIndent indent)
 //----------------------------------------------------------------------------
 void vtkMRMLStorageNode::ProcessMRMLEvents ( vtkObject *vtkNotUsed(caller), unsigned long event, void *callData )
 {
-  if (event ==  vtkCommand::ProgressEvent) 
+  if (event ==  vtkCommand::ProgressEvent)
     {
     this->InvokeEvent ( vtkCommand::ProgressEvent,callData );
     }
@@ -395,19 +392,19 @@ void vtkMRMLStorageNode::StageReadData ( vtkMRMLNode *refNode )
     this->SetReadStateTransferDone();
     return;
     }
-  
+
   if (refNode == NULL)
     {
     vtkDebugMacro("StageReadData: input mrml node is null, returning.");
     return;
     }
-    
+
   // do not read if if we are not in the scene (for example inside snapshot)
   if ( !this->GetAddToScene() || !refNode->GetAddToScene() )
     {
     return;
     }
- 
+
   vtkCacheManager *cacheManager = this->Scene->GetCacheManager();
   const char *fname = NULL;
   if ( cacheManager != NULL )
@@ -571,7 +568,7 @@ const char * vtkMRMLStorageNode::GetStateAsString(int state)
 //----------------------------------------------------------------------------
 std::string vtkMRMLStorageNode::GetFullNameFromFileName()
 {
-  return this->GetFullNameFromNthFileName(-1);  
+  return this->GetFullNameFromNthFileName(-1);
 }
 
 //----------------------------------------------------------------------------
@@ -604,15 +601,15 @@ std::string vtkMRMLStorageNode::GetFullNameFromNthFileName(int n)
     vtkDebugMacro("GetFullNameFromNthFileName: n = " << n << " have a null filename, returning empty string");
     return fullName;
     }
-  
+
   vtkDebugMacro("GetFullNameFromNthFileName: n = " << n << ", using file name '" << fileName << "'");
-  
+
   if (this->Scene != NULL &&
       this->Scene->GetRootDirectory() != NULL &&
-      this->IsFilePathRelative(fileName)) 
+      this->IsFilePathRelative(fileName))
     {
     vtkDebugMacro("GetFullNameFromNthFileName: n = " << n << ", scene root dir = '" << this->Scene->GetRootDirectory() << "'");
-    // use the system tools to join the two paths and then collapse them   
+    // use the system tools to join the two paths and then collapse them
     if (strcmp(this->Scene->GetRootDirectory(), "") == 0)
       {
       vtkDebugMacro("GetFullNameFromNthFileName: scene root dir is empty, just collapsing the fileName " << fileName);
@@ -716,55 +713,35 @@ int vtkMRMLStorageNode::FileNameIsInList(const char *fileName)
     {
     return 0;
     }
-  std::string fname = std::string(fileName);
-  int fileNameIsRelative =  this->IsFilePathRelative(fileName);
-  for (unsigned int i = 0; i < this->FileNameList.size(); i++)
+  const std::string fileNameString(fileName);
+  const int fileNameIsRelative =  this->IsFilePathRelative(fileName);
+  const char *rootDir = this->Scene ? this->Scene->GetRootDirectory() : ".";
+  const std::string relativeFileName = fileNameIsRelative ?
+    fileNameString : vtksys::SystemTools::RelativePath(rootDir, fileName);
+
+  for (std::vector<std::string>::const_iterator it = this->FileNameList.begin();
+       it != this->FileNameList.end(); ++it)
     {
-    std::string thisFile = this->FileNameList[i];
-    int thisFileIsRelative = this->IsFilePathRelative(thisFile.c_str());
+    const int thisFileIsRelative = this->IsFilePathRelative(it->c_str());
     // make sure we're comparing apples to apples
     if (fileNameIsRelative != thisFileIsRelative)
       {
-      std::string rel1, rel2;
-      const char *rootDir;
-      if ( this->Scene )
-        {
-        rootDir = this->Scene->GetRootDirectory();
-        }
-      else
-        {
-        rootDir = ".";
-        }
-      vtkDebugMacro("WARNING: trying to determine if file " << fileName << " is already in the list and comparing against " << thisFile.c_str() << ", they have mismatched absolute/relative paths. Using scene root dir to disambiguate: " << rootDir);
-      if (fileNameIsRelative)
-        {
-        rel1 = std::string(fileName);
-        }
-      else
-        {
-        rel1 = vtksys::SystemTools::RelativePath(rootDir, fileName);
-        }
-      if (thisFileIsRelative)
-        {
-        rel2 = thisFile;
-        }
-      else
-        {
-        rel2 = vtksys::SystemTools::RelativePath(rootDir, thisFile.c_str());
-        }
-        
-      vtkDebugMacro("\tComparing " << rel1 << " and " << rel2);
-      if (rel1.compare(rel2) == 0)
+      vtkDebugMacro("WARNING: trying to determine if file " << fileName
+        << " is already in the list and comparing against " << it->c_str()
+        << ", they have mismatched absolute/relative paths. "
+        << "Using scene root dir to disambiguate: " << rootDir);
+      std::string thisRelativeFileName = thisFileIsRelative ?
+        *it : vtksys::SystemTools::RelativePath(rootDir, it->c_str());
+      vtkDebugMacro("\tComparing " << relativeFileName
+        << " and " << thisRelativeFileName);
+      if ( relativeFileName == thisRelativeFileName )
         {
         return 1;
         }
       }
-    else
+    else if (*it == fileNameString)
       {
-      if (fname.compare(this->FileNameList[i]) == 0)
-        {
-        return 1;
-        }
+      return 1;
       }
     }
   return 0;
@@ -976,16 +953,8 @@ int vtkMRMLStorageNode::IsFilePathRelative(const char * filepath)
     }
   else
     {
-    std::vector<std::string> components;
-    vtksys::SystemTools::SplitPath((const char*)filepath, components);
-    if (components[0] == "") 
-      {
-      return 1;
-      }
-    else
-      {
-      return 0;
-      }
+    const bool absoluteFilePath = vtksys::SystemTools::FileIsFullPath(filepath);
+    return absoluteFilePath ? 0 : 1;
     }
 }
 
@@ -1074,12 +1043,12 @@ int vtkMRMLStorageNode::ReadData(vtkMRMLNode* refNode, bool temporary)
     return 0;
     }
 
-  if (this->GetFileName() == NULL && this->GetURI() == NULL) 
+  if (this->GetFileName() == NULL && this->GetURI() == NULL)
     {
     vtkErrorMacro("ReadData: both filename and uri are null.");
     return 0;
     }
-  
+
   this->StageReadData(refNode);
   if ( this->GetReadState() != this->TransferDone )
     {

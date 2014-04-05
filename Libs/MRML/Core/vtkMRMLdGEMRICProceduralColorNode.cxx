@@ -25,14 +25,9 @@ vtkMRMLNodeNewMacro(vtkMRMLdGEMRICProceduralColorNode);
 //----------------------------------------------------------------------------
 vtkMRMLdGEMRICProceduralColorNode::vtkMRMLdGEMRICProceduralColorNode()
 {
-
-  // all this is done in the superclass...
-  //this->Name = NULL;
-  //this->SetName("");
-  //this->FileName = NULL;
-
-  //this->ColorTransferFunction = NULL;
-  //this->ColorTransferFunction = vtkColorTransferFunction::New();
+  // We generate the color transfer function programmatically,
+  // so there is no need to save it with the scene
+  this->StoreColorTransferFunctionInScene = false;
 }
 
 //----------------------------------------------------------------------------
@@ -70,7 +65,7 @@ void vtkMRMLdGEMRICProceduralColorNode::Copy(vtkMRMLNode *anode)
 //----------------------------------------------------------------------------
 void vtkMRMLdGEMRICProceduralColorNode::PrintSelf(ostream& os, vtkIndent indent)
 {
-  
+
   Superclass::PrintSelf(os,indent);
   if (this->ColorTransferFunction != NULL)
     {
@@ -87,7 +82,7 @@ void vtkMRMLdGEMRICProceduralColorNode::UpdateScene(vtkMRMLScene *scene)
 
 //---------------------------------------------------------------------------
 void vtkMRMLdGEMRICProceduralColorNode::ProcessMRMLEvents ( vtkObject *caller,
-                                           unsigned long event, 
+                                           unsigned long event,
                                            void *callData )
 {
   Superclass::ProcessMRMLEvents(caller, event, callData);
@@ -132,11 +127,11 @@ void vtkMRMLdGEMRICProceduralColorNode::SetType(int type)
     {
     this->ColorTransferFunction = vtkColorTransferFunction::New();
     }
-  
+
   // clear it out
   this->ColorTransferFunction->RemoveAllPoints();
   this->ColorTransferFunction->SetColorSpaceToRGB();
-  
+
   // Set up the custom colours here for this type
   if (this->Type == this->dGEMRIC15T)
     {
@@ -204,10 +199,10 @@ void vtkMRMLdGEMRICProceduralColorNode::SetType(int type)
     }
 
   // build it
-  
+
   // invoke a modified event
   this->Modified();
-  
+
   // invoke a type  modified event
   this->InvokeEvent(vtkMRMLProceduralColorNode::TypeModifiedEvent);
 }
