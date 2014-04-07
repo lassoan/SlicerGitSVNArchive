@@ -1270,7 +1270,13 @@ void vtkMRMLTransformDisplayNode::SetDefaultColors()
 //----------------------------------------------------------------------------
 int vtkMRMLTransformDisplayNode::GetGridSubdivision()
 {
-  return floor(this->GridSpacingMm/this->GridResolutionMm+0.5);
+  int subdivision=floor(this->GridSpacingMm/this->GridResolutionMm+0.5);
+  if (subdivision<1)
+  {
+    // avoid infinite loops and division by zero errors
+    subdivision=1;
+  }
+  return subdivision;
 }
 
 
