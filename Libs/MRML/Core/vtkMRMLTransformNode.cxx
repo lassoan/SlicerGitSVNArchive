@@ -923,7 +923,7 @@ const char* vtkMRMLTransformNode::GetTransformToParentInfo()
     }
     else
     {
-      this->TransformInfo="Computed from transform from parent";
+      this->TransformInfo="Computed from transform from parent.";
     }
     return this->TransformInfo.c_str();
   }
@@ -941,7 +941,7 @@ const char* vtkMRMLTransformNode::GetTransformFromParentInfo()
     }
     else
     {
-      this->TransformInfo="Computed from transform from parent";
+      this->TransformInfo="Computed from transform from parent.";
     }
     return this->TransformInfo.c_str();
   }

@@ -139,6 +139,7 @@ void qMRMLTransformDisplayNodeWidgetPrivate
   QObject::connect(this->GridSpacingMm, SIGNAL(valueChanged(double)), q, SLOT(setGridSpacingMm(double)));
   QObject::connect(this->GridLineDiameterMm, SIGNAL(valueChanged(double)), q, SLOT(setGridLineDiameterMm(double)));
   QObject::connect(this->GridResolutionMm, SIGNAL(valueChanged(double)), q, SLOT(setGridResolutionMm(double)));
+  QObject::connect(this->GridShowNonWarped, SIGNAL(toggled(bool)), q, SLOT(setGridShowNonWarped(bool)));
 
   // Contour Parameters
   QRegExp rx("^(([0-9]+(.[0-9]+)?)[ ]?)*([0-9]+(.[0-9]+)?)[ ]?$");
@@ -241,6 +242,7 @@ void qMRMLTransformDisplayNodeWidget
   d->GridSpacingMm->setValue(d->TransformDisplayNode->GetGridSpacingMm());
   d->GridLineDiameterMm->setValue(d->TransformDisplayNode->GetGridLineDiameterMm());
   d->GridResolutionMm->setValue(d->TransformDisplayNode->GetGridResolutionMm());
+  d->GridShowNonWarped->setChecked(d->TransformDisplayNode->GetGridShowNonWarped());
 
   // Contour Parameters
 
@@ -493,6 +495,17 @@ void qMRMLTransformDisplayNodeWidget::setGridResolutionMm(double resolutionMm)
     return;
   }
   d->TransformDisplayNode->SetGridResolutionMm(resolutionMm);
+}
+
+//-----------------------------------------------------------------------------
+void qMRMLTransformDisplayNodeWidget::setGridShowNonWarped(bool show)
+{
+  Q_D(qMRMLTransformDisplayNodeWidget);
+  if (!d->TransformDisplayNode)
+  {
+    return;
+  }
+  d->TransformDisplayNode->SetGridShowNonWarped(show);
 }
 
 //-----------------------------------------------------------------------------

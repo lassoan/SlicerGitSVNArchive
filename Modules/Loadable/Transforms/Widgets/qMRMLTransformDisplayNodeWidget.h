@@ -84,6 +84,7 @@ public slots:
   void setGridSpacingMm(double spacing);
   void setGridLineDiameterMm(double diameterMm);
   void setGridResolutionMm(double resolutionMm);
+  void setGridShowNonWarped(bool show);
   void setContourLevelsMm(QString values_str);
   void setContourResolutionMm(double resolutionMm);
   void setContourOpacity(double opacity);
