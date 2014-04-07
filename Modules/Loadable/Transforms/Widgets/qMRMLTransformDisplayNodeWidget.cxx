@@ -127,9 +127,7 @@ void qMRMLTransformDisplayNodeWidgetPrivate
   QObject::connect(this->GlyphDisplayRangeMm, SIGNAL(valuesChanged(double, double)), q, SLOT(setGlyphDisplayRangeMm(double, double)));
   QObject::connect(this->GlyphTypeComboBox, SIGNAL(currentIndexChanged(int)), q, SLOT(setGlyphType(int)));
   // 3D Glyph Parameters
-  QObject::connect(this->GlyphScaleDirectionalCheckBox, SIGNAL(toggled(bool)), q, SLOT(setGlyphScaleDirectional(bool)));
   QObject::connect(this->GlyphDiameterMm, SIGNAL(valueChanged(double)), q, SLOT(setGlyphDiameterMm(double)));
-  QObject::connect(this->GlyphDiameterPercent, SIGNAL(valueChanged(double)), q, SLOT(setGlyphDiameterPercent(double)));
   QObject::connect(this->GlyphTipLengthPercent, SIGNAL(valueChanged(double)), q, SLOT(setGlyphTipLengthPercent(double)));
   QObject::connect(this->GlyphShaftDiameterPercent, SIGNAL(valueChanged(double)), q, SLOT(setGlyphShaftDiameterPercent(double)));
   QObject::connect(this->GlyphResolution, SIGNAL(valueChanged(double)), q, SLOT(setGlyphResolution(double)));
@@ -230,9 +228,7 @@ void qMRMLTransformDisplayNodeWidget
   d->GlyphDisplayRangeMm->setMinimumValue(d->TransformDisplayNode->GetGlyphDisplayRangeMinMm());
   d->GlyphTypeComboBox->setCurrentIndex(d->TransformDisplayNode->GetGlyphType());
   // 3D Glyph Parameters
-  d->GlyphScaleDirectionalCheckBox->setChecked(d->TransformDisplayNode->GetGlyphScaleDirectional());
   d->GlyphDiameterMm->setValue(d->TransformDisplayNode->GetGlyphDiameterMm());
-  d->GlyphDiameterPercent->setValue(d->TransformDisplayNode->GetGlyphDiameterPercent());
   d->GlyphTipLengthPercent->setValue(d->TransformDisplayNode->GetGlyphTipLengthPercent());
   d->GlyphShaftDiameterPercent->setValue(d->TransformDisplayNode->GetGlyphShaftDiameterPercent());
   d->GlyphResolution->setValue(d->TransformDisplayNode->GetGlyphResolution());
@@ -287,18 +283,10 @@ void qMRMLTransformDisplayNodeWidget::updateGlyphSourceOptions(int glyphType)
 {
   Q_D(qMRMLTransformDisplayNodeWidget);
 
-  bool glyphScaleDirectional=true;
-  if (d->TransformDisplayNode)
-  {
-    glyphScaleDirectional=d->TransformDisplayNode->GetGlyphScaleDirectional();
-  }
-
   if (glyphType == vtkMRMLTransformDisplayNode::GLYPH_TYPE_ARROW)
   {
-    d->GlyphDiameterMmLabel->setVisible(glyphScaleDirectional);
-    d->GlyphDiameterMm->setVisible(glyphScaleDirectional);
-    d->GlyphDiameterPercentLabel->setVisible(!glyphScaleDirectional);
-    d->GlyphDiameterPercent->setVisible(!glyphScaleDirectional);
+    d->GlyphDiameterMmLabel->setVisible(true);
+    d->GlyphDiameterMm->setVisible(true);
     d->GlyphShaftDiameterLabel->setVisible(true);
     d->GlyphShaftDiameterPercent->setVisible(true);
     d->GlyphTipLengthLabel->setVisible(true);
@@ -306,21 +294,17 @@ void qMRMLTransformDisplayNodeWidget::updateGlyphSourceOptions(int glyphType)
   }
   else if (glyphType == vtkMRMLTransformDisplayNode::GLYPH_TYPE_CONE)
   {
-    d->GlyphDiameterMmLabel->setVisible(glyphScaleDirectional);
-    d->GlyphDiameterMm->setVisible(glyphScaleDirectional);
-    d->GlyphDiameterPercentLabel->setVisible(!glyphScaleDirectional);
-    d->GlyphDiameterPercent->setVisible(!glyphScaleDirectional);
+    d->GlyphDiameterMmLabel->setVisible(true);
+    d->GlyphDiameterMm->setVisible(true);
     d->GlyphShaftDiameterLabel->setVisible(false);
     d->GlyphShaftDiameterPercent->setVisible(false);
-    d->GlyphTipLengthLabel->setVisible(true);
-    d->GlyphTipLengthPercent->setVisible(true);
+    d->GlyphTipLengthLabel->setVisible(false);
+    d->GlyphTipLengthPercent->setVisible(false);
   }
   else if (glyphType == vtkMRMLTransformDisplayNode::GLYPH_TYPE_SPHERE)
   {
     d->GlyphDiameterMmLabel->setVisible(false);
     d->GlyphDiameterMm->setVisible(false);
-    d->GlyphDiameterPercentLabel->setVisible(false);
-    d->GlyphDiameterPercent->setVisible(false);
     d->GlyphShaftDiameterLabel->setVisible(false);
     d->GlyphShaftDiameterPercent->setVisible(false);
     d->GlyphTipLengthLabel->setVisible(false);
@@ -387,17 +371,6 @@ void qMRMLTransformDisplayNodeWidget::setGlyphType(int glyphType)
 }
 
 //-----------------------------------------------------------------------------
-void qMRMLTransformDisplayNodeWidget::setGlyphScaleDirectional(bool state)
-{
-  Q_D(qMRMLTransformDisplayNodeWidget);
-  if (!d->TransformDisplayNode)
-  {
-    return;
-  }
-  d->TransformDisplayNode->SetGlyphScaleDirectional(state);
-}
-
-//-----------------------------------------------------------------------------
 void qMRMLTransformDisplayNodeWidget::setGlyphTipLengthPercent(double length)
 {
   Q_D(qMRMLTransformDisplayNodeWidget);
@@ -418,17 +391,6 @@ void qMRMLTransformDisplayNodeWidget::setGlyphDiameterMm(double diameterMm)
     return;
   }
   d->TransformDisplayNode->SetGlyphDiameterMm(diameterMm);
-}
-
-//-----------------------------------------------------------------------------
-void qMRMLTransformDisplayNodeWidget::setGlyphDiameterPercent(double diameterPercent)
-{
-  Q_D(qMRMLTransformDisplayNodeWidget);
-  if (!d->TransformDisplayNode)
-  {
-    return;
-  }
-  d->TransformDisplayNode->SetGlyphDiameterPercent(diameterPercent);
 }
 
 //-----------------------------------------------------------------------------

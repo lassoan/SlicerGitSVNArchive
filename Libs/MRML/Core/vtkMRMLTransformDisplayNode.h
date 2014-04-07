@@ -116,12 +116,8 @@ class VTK_MRML_EXPORT vtkMRMLTransformDisplayNode : public vtkMRMLModelDisplayNo
   /// Returns -1 if the string is unknown.
   static int ConvertGlyphTypeFromString(const char* typeString);
   // 3d parameters
-  vtkSetMacro(GlyphScaleDirectional, bool);
-  vtkGetMacro(GlyphScaleDirectional, bool);
   vtkSetMacro(GlyphTipLengthPercent, double);
   vtkGetMacro(GlyphTipLengthPercent, double);
-  vtkSetMacro(GlyphDiameterPercent, double);
-  vtkGetMacro(GlyphDiameterPercent, double);
   vtkSetMacro(GlyphDiameterMm, double);
   vtkGetMacro(GlyphDiameterMm, double);
   vtkSetMacro(GlyphShaftDiameterPercent, double);
@@ -226,9 +222,7 @@ protected:
   double GlyphDisplayRangeMinMm;
   int GlyphType;
   // 3d parameters
-  bool GlyphScaleDirectional;
   double GlyphTipLengthPercent;
-  double GlyphDiameterPercent;
   double GlyphDiameterMm;
   double GlyphShaftDiameterPercent;
   int GlyphResolution;

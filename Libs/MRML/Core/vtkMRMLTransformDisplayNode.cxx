@@ -89,9 +89,7 @@ vtkMRMLTransformDisplayNode::vtkMRMLTransformDisplayNode()
   this->GlyphDisplayRangeMaxMm=100;
   this->GlyphDisplayRangeMinMm=0.01;
   this->GlyphType=GLYPH_TYPE_ARROW;
-  this->GlyphScaleDirectional=true;
   this->GlyphTipLengthPercent=30;
-  this->GlyphDiameterPercent=20;
   this->GlyphDiameterMm=5.0;
   this->GlyphShaftDiameterPercent=40;
   this->GlyphResolution=6;
@@ -135,9 +133,7 @@ void vtkMRMLTransformDisplayNode::WriteXML(ostream& of, int nIndent)
   of << indent << " GlyphDisplayRangeMaxMm=\""<< this->GlyphDisplayRangeMaxMm << "\"";
   of << indent << " GlyphDisplayRangeMinMm=\""<< this->GlyphDisplayRangeMinMm << "\"";
   of << indent << " GlyphType=\""<< ConvertGlyphTypeToString(this->GlyphType) << "\"";
-  of << indent << " GlyphScaleDirectional=\"" << this->GlyphScaleDirectional << "\"";
   of << indent << " GlyphTipLengthPercent=\"" << this->GlyphTipLengthPercent << "\"";
-  of << indent << " GlyphDiameterPercent=\"" << this->GlyphDiameterPercent << "\"";
   of << indent << " GlyphDiameterMm=\""<< this->GlyphDiameterMm << "\"";
   of << indent << " GlyphShaftDiameterPercent=\"" << this->GlyphShaftDiameterPercent << "\"";
   of << indent << " GlyphResolution=\"" << this->GlyphResolution << "\"";
@@ -192,9 +188,7 @@ void vtkMRMLTransformDisplayNode::ReadXMLAttributes(const char** atts)
       this->GlyphType = ConvertGlyphTypeFromString(attValue);
       continue;
     }
-    READ_FROM_ATT(GlyphScaleDirectional);
     READ_FROM_ATT(GlyphTipLengthPercent);
-    READ_FROM_ATT(GlyphDiameterPercent);
     READ_FROM_ATT(GlyphDiameterMm);
     READ_FROM_ATT(GlyphShaftDiameterPercent);
     READ_FROM_ATT(GlyphResolution);
@@ -235,9 +229,7 @@ void vtkMRMLTransformDisplayNode::Copy(vtkMRMLNode *anode)
   this->GlyphDisplayRangeMaxMm = node->GlyphDisplayRangeMaxMm;
   this->GlyphDisplayRangeMinMm = node->GlyphDisplayRangeMinMm;
   this->GlyphType = node->GlyphType;
-  this->GlyphScaleDirectional = node->GlyphScaleDirectional;
   this->GlyphTipLengthPercent = node->GlyphTipLengthPercent;
-  this->GlyphDiameterPercent = node->GlyphDiameterPercent;
   this->GlyphDiameterMm = node->GlyphDiameterMm;
   this->GlyphShaftDiameterPercent = node->GlyphShaftDiameterPercent;
   this->GlyphResolution = node->GlyphResolution;
@@ -265,9 +257,7 @@ void vtkMRMLTransformDisplayNode::PrintSelf(ostream& os, vtkIndent indent)
   os << indent << "GlyphDisplayRangeMaxMm = "<< this->GlyphDisplayRangeMaxMm << "\n";
   os << indent << "GlyphDisplayRangeMinMm = "<< this->GlyphDisplayRangeMinMm << "\n";
   os << indent << "GlyphType = "<< ConvertGlyphTypeToString(this->GlyphType) << "\n";
-  os << indent << "GlyphScaleDirectional = "<< this->GlyphScaleDirectional << "\n";
   os << indent << "GlyphTipLengthPercent = " << this->GlyphTipLengthPercent << "\n";
-  os << indent << "GlyphDiameterPercent = " << this->GlyphDiameterPercent << "\n";
   os << indent << "GlyphDiameterMm = " << this->GlyphDiameterMm << "\n";
   os << indent << "GlyphShaftDiameterPercent = " << this->GlyphShaftDiameterPercent << "\n";
   os << indent << "GlyphResolution = " << this->GlyphResolution << "\n";
@@ -289,11 +279,13 @@ void vtkMRMLTransformDisplayNode::ProcessMRMLEvents ( vtkObject *caller, unsigne
 {
   if (caller!=NULL
     && (event==vtkCommand::ModifiedEvent || event==vtkMRMLTransformableNode::TransformModifiedEvent)
-    && caller==GetRegionNode())
+    && caller==GetRegionNode()
+    && this->Visibility)
   {
     // update visualization if the region node is changed
     // Note: this updates all the 2D views as well, so instead of a generic modified event a separate
-    // even for 2D and 3D views could be useful
+    // even for 2D and 3D views could be useful.
+    // If 3D visibility is disabled then we can ignore this event, as the region is only used for 3D display.
     this->Modified();
   }
   if (caller!=NULL
@@ -818,12 +810,9 @@ void vtkMRMLTransformDisplayNode::GetGlyphVisualization3d(vtkPolyData* output, v
 {
   vtkSmartPointer<vtkUnstructuredGrid> pointSet = vtkSmartPointer<vtkUnstructuredGrid>::New();
   GetTransformedPointSamplesOnRoi(pointSet, roiToRAS, roiSize, this->GlyphSpacingMm);
-
   vtkSmartPointer<vtkTransformVisualizerGlyph3D> glyphFilter = vtkSmartPointer<vtkTransformVisualizerGlyph3D>::New();
-  glyphFilter->SetScaleModeToScaleByVector();
   glyphFilter->SetScaleFactor(this->GetGlyphScalePercent()*0.01);
   glyphFilter->SetColorModeToColorByScalar();
-  glyphFilter->SetScaleDirectional(this->GetGlyphScaleDirectional());
   glyphFilter->OrientOn();
   glyphFilter->SetInput(pointSet);
 
@@ -844,6 +833,8 @@ void vtkMRMLTransformDisplayNode::GetGlyphVisualization3d(vtkPolyData* output, v
       arrowSource->SetTipResolution(this->GetGlyphResolution());
       arrowSource->SetShaftRadius(arrowSource->GetTipRadius()*0.01*this->GetGlyphShaftDiameterPercent());
       arrowSource->SetShaftResolution(this->GetGlyphResolution());
+      glyphFilter->SetScaleDirectional(true);
+      glyphFilter->SetScaleModeToScaleByVector();
       glyphFilter->SetSourceConnection(arrowSource->GetOutputPort());
       break;
     }
@@ -851,9 +842,11 @@ void vtkMRMLTransformDisplayNode::GetGlyphVisualization3d(vtkPolyData* output, v
     case vtkMRMLTransformDisplayNode::GLYPH_TYPE_CONE:
     {
       vtkSmartPointer<vtkConeSource> coneSource = vtkSmartPointer<vtkConeSource>::New();
-      coneSource->SetHeight(this->GetGlyphTipLengthPercent()*0.01);
+      coneSource->SetHeight(1.0);
       coneSource->SetRadius(this->GetGlyphDiameterMm()*0.5);
       coneSource->SetResolution(this->GetGlyphResolution());
+      glyphFilter->SetScaleDirectional(true);
+      glyphFilter->SetScaleModeToScaleByVector();
       glyphFilter->SetSourceConnection(coneSource->GetOutputPort());
       break;
     }
@@ -864,6 +857,8 @@ void vtkMRMLTransformDisplayNode::GetGlyphVisualization3d(vtkPolyData* output, v
       sphereSource->SetRadius(0.5);
       sphereSource->SetThetaResolution(this->GetGlyphResolution());
       sphereSource->SetPhiResolution(this->GetGlyphResolution());
+      glyphFilter->SetScaleDirectional(false);
+      glyphFilter->SetScaleModeToScaleByScalar();
       glyphFilter->SetSourceConnection(sphereSource->GetOutputPort());
       break;
     }
@@ -882,12 +877,35 @@ void vtkMRMLTransformDisplayNode::GetGlyphVisualization2d(vtkPolyData* output, v
 
   GetTransformedPointSamplesOnSlice(pointSet, sliceToRAS, fieldOfViewOrigin, fieldOfViewSize, this->GetGlyphSpacingMm());
 
+  vtkSmartPointer<vtkTransformVisualizerGlyph3D> glyphFilter = vtkSmartPointer<vtkTransformVisualizerGlyph3D>::New();
+  vtkSmartPointer<vtkTransform> rotateArrow = vtkSmartPointer<vtkTransform>::New();
+  vtkSmartPointer<vtkGlyphSource2D> glyph2DSource = vtkSmartPointer<vtkGlyphSource2D>::New();
+  switch (this->GetGlyphType())
+  {
+    case vtkMRMLTransformDisplayNode::GLYPH_TYPE_ARROW:
+      glyph2DSource->SetGlyphTypeToArrow();
+      glyphFilter->SetScaleModeToScaleByVector();
+      // move the origin from the middle of the arrow to the base of the arrow
+      rotateArrow->Translate(0.5,0,0);
+      break;
+    case vtkMRMLTransformDisplayNode::GLYPH_TYPE_CONE:
+      glyph2DSource->SetGlyphTypeToEdgeArrow();
+      glyphFilter->SetScaleModeToScaleByVector();
+      // move the origin from the base of the cone to the middle of the cone
+      rotateArrow->Translate(0.5,0,0);
+      break;
+    case vtkMRMLTransformDisplayNode::GLYPH_TYPE_SPHERE:
+      glyph2DSource->SetGlyphTypeToCircle();
+      glyphFilter->SetScaleModeToScaleByScalar();
+      break;
+    default: glyph2DSource->SetGlyphTypeToNone();
+  }
+
   float sliceNormal_RAS[3] = {0,0,0};
   sliceNormal_RAS[0] = sliceToRAS->GetElement(0,2);
   sliceNormal_RAS[1] = sliceToRAS->GetElement(1,2);
   sliceNormal_RAS[2] = sliceToRAS->GetElement(2,2);
 
-  vtkSmartPointer<vtkTransform> rotateArrow = vtkSmartPointer<vtkTransform>::New();
   bool useNewMethod=false;
   if (useNewMethod)
   {
@@ -906,19 +924,9 @@ void vtkMRMLTransformDisplayNode::GetGlyphVisualization2d(vtkPolyData* output, v
     rotateArrow->RotateX(vtkMath::DegreesFromRadians(acos(abs(sliceNormal_RAS[2])))); // TODO: check this, it might not be correct for an arbitrarily oriented slice normal
   }
 
-  vtkSmartPointer<vtkGlyphSource2D> glyph2DSource = vtkSmartPointer<vtkGlyphSource2D>::New();
-  switch (this->GetGlyphType())
-  {
-    case vtkMRMLTransformDisplayNode::GLYPH_TYPE_ARROW: glyph2DSource->SetGlyphTypeToArrow(); break;
-    case vtkMRMLTransformDisplayNode::GLYPH_TYPE_CONE: glyph2DSource->SetGlyphTypeToEdgeArrow(); break;
-    case vtkMRMLTransformDisplayNode::GLYPH_TYPE_SPHERE: glyph2DSource->SetGlyphTypeToCircle(); break;
-    default: glyph2DSource->SetGlyphTypeToNone();
-  }
   glyph2DSource->SetScale(1);
   glyph2DSource->SetFilled(0);
 
-  vtkSmartPointer<vtkTransformVisualizerGlyph3D> glyphFilter = vtkSmartPointer<vtkTransformVisualizerGlyph3D>::New();
-  glyphFilter->SetScaleModeToScaleByVector();
   glyphFilter->SetScaleFactor(this->GetGlyphScalePercent()*0.01);
   glyphFilter->SetScaleDirectional(false);
   glyphFilter->SetColorModeToColorByScalar();
@@ -1073,10 +1081,6 @@ void vtkMRMLTransformDisplayNode::GetGridVisualization3d(vtkPolyData* output, vt
   tubeFilter->SetNumberOfSides(8);
   tubeFilter->Update();
   output->ShallowCopy(tubeFilter->GetOutput());
-
-  // Copy the displacement magnitude to the output (for coloring)
-  //int idx=output->GetPointData()->AddArray(warpedGridPolyData->GetPointData()->GetArray(DISPLACEMENT_MAGNITUDE_SCALAR_NAME));
-  //output->GetPointData()->SetActiveAttribute(idx, vtkDataSetAttributes::SCALARS);
 }
 
 //----------------------------------------------------------------------------
@@ -1128,18 +1132,15 @@ void vtkMRMLTransformDisplayNode::GetContourVisualization2d(vtkPolyData* output,
 //----------------------------------------------------------------------------
 void vtkMRMLTransformDisplayNode::GetContourVisualization3d(vtkPolyData* output, vtkMatrix4x4* roiToRAS, int* roiSize)
 {
-  vtkNew<vtkImageData> magnitudeImage;
-  double pointSpacing=this->GetContourResolutionMm();
-
+  // Compute the sampling image grid position, orientation, and spacing
   vtkNew<vtkMatrix4x4> ijkToRAS;
-
+  double pointSpacing=this->GetContourResolutionMm();
   int numOfPointsX=ceil(roiSize[0]/pointSpacing);
   int numOfPointsY=ceil(roiSize[1]/pointSpacing);
   int numOfPointsZ=ceil(roiSize[2]/pointSpacing);
   double xOfs = 0;
   double yOfs = 0;
   double zOfs = 0;
-
   ijkToRAS->DeepCopy(roiToRAS);
   vtkNew<vtkMatrix4x4> ijkOffset;
   ijkOffset->Element[0][3]=xOfs;
@@ -1152,10 +1153,12 @@ void vtkMRMLTransformDisplayNode::GetContourVisualization3d(vtkPolyData* output,
   voxelSpacing->Element[2][2]=pointSpacing;
   vtkMatrix4x4::Multiply4x4(ijkToRAS.GetPointer(),voxelSpacing.GetPointer(),ijkToRAS.GetPointer());
 
+  // Sample on an image
+  vtkNew<vtkImageData> magnitudeImage;
   int imageSize[3]={numOfPointsX, numOfPointsY, numOfPointsZ};
-
   GetTransformedPointSamplesAsImage(magnitudeImage.GetPointer(), ijkToRAS.GetPointer(), imageSize);
 
+  // Contput contours
   vtkNew<vtkContourFilter> contourFilter;
   double* levels=this->GetContourLevelsMm();
   for (int i=0; i<this->GetNumberOfContourLevels(); i++)
@@ -1165,8 +1168,7 @@ void vtkMRMLTransformDisplayNode::GetContourVisualization3d(vtkPolyData* output,
   contourFilter->SetInput(magnitudeImage.GetPointer());
   contourFilter->Update();
 
-  //  output->ShallowCopy(contourFilter->GetOutput());
-
+  //  Transform contours to RAS
   vtkNew<vtkTransformPolyDataFilter> transformSliceToRas;
   vtkNew<vtkTransform> sliceToRasTransform;
   sliceToRasTransform->SetMatrix(ijkToRAS.GetPointer());
@@ -1174,7 +1176,6 @@ void vtkMRMLTransformDisplayNode::GetContourVisualization3d(vtkPolyData* output,
   transformSliceToRas->SetInputConnection(contourFilter->GetOutputPort());
   transformSliceToRas->Update();
   output->ShallowCopy(transformSliceToRas->GetOutput());
-
 }
 
 
@@ -1187,6 +1188,7 @@ vtkMRMLTransformNode* vtkMRMLTransformDisplayNode::GetTransformNode()
 //----------------------------------------------------------------------------
 void vtkMRMLTransformDisplayNode::GetVisualization2d(vtkPolyData* output, vtkMatrix4x4* sliceToRAS, double* fieldOfViewOrigin, double* fieldOfViewSize)
 {
+  // Use the color exactly as defined in the colormap
   this->AutoScalarRangeOff();
   if (GetColorNode() && GetColorNode()->GetLookupTable())
     {
@@ -1211,14 +1213,13 @@ void vtkMRMLTransformDisplayNode::GetVisualization2d(vtkPolyData* output, vtkMat
 //----------------------------------------------------------------------------
 void vtkMRMLTransformDisplayNode::GetVisualization3d(vtkPolyData* output, vtkMatrix4x4* roiToRAS, int* roiSize)
 {
+  // Use the color exactly as defined in the colormap
   this->AutoScalarRangeOff();
   if (GetColorNode() && GetColorNode()->GetLookupTable())
     {
     double* range = GetColorNode()->GetLookupTable()->GetRange();
     this->SetScalarRange(range[0], range[1]);
     }
-
-  //this->SetScalarRange(0,4);
 
   this->ScalarVisibility=1;
   switch (this->GetVisualizationMode())

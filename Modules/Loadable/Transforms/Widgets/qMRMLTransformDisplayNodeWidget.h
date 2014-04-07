@@ -74,10 +74,8 @@ public slots:
   void setGlyphScalePercent(double scale);
   void setGlyphDisplayRangeMm(double min, double max);
   void setGlyphType(int glyphType);
-  void setGlyphScaleDirectional(bool state);
   void setGlyphTipLengthPercent(double length);
   void setGlyphDiameterMm(double diameterMm);
-  void setGlyphDiameterPercent(double diameterPercent);
   void setGlyphShaftDiameterPercent(double diameterPercent);
   void setGlyphResolution(double resolution);
   void setGridScalePercent(double scale);
