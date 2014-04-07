@@ -112,6 +112,11 @@ int vtkTransformVisualizerGlyph3D::RequestData(
   pd = input->GetPointData();
   inSScalars = this->GetInputArrayToProcess(0,inputVector);
   inVectors = this->GetInputArrayToProcess(1,inputVector);
+  inCScalars = this->GetInputArrayToProcess(3,inputVector);
+  if (inCScalars == NULL)
+    {
+    inCScalars = inSScalars;
+    }
 
   vtkDataArray* temp = 0;
   if (pd)
@@ -152,9 +157,10 @@ int vtkTransformVisualizerGlyph3D::RequestData(
   newPts = vtkPoints::New();
   newPts->Allocate(numPts*numSourcePts);
 
-  newScalars = vtkFloatArray::New();
-  newScalars->Allocate(numPts*numSourcePts);
-  newScalars->SetName("DisplacementMagnitude");
+  newScalars = inCScalars->NewInstance();
+  newScalars->SetNumberOfComponents(inCScalars->GetNumberOfComponents());
+  newScalars->Allocate(inCScalars->GetNumberOfComponents()*numPts*numSourcePts);
+  newScalars->SetName(inCScalars->GetName());
 
   newVectors = vtkFloatArray::New();
   newVectors->SetNumberOfComponents(3);
@@ -184,9 +190,9 @@ int vtkTransformVisualizerGlyph3D::RequestData(
       }
 
     // Get the scalar and vector data
-    if ( inSScalars )
+    if ( inCScalars )
       {
-      s = inSScalars->GetComponent(inPtId, 0);
+      s = inCScalars->GetComponent(inPtId, 0);
       }
 
     vtkDataArray *array3D = inVectors;
@@ -197,7 +203,7 @@ int vtkTransformVisualizerGlyph3D::RequestData(
     array3D->GetTuple(inPtId, v);
     vMag = vtkMath::Norm(v);
 
-    if (this->MagnitudeThresholding && (vMag<this->MagnitudeThresholdLower || vMag>this->MagnitudeThresholdUpper))
+    if (this->MagnitudeThresholding && (s<this->MagnitudeThresholdLower || s>this->MagnitudeThresholdUpper))
     {
       continue;
     }
@@ -251,12 +257,6 @@ int vtkTransformVisualizerGlyph3D::RequestData(
         }
       }
 
-    //Colour by vector
-    for (i=0; i < numSourcePts; i++)
-      {
-      newScalars->InsertTuple(i+ptIncr, &vMag);
-      }
-
 
     // Scale data if appropriate
     if ( this->Scaling )
@@ -302,7 +302,7 @@ int vtkTransformVisualizerGlyph3D::RequestData(
     // Copy point data from source
     for (i=0; i < numSourcePts; i++)
       {
-      outputPD->CopyData(pd,inPtId,ptIncr+i);
+      outputPD->CopyTuple(inCScalars, newScalars, inPtId, ptIncr+i);
       }
 
     ptIncr += numSourcePts;

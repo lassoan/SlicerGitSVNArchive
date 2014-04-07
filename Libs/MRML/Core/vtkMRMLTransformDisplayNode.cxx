@@ -822,11 +822,12 @@ void vtkMRMLTransformDisplayNode::GetGlyphVisualization3d(vtkPolyData* output, v
   vtkSmartPointer<vtkTransformVisualizerGlyph3D> glyphFilter = vtkSmartPointer<vtkTransformVisualizerGlyph3D>::New();
   glyphFilter->SetScaleModeToScaleByVector();
   glyphFilter->SetScaleFactor(this->GetGlyphScalePercent()*0.01);
-  glyphFilter->SetScaleDirectional(false);
   glyphFilter->SetColorModeToColorByScalar();
   glyphFilter->SetScaleDirectional(this->GetGlyphScaleDirectional());
   glyphFilter->OrientOn();
   glyphFilter->SetInput(pointSet);
+
+  glyphFilter->SetInputArrayToProcess(3/*color*/,0,0,vtkDataObject::FIELD_ASSOCIATION_POINTS,DISPLACEMENT_MAGNITUDE_SCALAR_NAME);
 
   glyphFilter->SetMagnitudeThresholdLower(this->GlyphDisplayRangeMinMm);
   glyphFilter->SetMagnitudeThresholdUpper(this->GlyphDisplayRangeMaxMm);
@@ -924,6 +925,8 @@ void vtkMRMLTransformDisplayNode::GetGlyphVisualization2d(vtkPolyData* output, v
   glyphFilter->SetSourceTransform(rotateArrow);
   glyphFilter->SetSourceConnection(glyph2DSource->GetOutputPort());
   glyphFilter->SetInput(pointSet);
+
+  glyphFilter->SetInputArrayToProcess(3/*color*/,0,0,vtkDataObject::FIELD_ASSOCIATION_POINTS,DISPLACEMENT_MAGNITUDE_SCALAR_NAME);
 
   glyphFilter->SetMagnitudeThresholdLower(this->GlyphDisplayRangeMinMm);
   glyphFilter->SetMagnitudeThresholdUpper(this->GlyphDisplayRangeMaxMm);

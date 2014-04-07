@@ -17,8 +17,6 @@ public:
   void PrintSelf(ostream& os, vtkIndent indent);
   static vtkTransformVisualizerGlyph3D *New();
 
-  vtkSetMacro(ScaleFactor,double);
-  vtkGetMacro(ScaleFactor,double);
   vtkSetMacro(ScaleDirectional,bool);
   vtkGetMacro(ScaleDirectional,bool);
 
@@ -33,7 +31,6 @@ protected:
   vtkTransformVisualizerGlyph3D();
   ~vtkTransformVisualizerGlyph3D() {};
 
-  double ScaleFactor;
   bool ScaleDirectional;
 
   bool MagnitudeThresholding; // if nonzero then points with magnitude outside the lower/upper range are ignored
