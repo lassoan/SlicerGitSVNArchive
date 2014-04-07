@@ -311,6 +311,7 @@ void vtkMRMLTransformsDisplayableManager2D::vtkInternal::UpdateDisplayNodePipeli
   mapper->SetInputConnection( pipeline->Transformer->GetOutputPort() );
   mapper->SetLookupTable( displayNode->GetColorNode() ? displayNode->GetColorNode()->GetScalarsToColors() : 0);
   mapper->SetScalarRange(transformDisplayNode->GetScalarRange());
+  mapper->SetColorModeToMapScalars();
   actor->SetPosition(0,0);
   vtkProperty2D* actorProperties = actor->GetProperty();
   actorProperties->SetColor(displayNode->GetColor() );

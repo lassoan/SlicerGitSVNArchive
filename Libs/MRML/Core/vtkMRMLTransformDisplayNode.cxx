@@ -697,6 +697,7 @@ void vtkMRMLTransformDisplayNode::GetTransformedPointSamplesOnSlice(vtkPointSet*
     projectedVectors->SetTuple3(i, chosenVector[0]-dot*sliceNormal_RAS[0], chosenVector[1]-dot*sliceNormal_RAS[1], chosenVector[2]-dot*sliceNormal_RAS[2]);
   }
   projectedVectors->SetName("ProjectedDisplacementVector");
+  outputPointSet->GetPointData()->SetActiveAttribute(DISPLACEMENT_MAGNITUDE_SCALAR_NAME, vtkDataSetAttributes::SCALARS);
 }
 
 
