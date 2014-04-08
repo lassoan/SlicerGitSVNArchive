@@ -633,7 +633,7 @@ int  vtkMRMLTransformNode::GetMatrixTransformToWorld(vtkMatrix4x4* transformToWo
 }
 
 //----------------------------------------------------------------------------
-int  vtkMRMLTransformNode::GetMatrixTransformToNode(vtkMRMLTransformNode* ,
+int  vtkMRMLTransformNode::GetMatrixTransformToNode(vtkMRMLTransformNode* node,
                                                           vtkMatrix4x4* transformToNode)
 {
   // The fact that this method is called means that this is a non-linear transform,
@@ -923,7 +923,7 @@ const char* vtkMRMLTransformNode::GetTransformToParentInfo()
     }
     else
     {
-      this->TransformInfo="Computed from transform from parent.";
+      this->TransformInfo="Computed by inverting transform from parent.";
     }
     return this->TransformInfo.c_str();
   }
@@ -941,7 +941,7 @@ const char* vtkMRMLTransformNode::GetTransformFromParentInfo()
     }
     else
     {
-      this->TransformInfo="Computed from transform from parent.";
+      this->TransformInfo="Computed by inverting transform to parent.";
     }
     return this->TransformInfo.c_str();
   }

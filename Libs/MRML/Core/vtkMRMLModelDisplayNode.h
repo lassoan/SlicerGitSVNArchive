@@ -70,8 +70,11 @@ public:
   /// \sa GetInputPolyData(), GetOutputPort(), OutputPolyDataRAS
   virtual vtkPolyData* GetOutputPolyData();
 
-    ///
-  /// Describes if the node is hidden
+  ///
+  /// Specifies the coordinate system of the polydata returned by GetOutputPolyData
+  /// If OutputPolyDataRAS is true then the returned polydata is in the RAS (World)
+  /// coordinate system; if false then the polydata is in the local coordinate system.
+  /// \sa GetOutputPolyData()
   vtkGetMacro(OutputPolyDataRAS, int);
   vtkSetMacro(OutputPolyDataRAS, int);
   vtkBooleanMacro(OutputPolyDataRAS, int);

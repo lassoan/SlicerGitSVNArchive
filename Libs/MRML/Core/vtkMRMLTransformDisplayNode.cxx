@@ -1,16 +1,25 @@
-/*=auto=========================================================================
+/*==============================================================================
 
-Portions (c) Copyright 2005 Brigham and Women's Hospital (BWH) All Rights Reserved.
+  Program: 3D Slicer
 
-See COPYRIGHT.txt
-or http://www.slicer.org/copyright/copyright.txt for details.
+  Portions (c) Copyright Brigham and Women's Hospital (BWH) All Rights Reserved.
 
-Program:   3D Slicer
-Module:    $RCSfile: vtkMRMLTransformDisplayNode.cxx,v $
-Date:      $Date: 2006/03/03 22:26:39 $
-Version:   $Revision: 1.3 $
+  See COPYRIGHT.txt
+  or http://www.slicer.org/copyright/copyright.txt for details.
 
-=========================================================================auto=*/
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This file was originally developed by Andras Lasso and Franklin King at
+  PerkLab, Queen's University and was supported through the Applied Cancer
+  Research Unit program of Cancer Care Ontario with funds provided by the
+  Ontario Ministry of Health and Long-Term Care.
+
+==============================================================================*/
+
 
 #include "vtkObjectFactory.h"
 #include "vtkCallbackCommand.h"

@@ -54,7 +54,7 @@ public:
   static QList<vtkSmartPointer<vtkMRMLTransformableNode> > getSelectedNodes(qMRMLTreeView* tree);
   vtkSlicerTransformLogic*      logic()const;
   QButtonGroup*                 CoordinateReferenceButtonGroup;
-  vtkMRMLTransformNode*   MRMLTransformNode;
+  vtkMRMLTransformNode*         MRMLTransformNode;
 };
 
 //-----------------------------------------------------------------------------

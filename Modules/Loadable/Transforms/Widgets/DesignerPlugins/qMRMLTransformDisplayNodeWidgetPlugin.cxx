@@ -2,7 +2,7 @@
 
   Program: 3D Slicer
 
-  Copyright (c) Brigham and Women's Hospital
+  Portions (c) Copyright Brigham and Women's Hospital (BWH) All Rights Reserved.
 
   See COPYRIGHT.txt
   or http://www.slicer.org/copyright/copyright.txt for details.
@@ -13,14 +13,13 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 
-  This file was originally developed by Laurent Chauvin, Brigham and Women's
-  Hospital, based on a template developed by Jean-Christophe Fillion-Robin,
-  Kitware Inc. The project was supported by grants 5P01CA067165,
-  5R01CA124377, 5R01CA138586, 2R44DE019322, 7R01CA124377,
-  5R42CA137886, 5R42CA137886.
-  The file was then updated for the Transforms module by Nicole Aucoin, BWH.
+  This file was originally developed by Andras Lasso and Franklin King at
+  PerkLab, Queen's University and was supported through the Applied Cancer
+  Research Unit program of Cancer Care Ontario with funds provided by the
+  Ontario Ministry of Health and Long-Term Care.
 
 ==============================================================================*/
+
 
 #include "qMRMLTransformDisplayNodeWidgetPlugin.h"
 #include "qMRMLTransformDisplayNodeWidget.h"
