@@ -253,9 +253,9 @@
        </property>
        <property name="nodeTypes">
         <stringlist>
+         <string>vtkMRMLSliceNode</string>
          <string>vtkMRMLModelNode</string>
          <string>vtkMRMLVolumeNode</string>
-         <string>vtkMRMLSliceNode</string>
         </stringlist>
        </property>
        <property name="baseName">

@@ -168,8 +168,6 @@ class VTK_MRML_EXPORT vtkMRMLTransformDisplayNode : public vtkMRMLModelDisplayNo
 
   vtkColorTransferFunction* GetColorMap();
   void SetColorMap(vtkColorTransferFunction* newColorMap);
-  //std::string GetColorMapAsString();
-  //void SetColorMapFromString(const char* str);
 
 protected:
 

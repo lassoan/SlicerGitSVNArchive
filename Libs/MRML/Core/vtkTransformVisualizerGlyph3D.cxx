@@ -7,25 +7,13 @@
 #include <vtkGlyph3D.h>
 #include <vtkObjectFactory.h>
 #include <vtkSmartPointer.h>
-#include <vtkCellData.h>
 #include <vtkCell.h>
-#include <vtkDataArray.h>
-#include <vtkDataSet.h>
-#include <vtkFloatArray.h>
-#include <vtkIdList.h>
-#include <vtkIdTypeArray.h>
 #include <vtkInformation.h>
 #include <vtkInformationVector.h>
 #include <vtkMath.h>
 #include <vtkNew.h>
-#include <vtkObjectFactory.h>
 #include <vtkPointData.h>
-#include <vtkPolyData.h>
-#include <vtkStreamingDemandDrivenPipeline.h>
 #include <vtkTransform.h>
-#include <vtkUnsignedCharArray.h>
-
-#include <vtkMinimalStandardRandomSequence.h>
 
 vtkStandardNewMacro(vtkTransformVisualizerGlyph3D);
 
@@ -37,15 +25,6 @@ vtkTransformVisualizerGlyph3D::vtkTransformVisualizerGlyph3D()
   this->MagnitudeThresholding = 0;
   this->MagnitudeThresholdLower = 0.0;
   this->MagnitudeThresholdUpper = 100.0;
-
-  // by default process active point scalars
-  this->SetInputArrayToProcess(0,0,0,vtkDataObject::FIELD_ASSOCIATION_POINTS, vtkDataSetAttributes::SCALARS);
-  // by default process active point vectors
-  this->SetInputArrayToProcess(1,0,0,vtkDataObject::FIELD_ASSOCIATION_POINTS, vtkDataSetAttributes::VECTORS);
-  // by default process active point normals
-  this->SetInputArrayToProcess(2,0,0,vtkDataObject::FIELD_ASSOCIATION_POINTS, vtkDataSetAttributes::NORMALS);
-  // by default process active point scalars for coloring
-  this->SetInputArrayToProcess(3,0,0,vtkDataObject::FIELD_ASSOCIATION_POINTS, vtkDataSetAttributes::SCALARS);
 }
 
 //------------------------------------------------------------------------------
@@ -65,11 +44,11 @@ int vtkTransformVisualizerGlyph3D::RequestData(
   vtkPointData* outputPD = output->GetPointData();
   vtkCellData* outputCD = output->GetCellData();
 
-  vtkDataArray *inSScalars = this->GetInputArrayToProcess(0,inputVector); // Scalars for Scaling
   vtkDataArray *inVectors = this->GetInputArrayToProcess(1,inputVector);
   vtkDataArray *inCScalars = this->GetInputArrayToProcess(3,inputVector);; // Scalars for Coloring
   if (inCScalars == NULL)
     {
+    vtkDataArray *inSScalars = this->GetInputArrayToProcess(0,inputVector); // Scalars for Scaling
     inCScalars = inSScalars;
     }
 
