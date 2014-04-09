@@ -949,7 +949,7 @@ void vtkMRMLModelDisplayableManager
 
     // create TransformPolyDataFilter for non-linear transform
     vtkTransformPolyDataFilter* transformFilter = NULL;
-    if (!modelDisplayNode->GetOutputPolyDataRAS() && hasNonLinearTransform)
+    if (hasNonLinearTransform)
       {
       std::map<std::string, vtkTransformPolyDataFilter *>::iterator tit;
       tit = this->Internal->DisplayNodeTransformPolyDataFilters.find(displayNode->GetID());
@@ -1491,25 +1491,7 @@ void vtkMRMLModelDisplayableManager::SetModelDisplayProperty(vtkMRMLDisplayableN
 
       vtkActor *actor = vtkActor::SafeDownCast(prop);
       vtkImageActor *imageActor = vtkImageActor::SafeDownCast(prop);
-      bool polydataIsAlreadyInRAS=false;
-      vtkMRMLModelDisplayNode* modelTypeModelDisplayNode=vtkMRMLModelDisplayNode::SafeDownCast(modelDisplayNode);
-      if (modelTypeModelDisplayNode)
-      {
-        if (modelTypeModelDisplayNode->GetOutputPolyDataRAS())
-        {
-          polydataIsAlreadyInRAS=true;
-        }
-      }
-      if (polydataIsAlreadyInRAS)
-      {
-        // the polydata is already in RAS, so no need to transform it
-        vtkNew<vtkMatrix4x4> identityMatrix;
-        prop->SetUserMatrix(identityMatrix.GetPointer());
-      }
-      else
-      {
-        prop->SetUserMatrix(matrixTransformToWorld.GetPointer());
-      }
+      prop->SetUserMatrix(matrixTransformToWorld.GetPointer());
 
       bool visible = modelDisplayNode->GetVisibility(this->GetMRMLViewNode()->GetID());
       prop->SetVisibility(visible);

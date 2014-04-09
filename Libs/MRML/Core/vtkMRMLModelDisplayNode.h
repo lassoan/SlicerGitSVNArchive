@@ -33,21 +33,11 @@ class VTK_MRML_EXPORT vtkMRMLModelDisplayNode : public vtkMRMLDisplayNode
 public:
   static vtkMRMLModelDisplayNode *New();
   vtkTypeMacro(vtkMRMLModelDisplayNode,vtkMRMLDisplayNode);
-  virtual void PrintSelf(ostream& os, vtkIndent indent);
 
   virtual vtkMRMLNode* CreateNodeInstance();
 
   /// Get node XML tag name (like Volume, Model)
   virtual const char* GetNodeTagName() {return "ModelDisplay";};
-
-  /// Set node attributes
-  virtual void ReadXMLAttributes( const char** atts);
-
-  /// Write this node's information to a MRML file in XML format.
-  virtual void WriteXML(ostream& of, int indent);
-
-  /// Copy the node's attributes to this object
-  virtual void Copy(vtkMRMLNode *node);
 
   /// Set and observe poly data for this model. It should be the output
   /// polydata of the model node.
@@ -62,22 +52,9 @@ public:
   /// Return 0 if there is no input polydata but it is required.
   /// GetOutputPolyData() should be reimplemented only if the model display
   /// node doesn't take a polydata as input but produce an output polydata.
-  /// The polydata can be either defined in the local or in the RAS
-  /// coordinate system, as specified by OutputPolyDataRAS.
-  /// If the polydata is defined in the local coordinate system, then
-  /// the local to RAS transform is applied before rendering.
   /// In all other cases, GetOutputPort() should be reimplemented.
-  /// \sa GetInputPolyData(), GetOutputPort(), OutputPolyDataRAS
+  /// \sa GetInputPolyData(), GetOutputPort()
   virtual vtkPolyData* GetOutputPolyData();
-
-  ///
-  /// Specifies the coordinate system of the polydata returned by GetOutputPolyData
-  /// If OutputPolyDataRAS is true then the returned polydata is in the RAS (World)
-  /// coordinate system; if false then the polydata is in the local coordinate system.
-  /// \sa GetOutputPolyData()
-  vtkGetMacro(OutputPolyDataRAS, int);
-  vtkSetMacro(OutputPolyDataRAS, int);
-  vtkBooleanMacro(OutputPolyDataRAS, int);
 
   /// Reimplemented to update pipeline with new value
   /// \sa SetActiveAttributeLocation()
@@ -122,12 +99,6 @@ protected:
   /// null.
   /// \sa AssignAttribute
   vtkPassThrough* PassThrough;
-
-  /// Specifies the coordinate system of the polydata returned by GetOutputPolyData
-  /// If OutputPolyDataRAS is true then the returned polydata is in the RAS (World)
-  /// coordinate system; if false then the polydata is in the local coordinate system.
-  /// \sa GetOutputPolyData()
-  int OutputPolyDataRAS;
 };
 
 #endif
