@@ -27,6 +27,7 @@ if(Slicer_USE_PYTHONQT)
   install(
     DIRECTORY "${PYTHON_DIR}${python_lib_subdir}"
     DESTINATION ${Slicer_INSTALL_ROOT}lib/Python${python_lib_subdir}
+    COMPONENT Runtime
     USE_SOURCE_PERMISSIONS
     REGEX "lib2to3/" EXCLUDE
     REGEX "lib[-]old/" EXCLUDE
@@ -56,6 +57,7 @@ if(Slicer_USE_PYTHONQT)
   install(
     PROGRAMS ${python_bin_dir}/python${CMAKE_EXECUTABLE_SUFFIX}
     DESTINATION ${Slicer_INSTALL_BIN_DIR}
+    RENAME python-real${CMAKE_EXECUTABLE_SUFFIX}
     COMPONENT Runtime
     )
 
@@ -64,6 +66,7 @@ if(Slicer_USE_PYTHONQT)
     FILES ${python_bin_dir}/SlicerPythonLauncherSettingsToInstall.ini
     DESTINATION ${Slicer_INSTALL_BIN_DIR}
     RENAME SlicerPythonLauncherSettings.ini
+    COMPONENT Runtime
     )
 
   # Install Slicer python launcher
@@ -75,6 +78,7 @@ if(Slicer_USE_PYTHONQT)
     PROGRAMS ${CTKAPPLAUNCHER_DIR}/bin/${_launcher}${CMAKE_EXECUTABLE_SUFFIX}
     DESTINATION ${Slicer_INSTALL_BIN_DIR}
     RENAME SlicerPython${CMAKE_EXECUTABLE_SUFFIX}
+    COMPONENT Runtime
     )
 
   # Install headers

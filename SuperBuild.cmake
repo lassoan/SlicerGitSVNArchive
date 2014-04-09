@@ -113,6 +113,17 @@ if(Slicer_BUILD_DICOM_SUPPORT AND Slicer_USE_PYTHONQT_WITH_OPENSSL)
   list(APPEND Slicer_DEPENDENCIES pydicom)
 endif()
 
+if(Slicer_USE_PYTHONQT AND Slicer_BUILD_EXTENSIONMANAGER_SUPPORT)
+  list(APPEND Slicer_DEPENDENCIES GitPython)
+  if(Slicer_USE_PYTHONQT_WITH_OPENSSL OR Slicer_USE_SYSTEM_python)
+    # PyGithub requires SSL support in Python
+    list(APPEND Slicer_DEPENDENCIES PyGithub)
+  else()
+    message(WARNING "Python was built without SSL support; "
+                    "github integration will not be available")
+  endif()
+endif()
+
 if(Slicer_USE_BatchMake)
   list(APPEND Slicer_DEPENDENCIES BatchMake)
 endif()
@@ -256,8 +267,8 @@ Slicer_Remote_Add(BRAINSTools
 list_conditional_append(Slicer_BUILD_BRAINSTOOLS Slicer_REMOTE_DEPENDENCIES BRAINSTools)
 
 Slicer_Remote_Add(EMSegment
-  SVN_REPOSITORY "http://svn.slicer.org/Slicer3/trunk/Modules/EMSegment"
-  SVN_REVISION -r "17040"
+  SVN_REPOSITORY "http://svn.slicer.org/Slicer3/branches/Slicer4-EMSegment"
+  SVN_REVISION -r "17044"
   OPTION_NAME Slicer_BUILD_EMSegment
   OPTION_DEPENDS "Slicer_BUILD_BRAINSTOOLS;Slicer_BUILD_QTLOADABLEMODULES;Slicer_USE_PYTHONQT_WITH_TCL"
   LABELS REMOTE_MODULE
