@@ -258,15 +258,13 @@ bool vtkMRMLTransformsDisplayableManager3D::IsTransformDisplayable(vtkMRMLDispla
     return false;
     }
   // TODO: now the polydata is retrieved from the display node - create it in this class instead
-  // Maybe a model node has no polydata but its display nodes have output
-  // polydata (e.g. vtkMRMLGlyphableVolumeSliceDisplayNode).
   bool displayable = false;
   for (int i = 0; i < node->GetNumberOfDisplayNodes(); ++i)
     {
     displayable |= this->IsTransformDisplayable(node->GetNthDisplayNode(i));
     if (displayable)
       {// Optimization: no need to search any further.
-      continue;
+      break;
       }
     }
   return displayable;
@@ -351,8 +349,6 @@ void vtkMRMLTransformsDisplayableManager3D::UpdateFromMRML()
 void vtkMRMLTransformsDisplayableManager3D::UpdateModelsFromMRML()
 {
   vtkMRMLScene *scene = this->GetMRMLScene();
-  vtkMRMLNode *node = 0;
-  std::vector<vtkMRMLDisplayableNode *> slices;
 
   // find volume slices
   bool clearDisplayedModels = scene ? false : true;
@@ -361,20 +357,8 @@ void vtkMRMLTransformsDisplayableManager3D::UpdateModelsFromMRML()
   int nnodes = scene ? scene->GetNodesByClass("vtkMRMLDisplayableNode", dnodes) : 0;
   for (int n=0; n<nnodes; n++)
     {
-    node = dnodes[n];
+    vtkMRMLNode *node = dnodes[n];
     vtkMRMLDisplayableNode *model = vtkMRMLDisplayableNode::SafeDownCast(node);
-    // render slices last so that transparent objects are rendered in front of them
-    if (!strcmp(model->GetName(), "Red Volume Slice") ||
-        !strcmp(model->GetName(), "Green Volume Slice") ||
-        !strcmp(model->GetName(), "Yellow Volume Slice"))
-      {
-      slices.push_back(model);
-      vtkMRMLDisplayNode *dnode = model->GetDisplayNode();
-      if (dnode && this->Internal->DisplayedActors.find(dnode->GetID()) == this->Internal->DisplayedActors.end() )
-        {
-        clearDisplayedModels = true;
-        }
-      }
     }
 
   if (clearDisplayedModels)
@@ -390,30 +374,14 @@ void vtkMRMLTransformsDisplayableManager3D::UpdateModelsFromMRML()
     this->Internal->DisplayedVisibility.clear();
     }
 
-  // render slices first
-  for (unsigned int i=0; i<slices.size(); i++)
-    {
-    vtkMRMLDisplayableNode *model = slices[i];
-    // add nodes that are not in the list yet
-    vtkMRMLDisplayNode *dnode = model->GetDisplayNode();
-    if (dnode && this->Internal->DisplayedActors.find(dnode->GetID()) == this->Internal->DisplayedActors.end() )
-      {
-      this->UpdateModel(model);
-      }
-    this->SetModelDisplayProperty(model);
-    }
-
-  // render the rest of the models
-  //int nmodels = scene->GetNumberOfNodesByClass("vtkMRMLDisplayableNode");
   for (int n=0; n<nnodes; n++)
     {
     vtkMRMLDisplayableNode *model = vtkMRMLDisplayableNode::SafeDownCast(dnodes[n]);
-    // render slices last so that transparent objects are rendered in fron of them
     if (model)
       {
       this->UpdateModifiedModel(model);
       }
-    } // end while
+    }
 }
 
 //---------------------------------------------------------------------------
@@ -481,38 +449,6 @@ void vtkMRMLTransformsDisplayableManager3D
     else
       {
       prop = (*ait).second;
-      /*
-      std::map<std::string, int>::iterator cit = this->Internal->DisplayedClipState.find(displayNode->GetID());
-      if (displayNode && cit != this->Internal->DisplayedClipState.end() && cit->second == clipping )
-        {
-        this->Internal->DisplayedVisibility[displayNode->GetID()] = visibility;
-        // make sure that we are looking at the current polydata (most of the code in here
-        // assumes a display node will never change what polydata it wants to view and hence
-        // caches information to skip steps if the display node has already rendered. but we
-        // can have rendered a display node but not rendered its current polydata.
-        vtkActor *actor = vtkActor::SafeDownCast(prop);
-        if (actor)
-          {
-          vtkPolyDataMapper *mapper = vtkPolyDataMapper::SafeDownCast(actor->GetMapper());
-
-          if (transformFilter && polyData)
-            {
-            mapper->SetInput(transformFilter->GetOutput());
-            }
-          else if (mapper && mapper->GetInput() != polyData && !(this->Internal->ClippingOn && clipping))
-            {
-            mapper->SetInput(polyData);
-            }
-          }
-        vtkMRMLTransformNode* tnode = displayableNode->GetParentTransformNode();
-        // clipped model could be transformed
-        // TODO: handle non-linear transforms
-        if (clipping == 0 || tnode == 0 || !tnode->IsLinear())
-          {
-          continue;
-          }
-        }
-        */
       }
 
     vtkActor * actor = vtkActor::SafeDownCast(prop);
