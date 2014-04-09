@@ -79,7 +79,7 @@ vtkMRMLNodeNewMacro(vtkMRMLTransformDisplayNode);
 
 //----------------------------------------------------------------------------
 vtkMRMLTransformDisplayNode::vtkMRMLTransformDisplayNode()
-  :vtkMRMLModelDisplayNode()
+  :vtkMRMLDisplayNode()
 {
   // Don't show transform nodes by default
   // to allow the users to adjust visualization parameters first
@@ -88,8 +88,6 @@ vtkMRMLTransformDisplayNode::vtkMRMLTransformDisplayNode()
 
   this->ScalarVisibility=1;
   this->SetActiveScalarName(DISPLACEMENT_MAGNITUDE_SCALAR_NAME);
-
-  this->OutputPolyDataRAS = true;
 
   this->VisualizationMode=VIS_MODE_GLYPH;
 

@@ -24,7 +24,7 @@
 #ifndef __vtkMRMLTransformDisplayNode_h
 #define __vtkMRMLTransformDisplayNode_h
 
-#include "vtkMRMLModelDisplayNode.h"
+#include "vtkMRMLDisplayNode.h"
 
 class vtkColorTransferFunction;
 class vtkPointSet;
@@ -37,11 +37,11 @@ class vtkMRMLVolumeNode;
 /// \brief MRML node to represent display properties for transforms visualization in the slice and 3D viewers.
 ///
 /// vtkMRMLTransformDisplayNode nodes store display properties of transforms.
-class VTK_MRML_EXPORT vtkMRMLTransformDisplayNode : public vtkMRMLModelDisplayNode
+class VTK_MRML_EXPORT vtkMRMLTransformDisplayNode : public vtkMRMLDisplayNode
 {
  public:
   static vtkMRMLTransformDisplayNode *New (  );
-  vtkTypeMacro ( vtkMRMLTransformDisplayNode,vtkMRMLModelDisplayNode );
+  vtkTypeMacro ( vtkMRMLTransformDisplayNode,vtkMRMLDisplayNode );
   void PrintSelf ( ostream& os, vtkIndent indent );
 
   enum VisualizationModes

@@ -25,14 +25,17 @@
 #include "qSlicerApplication.h"
 #include "qSlicerCoreIOManager.h"
 #include "qSlicerNodeWriter.h"
+
 #include "vtkSlicerTransformLogic.h"
 #include "vtkMRMLSliceViewDisplayableManagerFactory.h"
+#include "vtkMRMLThreeDViewDisplayableManagerFactory.h"
 
 // Transforms includes
 #include "qSlicerTransformsModule.h"
 #include "qSlicerTransformsModuleWidget.h"
 #include "qSlicerTransformsReader.h"
 #include "vtkMRMLTransformsDisplayableManager2D.h"
+#include "vtkMRMLTransformsDisplayableManager3D.h"
 
 // VTK includes
 #include "vtkSmartPointer.h"
@@ -140,9 +143,11 @@ void qSlicerTransformsModule::setup()
     QStringList() << "vtkMRMLTransformNode", this));
 
   // Use the displayable manager class to make sure the the containing library is loaded
-  vtkSmartPointer<vtkMRMLTransformsDisplayableManager2D> dm=vtkSmartPointer<vtkMRMLTransformsDisplayableManager2D>::New();
+  vtkSmartPointer<vtkMRMLTransformsDisplayableManager2D> dm2d=vtkSmartPointer<vtkMRMLTransformsDisplayableManager2D>::New();
+  vtkSmartPointer<vtkMRMLTransformsDisplayableManager3D> dm3d=vtkSmartPointer<vtkMRMLTransformsDisplayableManager3D>::New();
 
   // Register displayable managers
   vtkMRMLSliceViewDisplayableManagerFactory::GetInstance()->RegisterDisplayableManager("vtkMRMLTransformsDisplayableManager2D");
+  vtkMRMLThreeDViewDisplayableManagerFactory::GetInstance()->RegisterDisplayableManager("vtkMRMLTransformsDisplayableManager3D");
 
 }
