@@ -84,7 +84,7 @@ public slots:
   void setGridShowNonWarped(bool show);
   void setContourLevelsMm(QString values_str);
   void setContourResolutionMm(double resolutionMm);
-  void setContourOpacity(double opacity);
+  void setContourOpacityPercent(double opacity);
 
   void setColorTableNode(vtkMRMLNode* colorTableNode);
 

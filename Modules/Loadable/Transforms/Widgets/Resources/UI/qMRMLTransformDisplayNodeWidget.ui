@@ -925,7 +925,7 @@
           </widget>
          </item>
          <item row="2" column="1">
-          <widget class="ctkSliderWidget" name="ContourOpacity">
+          <widget class="ctkSliderWidget" name="ContourOpacityPercent">
            <property name="toolTip">
             <string>Opacity of the contour isosurfaces in the 3D view</string>
            </property>

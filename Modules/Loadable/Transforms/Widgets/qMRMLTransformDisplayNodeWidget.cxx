@@ -144,7 +144,7 @@ void qMRMLTransformDisplayNodeWidgetPrivate
   this->ContourLevelsMm->setValidator(new QRegExpValidator(rx,q));
   QObject::connect(this->ContourLevelsMm, SIGNAL(textChanged(QString)), q, SLOT(setContourLevelsMm(QString)));
   QObject::connect(this->ContourResolutionMm, SIGNAL(valueChanged(double)), q, SLOT(setContourResolutionMm(double)));
-  QObject::connect(this->ContourOpacity, SIGNAL(valueChanged(double)), q, SLOT(setContourOpacity(double)));
+  QObject::connect(this->ContourOpacityPercent, SIGNAL(valueChanged(double)), q, SLOT(setContourOpacityPercent(double)));
 
   q->updateWidgetFromDisplayNode();
 }
@@ -242,7 +242,7 @@ void qMRMLTransformDisplayNodeWidget
 
   // Contour Parameters
   d->ContourResolutionMm->setValue(d->TransformDisplayNode->GetContourResolutionMm());
-  d->ContourOpacity->setValue(d->TransformDisplayNode->GetContourOpacity());
+  d->ContourOpacityPercent->setValue(d->TransformDisplayNode->GetContourOpacity()*100.0);
   // Only update the text in the editbox if it is changed (to not interfere with editing of the values)
   std::vector<double> levelsInWidget=vtkMRMLTransformDisplayNode::ConvertContourLevelsFromString(d->ContourLevelsMm->text().toLatin1());
   std::vector<double> levelsInMRML;
@@ -479,14 +479,14 @@ void qMRMLTransformDisplayNodeWidget::setContourResolutionMm(double resolutionMm
 }
 
 //-----------------------------------------------------------------------------
-void qMRMLTransformDisplayNodeWidget::setContourOpacity(double opacity)
+void qMRMLTransformDisplayNodeWidget::setContourOpacityPercent(double opacityPercent)
 {
   Q_D(qMRMLTransformDisplayNodeWidget);
   if (!d->TransformDisplayNode)
    {
     return;
     }
-  d->TransformDisplayNode->SetContourOpacity(opacity);
+  d->TransformDisplayNode->SetContourOpacity(opacityPercent*0.01);
 }
 
 
