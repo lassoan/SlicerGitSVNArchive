@@ -30,11 +30,11 @@
 
 class vtkMRMLDisplayableNode;
 
-/// \brief Displayable manager for slice (2D) views.
+/// \brief Displayable manager for showing transforms in slice (2D) views.
 ///
-/// Responsible for any display on Slice views that is not the slice themselves
-/// nor the annotations.
-/// Currently support only glyph display for Diffusion Tensor volumes.
+/// Displays transforms in slice viewers as glyphs, deformed grid, or
+/// contour lines
+///
 class VTK_SLICER_TRANSFORMS_MODULE_MRMLDISPLAYABLEMANAGER_EXPORT vtkMRMLTransformsDisplayableManager2D
   : public vtkMRMLAbstractSliceViewDisplayableManager
 {

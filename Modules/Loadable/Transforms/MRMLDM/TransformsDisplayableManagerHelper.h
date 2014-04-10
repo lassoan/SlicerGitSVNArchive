@@ -325,7 +325,7 @@ public:
     glyphFilter->OrientOn();
     glyphFilter->SetInput(pointSet);
 
-    glyphFilter->SetInputArrayToProcess(3/*color*/,0,0,vtkDataObject::FIELD_ASSOCIATION_POINTS,DISPLACEMENT_MAGNITUDE_SCALAR_NAME);
+    glyphFilter->SetColorArray(DISPLACEMENT_MAGNITUDE_SCALAR_NAME);
 
     glyphFilter->SetMagnitudeThresholdLower(displayNode->GetGlyphDisplayRangeMinMm());
     glyphFilter->SetMagnitudeThresholdUpper(displayNode->GetGlyphDisplayRangeMaxMm());
@@ -444,7 +444,7 @@ public:
     glyphFilter->SetSourceConnection(glyph2DSource->GetOutputPort());
     glyphFilter->SetInput(pointSet);
 
-    glyphFilter->SetInputArrayToProcess(3/*color*/,0,0,vtkDataObject::FIELD_ASSOCIATION_POINTS,DISPLACEMENT_MAGNITUDE_SCALAR_NAME);
+    glyphFilter->SetColorArray(DISPLACEMENT_MAGNITUDE_SCALAR_NAME);
 
     glyphFilter->SetMagnitudeThresholdLower(displayNode->GetGlyphDisplayRangeMinMm());
     glyphFilter->SetMagnitudeThresholdUpper(displayNode->GetGlyphDisplayRangeMaxMm());

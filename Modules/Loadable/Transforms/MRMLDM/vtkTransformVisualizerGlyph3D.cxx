@@ -37,6 +37,11 @@
 #include <vtkPointData.h>
 #include <vtkTransform.h>
 
+static const int ARRAY_INDEX_SCALARS=0;
+static const int ARRAY_INDEX_VECTORS=1;
+static const int ARRAY_INDEX_NORMALS=2;
+static const int ARRAY_INDEX_COLORS=3;
+
 vtkStandardNewMacro(vtkTransformVisualizerGlyph3D);
 
 //------------------------------------------------------------------------------
@@ -66,11 +71,11 @@ int vtkTransformVisualizerGlyph3D::RequestData(
   vtkPointData* outputPD = output->GetPointData();
   vtkCellData* outputCD = output->GetCellData();
 
-  vtkDataArray *inVectors = this->GetInputArrayToProcess(1,inputVector);
-  vtkDataArray *inCScalars = this->GetInputArrayToProcess(3,inputVector);; // Scalars for Coloring
+  vtkDataArray *inVectors = this->GetInputArrayToProcess(ARRAY_INDEX_VECTORS,inputVector);
+  vtkDataArray *inCScalars = this->GetInputArrayToProcess(ARRAY_INDEX_COLORS,inputVector);; // Scalars for Coloring
   if (inCScalars == NULL)
     {
-    vtkDataArray *inSScalars = this->GetInputArrayToProcess(0,inputVector); // Scalars for Scaling
+    vtkDataArray *inSScalars = this->GetInputArrayToProcess(ARRAY_INDEX_SCALARS,inputVector); // Scalars for Scaling
     inCScalars = inSScalars;
     }
 
@@ -140,9 +145,9 @@ int vtkTransformVisualizerGlyph3D::RequestData(
     // Get the scalar and vector data
     double scalarValue = inCScalars->GetComponent(inPtId, 0);
     if (this->MagnitudeThresholding && (scalarValue<this->MagnitudeThresholdLower || scalarValue>this->MagnitudeThresholdUpper))
-    {
+      {
       continue;
-    }
+      }
 
     inVectors->GetTuple(inPtId, v);
     double vMag = vtkMath::Norm(v);
@@ -186,34 +191,34 @@ int vtkTransformVisualizerGlyph3D::RequestData(
 
     // Scale data if appropriate
     if ( this->Scaling )
-    {
-      if ( this->ScaleDirectional )
       {
+      if ( this->ScaleDirectional )
+        {
         double scale = vMag * this->ScaleFactor;
         if ( scale == 0.0 )
-        {
+          {
           scale = 1.0e-10;
-        }
+          }
         trans->Scale(scale,1.0,1.0);
-      }
+        }
       else
-      {
+        {
         double scale = this->ScaleFactor;
         if (this->ScaleMode==VTK_SCALE_BY_SCALAR)
-        {
+          {
           scale *= scalarValue;
-        }
+          }
         else
-        {
+          {
           scale *= vMag;
-        }
+          }
         if ( scale == 0.0 )
-        {
+          {
           scale = 1.0e-10;
-        }
+          }
         trans->Scale(scale,scale,scale);
+        }
       }
-    }
 
     // Multiply points and normals by resulting matrix
     if (this->SourceTransform)
@@ -255,4 +260,22 @@ int vtkTransformVisualizerGlyph3D::RequestData(
 void vtkTransformVisualizerGlyph3D::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os,indent);
+}
+
+//------------------------------------------------------------------------------
+void vtkTransformVisualizerGlyph3D::SetColorArray(const char* colorArrayName)
+{
+  SetInputArrayToProcess(ARRAY_INDEX_COLORS,0,0,vtkDataObject::FIELD_ASSOCIATION_POINTS,colorArrayName);
+}
+
+//------------------------------------------------------------------------------
+void vtkTransformVisualizerGlyph3D::SetVectorArray(const char* vectorArrayName)
+{
+  SetInputArrayToProcess(ARRAY_INDEX_VECTORS,0,0,vtkDataObject::FIELD_ASSOCIATION_POINTS,vectorArrayName);
+}
+
+//------------------------------------------------------------------------------
+void vtkTransformVisualizerGlyph3D::SetScalarArray(const char* scalarArrayName)
+{
+  SetInputArrayToProcess(ARRAY_INDEX_SCALARS,0,0,vtkDataObject::FIELD_ASSOCIATION_POINTS,scalarArrayName);
 }
