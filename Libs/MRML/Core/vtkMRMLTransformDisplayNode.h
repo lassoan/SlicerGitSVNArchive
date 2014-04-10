@@ -162,15 +162,6 @@ class VTK_MRML_EXPORT vtkMRMLTransformDisplayNode : public vtkMRMLDisplayNode
   vtkSetMacro(ContourOpacity, double);
   vtkGetMacro(ContourOpacity, double);
 
-  /// Return the glyph polydata for the input slice image.
-  /// This is the polydata to use in a 3D view.
-  /// Reimplemented to by-pass the check on the input polydata.
-  virtual vtkPolyData* GetOutputPolyData();
-
-  /// Generate polydata for 2D transform visualization
-  /// sliceToRAS, fieldOfViewOrigin, and fieldOfViewSize should be set from the slice node
-  void GetVisualization2d(vtkPolyData* output, vtkMatrix4x4* sliceToRAS, double* fieldOfViewOrigin, double* fieldOfViewSize);
-
   /// Set the default color table
   /// Create and a procedural color node with default colors and use it for visualization.
   void SetDefaultColors();
@@ -179,43 +170,6 @@ class VTK_MRML_EXPORT vtkMRMLTransformDisplayNode : public vtkMRMLDisplayNode
   void SetColorMap(vtkColorTransferFunction* newColorMap);
 
 protected:
-
-  void GetGlyphVisualization2d(vtkPolyData* output, vtkMatrix4x4* sliceToRAS, double* fieldOfViewOrigin, double* fieldOfViewSize);
-  void GetGridVisualization2d(vtkPolyData* output, vtkMatrix4x4* sliceToRAS, double* fieldOfViewOrigin, double* fieldOfViewSize);
-  void GetContourVisualization2d(vtkPolyData* output, vtkMatrix4x4* sliceToRAS, double* fieldOfViewOrigin, double* fieldOfViewSize);
-
-  /// Generate polydata for 3D transform visualization
-  /// roiToRAS defines the ROI origin and direction
-  /// roiSize defines the ROI size (in the ROI coordinate system spacing)
-  void GetVisualization3d(vtkPolyData* output, vtkMatrix4x4* roiToRAS, int* roiSize);
-  void GetGlyphVisualization3d(vtkPolyData* output, vtkMatrix4x4* roiToRAS, int* roiSize);
-  void GetGridVisualization3d(vtkPolyData* output, vtkMatrix4x4* roiToRAS, int* roiSize);
-  void GetContourVisualization3d(vtkPolyData* output, vtkMatrix4x4* roiToRAS, int* roiSize);
-
-  /// Takes samples from the displacement field specified by the transformation on a 3D ROI
-  /// and stores it in an unstructured grid.
-  /// pointGroupSize: the number of points will be N*pointGroupSize (the actual number will be returned in numGridPoints[3])
-  void GetTransformedPointSamplesOnRoi(vtkPointSet* pointSet, vtkMatrix4x4* roiToRAS, int* roiSize, double pointSpacingMm, int pointGroupSize=1, int* numGridPoints=NULL);
-
-  /// Takes samples from the displacement field specified by the transformation on a slice
-  /// and stores it in an unstructured grid.
-  /// pointGroupSize: the number of points will be N*pointGroupSize (the actual number will be returned in numGridPoints[3])
-  void GetTransformedPointSamplesOnSlice(vtkPointSet* outputPointSet, vtkMatrix4x4* sliceToRAS, double* fieldOfViewOrigin, double* fieldOfViewSize, double pointSpacing, int pointGroupSize=1, int* numGridPoints=NULL);
-
-  /// Takes samples from the displacement field mganitude, specified by the transformation on a uniform grid
-  /// and stores it in an image volume.
-  void GetTransformedPointSamplesAsImage(vtkImageData* magnitudeImage, vtkMatrix4x4* ijkToRAS, int* imageSize);
-
-  /// Takes samples from the displacement field specified by the transformation on a uniform grid
-  /// and stores it in an unstructured grid.
-  /// gridToRAS specifies the grid origin, direction, and spacing
-  /// gridSize is a 3-component int array specifying the dimension of the grid
-  void GetTransformedPointSamples(vtkPointSet* outputPointSet, vtkMatrix4x4* gridToRAS, int* gridSize);
-
-  /// Add lines to the gridPolyData to make it a grid. If warpedGrid is specified then a warped grid is generated, too.
-  void CreateGrid(vtkPolyData* gridPolyData, int numGridPoints[3], vtkPolyData* warpedGrid=NULL);
-
-  virtual vtkMRMLTransformNode* GetTransformNode();
 
   static std::vector<double> StringToDoubleVector(const char* sourceStr);
   static std::string DoubleVectorToString(const double* values, int numberOfValues);
@@ -253,17 +207,11 @@ protected:
 
   vtkMRMLProceduralColorNode* ColorMapNode;
 
-  // 3D model of the visualized transform to be used in all 3D views
-  vtkPolyData* CachedPolyData3d;
-
  protected:
   vtkMRMLTransformDisplayNode ( );
   ~vtkMRMLTransformDisplayNode ( );
   vtkMRMLTransformDisplayNode ( const vtkMRMLTransformDisplayNode& );
   void operator= ( const vtkMRMLTransformDisplayNode& );
-
-  // Return the number of samples in each grid
-  int GetGridSubdivision();
 
 };
 

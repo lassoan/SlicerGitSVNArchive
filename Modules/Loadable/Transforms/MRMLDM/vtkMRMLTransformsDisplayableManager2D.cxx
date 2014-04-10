@@ -24,6 +24,8 @@
 // MRMLDisplayableManager includes
 #include "vtkMRMLTransformsDisplayableManager2D.h"
 
+#include "TransformsDisplayableManagerHelper.h"
+
 // MRML includes
 #include <vtkMRMLColorNode.h>
 #include <vtkMRMLDisplayNode.h>
@@ -294,7 +296,7 @@ void vtkMRMLTransformsDisplayableManager2D::vtkInternal::UpdateDisplayNodePipeli
   double* fieldOfViewOrigin=this->SliceNode->GetXYZOrigin();
 
   vtkSmartPointer<vtkPolyData> polyData = vtkSmartPointer<vtkPolyData>::New();
-  transformDisplayNode->GetVisualization2d(polyData, sliceToRAS, fieldOfViewOrigin, fieldOfViewSize);
+  TransformsDisplayableManagerHelper::GetVisualization2d(transformDisplayNode, polyData, sliceToRAS, fieldOfViewOrigin, fieldOfViewSize);
 
   pipeline->Transformer->SetInput(polyData);
 

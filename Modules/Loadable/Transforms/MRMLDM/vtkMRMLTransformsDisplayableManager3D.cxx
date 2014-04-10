@@ -16,6 +16,7 @@
 
 // MRMLDisplayableManager includes
 #include "vtkMRMLTransformsDisplayableManager3D.h"
+#include "TransformsDisplayableManagerHelper.h"
 #include "vtkThreeDViewInteractorStyle.h"
 #include "vtkMRMLApplicationLogic.h"
 
@@ -56,8 +57,6 @@
 // STD includes
 #include <cassert>
 
-const char* DISPLACEMENT_MAGNITUDE_SCALAR_NAME = "DisplacementMagnitude";
-
 //---------------------------------------------------------------------------
 vtkStandardNewMacro ( vtkMRMLTransformsDisplayableManager3D );
 vtkCxxRevisionMacro ( vtkMRMLTransformsDisplayableManager3D, "$Revision: 13525 $");
@@ -68,6 +67,9 @@ class vtkMRMLTransformsDisplayableManager3D::vtkInternal
 public:
   vtkInternal();
   ~vtkInternal();
+
+  // 3D model of the visualized transform
+  vtkPolyData* CachedPolyData3d;
 
   std::map<std::string, vtkProp3D *>               DisplayedActors;
   std::map<std::string, vtkMRMLDisplayNode *>      DisplayedNodes;
@@ -81,12 +83,14 @@ public:
 //---------------------------------------------------------------------------
 vtkMRMLTransformsDisplayableManager3D::vtkInternal::vtkInternal()
 {
+  this->CachedPolyData3d=vtkPolyData::New();
 }
 
 //---------------------------------------------------------------------------
 vtkMRMLTransformsDisplayableManager3D::vtkInternal::~vtkInternal()
 {
-
+  this->CachedPolyData3d->Delete();
+  this->CachedPolyData3d=NULL;
 }
 
 //---------------------------------------------------------------------------
@@ -278,7 +282,7 @@ bool vtkMRMLTransformsDisplayableManager3D::IsTransformDisplayable(vtkMRMLDispla
     {
     return false;
     }
-  return displayNode->GetOutputPolyData() ? true : false;
+  return TransformsDisplayableManagerHelper::GetOutputPolyData(displayNode, this->Internal->CachedPolyData3d) ? true : false;
 }
 
 //---------------------------------------------------------------------------
@@ -429,7 +433,7 @@ void vtkMRMLTransformsDisplayableManager3D
     vtkPolyData *polyData = NULL;
     if (this->IsTransformDisplayable(displayNode))
       {
-      polyData = displayNode->GetOutputPolyData();
+      polyData = TransformsDisplayableManagerHelper::GetOutputPolyData(displayNode, this->Internal->CachedPolyData3d);
       }
     if (polyData == 0)
       {
@@ -697,7 +701,7 @@ void vtkMRMLTransformsDisplayableManager3D::SetModelDisplayProperty(vtkMRMLDispl
               }
             }
 
-          actor->GetMapper()->SelectColorArray(DISPLACEMENT_MAGNITUDE_SCALAR_NAME);
+          actor->GetMapper()->SelectColorArray(TransformsDisplayableManagerHelper::GetDisplacementMagnitudeScalarName());
           // set the scalar range
           actor->GetMapper()->SetScalarRange(displayNode->GetScalarRange());
 

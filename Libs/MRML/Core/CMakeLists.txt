@@ -180,7 +180,6 @@ set(MRMLCore_SRCS
   vtkURIHandler.cxx
   vtkTagTableCollection.cxx
   vtkTagTable.cxx
-  vtkTransformVisualizerGlyph3D.cxx
   vtkMRMLdGEMRICProceduralColorNode.cxx
   vtkMRMLPETProceduralColorNode.cxx
   # Classes for 2D Plotting

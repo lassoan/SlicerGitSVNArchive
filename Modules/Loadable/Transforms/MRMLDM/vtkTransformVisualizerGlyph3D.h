@@ -23,16 +23,13 @@
 #ifndef __vtkTransformVisualizerGlyph3D_h
 #define __vtkTransformVisualizerGlyph3D_h
 
-#include <vtkMRML.h>
+#include "vtkSlicerTransformsModuleMRMLDisplayableManagerExport.h"
 
 #include "vtkGlyph3D.h"
 #include <vtkSmartPointer.h>
-#include "vtkMinimalStandardRandomSequence.h"
-
-class vtkMinimalStandardRandomSequence;
 
 //------------------------------------------------------------------------------
-class VTK_MRML_EXPORT vtkTransformVisualizerGlyph3D : public vtkGlyph3D
+class VTK_SLICER_TRANSFORMS_MODULE_MRMLDISPLAYABLEMANAGER_EXPORT vtkTransformVisualizerGlyph3D : public vtkGlyph3D
 {
 public:
   vtkTypeMacro(vtkTransformVisualizerGlyph3D,vtkGlyph3D);
