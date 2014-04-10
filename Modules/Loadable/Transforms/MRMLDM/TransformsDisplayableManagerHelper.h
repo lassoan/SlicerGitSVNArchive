@@ -62,6 +62,10 @@
 #include "vtkVectorNorm.h"
 #include "vtkWarpVector.h"
 
+/// \brief Helper class for generating polydata for transform visualization
+///
+/// A collection of static methods for generating polydata for 2D and 3D visualization.
+///
 class TransformsDisplayableManagerHelper
 {
 public:

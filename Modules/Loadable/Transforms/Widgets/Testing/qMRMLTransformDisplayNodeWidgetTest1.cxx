@@ -26,9 +26,10 @@
 #include <QTimer>
 
 // qMRML includes
-#include "qMRMLTransformInfoWidget.h"
+#include "qMRMLTransformDisplayNodeWidget.h"
 
 // MRML includes
+#include <vtkMRMLScene.h>
 #include <vtkMRMLTransformNode.h>
 
 // VTK includes
@@ -36,15 +37,19 @@
 
 // STD includes
 
-int qMRMLTransformInfoWidgetTest1(int argc, char * argv [] )
+int qMRMLTransformDisplayNodeWidgetTest1(int argc, char * argv [] )
 {
   QApplication app(argc, argv);
 
+  vtkNew<vtkMRMLScene> scene;
   vtkNew< vtkMRMLTransformNode > transformNode;
+  scene->AddNode(transformNode.GetPointer());
+  transformNode->CreateDefaultDisplayNodes();
 
-  qMRMLTransformInfoWidget transformInfo;
-  transformInfo.setMRMLTransformNode(transformNode.GetPointer());
-  transformInfo.show();
+  qMRMLTransformDisplayNodeWidget transformDisplay;
+  transformDisplay.setMRMLTransformNode(transformNode.GetPointer());
+  transformDisplay.setMRMLScene(scene.GetPointer());
+  transformDisplay.show();
 
   if (argc < 2 || QString(argv[1]) != "-I" )
     {

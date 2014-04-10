@@ -3,6 +3,7 @@ set(KIT ${PROJECT_NAME})
 set(CMAKE_TESTDRIVER_AFTER_TESTMAIN  "DEBUG_LEAKS_ENABLE_EXIT_ERROR();")
 set(TEST_SOURCES
   qMRMLTransformInfoWidgetTest1.cxx
+  qMRMLTransformDisplayNodeWidgetTest1.cxx
   EXTRA_INCLUDE vtkMRMLDebugLeaksMacro.h
   )
 
@@ -23,3 +24,4 @@ macro(SCENE_TEST TESTNAME SCENEFILENAME)
 endmacro()
 
 simple_test( qMRMLModelInfoWidgetTest1 )
+simple_test( qMRMLTransformDisplayNodeWidgetTest1 )
