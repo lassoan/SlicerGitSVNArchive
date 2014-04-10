@@ -65,7 +65,6 @@
 
 //---------------------------------------------------------------------------
 vtkStandardNewMacro(vtkMRMLTransformsDisplayableManager2D );
-vtkCxxRevisionMacro(vtkMRMLTransformsDisplayableManager2D, "$Revision: 13525 $");
 
 //---------------------------------------------------------------------------
 class vtkMRMLTransformsDisplayableManager2D::vtkInternal

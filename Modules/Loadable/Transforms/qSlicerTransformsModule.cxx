@@ -123,6 +123,7 @@ QStringList qSlicerTransformsModule::contributors()const
   moduleContributors << QString("Alex Yarmarkovich (Isomics)");
   moduleContributors << QString("Jean-Christophe Fillion-Robin (Kitware)");
   moduleContributors << QString("Julien Finet (Kitware)");
+  moduleContributors << QString("Andras Lasso (PerkLab, Queen's)");
   return moduleContributors;
 }
 
@@ -149,5 +150,4 @@ void qSlicerTransformsModule::setup()
   // Register displayable managers
   vtkMRMLSliceViewDisplayableManagerFactory::GetInstance()->RegisterDisplayableManager("vtkMRMLTransformsDisplayableManager2D");
   vtkMRMLThreeDViewDisplayableManagerFactory::GetInstance()->RegisterDisplayableManager("vtkMRMLTransformsDisplayableManager3D");
-
 }

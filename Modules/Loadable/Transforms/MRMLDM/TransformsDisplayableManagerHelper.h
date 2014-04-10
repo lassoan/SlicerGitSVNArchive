@@ -53,6 +53,7 @@
 #include "vtkPointData.h"
 #include "vtkPolyData.h"
 #include "vtkRibbonFilter.h"
+#include "vtkSmartPointer.h"
 #include "vtkSphereSource.h"
 #include "vtkTransform.h"
 #include "vtkTransformPolyDataFilter.h"
@@ -61,18 +62,15 @@
 #include "vtkVectorNorm.h"
 #include "vtkWarpVector.h"
 
-#define DISPLACEMENT_MAGNITUDE_SCALAR_NAME "DisplacementMagnitude"
-
 class TransformsDisplayableManagerHelper
 {
 public:
 
   //----------------------------------------------------------------------------
-  static vtkMRMLTransformNode* GetTransformNode(vtkMRMLTransformDisplayNode* displayNode)
+  static const char* GetDisplacementMagnitudeScalarName()
   {
-    return vtkMRMLTransformNode::SafeDownCast(displayNode->GetDisplayableNode());
+    return "DisplacementMagnitude";
   }
-
 
   /// Takes samples from the displacement field specified by the transformation on a uniform grid
   /// and stores it in an unstructured grid.
@@ -82,25 +80,25 @@ public:
   static void GetTransformedPointSamples(vtkMRMLTransformNode* inputTransformNode, vtkPointSet* outputPointSet, vtkMatrix4x4* gridToRAS, int* gridSize)
   {
     if (!inputTransformNode)
-    {
+      {
       return;
-    }
+      }
 
     int numOfSamples=gridSize[0]*gridSize[1]*gridSize[2];
 
     //Will contain all the points that are to be rendered
-    vtkSmartPointer<vtkPoints> samplePositions_RAS = vtkSmartPointer<vtkPoints>::New();
+    vtkNew<vtkPoints> samplePositions_RAS;
     samplePositions_RAS->SetNumberOfPoints(numOfSamples);
 
     //Will contain the corresponding vectors for outputPointSet
-    vtkSmartPointer<vtkDoubleArray> sampleVectors_RAS = vtkSmartPointer<vtkDoubleArray>::New();
+    vtkNew<vtkDoubleArray> sampleVectors_RAS;
     sampleVectors_RAS->Initialize();
     sampleVectors_RAS->SetNumberOfComponents(3);
     sampleVectors_RAS->SetNumberOfTuples(numOfSamples);
     sampleVectors_RAS->SetName("DisplacementVector");
 
-    vtkSmartPointer<vtkGeneralTransform> inputTransform=vtkSmartPointer<vtkGeneralTransform>::New();
-    inputTransformNode->GetTransformToWorld(inputTransform);
+    vtkNew<vtkGeneralTransform> inputTransform;
+    inputTransformNode->GetTransformToWorld(inputTransform.GetPointer());
 
     double point_RAS[4] = {0,0,0,1};
     double transformedPoint_RAS[4] = {0,0,0,1};
@@ -108,11 +106,11 @@ public:
     double point_Grid[4]={0,0,0,1};
     int sampleIndex=0;
     for (point_Grid[2]=0; point_Grid[2]<gridSize[2]; point_Grid[2]++)
-    {
-      for (point_Grid[1]=0; point_Grid[1]<gridSize[1]; point_Grid[1]++)
       {
-        for (point_Grid[0]=0; point_Grid[0]<gridSize[0]; point_Grid[0]++)
+      for (point_Grid[1]=0; point_Grid[1]<gridSize[1]; point_Grid[1]++)
         {
+        for (point_Grid[0]=0; point_Grid[0]<gridSize[0]; point_Grid[0]++)
+          {
           gridToRAS->MultiplyPoint(point_Grid, point_RAS);
 
           inputTransform->TransformPoint(point_RAS, transformedPoint_RAS);
@@ -124,23 +122,23 @@ public:
           samplePositions_RAS->SetPoint(sampleIndex, point_RAS[0], point_RAS[1], point_RAS[2]);
           sampleVectors_RAS->SetTuple3(sampleIndex,pointDislocationVector_RAS[0], pointDislocationVector_RAS[1], pointDislocationVector_RAS[2]);
           sampleIndex++;
+          }
         }
       }
-    }
 
-    outputPointSet->SetPoints(samplePositions_RAS);
+    outputPointSet->SetPoints(samplePositions_RAS.GetPointer());
     vtkPointData* pointData = outputPointSet->GetPointData();
-    pointData->SetVectors(sampleVectors_RAS);
+    pointData->SetVectors(sampleVectors_RAS.GetPointer());
 
     // Compute vector magnitude and add to the data set
-    vtkSmartPointer<vtkVectorNorm> norm = vtkSmartPointer<vtkVectorNorm>::New();
+    vtkNew<vtkVectorNorm> norm;
     norm->SetInput(outputPointSet);
     norm->Update();
     vtkDataArray* vectorMagnitude = norm->GetOutput()->GetPointData()->GetScalars();
-    vectorMagnitude->SetName(DISPLACEMENT_MAGNITUDE_SCALAR_NAME);
+    vectorMagnitude->SetName(GetDisplacementMagnitudeScalarName());
     int idx=pointData->AddArray(vectorMagnitude);
     pointData->SetActiveAttribute(idx, vtkDataSetAttributes::SCALARS);
-  }
+    }
 
   /// Takes samples from the displacement field specified by the transformation on a slice
   /// and stores it in an unstructured grid.
@@ -168,11 +166,11 @@ public:
     vtkMatrix4x4::Multiply4x4(gridToRAS.GetPointer(),gridScaling.GetPointer(),gridToRAS.GetPointer());
 
     if (numGridPoints)
-    {
+      {
       numGridPoints[0]=gridSize[0];
       numGridPoints[1]=gridSize[1];
       numGridPoints[2]=1;
-    }
+      }
 
     GetTransformedPointSamples(inputTransformNode, outputPointSet, gridToRAS.GetPointer(), gridSize);
 
@@ -187,13 +185,13 @@ public:
     double* chosenVector = NULL;
     int numOfTuples=projectedVectors->GetNumberOfTuples();
     for(int i = 0; i < numOfTuples; i++)
-    {
+      {
       chosenVector = projectedVectors->GetTuple3(i);
       dot = chosenVector[0]*sliceNormal_RAS[0] + chosenVector[1]*sliceNormal_RAS[1] + chosenVector[2]*sliceNormal_RAS[2];
       projectedVectors->SetTuple3(i, chosenVector[0]-dot*sliceNormal_RAS[0], chosenVector[1]-dot*sliceNormal_RAS[1], chosenVector[2]-dot*sliceNormal_RAS[2]);
-    }
+      }
     projectedVectors->SetName("ProjectedDisplacementVector");
-    outputPointSet->GetPointData()->SetActiveAttribute(DISPLACEMENT_MAGNITUDE_SCALAR_NAME, vtkDataSetAttributes::SCALARS);
+    outputPointSet->GetPointData()->SetActiveAttribute(GetDisplacementMagnitudeScalarName(), vtkDataSetAttributes::SCALARS);
   }
 
 
@@ -203,25 +201,25 @@ public:
   static void GetTransformedPointSamplesAsImage(vtkMRMLTransformNode* inputTransformNode, vtkImageData* magnitudeImage, vtkMatrix4x4* ijkToRAS, int* imageSize)
   {
     if (!inputTransformNode)
-    {
+      {
       return;
-    }
-    vtkSmartPointer<vtkGeneralTransform> inputTransform=vtkSmartPointer<vtkGeneralTransform>::New();
-    inputTransformNode->GetTransformToWorld(inputTransform);
+      }
+    vtkNew<vtkGeneralTransform> inputTransform;
+    inputTransformNode->GetTransformToWorld(inputTransform.GetPointer());
 
     magnitudeImage->SetExtent(0,imageSize[0]-1,0,imageSize[1]-1,0,imageSize[2]-1);
     double spacing[3]=
-    {
+      {
       sqrt(ijkToRAS->Element[0][0]*ijkToRAS->Element[0][0]+ijkToRAS->Element[1][0]*ijkToRAS->Element[1][0]+ijkToRAS->Element[2][0]*ijkToRAS->Element[2][0]),
       sqrt(ijkToRAS->Element[0][1]*ijkToRAS->Element[0][1]+ijkToRAS->Element[1][1]*ijkToRAS->Element[1][1]+ijkToRAS->Element[2][1]*ijkToRAS->Element[2][1]),
       sqrt(ijkToRAS->Element[0][2]*ijkToRAS->Element[0][2]+ijkToRAS->Element[1][2]*ijkToRAS->Element[1][2]+ijkToRAS->Element[2][2]*ijkToRAS->Element[2][2])
-    };
+      };
     double origin[3]=
-    {
+      {
       ijkToRAS->Element[0][3],
       ijkToRAS->Element[1][3],
       ijkToRAS->Element[2][3]
-    };
+      };
     // The orientation of the volume cannot be set in the image
     // therefore the volume will not appear in the correct position
     // if the direction matrix is not identity.
@@ -236,11 +234,11 @@ public:
     double point_IJK[4]={0,0,0,1};
     float* voxelPtr=static_cast<float*>(magnitudeImage->GetScalarPointer());
     for (point_IJK[2]=0; point_IJK[2]<imageSize[2]; point_IJK[2]++)
-    {
-      for (point_IJK[1]=0; point_IJK[1]<imageSize[1]; point_IJK[1]++)
       {
-        for (point_IJK[0]=0; point_IJK[0]<imageSize[0]; point_IJK[0]++)
+      for (point_IJK[1]=0; point_IJK[1]<imageSize[1]; point_IJK[1]++)
         {
+        for (point_IJK[0]=0; point_IJK[0]<imageSize[0]; point_IJK[0]++)
+          {
           ijkToRAS->MultiplyPoint(point_IJK, point_RAS);
 
           inputTransform->TransformPoint(point_RAS, transformedPoint_RAS);
@@ -255,9 +253,9 @@ public:
             pointDislocationVector_RAS[2]*pointDislocationVector_RAS[2]);
 
           *(voxelPtr++)=mag;
+          }
         }
       }
-    }
 
   }
 
@@ -268,11 +266,11 @@ public:
   static void GetTransformedPointSamplesOnRoi(vtkMRMLTransformNode* inputTransformNode, vtkPointSet* pointSet, vtkMatrix4x4* roiToRAS, int* roiSize, double pointSpacingMm, int pointGroupSize=1, int* numGridPoints=0)
   {
     double roiSpacing[3]=
-    {
+      {
       sqrt(roiToRAS->Element[0][0]*roiToRAS->Element[0][0]+roiToRAS->Element[1][0]*roiToRAS->Element[1][0]+roiToRAS->Element[2][0]*roiToRAS->Element[2][0]),
       sqrt(roiToRAS->Element[0][1]*roiToRAS->Element[0][1]+roiToRAS->Element[1][1]*roiToRAS->Element[1][1]+roiToRAS->Element[2][1]*roiToRAS->Element[2][1]),
       sqrt(roiToRAS->Element[0][2]*roiToRAS->Element[0][2]+roiToRAS->Element[1][2]*roiToRAS->Element[1][2]+roiToRAS->Element[2][2]*roiToRAS->Element[2][2])
-    };
+      };
 
     double roiSizeMm[3]={roiSize[0]*roiSpacing[0], roiSize[1]*roiSpacing[1], roiSize[2]*roiSpacing[2]};
 
@@ -306,37 +304,37 @@ public:
     GetTransformedPointSamples(inputTransformNode, pointSet, gridToRAS.GetPointer(), gridSize);
 
     if (numGridPoints!=NULL)
-    {
+      {
       numGridPoints[0]=gridSize[0];
       numGridPoints[1]=gridSize[1];
       numGridPoints[2]=gridSize[2];
-    }
+     }
   }
 
   //----------------------------------------------------------------------------
   static void GetGlyphVisualization3d(vtkMRMLTransformDisplayNode* displayNode, vtkPolyData* output, vtkMatrix4x4* roiToRAS, int* roiSize)
   {
-    vtkSmartPointer<vtkUnstructuredGrid> pointSet = vtkSmartPointer<vtkUnstructuredGrid>::New();
-    vtkMRMLTransformNode* inputTransformNode=GetTransformNode(displayNode);
-    GetTransformedPointSamplesOnRoi(inputTransformNode, pointSet, roiToRAS, roiSize, displayNode->GetGlyphSpacingMm());
-    vtkSmartPointer<vtkTransformVisualizerGlyph3D> glyphFilter = vtkSmartPointer<vtkTransformVisualizerGlyph3D>::New();
+    vtkNew<vtkUnstructuredGrid> pointSet;
+    vtkMRMLTransformNode* inputTransformNode=vtkMRMLTransformNode::SafeDownCast(displayNode->GetDisplayableNode());
+    GetTransformedPointSamplesOnRoi(inputTransformNode, pointSet.GetPointer(), roiToRAS, roiSize, displayNode->GetGlyphSpacingMm());
+    vtkNew<vtkTransformVisualizerGlyph3D> glyphFilter;
     glyphFilter->SetScaleFactor(displayNode->GetGlyphScalePercent()*0.01);
     glyphFilter->SetColorModeToColorByScalar();
     glyphFilter->OrientOn();
-    glyphFilter->SetInput(pointSet);
+    glyphFilter->SetInput(pointSet.GetPointer());
 
-    glyphFilter->SetColorArray(DISPLACEMENT_MAGNITUDE_SCALAR_NAME);
+    glyphFilter->SetColorArray(GetDisplacementMagnitudeScalarName());
 
     glyphFilter->SetMagnitudeThresholdLower(displayNode->GetGlyphDisplayRangeMinMm());
     glyphFilter->SetMagnitudeThresholdUpper(displayNode->GetGlyphDisplayRangeMaxMm());
     glyphFilter->SetMagnitudeThresholding(true);
 
     switch (displayNode->GetGlyphType())
-    {
+      {
       //Arrows
       case vtkMRMLTransformDisplayNode::GLYPH_TYPE_ARROW:
-      {
-        vtkSmartPointer<vtkArrowSource> arrowSource = vtkSmartPointer<vtkArrowSource>::New();
+        {
+        vtkNew<vtkArrowSource> arrowSource;
         arrowSource->SetTipLength(displayNode->GetGlyphTipLengthPercent()*0.01);
         arrowSource->SetTipRadius(displayNode->GetGlyphDiameterMm()*0.5);
         arrowSource->SetTipResolution(displayNode->GetGlyphResolution());
@@ -346,11 +344,11 @@ public:
         glyphFilter->SetScaleModeToScaleByVector();
         glyphFilter->SetSourceConnection(arrowSource->GetOutputPort());
         break;
-      }
+        }
       //Cones
       case vtkMRMLTransformDisplayNode::GLYPH_TYPE_CONE:
-      {
-        vtkSmartPointer<vtkConeSource> coneSource = vtkSmartPointer<vtkConeSource>::New();
+        {
+        vtkNew<vtkConeSource> coneSource;
         coneSource->SetHeight(1.0);
         coneSource->SetRadius(displayNode->GetGlyphDiameterMm()*0.5);
         coneSource->SetResolution(displayNode->GetGlyphResolution());
@@ -358,11 +356,11 @@ public:
         glyphFilter->SetScaleModeToScaleByVector();
         glyphFilter->SetSourceConnection(coneSource->GetOutputPort());
         break;
-      }
+       }
       //Spheres
       case vtkMRMLTransformDisplayNode::GLYPH_TYPE_SPHERE:
-      {
-        vtkSmartPointer<vtkSphereSource> sphereSource = vtkSmartPointer<vtkSphereSource>::New();
+       {
+        vtkNew<vtkSphereSource> sphereSource;
         sphereSource->SetRadius(0.5);
         sphereSource->SetThetaResolution(displayNode->GetGlyphResolution());
         sphereSource->SetPhiResolution(displayNode->GetGlyphResolution());
@@ -370,8 +368,8 @@ public:
         glyphFilter->SetScaleModeToScaleByScalar();
         glyphFilter->SetSourceConnection(sphereSource->GetOutputPort());
         break;
+        }
       }
-    }
 
     glyphFilter->Update();
     output->ShallowCopy(glyphFilter->GetOutput());
@@ -381,17 +379,17 @@ public:
   static void GetGlyphVisualization2d(vtkMRMLTransformDisplayNode* displayNode, vtkPolyData* output, vtkMatrix4x4* sliceToRAS, double* fieldOfViewOrigin, double* fieldOfViewSize)
   {
     //Pre-processing
-    vtkSmartPointer<vtkUnstructuredGrid> pointSet = vtkSmartPointer<vtkUnstructuredGrid>::New();
+    vtkNew<vtkUnstructuredGrid> pointSet;
     pointSet->Initialize();
 
-    vtkMRMLTransformNode* inputTransformNode=GetTransformNode(displayNode);
-    GetTransformedPointSamplesOnSlice(inputTransformNode, pointSet, sliceToRAS, fieldOfViewOrigin, fieldOfViewSize, displayNode->GetGlyphSpacingMm());
+    vtkMRMLTransformNode* inputTransformNode=vtkMRMLTransformNode::SafeDownCast(displayNode->GetDisplayableNode());
+    GetTransformedPointSamplesOnSlice(inputTransformNode, pointSet.GetPointer(), sliceToRAS, fieldOfViewOrigin, fieldOfViewSize, displayNode->GetGlyphSpacingMm());
 
-    vtkSmartPointer<vtkTransformVisualizerGlyph3D> glyphFilter = vtkSmartPointer<vtkTransformVisualizerGlyph3D>::New();
-    vtkSmartPointer<vtkTransform> rotateArrow = vtkSmartPointer<vtkTransform>::New();
-    vtkSmartPointer<vtkGlyphSource2D> glyph2DSource = vtkSmartPointer<vtkGlyphSource2D>::New();
+    vtkNew<vtkTransformVisualizerGlyph3D> glyphFilter;
+    vtkNew<vtkTransform> rotateArrow;
+    vtkNew<vtkGlyphSource2D> glyph2DSource;
     switch (displayNode->GetGlyphType())
-    {
+      {
       case vtkMRMLTransformDisplayNode::GLYPH_TYPE_ARROW:
         glyph2DSource->SetGlyphTypeToArrow();
         glyphFilter->SetScaleModeToScaleByVector();
@@ -409,7 +407,7 @@ public:
         glyphFilter->SetScaleModeToScaleByScalar();
         break;
       default: glyph2DSource->SetGlyphTypeToNone();
-    }
+      }
 
     float sliceNormal_RAS[3] = {0,0,0};
     sliceNormal_RAS[0] = sliceToRAS->GetElement(0,2);
@@ -418,21 +416,21 @@ public:
 
     bool useNewMethod=false;
     if (useNewMethod)
-    {
+      {
       // the arrow tips are oriented correctly, but it seems that the direction of the shaft is not always correct
-      vtkSmartPointer<vtkMatrix4x4> glyphOrientation=vtkSmartPointer<vtkMatrix4x4>::New();
+      vtkNew<vtkMatrix4x4> glyphOrientation;
       glyphOrientation->DeepCopy(sliceToRAS);
       glyphOrientation->Element[0][3]=0;
       glyphOrientation->Element[1][3]=0;
       glyphOrientation->Element[2][3]=0;
-      rotateArrow->SetMatrix(glyphOrientation);
+      rotateArrow->SetMatrix(glyphOrientation.GetPointer());
       rotateArrow->Inverse();
-    }
+      }
     else
-    {
+      {
       // the arrow tips are note always oriented correctly, but the direction of the shaft looks correct
       rotateArrow->RotateX(vtkMath::DegreesFromRadians(acos(abs(sliceNormal_RAS[2])))); // TODO: check this, it might not be correct for an arbitrarily oriented slice normal
-    }
+     }
 
     glyph2DSource->SetScale(1);
     glyph2DSource->SetFilled(0);
@@ -440,11 +438,11 @@ public:
     glyphFilter->SetScaleFactor(displayNode->GetGlyphScalePercent()*0.01);
     glyphFilter->SetScaleDirectional(false);
     glyphFilter->SetColorModeToColorByScalar();
-    glyphFilter->SetSourceTransform(rotateArrow);
+    glyphFilter->SetSourceTransform(rotateArrow.GetPointer());
     glyphFilter->SetSourceConnection(glyph2DSource->GetOutputPort());
-    glyphFilter->SetInput(pointSet);
+    glyphFilter->SetInput(pointSet.GetPointer());
 
-    glyphFilter->SetColorArray(DISPLACEMENT_MAGNITUDE_SCALAR_NAME);
+    glyphFilter->SetColorArray(GetDisplacementMagnitudeScalarName());
 
     glyphFilter->SetMagnitudeThresholdLower(displayNode->GetGlyphDisplayRangeMinMm());
     glyphFilter->SetMagnitudeThresholdUpper(displayNode->GetGlyphDisplayRangeMaxMm());
@@ -461,10 +459,10 @@ public:
   {
     int subdivision=floor(displayNode->GetGridSpacingMm()/displayNode->GetGridResolutionMm()+0.5);
     if (subdivision<1)
-    {
+      {
       // avoid infinite loops and division by zero errors
       subdivision=1;
-    }
+     }
     return subdivision;
   }
 
@@ -472,68 +470,68 @@ public:
   //----------------------------------------------------------------------------
   static void CreateGrid(vtkMRMLTransformDisplayNode* displayNode, vtkPolyData* gridPolyData, int numGridPoints[3], vtkPolyData* warpedGrid/*=NULL*/)
   {
-    vtkSmartPointer<vtkCellArray> grid = vtkSmartPointer<vtkCellArray>::New();
-    vtkSmartPointer<vtkLine> line = vtkSmartPointer<vtkLine>::New();
+    vtkNew<vtkCellArray> grid;
+    vtkNew<vtkLine> line;
 
     int gridSubdivision=GetGridSubdivision(displayNode);
 
     // Create lines along i
     for (int k = 0; k < numGridPoints[2]; k+=gridSubdivision)
-    {
-      for (int j = 0; j < numGridPoints[1]; j+=gridSubdivision)
       {
+      for (int j = 0; j < numGridPoints[1]; j+=gridSubdivision)
+       {
         for (int i = 0; i < numGridPoints[0]-1; i++)
-        {
+          {
           line->GetPointIds()->SetId(0, (i) + (j*numGridPoints[0]) + (k*numGridPoints[0]*numGridPoints[1]));
           line->GetPointIds()->SetId(1, (i+1) + (j*numGridPoints[0]) + (k*numGridPoints[0]*numGridPoints[1]));
-          grid->InsertNextCell(line);
+          grid->InsertNextCell(line.GetPointer());
+          }
         }
       }
-    }
 
     // Create lines along j
     for (int k = 0; k < numGridPoints[2]; k+=gridSubdivision)
-    {
-      for (int j = 0; j < numGridPoints[1]-1; j++)
       {
-        for (int i = 0; i < numGridPoints[0]; i+=gridSubdivision)
+      for (int j = 0; j < numGridPoints[1]-1; j++)
         {
+        for (int i = 0; i < numGridPoints[0]; i+=gridSubdivision)
+         {
           line->GetPointIds()->SetId(0, (i) + ((j)*numGridPoints[0]) + (k*numGridPoints[0]*numGridPoints[1]));
           line->GetPointIds()->SetId(1, (i) + ((j+1)*numGridPoints[0]) + (k*numGridPoints[0]*numGridPoints[1]));
-          grid->InsertNextCell(line);
+          grid->InsertNextCell(line.GetPointer());
+          }
         }
       }
-    }
 
     // Create lines along k
     for (int k = 0; k < numGridPoints[2]-1; k++)
-    {
+     {
       for (int j = 0; j < numGridPoints[1]; j+=gridSubdivision)
-      {
+       {
         for (int i = 0; i < numGridPoints[0]; i+=gridSubdivision)
-        {
+         {
           line->GetPointIds()->SetId(0, (i) + ((j)*numGridPoints[0]) + ((k)*numGridPoints[0]*numGridPoints[1]));
           line->GetPointIds()->SetId(1, (i) + ((j)*numGridPoints[0]) + ((k+1)*numGridPoints[0]*numGridPoints[1]));
-          grid->InsertNextCell(line);
+          grid->InsertNextCell(line.GetPointer());
+          }
         }
       }
-    }
 
-    gridPolyData->SetLines(grid);
+    gridPolyData->SetLines(grid.GetPointer());
 
     if (warpedGrid)
-    {
-      vtkSmartPointer<vtkWarpVector> warp = vtkSmartPointer<vtkWarpVector>::New();
+      {
+      vtkNew<vtkWarpVector> warp;
       warp->SetInput(gridPolyData);
       warp->SetScaleFactor(displayNode->GetGridScalePercent()*0.01);
       warp->Update();
       vtkPolyData* polyoutput = warp->GetPolyDataOutput();
 
-      int idx=polyoutput->GetPointData()->AddArray(gridPolyData->GetPointData()->GetArray(DISPLACEMENT_MAGNITUDE_SCALAR_NAME));
+      int idx=polyoutput->GetPointData()->AddArray(gridPolyData->GetPointData()->GetArray(GetDisplacementMagnitudeScalarName()));
       polyoutput->GetPointData()->SetActiveAttribute(idx, vtkDataSetAttributes::SCALARS);
       warpedGrid->ShallowCopy(warp->GetPolyDataOutput());
       warpedGrid->Update();
-    }
+      }
   }
 
   //----------------------------------------------------------------------------
@@ -542,45 +540,45 @@ public:
     double pointSpacing=displayNode->GetGridSpacingMm()/GetGridSubdivision(displayNode);
     int numGridPoints[3]={0};
 
-    vtkSmartPointer<vtkPolyData> gridPolyData=vtkSmartPointer<vtkPolyData>::New();
-    vtkMRMLTransformNode* transformNode=GetTransformNode(displayNode);
-    GetTransformedPointSamplesOnSlice(transformNode, gridPolyData, sliceToRAS, fieldOfViewOrigin, fieldOfViewSize, pointSpacing, GetGridSubdivision(displayNode), numGridPoints);
+    vtkNew<vtkPolyData> gridPolyData;
+    vtkMRMLTransformNode* transformNode=vtkMRMLTransformNode::SafeDownCast(displayNode->GetDisplayableNode());
+    GetTransformedPointSamplesOnSlice(transformNode, gridPolyData.GetPointer(), sliceToRAS, fieldOfViewOrigin, fieldOfViewSize, pointSpacing, GetGridSubdivision(displayNode), numGridPoints);
 
     if (displayNode->GetGridShowNonWarped())
-    {
+     {
       // Show both the original (non-warped) and the warped grid
 
       // Create the grids
       vtkNew<vtkPolyData> warpedGridPolyData;
-      CreateGrid(displayNode, gridPolyData, numGridPoints, warpedGridPolyData.GetPointer());
+      CreateGrid(displayNode, gridPolyData.GetPointer(), numGridPoints, warpedGridPolyData.GetPointer());
 
       // Set the displacement magnitude DataArray in the non-warped grid data to zero.
       // Create a new DataArray, because the same array is used by both the warped
       // and the non-warped grid.
-      vtkDataArray* displacementMagnitudeScalars=gridPolyData->GetPointData()->GetArray(DISPLACEMENT_MAGNITUDE_SCALAR_NAME);
+      vtkDataArray* displacementMagnitudeScalars=gridPolyData->GetPointData()->GetArray(GetDisplacementMagnitudeScalarName());
       vtkSmartPointer<vtkDataArray> zeroDisplacementMagnitudeScalars=vtkSmartPointer<vtkDataArray>::Take(displacementMagnitudeScalars->NewInstance());
-      zeroDisplacementMagnitudeScalars->SetName(DISPLACEMENT_MAGNITUDE_SCALAR_NAME);
+      zeroDisplacementMagnitudeScalars->SetName(GetDisplacementMagnitudeScalarName());
       zeroDisplacementMagnitudeScalars->SetNumberOfTuples(displacementMagnitudeScalars->GetNumberOfTuples());
       zeroDisplacementMagnitudeScalars->FillComponent(0,0.0);
 
       // Replace the DataArray in the non-warped grid
-      gridPolyData->GetPointData()->RemoveArray(DISPLACEMENT_MAGNITUDE_SCALAR_NAME);
+      gridPolyData->GetPointData()->RemoveArray(GetDisplacementMagnitudeScalarName());
       int idx=gridPolyData->GetPointData()->AddArray(zeroDisplacementMagnitudeScalars);
       gridPolyData->GetPointData()->SetActiveAttribute(idx, vtkDataSetAttributes::SCALARS);
 
       // Create the output by combining the warped and non-warped grid
       vtkNew<vtkAppendPolyData> appender;
-      appender->AddInput(gridPolyData);
+      appender->AddInput(gridPolyData.GetPointer());
       appender->AddInput(warpedGridPolyData.GetPointer());
       appender->Update();
       output->ShallowCopy(appender->GetOutput());
-      output->GetPointData()->SetActiveAttribute(DISPLACEMENT_MAGNITUDE_SCALAR_NAME, vtkDataSetAttributes::SCALARS);
-    }
+      output->GetPointData()->SetActiveAttribute(GetDisplacementMagnitudeScalarName(), vtkDataSetAttributes::SCALARS);
+      }
     else
-    {
+      {
       // The output is the warped grid
-      CreateGrid(displayNode, gridPolyData, numGridPoints, output);
-    }
+      CreateGrid(displayNode, gridPolyData.GetPointer(), numGridPoints, output);
+      }
   }
 
   //----------------------------------------------------------------------------
@@ -590,7 +588,7 @@ public:
     int numGridPoints[3]={0};
 
     vtkNew<vtkPolyData> gridPolyData;
-    vtkMRMLTransformNode* inputTransformNode=GetTransformNode(displayNode);
+    vtkMRMLTransformNode* inputTransformNode=vtkMRMLTransformNode::SafeDownCast(displayNode->GetDisplayableNode());
     GetTransformedPointSamplesOnRoi(inputTransformNode, gridPolyData.GetPointer(), roiToRAS, roiSize, pointSpacing, GetGridSubdivision(displayNode), numGridPoints);
 
     vtkNew<vtkPolyData> warpedGridPolyData;
@@ -630,15 +628,15 @@ public:
 
     int imageSize[3]={numOfPointsX, numOfPointsY,1};
 
-    vtkMRMLTransformNode* inputTransformNode=GetTransformNode(displayNode);
+    vtkMRMLTransformNode* inputTransformNode=vtkMRMLTransformNode::SafeDownCast(displayNode->GetDisplayableNode());
     GetTransformedPointSamplesAsImage(inputTransformNode, magnitudeImage.GetPointer(), ijkToRAS.GetPointer(), imageSize);
 
     vtkNew<vtkContourFilter> contourFilter;
     double* levels=displayNode->GetContourLevelsMm();
     for (int i=0; i<displayNode->GetNumberOfContourLevels(); i++)
-    {
+     {
       contourFilter->SetValue(i, levels[i]);
-    }
+     }
     contourFilter->SetInput(magnitudeImage.GetPointer());
     contourFilter->Update();
 
@@ -678,16 +676,16 @@ public:
     // Sample on an image
     vtkNew<vtkImageData> magnitudeImage;
     int imageSize[3]={numOfPointsX, numOfPointsY, numOfPointsZ};
-    vtkMRMLTransformNode* transformNode=GetTransformNode(displayNode);
+    vtkMRMLTransformNode* transformNode=vtkMRMLTransformNode::SafeDownCast(displayNode->GetDisplayableNode());
     GetTransformedPointSamplesAsImage(transformNode, magnitudeImage.GetPointer(), ijkToRAS.GetPointer(), imageSize);
 
     // Contput contours
     vtkNew<vtkContourFilter> contourFilter;
     double* levels=displayNode->GetContourLevelsMm();
     for (int i=0; i<displayNode->GetNumberOfContourLevels(); i++)
-    {
+     {
       contourFilter->SetValue(i, levels[i]);
-    }
+     }
     contourFilter->SetInput(magnitudeImage.GetPointer());
     contourFilter->Update();
 
@@ -715,7 +713,7 @@ public:
       }
 
     switch (displayNode->GetVisualizationMode())
-    {
+      {
     case vtkMRMLTransformDisplayNode::VIS_MODE_GLYPH:
       GetGlyphVisualization2d(displayNode, output, sliceToRAS, fieldOfViewOrigin, fieldOfViewSize);
       break;
@@ -725,13 +723,7 @@ public:
     case vtkMRMLTransformDisplayNode::VIS_MODE_CONTOUR:
       GetContourVisualization2d(displayNode, output, sliceToRAS, fieldOfViewOrigin, fieldOfViewSize);
       break;
-    }
-  }
-
-  //----------------------------------------------------------------------------
-  static const char* GetDisplacementMagnitudeScalarName()
-  {
-    return DISPLACEMENT_MAGNITUDE_SCALAR_NAME;
+      }
   }
 
   /// Generate polydata for 3D transform visualization
@@ -752,7 +744,7 @@ public:
 
     displayNode->SetScalarVisibility(1);
     switch (displayNode->GetVisualizationMode())
-    {
+      {
     case vtkMRMLTransformDisplayNode::VIS_MODE_GLYPH:
       displayNode->SetBackfaceCulling(1);
       displayNode->SetOpacity(1);
@@ -768,7 +760,7 @@ public:
       displayNode->SetOpacity(displayNode->GetContourOpacity());
       GetContourVisualization3d(displayNode, output, roiToRAS, roiSize);
       break;
-    }
+      }
 
     displayNode->EndModify(oldModify);
   }
@@ -779,29 +771,29 @@ public:
   //----------------------------------------------------------------------------
   static vtkPolyData* GetOutputPolyData(vtkMRMLTransformDisplayNode* displayNode, vtkPolyData* cachedPolyData)
   {
-    vtkMRMLTransformNode* transformNode=GetTransformNode(displayNode);
+    vtkMRMLTransformNode* transformNode=vtkMRMLTransformNode::SafeDownCast(displayNode->GetDisplayableNode());
     if (transformNode==NULL)
-    {
+      {
       return NULL;
-    }
+      }
     vtkMRMLNode* regionNode=displayNode->GetRegionNode();
     if (regionNode==NULL)
-    {
+      {
       return NULL;
-    }
+      }
 
     if (cachedPolyData->GetMTime()<displayNode->GetMTime()
       || cachedPolyData->GetMTime()<transformNode->GetMTime()
       || cachedPolyData->GetMTime()<transformNode->GetTransformToWorldMTime()
       || cachedPolyData->GetMTime()<regionNode->GetMTime())
-    {
+      {
       // cached polydata is obsolete, recompute it now
       vtkNew<vtkMatrix4x4> ijkToRAS;
       int regionSize_IJK[3]={0};
       vtkMRMLSliceNode* sliceNode=vtkMRMLSliceNode::SafeDownCast(regionNode);
       vtkMRMLDisplayableNode* displayableNode=vtkMRMLDisplayableNode::SafeDownCast(regionNode);
       if (sliceNode!=NULL)
-      {
+       {
         double pointSpacing=displayNode->GetGlyphSpacingMm();
 
         vtkMatrix4x4* sliceToRAS=sliceNode->GetSliceToRAS();
@@ -827,9 +819,9 @@ public:
         regionSize_IJK[0]=numOfPointsX;
         regionSize_IJK[1]=numOfPointsY;
         regionSize_IJK[2]=0;
-      }
+        }
       else if (displayableNode!=NULL)
-      {
+        {
         double bounds_RAS[6]={0};
         displayableNode->GetRASBounds(bounds_RAS);
         ijkToRAS->SetElement(0,3,bounds_RAS[0]);
@@ -838,18 +830,18 @@ public:
         regionSize_IJK[0]=floor(bounds_RAS[1]-bounds_RAS[0]);
         regionSize_IJK[1]=floor(bounds_RAS[3]-bounds_RAS[2]);
         regionSize_IJK[2]=floor(bounds_RAS[5]-bounds_RAS[4]);
-      }
+        }
       else
-      {
+       {
         vtkWarningWithObjectMacro(displayNode, "Failed to show transform in 3D: unsupported ROI type");
         return NULL;
-      }
+        }
       GetVisualization3d(displayNode, cachedPolyData, ijkToRAS.GetPointer(), regionSize_IJK);
-    }
+      }
     else
-    {
-      //vtkDebugMacro("Update was not needed"); TODO: this can be removed, used only for testing
-    }
+      {
+      //vtkDebugMacro("Update was not needed"); // this line is only uncommented for testing
+      }
 
     return cachedPolyData;
   }

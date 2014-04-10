@@ -26,7 +26,6 @@
 #include "vtkSlicerTransformsModuleMRMLDisplayableManagerExport.h"
 
 #include "vtkGlyph3D.h"
-#include <vtkSmartPointer.h>
 
 /// \brief Specialized glyph3d filter optimized for visualizing transforms
 ///

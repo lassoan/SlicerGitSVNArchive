@@ -17,49 +17,36 @@
 // MRMLDisplayableManager includes
 #include "vtkMRMLTransformsDisplayableManager3D.h"
 #include "TransformsDisplayableManagerHelper.h"
-#include "vtkThreeDViewInteractorStyle.h"
-#include "vtkMRMLApplicationLogic.h"
+//#include "vtkThreeDViewInteractorStyle.h"
 
 // MRML includes
 #include <vtkEventBroker.h>
 #include <vtkMRMLDisplayableNode.h>
 #include <vtkMRMLDisplayNode.h>
-#include <vtkMRMLLinearTransformNode.h>
 #include <vtkMRMLModelNode.h>
-#include <vtkMRMLTransformDisplayNode.h>
 #include <vtkMRMLProceduralColorNode.h>
 #include <vtkMRMLScene.h>
-#include "vtkMRMLSliceNode.h"
-#include "vtkMRMLViewNode.h"
-#include "vtkMRMLInteractionNode.h"
+#include <vtkMRMLTransformDisplayNode.h>
+#include <vtkMRMLViewNode.h>
 
 // VTK includes
-#include <vtkAssignAttribute.h>
-#include <vtkCellArray.h>
 #include <vtkColorTransferFunction.h>
 #include <vtkDataSetAttributes.h>
-#include <vtkGeneralTransform.h>
-#include <vtkImageActor.h>
-#include <vtkImageData.h>
-//#include <vtkImplicitBoolean.h>
 #include <vtkLookupTable.h>
 #include <vtkMatrix4x4.h>
 #include <vtkNew.h>
 #include <vtkObjectFactory.h>
-//#include <vtkPlane.h>
 #include <vtkPolyDataMapper.h>
 #include <vtkProperty.h>
 #include <vtkRenderWindowInteractor.h>
 #include <vtkRenderer.h>
 #include <vtkSmartPointer.h>
-#include <vtkTransformPolyDataFilter.h>
 
 // STD includes
 #include <cassert>
 
 //---------------------------------------------------------------------------
 vtkStandardNewMacro ( vtkMRMLTransformsDisplayableManager3D );
-vtkCxxRevisionMacro ( vtkMRMLTransformsDisplayableManager3D, "$Revision: 13525 $");
 
 //---------------------------------------------------------------------------
 class vtkMRMLTransformsDisplayableManager3D::vtkInternal
@@ -664,7 +651,6 @@ void vtkMRMLTransformsDisplayableManager3D::SetModelDisplayProperty(vtkMRMLDispl
         }
 
       vtkActor *actor = vtkActor::SafeDownCast(prop);
-      vtkImageActor *imageActor = vtkImageActor::SafeDownCast(prop);
 
       bool visible = displayNode->GetVisibility(this->GetMRMLViewNode()->GetID());
       prop->SetVisibility(visible);

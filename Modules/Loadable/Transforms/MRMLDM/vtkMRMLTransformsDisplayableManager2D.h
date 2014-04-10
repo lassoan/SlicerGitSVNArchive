@@ -41,7 +41,7 @@ class VTK_SLICER_TRANSFORMS_MODULE_MRMLDISPLAYABLEMANAGER_EXPORT vtkMRMLTransfor
 
 public:
   static vtkMRMLTransformsDisplayableManager2D* New();
-  vtkTypeRevisionMacro(vtkMRMLTransformsDisplayableManager2D,
+  vtkTypeMacro(vtkMRMLTransformsDisplayableManager2D,
                        vtkMRMLAbstractSliceViewDisplayableManager);
   void PrintSelf(ostream& os, vtkIndent indent);
 

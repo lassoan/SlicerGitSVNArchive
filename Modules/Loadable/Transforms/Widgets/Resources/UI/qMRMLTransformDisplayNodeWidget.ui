@@ -358,14 +358,14 @@
             <string>Glyphs are shown if the displacement magnitude is within this range</string>
            </property>
            <property name="text">
-            <string>Visible Range:</string>
+            <string>Visible range:</string>
            </property>
           </widget>
          </item>
          <item row="2" column="1" colspan="2">
           <widget class="qMRMLRangeWidget" name="GlyphDisplayRangeMm">
            <property name="toolTip">
-            <string>Glyphs are shown if the displacement magnitude is within this range</string>
+            <string>Only those glyphs are shown that have displacement magnitude within this range</string>
            </property>
            <property name="singleStep">
             <double>0.100000000000000</double>
@@ -387,7 +387,7 @@
             <string>Percentage of displacement usef for setting the glyph size. 100% means the glyph size equals the actual displacement.</string>
            </property>
            <property name="text">
-            <string>Scale Factor:</string>
+            <string>Scale factor:</string>
            </property>
           </widget>
          </item>
@@ -400,7 +400,7 @@
             </sizepolicy>
            </property>
            <property name="toolTip">
-            <string>Percentage of displacement usef for setting the glyph size. 100% means the glyph size equals the actual displacement.</string>
+            <string>Percentage of displacement used for setting the glyph size. 100% means the glyph size equals the actual displacement. Does not affect coloring and visible range.</string>
            </property>
            <property name="decimals">
             <number>0</number>
@@ -434,7 +434,7 @@
             <string>Choose a glyph type to use</string>
            </property>
            <property name="text">
-            <string>Glyph Type:</string>
+            <string>Glyph type:</string>
            </property>
           </widget>
          </item>
@@ -478,7 +478,7 @@
             </sizepolicy>
            </property>
            <property name="title">
-            <string>3D Glyph Settings</string>
+            <string>3D glyph settings</string>
            </property>
            <property name="checkable">
             <bool>true</bool>
@@ -537,7 +537,7 @@
                <string>Adjust radius of arrow shaft</string>
               </property>
               <property name="text">
-               <string>Shaft Diameter:</string>
+               <string>Shaft diameter:</string>
               </property>
              </widget>
             </item>
@@ -569,7 +569,7 @@
                <string>Adjust how much of the tip the arrow will consist of as a decimal percentage</string>
               </property>
               <property name="text">
-               <string>Tip Length:</string>
+               <string>Tip length:</string>
               </property>
              </widget>
             </item>
@@ -698,7 +698,7 @@
             <string>Percentage of displacement applied to the gridpoints. 100% means that the grid is deformed with the actual displacement.</string>
            </property>
            <property name="text">
-            <string>Scale Factor:</string>
+            <string>Scale factor:</string>
            </property>
           </widget>
          </item>
@@ -739,7 +739,7 @@
             <string>Thickness of the gridlines in the 3D view</string>
            </property>
            <property name="text">
-            <string>3D Gridline Diameter:</string>
+            <string>3D gridline diameter:</string>
            </property>
           </widget>
          </item>
@@ -815,7 +815,7 @@
             <string>Show non-warped grid in the slice view</string>
            </property>
            <property name="text">
-            <string>Show Original Grid:</string>
+            <string>Show original grid:</string>
            </property>
           </widget>
          </item>
@@ -917,7 +917,7 @@
          <item row="2" column="0">
           <widget class="QLabel" name="label_5">
            <property name="toolTip">
-            <string>Opacity of the contours in the 3D view</string>
+            <string>Opacity of the contour isosurfaces in the 3D view</string>
            </property>
            <property name="text">
             <string>3D opacity:</string>
@@ -927,7 +927,7 @@
          <item row="2" column="1">
           <widget class="ctkSliderWidget" name="ContourOpacity">
            <property name="toolTip">
-            <string>Opacity of the contours in the 3D view</string>
+            <string>Opacity of the contour isosurfaces in the 3D view</string>
            </property>
            <property name="decimals">
             <number>0</number>

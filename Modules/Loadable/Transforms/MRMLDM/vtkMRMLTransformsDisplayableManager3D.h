@@ -44,24 +44,21 @@ class vtkProp3D;
 class vtkPropPicker;
 class vtkWorldPointPicker;
 
-/// \brief Manage display nodes with polydata in 3D views.
+/// \brief Display transforms in 3D views
 ///
-/// Any display node in the scene that contains a valid output polydata is
-/// represented into the view renderer using configured synchronized vtkActors
-/// and vtkMappers.
+/// Creates corresponding actor for each transform display node in the scene.
+/// Adapted from the model display node.
 class VTK_SLICER_TRANSFORMS_MODULE_MRMLDISPLAYABLEMANAGER_EXPORT vtkMRMLTransformsDisplayableManager3D
   : public vtkMRMLAbstractThreeDViewDisplayableManager
 {
 public:
   static vtkMRMLTransformsDisplayableManager3D* New();
-  vtkTypeRevisionMacro(vtkMRMLTransformsDisplayableManager3D,vtkMRMLAbstractThreeDViewDisplayableManager);
+  vtkTypeMacro(vtkMRMLTransformsDisplayableManager3D,vtkMRMLAbstractThreeDViewDisplayableManager);
   void PrintSelf(ostream& os, vtkIndent indent);
 
-  ///
   /// Return the current model actor corresponding to a give MRML ID
   vtkProp3D *GetActorByID(const char *id);
 
-  ///
   /// Return the current node ID corresponding to a given vtkProp3D
   const char *GetIDByActor(vtkProp3D *actor);
 
@@ -69,6 +66,7 @@ public:
   bool IsTransformDisplayable(vtkMRMLDisplayableNode* node)const;
   /// Return true if the display node is a model
   bool IsTransformDisplayable(vtkMRMLDisplayNode* node)const;
+
 protected:
 
   vtkMRMLTransformsDisplayableManager3D();
