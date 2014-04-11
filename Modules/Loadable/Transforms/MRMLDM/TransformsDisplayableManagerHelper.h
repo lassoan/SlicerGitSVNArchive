@@ -657,14 +657,28 @@ public:
   static void GetContourVisualization3d(vtkMRMLTransformDisplayNode* displayNode, vtkPolyData* output, vtkMatrix4x4* roiToRAS, int* roiSize)
   {
     // Compute the sampling image grid position, orientation, and spacing
-    vtkNew<vtkMatrix4x4> ijkToRAS;
-    double pointSpacing=displayNode->GetContourResolutionMm();
-    int numOfPointsX=ceil(roiSize[0]/pointSpacing);
-    int numOfPointsY=ceil(roiSize[1]/pointSpacing);
-    int numOfPointsZ=ceil(roiSize[2]/pointSpacing);
+    double pointSpacingMm=displayNode->GetContourResolutionMm();
+    double roiSpacingMm[3]=
+      {
+      sqrt(roiToRAS->Element[0][0]*roiToRAS->Element[0][0]+roiToRAS->Element[1][0]*roiToRAS->Element[1][0]+roiToRAS->Element[2][0]*roiToRAS->Element[2][0]),
+      sqrt(roiToRAS->Element[0][1]*roiToRAS->Element[0][1]+roiToRAS->Element[1][1]*roiToRAS->Element[1][1]+roiToRAS->Element[2][1]*roiToRAS->Element[2][1]),
+      sqrt(roiToRAS->Element[0][2]*roiToRAS->Element[0][2]+roiToRAS->Element[1][2]*roiToRAS->Element[1][2]+roiToRAS->Element[2][2]*roiToRAS->Element[2][2])
+      };
+    double pointSpacingX_ROI=pointSpacingMm/roiSpacingMm[0];
+    double pointSpacingY_ROI=pointSpacingMm/roiSpacingMm[1];
+    double pointSpacingZ_ROI=pointSpacingMm/roiSpacingMm[2];
+    int numOfPointsX=ceil(double(roiSize[0])/pointSpacingX_ROI);
+    int numOfPointsY=ceil(double(roiSize[1])/pointSpacingY_ROI);
+    int numOfPointsZ=ceil(double(roiSize[2])/pointSpacingZ_ROI);
+    if (numOfPointsZ==0)
+      {
+      numOfPointsZ=1;
+      }
+
     double xOfs = 0;
     double yOfs = 0;
     double zOfs = 0;
+    vtkNew<vtkMatrix4x4> ijkToRAS;
     ijkToRAS->DeepCopy(roiToRAS);
     vtkNew<vtkMatrix4x4> ijkOffset;
     ijkOffset->Element[0][3]=xOfs;
@@ -672,9 +686,9 @@ public:
     ijkOffset->Element[2][3]=zOfs;
     vtkMatrix4x4::Multiply4x4(ijkToRAS.GetPointer(),ijkOffset.GetPointer(),ijkToRAS.GetPointer());
     vtkNew<vtkMatrix4x4> voxelSpacing;
-    voxelSpacing->Element[0][0]=pointSpacing;
-    voxelSpacing->Element[1][1]=pointSpacing;
-    voxelSpacing->Element[2][2]=pointSpacing;
+    voxelSpacing->Element[0][0]=pointSpacingX_ROI;
+    voxelSpacing->Element[1][1]=pointSpacingY_ROI;
+    voxelSpacing->Element[2][2]=pointSpacingZ_ROI;
     vtkMatrix4x4::Multiply4x4(ijkToRAS.GetPointer(),voxelSpacing.GetPointer(),ijkToRAS.GetPointer());
 
     // Sample on an image
@@ -775,6 +789,11 @@ public:
   //----------------------------------------------------------------------------
   static vtkPolyData* GetOutputPolyData(vtkMRMLTransformDisplayNode* displayNode, vtkPolyData* cachedPolyData)
   {
+    if (!displayNode->GetVisibility())
+    {
+      cachedPolyData->Reset();
+      return cachedPolyData;
+    }
     vtkMRMLTransformNode* transformNode=vtkMRMLTransformNode::SafeDownCast(displayNode->GetDisplayableNode());
     if (transformNode==NULL)
       {

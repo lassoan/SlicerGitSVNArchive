@@ -17,7 +17,6 @@
 // MRMLDisplayableManager includes
 #include "vtkMRMLTransformsDisplayableManager3D.h"
 #include "TransformsDisplayableManagerHelper.h"
-//#include "vtkThreeDViewInteractorStyle.h"
 
 // MRML includes
 #include <vtkEventBroker.h>
@@ -248,7 +247,6 @@ bool vtkMRMLTransformsDisplayableManager3D::IsTransformDisplayable(vtkMRMLDispla
     {
     return false;
     }
-  // TODO: now the polydata is retrieved from the display node - create it in this class instead
   bool displayable = false;
   for (int i = 0; i < node->GetNumberOfDisplayNodes(); ++i)
     {
