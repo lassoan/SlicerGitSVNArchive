@@ -385,14 +385,10 @@ int vtkImageResliceMask::RequestUpdateExtent(
   vtkInformation *inInfo = inputVector[0]->GetInformationObject(0);
 
   outInfo->Get(vtkStreamingDemandDrivenPipeline::UPDATE_EXTENT(), outExt);
-  outInfo2->Get(vtkStreamingDemandDrivenPipeline::UPDATE_EXTENT(), outExt2);
 
-  outExt[0] = std::min(outExt[0], outExt2[0]);
-  outExt[1] = std::max(outExt[1], outExt2[1]);
-  outExt[2] = std::min(outExt[2], outExt2[2]);
-  outExt[3] = std::max(outExt[3], outExt2[3]);
-  outExt[4] = std::min(outExt[4], outExt2[4]);
-  outExt[5] = std::max(outExt[5], outExt2[5]);
+  // Set the same update extent for the mask as the image, otherwise
+  // outData[1]->GetScalarPointerForExtent(outExt) sometimes fails in ThreadedRequestData()
+  outInfo2->Set(vtkStreamingDemandDrivenPipeline::UPDATE_EXTENT(), outExt, 6);
 
   if (this->ResliceTransform)
     {
@@ -3402,6 +3398,11 @@ void vtkImageResliceMask::ThreadedRequestData(
   // \todo: ThreadedRequestData shall not crash if backgroundMaskPtr is 0 as
   // it means that the backgroundmask is not pipeline connected.
   void *backgroundMaskPtr = outData[1]->GetScalarPointerForExtent(outExt);
+  if (backgroundMaskPtr==NULL)
+    {
+    vtkErrorMacro("BackgroundMask pipeline error");
+    return;
+    }
 
   int wholeExtent0[6];
   outData[0]->GetWholeExtent(wholeExtent0);
