@@ -23,6 +23,7 @@
 
 #include "qSlicerMarkupsModuleExport.h"
 
+class QMenu;
 class QModelIndex;
 class QTableWidgetItem;
 class QShortcut;
@@ -184,6 +185,8 @@ public slots:
                                              int previousRow, int previousColumn);
   /// Provide a right click menu in the table
   void onRightClickActiveMarkupTableWidget(QPoint pos);
+  /// Add the coordinates of the currently selected markups as strings to the given menu, then add a separator
+  void addSelectedCoordinatesToMenu(QMenu *menu);
   /// Jump slices action slot
   void onJumpSlicesActionTriggered();
   /// Build a string list of the names of other nodes with the same
@@ -216,6 +219,8 @@ public slots:
   void onActiveMarkupsNodeNthMarkupModifiedEvent(vtkObject *caller, vtkObject *callData);
   /// Update the display properties widgets when the display node is modified
   void onActiveMarkupsNodeDisplayModifiedEvent();
+  /// Update the transform related elemetns of the gui when the transform node is modified
+  void onActiveMarkupsNodeTransformModifiedEvent();
 
   /// Create a new markups node and copy the display node settings from the
   /// current markups node if set, otherwise just uses the defaults.
@@ -225,6 +230,12 @@ public slots:
   /// nodes in the scene
   /// \sa sliceIntersectionsVisible()
   void onSliceIntersectionsVisibilityToggled(bool checked);
+
+  /// update visibility of the coordinate columns in the table
+  void onHideCoordinateColumnsToggled(bool checked);
+
+  /// update the coordinates shown in the table to be either the transformed coordiantes (checked) or the untransformed coordiantes (unchecked)
+  void onTransformedCoordinatesToggled(bool checked);
 
 protected:
   QScopedPointer<qSlicerMarkupsModuleWidgetPrivate> d_ptr;
