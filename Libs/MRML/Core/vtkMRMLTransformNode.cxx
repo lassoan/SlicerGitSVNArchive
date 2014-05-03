@@ -986,6 +986,11 @@ const char* vtkMRMLTransformNode::GetTransformInfo(vtkAbstractTransform* inputTr
     if (linearTransform!=NULL)
       {
       ss << " Linear";
+      vtkMatrix4x4* m=linearTransform->GetMatrix();
+      ss << std::endl <<"    "<<m->GetElement(0,0)<<"  "<<m->GetElement(0,1)<<"  "<<m->GetElement(0,2)<<"  "<<m->GetElement(0,3);
+      ss << std::endl <<"    "<<m->GetElement(1,0)<<"  "<<m->GetElement(1,1)<<"  "<<m->GetElement(1,2)<<"  "<<m->GetElement(1,3);
+      ss << std::endl <<"    "<<m->GetElement(2,0)<<"  "<<m->GetElement(2,1)<<"  "<<m->GetElement(2,2)<<"  "<<m->GetElement(2,3);
+      ss << std::endl <<"    "<<m->GetElement(3,0)<<"  "<<m->GetElement(3,1)<<"  "<<m->GetElement(3,2)<<"  "<<m->GetElement(3,3);
       }
     else if (bsplineTransform!=NULL)
       {
