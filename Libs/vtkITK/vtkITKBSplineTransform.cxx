@@ -1075,7 +1075,7 @@ InverseTransformPointHelper( vtkITKBSplineTransformHelperImpl<O>* helper,
   typedef typename BSplineType::InputPointType InputPointType;
 
   //iterative inverse bSpline transform
-  int const MaxIterationNumber = 10;
+  int const MaxIterationNumber = 100;
   double const Tolerance = 1;
   OutputPointType opt;
   InputPointType ipt;
@@ -1095,17 +1095,21 @@ InverseTransformPointHelper( vtkITKBSplineTransformHelperImpl<O>* helper,
   ipt[1] = opt[1];
   ipt[2] = opt[2];
   for (int k = 0; k <= MaxIterationNumber; k++)
-  {
+    {
     OutputPointType optTrail = helper->BSpline->TransformPoint( ipt );
     ipt[0] = ipt[0] + (opt[0]-optTrail[0]);
     ipt[1] = ipt[1] + (opt[1]-optTrail[1]);
     ipt[2] = ipt[2] + (opt[2]-optTrail[2]);
     double dist = fabs(opt[0]-optTrail[0])+fabs(opt[1]-optTrail[1])+fabs(opt[2]-optTrail[2]);
     if (dist < Tolerance )
-    {
+      {
       break;
+      }
+    if (k == MaxIterationNumber)
+      {
+      cerr << "Maximum number of iterations reached. Remaining bspline inverse error: " << dist << std::endl;
+      }
     }
-  }
 
   out[0] = static_cast<T>(ipt[0]);
   out[1] = static_cast<T>(ipt[1]);

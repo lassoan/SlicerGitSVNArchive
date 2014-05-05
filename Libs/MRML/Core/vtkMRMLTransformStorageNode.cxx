@@ -18,9 +18,9 @@ Version:   $Revision: 1.2 $
 #include "vtkMRMLLinearTransformNode.h"
 #include "vtkMRMLGridTransformNode.h"
 #include "vtkMRMLBSplineTransformNode.h"
+#include <vtkOrientedBSplineTransform.h>
 
 // VTK includes
-#include <vtkBSplineTransform.h>
 #include <vtkGeneralTransform.h>
 #include <vtkGridTransform.h>
 #include <vtkImageData.h>
@@ -307,16 +307,54 @@ template <typename T> bool SetVTKBSplineFromITK(vtkObject* self, vtkGeneralTrans
     return 0;
     }
 
+  vtkNew<vtkOrientedBSplineTransform> bsplineVtk;
+  bsplineVtk->SetBorderModeToZero();
+
   vtkNew<vtkImageData> bsplineCoefficients;
   const int gridSize[3]={fp[0], fp[1], fp[2]};
   bsplineCoefficients->SetExtent(0, gridSize[0]-1, 0, gridSize[1]-1, 0, gridSize[2]-1);
-  double spacing[3]={fp[6], fp[7], fp[8]};
-  double origin[3]={fp[3], fp[4], fp[5]};
-  // VTK images are always axis-oriented (direction matrix is identity),
-  // therefore we need a pre/post linear transform to encode direction.
-  // As we need these pre/post transforms anyway, we encode origin and
-  // spacing in these transforms, too, and keep zero origin and unit spacing
-  // in the bsplineCoefficients image.
+
+  double gridSpacing[3]={fp[6], fp[7], fp[8]};
+  bsplineCoefficients->SetSpacing(gridSpacing);
+
+  vtkNew<vtkMatrix4x4> lpsToRas;
+  lpsToRas->SetElement(0,0,-1);
+  lpsToRas->SetElement(1,1,-1);
+
+  vtkNew<vtkMatrix4x4> rasToLps;
+  rasToLps->SetElement(0,0,-1);
+  rasToLps->SetElement(1,1,-1);
+
+  vtkNew<vtkMatrix4x4> gridDirectionMatrix_LPS;
+  int fpIndex=9;
+  for (int row=0; row<VTKDimension; row++)
+    {
+    for (int column=0; column<VTKDimension; column++)
+      {
+      gridDirectionMatrix_LPS->SetElement(row,column,fp[fpIndex++]);
+      }
+    }
+  vtkNew<vtkMatrix4x4> gridDirectionMatrix_RAS;
+  vtkMatrix4x4::Multiply4x4(gridDirectionMatrix_LPS.GetPointer(), lpsToRas.GetPointer(), gridDirectionMatrix_RAS.GetPointer());
+  bsplineVtk->SetGridDirectionMatrix(gridDirectionMatrix_RAS.GetPointer());
+
+  // spacing is not inverted from LPS to RAS, therefore we need to change the
+  // origin (raiCorner) to be in the opposite corner (lpiCorner) to have
+  // positive indices within the grid
+  double origin_LPS[3]={fp[3], fp[4], fp[5]}; // coordinate of the raiCorner (right, anterior, inferior grid corner ) in LPS
+  double raiCorner_RAS[3]={-origin_LPS[0], -origin_LPS[1], origin_LPS[2]}; // coordinate of the raiCorner in RAS
+  /*
+  double lpiCorner_RAS[3]={0};  // coordinate of the lpiCorner in RAS
+  for (int i=0; i<3; i++)
+    {
+    lpiCorner_RAS[i]=raiCorner_RAS[0]
+      - gridSpacing[0]*(gridSize[0]-1)*gridDirectionMatrix_RAS->GetElement(i,0)  // right->left
+      - gridSpacing[1]*(gridSize[1]-1)*gridDirectionMatrix_RAS->GetElement(i,1); // anterior->posterior
+    }
+  bsplineCoefficients->SetOrigin(lpiCorner_RAS);
+  */
+  bsplineCoefficients->SetOrigin(raiCorner_RAS);
+
   bsplineCoefficients->SetNumberOfScalarComponents(3);
   if (isDoublePrecisionInput)
     {
@@ -328,16 +366,6 @@ template <typename T> bool SetVTKBSplineFromITK(vtkObject* self, vtkGeneralTrans
     }
   bsplineCoefficients->AllocateScalars();
 
-  vtkNew<vtkMatrix4x4> gridDirectionMatrix_LPS;
-  int fpIndex=9;
-  for (int row=0; row<VTKDimension; row++)
-    {
-    for (int column=0; column<VTKDimension; column++)
-      {
-      gridDirectionMatrix_LPS->SetElement(row,column,fp[fpIndex++]);
-      }
-    }
-
   const int expectedNumberOfVectors = gridSize[0]*gridSize[1]*gridSize[2];
   const int expectedNumberOfParameters = expectedNumberOfVectors*VTKDimension;
   if( bst->GetNumberOfParameters() != expectedNumberOfParameters )
@@ -346,53 +374,16 @@ template <typename T> bool SetVTKBSplineFromITK(vtkObject* self, vtkGeneralTrans
     return 0;
     }
 
-
-  vtkNew<vtkMatrix4x4> ijkToRas;
-  vtkNew<vtkMatrix4x4> ijkToLpsMatrix;
-  vtkNew<vtkMatrix4x4> ijkToLpsNoOfsMatrix;
-  {
-    vtkNew<vtkMatrix4x4> lpsToRas;
-    lpsToRas->SetElement(0,0,-1);
-    lpsToRas->SetElement(1,1,-1);
-
-    for (unsigned int row=0; row < 3; row++ )
-      {
-      for (unsigned int col = 0; col < 3; col++)
-        {
-        ijkToLpsMatrix->SetElement(row, col, spacing[col]*gridDirectionMatrix_LPS->GetElement(row,col));
-        //ijkToLpsMatrix->SetElement(row, col, gridDirectionMatrix_LPS->GetElement(row,col));
-        }
-      ijkToLpsMatrix->SetElement(row, 3, origin[row]);
-      }
-
-    vtkMatrix4x4::Multiply4x4(lpsToRas.GetPointer(), ijkToLpsMatrix.GetPointer(), ijkToRas.GetPointer());
-  }
-  vtkNew<vtkMatrix4x4> rasToIjk;
-  vtkMatrix4x4::Invert(ijkToRas.GetPointer(), rasToIjk.GetPointer());
-  vtkNew<vtkMatrix4x4> lpsToIjk;
-  vtkMatrix4x4::Invert(ijkToLpsMatrix.GetPointer(), lpsToIjk.GetPointer());
-  vtkNew<vtkMatrix4x4> lpsToIjkNoOfs;
-  vtkMatrix4x4::Invert(ijkToLpsNoOfsMatrix.GetPointer(), lpsToIjkNoOfs.GetPointer());
-
-  T* vtkBSplineParams_LPS=static_cast<T*>(bsplineCoefficients->GetScalarPointer());
+  T* vtkBSplineParams_RAS=static_cast<T*>(bsplineCoefficients->GetScalarPointer());
   const T* itkBSplineParams_LPS = static_cast<const T*>(bst->GetParameters().data_block());
-  double displacementVector_LPS[4]={0,0,0,0};
-  double displacementVector_IJK[4]={0,0,0,0};
   for (int i=0; i<expectedNumberOfVectors; i++)
     {
-    displacementVector_LPS[0] =  *(itkBSplineParams_LPS                          );
-    displacementVector_LPS[1] =  *(itkBSplineParams_LPS+expectedNumberOfVectors  );
-    displacementVector_LPS[2] =  *(itkBSplineParams_LPS+expectedNumberOfVectors*2);
+    *(vtkBSplineParams_RAS++) =  - (*(itkBSplineParams_LPS                          ));
+    *(vtkBSplineParams_RAS++) =  - (*(itkBSplineParams_LPS+expectedNumberOfVectors  ));
+    *(vtkBSplineParams_RAS++) =    (*(itkBSplineParams_LPS+expectedNumberOfVectors*2));
     itkBSplineParams_LPS++;
-    lpsToIjk->MultiplyPoint(displacementVector_LPS, displacementVector_IJK);
-
-    *(vtkBSplineParams_LPS++) =  displacementVector_IJK[0];
-    *(vtkBSplineParams_LPS++) =  displacementVector_IJK[1];
-    *(vtkBSplineParams_LPS++) =  displacementVector_IJK[2];
     }
 
-  vtkNew<vtkBSplineTransform> bsplineVtk;
-  bsplineVtk->SetBorderModeToZero();
   bsplineVtk->SetCoefficients(bsplineCoefficients.GetPointer());
 
   bool bulkDefined=false;
@@ -414,7 +405,10 @@ template <typename T> bool SetVTKBSplineFromITK(vtkObject* self, vtkGeneralTrans
           }
         bulkMatrix_LPS->SetElement(i,VTKDimension, bulkItkAffine->GetOffset()[i]);
         }
-      bulkDefined=true;
+      vtkNew<vtkMatrix4x4> bulkMatrix_RAS; // bulk_RAS = rasToLps * bulk_LPS * lpsToRas
+      vtkMatrix4x4::Multiply4x4(rasToLps.GetPointer(), bulkMatrix_LPS.GetPointer(), bulkMatrix_RAS.GetPointer());
+      vtkMatrix4x4::Multiply4x4(bulkMatrix_RAS.GetPointer(), lpsToRas.GetPointer(), bulkMatrix_RAS.GetPointer());
+      bsplineVtk->SetBulkTransformMatrix(bulkMatrix_RAS.GetPointer());
       }
     else if (bulkItkIdentity)
       {
@@ -427,34 +421,9 @@ template <typename T> bool SetVTKBSplineFromITK(vtkObject* self, vtkGeneralTrans
       }
     }
 
-  vtkNew<vtkMatrixToLinearTransform> ijkToRasTransform;
-  ijkToRasTransform->SetInput(ijkToRas.GetPointer());
-
-  vtkNew<vtkMatrixToLinearTransform> rasToIjkTransform;
-  rasToIjkTransform->SetInput(rasToIjk.GetPointer());
-
-  vtkNew<vtkMatrixToLinearTransform> bulkTransform;
-    {
-    vtkNew<vtkMatrix4x4> lpsToRas;
-    lpsToRas->SetElement(0,0,-1);
-    lpsToRas->SetElement(1,1,-1);
-    vtkNew<vtkMatrix4x4> rasToLps;
-    rasToLps->SetElement(0,0,-1);
-    rasToLps->SetElement(1,1,-1);
-
-    vtkNew<vtkMatrix4x4> bulkMatrix_RAS;
-    vtkMatrix4x4::Multiply4x4(bulkMatrix_RAS.GetPointer(), rasToLps.GetPointer(), bulkMatrix_RAS.GetPointer());
-    vtkMatrix4x4::Multiply4x4(bulkMatrix_RAS.GetPointer(), bulkMatrix_LPS.GetPointer(), bulkMatrix_RAS.GetPointer());
-    vtkMatrix4x4::Multiply4x4(bulkMatrix_RAS.GetPointer(), lpsToRas.GetPointer(), bulkMatrix_RAS.GetPointer());
-    bulkTransform->SetInput(bulkMatrix_RAS.GetPointer());
-    }
-
 
   transformVtk->Identity();
-  transformVtk->Concatenate(bulkTransform.GetPointer()); // applied last (bulk transform of the moving image)
-  transformVtk->Concatenate(ijkToRasTransform.GetPointer());
   transformVtk->Concatenate(bsplineVtk.GetPointer());
-  transformVtk->Concatenate(rasToIjkTransform.GetPointer()); // This is applied first and this will appear as Transform 1
 
   return true;
 }
