@@ -308,8 +308,8 @@ template <typename T> bool SetVTKBSplineFromITK(vtkObject* self, vtkGeneralTrans
     }
 
   vtkNew<vtkOrientedBSplineTransform> bsplineVtk;
-  //bsplineVtk->SetBorderModeToZero();
-  bsplineVtk->SetBorderModeToZeroAtBorder();
+  bsplineVtk->SetBorderModeToZero();
+  //bsplineVtk->SetBorderModeToZeroAtBorder();
 
   vtkNew<vtkImageData> bsplineCoefficients;
   const int gridSize[3]={fp[0], fp[1], fp[2]};
@@ -437,8 +437,11 @@ template <typename T> bool SetVTKBSplineFromITK(vtkObject* self, vtkGeneralTrans
         bulkMatrix_LPS->SetElement(i,VTKDimension, bulkItkAffine->GetOffset()[i]);
         }
       vtkNew<vtkMatrix4x4> bulkMatrix_RAS; // bulk_RAS = rasToLps * bulk_LPS * lpsToRas
-      vtkMatrix4x4::Multiply4x4(rasToLps.GetPointer(), bulkMatrix_LPS.GetPointer(), bulkMatrix_RAS.GetPointer());
-      vtkMatrix4x4::Multiply4x4(bulkMatrix_RAS.GetPointer(), lpsToRas.GetPointer(), bulkMatrix_RAS.GetPointer());
+      vtkMatrix4x4::Multiply4x4(lpsToRas.GetPointer(), bulkMatrix_LPS.GetPointer(), bulkMatrix_RAS.GetPointer());
+      vtkMatrix4x4::Multiply4x4(bulkMatrix_RAS.GetPointer(), rasToLps.GetPointer(), bulkMatrix_RAS.GetPointer());
+      //vtkMatrix4x4::Multiply4x4(bulkMatrix_LPS.GetPointer(), rasToLps.GetPointer(), bulkMatrix_RAS.GetPointer());
+      //vtkMatrix4x4::Multiply4x4(rasToLps.GetPointer(), bulkMatrix_LPS.GetPointer(), bulkMatrix_RAS.GetPointer());
+      //vtkMatrix4x4::Multiply4x4(bulkMatrix_RAS.GetPointer(), lpsToRas.GetPointer(), bulkMatrix_RAS.GetPointer());
       bsplineVtk->SetBulkTransformMatrix(bulkMatrix_RAS.GetPointer());
       }
     else if (bulkItkIdentity)
@@ -1008,19 +1011,19 @@ int vtkMRMLTransformStorageNode::WriteDataInternal(vtkMRMLNode *refNode)
 
   vtkMRMLLinearTransformNode *ln = vtkMRMLLinearTransformNode::SafeDownCast(refNode);
   if (ln!=NULL)
-  {
+    {
     return WriteLinearTransform(ln);
-  }
+    }
   vtkMRMLBSplineTransformNode *bs = vtkMRMLBSplineTransformNode::SafeDownCast(refNode);
   if (bs!=NULL)
-  {
+    {
     return WriteBSplineTransform(bs);
-  }
+    }
   vtkMRMLGridTransformNode *gd = vtkMRMLGridTransformNode::SafeDownCast(refNode);
   if (gd!=NULL)
-  {
+    {
     return WriteGridTransform(gd);
-  }
+    }
 
   vtkErrorMacro("Writing of the transform node to file failed: unsupported node type");
   return 0;
