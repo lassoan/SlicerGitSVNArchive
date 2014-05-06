@@ -144,9 +144,13 @@ unsigned long vtkOrientedBSplineTransform::GetMTime()
 }
 
 //----------------------------------------------------------------------------
-void vtkOrientedBSplineTransform::ForwardTransformPoint(const double inPoint[3],
+void vtkOrientedBSplineTransform::ForwardTransformPoint(const double inPointTemp[3],
                                                 double outPoint[3])
 {
+  // inPointTemp and outPoint may be the same vector, so make a copy of the
+  // input before modifying the output
+  double inPoint[3]={inPointTemp[0],inPointTemp[1],inPointTemp[2]};
+
   if (this->BulkTransformMatrix)
     {
     vtkLinearTransformPoint(this->BulkTransformMatrix->Element, inPoint, outPoint);
@@ -186,10 +190,14 @@ void vtkOrientedBSplineTransform::ForwardTransformPoint(const double inPoint[3],
 
 //----------------------------------------------------------------------------
 // calculate the derivative of the transform
-void vtkOrientedBSplineTransform::ForwardTransformDerivative(const double inPoint[3],
+void vtkOrientedBSplineTransform::ForwardTransformDerivative(const double inPointTemp[3],
                                                      double outPoint[3],
                                                      double derivative[3][3])
 {
+  // inPointTemp and outPoint may be the same vector, so make a copy of the
+  // input before modifying the output
+  double inPoint[3]={inPointTemp[0],inPointTemp[1],inPointTemp[2]};
+
   if (this->BulkTransformMatrix)
     {
     vtkLinearTransformDerivative(this->BulkTransformMatrix->Element,inPoint,outPoint,derivative);
@@ -244,10 +252,14 @@ void vtkOrientedBSplineTransform::ForwardTransformDerivative(const double inPoin
 // singular.
 // Note that this is similar to vtkWarpTransform::InverseTransformPoint()
 // but has been optimized specifically for uniform grid transforms.
-void vtkOrientedBSplineTransform::InverseTransformDerivative(const double inPoint[3],
+void vtkOrientedBSplineTransform::InverseTransformDerivative(const double inPointTemp[3],
                                                      double outPoint[3],
                                                      double derivative[3][3])
 {
+  // inPointTemp and outPoint may be the same vector, so make a copy of the
+  // input before modifying the output
+  double inPoint[3]={inPointTemp[0],inPointTemp[1],inPointTemp[2]};
+
   if (this->BulkTransformMatrix)
     {
     // Note that the derivative of the inverse transform is simply the
@@ -289,6 +301,7 @@ void vtkOrientedBSplineTransform::InverseTransformDerivative(const double inPoin
   double errorSquared = 0.0;
   double toleranceSquared = this->InverseTolerance;
   toleranceSquared *= toleranceSquared;
+  double dummyPoint[3];
 
   double f = 1.0;
   double a;
@@ -332,7 +345,7 @@ void vtkOrientedBSplineTransform::InverseTransformDerivative(const double inPoin
     if (this->BulkTransformMatrix!=NULL)
       {
       vtkLinearTransformPoint(this->BulkTransformMatrix->Element, inverse, inverseBulkTransformed);
-      vtkLinearTransformDerivative(this->BulkTransformMatrix->Element,inverse,outPoint/*not used*/,derivative);
+      vtkLinearTransformDerivative(this->BulkTransformMatrix->Element,inverse,dummyPoint/*not used*/,derivative);
 
       // Compute total derivative
       for (int i = 0; i < 3; i++)

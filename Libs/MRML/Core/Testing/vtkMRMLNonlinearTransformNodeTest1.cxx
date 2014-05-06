@@ -69,10 +69,10 @@ bool TestBSplineTransform(const char *filename)
     }
 
   // Test if both the transform and its inverse are available
-  vtkITKBSplineTransform *xfp = vtkITKBSplineTransform::SafeDownCast(
-    bsplineTransformNode->GetTransformFromParentAs("vtkITKBSplineTransform"));
-  vtkITKBSplineTransform *xtp = vtkITKBSplineTransform::SafeDownCast(
-    bsplineTransformNode->GetTransformToParentAs("vtkITKBSplineTransform"));
+  vtkGeneralTransform *xfp = vtkGeneralTransform::SafeDownCast(
+    bsplineTransformNode->GetTransformFromParentAs("vtkGeneralTransform"));
+  vtkGeneralTransform *xtp = vtkGeneralTransform::SafeDownCast(
+    bsplineTransformNode->GetTransformToParentAs("vtkGeneralTransform"));
 
   if (xfp == 0 || xtp == 0)
     {
@@ -81,7 +81,7 @@ bool TestBSplineTransform(const char *filename)
     }
 
   // Test if the transform actually changes point positions
-  double inp[3] = {0,0,0};
+  double inp[3] = {10,20,30};
   double outp[3] = {0,0,0};
   xfp->TransformPoint(inp, outp);
   if (fabs(outp[0]-inp[0]) < 0.1 || fabs(outp[1]-inp[1]) < 0.1 || fabs(outp[2]-inp[2]) < 0.1)

@@ -308,7 +308,8 @@ template <typename T> bool SetVTKBSplineFromITK(vtkObject* self, vtkGeneralTrans
     }
 
   vtkNew<vtkOrientedBSplineTransform> bsplineVtk;
-  bsplineVtk->SetBorderModeToZero();
+  //bsplineVtk->SetBorderModeToZero();
+  bsplineVtk->SetBorderModeToZeroAtBorder();
 
   vtkNew<vtkImageData> bsplineCoefficients;
   const int gridSize[3]={fp[0], fp[1], fp[2]};
@@ -335,25 +336,36 @@ template <typename T> bool SetVTKBSplineFromITK(vtkObject* self, vtkGeneralTrans
       }
     }
   vtkNew<vtkMatrix4x4> gridDirectionMatrix_RAS;
-  vtkMatrix4x4::Multiply4x4(gridDirectionMatrix_LPS.GetPointer(), lpsToRas.GetPointer(), gridDirectionMatrix_RAS.GetPointer());
+  vtkMatrix4x4::Multiply4x4(lpsToRas.GetPointer(), gridDirectionMatrix_LPS.GetPointer(), gridDirectionMatrix_RAS.GetPointer());
+  //vtkMatrix4x4::Multiply4x4(gridDirectionMatrix_RAS.GetPointer(), lpsToRas.GetPointer(), gridDirectionMatrix_RAS.GetPointer());
   bsplineVtk->SetGridDirectionMatrix(gridDirectionMatrix_RAS.GetPointer());
 
+  /*
   // spacing is not inverted from LPS to RAS, therefore we need to change the
   // origin (raiCorner) to be in the opposite corner (lpiCorner) to have
   // positive indices within the grid
-  double origin_LPS[3]={fp[3], fp[4], fp[5]}; // coordinate of the raiCorner (right, anterior, inferior grid corner ) in LPS
-  double raiCorner_RAS[3]={-origin_LPS[0], -origin_LPS[1], origin_LPS[2]}; // coordinate of the raiCorner in RAS
-  /*
-  double lpiCorner_RAS[3]={0};  // coordinate of the lpiCorner in RAS
-  for (int i=0; i<3; i++)
-    {
-    lpiCorner_RAS[i]=raiCorner_RAS[0]
-      - gridSpacing[0]*(gridSize[0]-1)*gridDirectionMatrix_RAS->GetElement(i,0)  // right->left
-      - gridSpacing[1]*(gridSize[1]-1)*gridDirectionMatrix_RAS->GetElement(i,1); // anterior->posterior
-    }
+  double raiCorner_LPS[3]={fp[3], fp[4], fp[5]};
+  double raiCorner_RAS[3]={-raiCorner_LPS[0], -raiCorner_LPS[1], raiCorner_LPS[2]};
+  double laiCorner_RAS[3]=
+  {
+    raiCorner_RAS[0]-gridSize[0]*gridSpacing[0]*gridDirectionMatrix_RAS->GetElement(0,0),
+    raiCorner_RAS[1]-gridSize[0]*gridSpacing[0]*gridDirectionMatrix_RAS->GetElement(1,0),
+    raiCorner_RAS[2]-gridSize[0]*gridSpacing[0]*gridDirectionMatrix_RAS->GetElement(2,0)
+  };
+  double lpiCorner_RAS[3]=
+  {
+    laiCorner_RAS[0]-gridSize[1]*gridSpacing[1]*gridDirectionMatrix_RAS->GetElement(0,1),
+    laiCorner_RAS[1]-gridSize[1]*gridSpacing[1]*gridDirectionMatrix_RAS->GetElement(1,1),
+    laiCorner_RAS[2]-gridSize[1]*gridSpacing[1]*gridDirectionMatrix_RAS->GetElement(2,1)
+  };
+
   bsplineCoefficients->SetOrigin(lpiCorner_RAS);
   */
-  bsplineCoefficients->SetOrigin(raiCorner_RAS);
+
+  double origin_LPS[3]={fp[3], fp[4], fp[5]};
+  double origin_RAS[3]={-origin_LPS[0], -origin_LPS[1], origin_LPS[2]};
+  bsplineCoefficients->SetOrigin(origin_RAS);
+
 
   bsplineCoefficients->SetNumberOfScalarComponents(3);
   if (isDoublePrecisionInput)
@@ -374,14 +386,33 @@ template <typename T> bool SetVTKBSplineFromITK(vtkObject* self, vtkGeneralTrans
     return 0;
     }
 
-  T* vtkBSplineParams_RAS=static_cast<T*>(bsplineCoefficients->GetScalarPointer());
   const T* itkBSplineParams_LPS = static_cast<const T*>(bst->GetParameters().data_block());
-  for (int i=0; i<expectedNumberOfVectors; i++)
+
+  //T* vtkBSplineParams_RAS=static_cast<T*>(bsplineCoefficients->GetScalarPointer());
+  /*for (int i=0; i<expectedNumberOfVectors; i++)
     {
     *(vtkBSplineParams_RAS++) =  - (*(itkBSplineParams_LPS                          ));
     *(vtkBSplineParams_RAS++) =  - (*(itkBSplineParams_LPS+expectedNumberOfVectors  ));
     *(vtkBSplineParams_RAS++) =    (*(itkBSplineParams_LPS+expectedNumberOfVectors*2));
     itkBSplineParams_LPS++;
+    }
+    */
+  T* vtkBSplineParams_RAS_origin=static_cast<T*>(bsplineCoefficients->GetScalarPointer());
+  T* vtkBSplineParams_RAS=NULL;
+  for (int k=0; k<gridSize[2]; k++)
+    {
+    for (int j=0; j<gridSize[1]; j++)
+      {
+      for (int i=0; i<gridSize[0]; i++)
+        {
+        //vtkBSplineParams_RAS=vtkBSplineParams_RAS_origin+(((k*gridSize[1])+(gridSize[1]-1-j))*gridSize[0]+(gridSize[0]-1-i))*3;
+        vtkBSplineParams_RAS=vtkBSplineParams_RAS_origin+(((k*gridSize[1])+j)*gridSize[0]+i)*3;
+        *(vtkBSplineParams_RAS++) =  - (*(itkBSplineParams_LPS                          ));
+        *(vtkBSplineParams_RAS++) =  - (*(itkBSplineParams_LPS+expectedNumberOfVectors  ));
+        *(vtkBSplineParams_RAS++) =    (*(itkBSplineParams_LPS+expectedNumberOfVectors*2));
+        itkBSplineParams_LPS++;
+        }
+      }
     }
 
   bsplineVtk->SetCoefficients(bsplineCoefficients.GetPointer());
