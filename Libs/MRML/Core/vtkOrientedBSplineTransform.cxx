@@ -115,32 +115,11 @@ void vtkOrientedBSplineTransform::PrintSelf(ostream& os, vtkIndent indent)
     {
     this->GridDirectionMatrix->PrintSelf(os,indent.GetNextIndent());
     }
-
   os << indent << "BulkTransform: " << this->GetBulkTransformMatrix() << "\n";
   if (this->GetBulkTransformMatrix())
     {
     this->GetBulkTransformMatrix()->PrintSelf(os,indent.GetNextIndent());
     }
-}
-
-//----------------------------------------------------------------------------
-// need to check the input image data to determine MTime
-unsigned long vtkOrientedBSplineTransform::GetMTime()
-{
-  unsigned long mtime,result;
-  result = vtkWarpTransform::GetMTime();
-  if (this->Coefficients)
-    {
-    this->Coefficients->UpdateInformation();
-
-    mtime = this->Coefficients->GetPipelineMTime();
-    result = ( mtime > result ? mtime : result );
-
-    mtime = this->Coefficients->GetMTime();
-    result = ( mtime > result ? mtime : result );
-    }
-
-  return result;
 }
 
 //----------------------------------------------------------------------------
@@ -170,7 +149,6 @@ void vtkOrientedBSplineTransform::ForwardTransformPoint(const double inPointTemp
   void *gridPtr = this->GridPointer;
   int *extent = this->GridExtent;
   vtkIdType *increments = this->GridIncrements;
-
   double scale = this->DisplacementScale;
 
   double point[3];
@@ -216,10 +194,9 @@ void vtkOrientedBSplineTransform::ForwardTransformDerivative(const double inPoin
     }
 
   void *gridPtr = this->GridPointer;
-  double *spacing = this->GridSpacing;
   int *extent = this->GridExtent;
   vtkIdType *increments = this->GridIncrements;
-
+  double *spacing = this->GridSpacing;
   double scale = this->DisplacementScale;
 
   double point[3];
@@ -227,13 +204,13 @@ void vtkOrientedBSplineTransform::ForwardTransformDerivative(const double inPoin
   // plus fractions
   vtkLinearTransformPoint(this->OutputToGridIndexTransformMatrixCached->Element, inPoint, point);
 
-
   double displacement[3]={0.0, 0.0, 0.0};
   double splineDerivative[3][3];
 
   this->CalculateSpline(point,displacement,splineDerivative,
                         gridPtr,extent,increments, this->BorderMode);
 
+  // derivative = BulkTransformDerivativeMatrix + SplineDerivativeMatrix * spacing * scale
   for (int i = 0; i < 3; i++)
     {
     derivative[i][0] += splineDerivative[i][0]*scale/spacing[0];
@@ -241,6 +218,7 @@ void vtkOrientedBSplineTransform::ForwardTransformDerivative(const double inPoin
     derivative[i][2] += splineDerivative[i][2]*scale/spacing[2];
     }
 
+  // outPoint = BulkTransformMatrix * inPointVector + displacementVector * scale
   outPoint[0] += displacement[0]*scale;
   outPoint[1] += displacement[1]*scale;
   outPoint[2] += displacement[2]*scale;
@@ -284,11 +262,6 @@ void vtkOrientedBSplineTransform::InverseTransformDerivative(const double inPoin
   int *extent = this->GridExtent;
   vtkIdType *increments = this->GridIncrements;
 
-  double invSpacing[3];
-  invSpacing[0] = 1.0/spacing[0];
-  invSpacing[1] = 1.0/spacing[1];
-  invSpacing[2] = 1.0/spacing[2];
-
   double scale = this->DisplacementScale;
 
   double inverse_IJK[3], lastInverse[3], inverse[3];
@@ -299,8 +272,7 @@ void vtkOrientedBSplineTransform::InverseTransformDerivative(const double inPoin
   double lastFunctionValue = VTK_DOUBLE_MAX;
 
   double errorSquared = 0.0;
-  double toleranceSquared = this->InverseTolerance;
-  toleranceSquared *= toleranceSquared;
+  double toleranceSquared = this->InverseTolerance * this->InverseTolerance;
   double dummyPoint[3];
 
   double f = 1.0;
@@ -328,13 +300,13 @@ void vtkOrientedBSplineTransform::InverseTransformDerivative(const double inPoin
   lastInverse[2] = inverse[2];
 
   // do a maximum 500 iterations, usually less than 10 are required
-  int n = this->InverseIterations;
-  int i, j;
+  int maxNumberOfIterations = this->InverseIterations;
 
   double splineDerivative[3][3];
   double inverseBulkTransformed[3];
 
-  for (i = 0; i < n; i++)
+  int iteration=0;
+  for (; iteration < maxNumberOfIterations; iteration++)
     {
     // Get displacement and derivative from b-spline
     vtkLinearTransformPoint(this->OutputToGridIndexTransformMatrixCached->Element, inverse, inverse_IJK);
@@ -442,7 +414,7 @@ void vtkOrientedBSplineTransform::InverseTransformDerivative(const double inPoin
     inverse[2] = lastInverse[2] - f*deltaI[2];
     }
 
-  if (i >= n)
+  if (iteration >= maxNumberOfIterations)
     {
     // didn't converge: back up to last good result
     inverse[0] = lastInverse[0];
@@ -452,7 +424,7 @@ void vtkOrientedBSplineTransform::InverseTransformDerivative(const double inPoin
     vtkWarningMacro("InverseTransformPoint: no convergence (" <<
                     inPoint[0] << ", " << inPoint[1] << ", " << inPoint[2] <<
                     ") error = " << sqrt(errorSquared) << " after " <<
-                    i << " iterations.");
+                    iteration << " iterations.");
     }
 
   // Convert the inPoint to i,j,k indices into the deformation grid
@@ -468,7 +440,9 @@ void vtkOrientedBSplineTransform::InternalDeepCopy(vtkAbstractTransform *transfo
   vtkOrientedBSplineTransform *orientedBSplineTransform = (vtkOrientedBSplineTransform *)transform;
   this->SetGridDirectionMatrix(orientedBSplineTransform->GetGridDirectionMatrix());
   this->SetBulkTransformMatrix(orientedBSplineTransform ->GetBulkTransformMatrix());
+
   // Cached matrices will be recomputed automatically in InternalUpdate()
+  // therefore we do not need to copy them.
 
   this->Superclass::InternalDeepCopy(transform);
 }
@@ -514,46 +488,3 @@ vtkAbstractTransform *vtkOrientedBSplineTransform::MakeTransform()
 {
   return vtkOrientedBSplineTransform::New();
 }
-
-/*
-//----------------------------------------------------------------------------
-void vtkOrientedBSplineTransform::SetBulkTransformMatrix(vtkMatrix4x4* bulkTransformMatrix)
-{
-  if (bulkTransformMatrix==NULL)
-    {
-    if (this->BulkTransform==NULL)
-      {
-      // already NULL, no change
-      return;
-      }
-    this->BulkTransform->Delete();
-    this->BulkTransform=NULL;
-    this->Modified();
-    return;
-    }
-  if (this->BulkTransform==NULL)
-    {
-    this->BulkTransform=vtkMatrixToLinearTransform::New();
-    this->BulkTransform->SetInput(bulkTransformMatrix);
-    this->Modified();
-    return;
-    }
-  if (this->BulkTransform->GetInput()==bulkTransformMatrix)
-    {
-    // no change, the same bulk transform matrix is used already
-    return;
-    }
-  this->BulkTransform->SetInput(bulkTransformMatrix);
-  this->Modified();
-}
-
-//----------------------------------------------------------------------------
-vtkMatrix4x4* vtkOrientedBSplineTransform::GetBulkTransformMatrix()
-{
-  if (this->BulkTransform==NULL)
-    {
-    return NULL;
-    }
-  return this->BulkTransform->GetInput();
-}
-*/

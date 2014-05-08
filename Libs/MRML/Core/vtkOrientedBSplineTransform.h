@@ -50,10 +50,6 @@ public:
   vtkAbstractTransform *MakeTransform();
 
   // Description:
-  // Get the MTime.
-  unsigned long GetMTime();
-
-  // Description:
   // Set/Get the b-spline grid axis directions.
   // This transform class will never modify the data.
   // Must be an orthogonal, normalized matrix.
