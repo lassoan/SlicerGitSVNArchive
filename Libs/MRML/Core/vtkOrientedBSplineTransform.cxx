@@ -1,17 +1,12 @@
-/*=========================================================================
+/*=auto=========================================================================
 
-  Program:   Visualization Toolkit
-  Module:    $RCSfile: vtkOrientedBSplineTransform.cxx,v $
+  Portions (c) Copyright 2005 Brigham and Women's Hospital (BWH) All Rights Reserved.
 
-  Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
-  All rights reserved.
-  See Copyright.txt or http://www.kitware.com/Copyright.htm for details.
+  See COPYRIGHT.txt
+  or http://www.slicer.org/copyright/copyright.txt for details.
 
-     This software is distributed WITHOUT ANY WARRANTY; without even
-     the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
-     PURPOSE.  See the above copyright notice for more information.
+=========================================================================auto=*/
 
-=========================================================================*/
 #include "vtkOrientedBSplineTransform.h"
 
 #include "vtkImageData.h"
@@ -43,22 +38,6 @@ inline void vtkLinearTransformPoint(const double matrix[4][4],
 }
 
 //------------------------------------------------------------------------
-inline void vtkLinearTransformVector(const double matrix[4][4],
-                                     const double in[3], double out[3])
-{
-  double x =
-    matrix[0][0]*in[0] + matrix[0][1]*in[1] + matrix[0][2]*in[2];
-  double y =
-    matrix[1][0]*in[0] + matrix[1][1]*in[1] + matrix[1][2]*in[2];
-  double z =
-    matrix[2][0]*in[0] + matrix[2][1]*in[1] + matrix[2][2]*in[2];
-
-  out[0] = x;
-  out[1] = y;
-  out[2] = z;
-}
-
-//------------------------------------------------------------------------
 inline void vtkLinearTransformDerivative(const double matrix[4][4],
                                          const double in[3], double out[3],
                                          double derivative[3][3])
@@ -76,11 +55,11 @@ inline void vtkLinearTransformDerivative(const double matrix[4][4],
 //----------------------------------------------------------------------------
 vtkOrientedBSplineTransform::vtkOrientedBSplineTransform()
 {
-  this->GridDirectionMatrix=NULL;
-  this->BulkTransformMatrix=NULL;
-  this->GridIndexToOutputTransformMatrixCached=vtkMatrix4x4::New();
-  this->OutputToGridIndexTransformMatrixCached=vtkMatrix4x4::New();
-  this->InverseBulkTransformMatrixCached=vtkMatrix4x4::New();
+  this->GridDirectionMatrix = NULL;
+  this->BulkTransformMatrix = NULL;
+  this->GridIndexToOutputTransformMatrixCached = vtkMatrix4x4::New();
+  this->OutputToGridIndexTransformMatrixCached = vtkMatrix4x4::New();
+  this->InverseBulkTransformMatrixCached = vtkMatrix4x4::New();
 }
 
 //----------------------------------------------------------------------------
@@ -174,7 +153,7 @@ void vtkOrientedBSplineTransform::ForwardTransformDerivative(const double inPoin
 {
   // inPointTemp and outPoint may be the same vector, so make a copy of the
   // input before modifying the output
-  double inPoint[3]={inPointTemp[0],inPointTemp[1],inPointTemp[2]};
+  double inPoint[3] = {inPointTemp[0],inPointTemp[1],inPointTemp[2]};
 
   if (this->BulkTransformMatrix)
     {
@@ -236,7 +215,7 @@ void vtkOrientedBSplineTransform::InverseTransformDerivative(const double inPoin
 {
   // inPointTemp and outPoint may be the same vector, so make a copy of the
   // input before modifying the output
-  double inPoint[3]={inPointTemp[0],inPointTemp[1],inPointTemp[2]};
+  double inPoint[3] = {inPointTemp[0],inPointTemp[1],inPointTemp[2]};
 
   if (this->BulkTransformMatrix)
     {
@@ -429,9 +408,9 @@ void vtkOrientedBSplineTransform::InverseTransformDerivative(const double inPoin
 
   // Convert the inPoint to i,j,k indices into the deformation grid
   // plus fractions
-  outPoint[0]=inverse[0];
-  outPoint[1]=inverse[1];
-  outPoint[2]=inverse[2];
+  outPoint[0] = inverse[0];
+  outPoint[1] = inverse[1];
+  outPoint[2] = inverse[2];
 }
 
 //----------------------------------------------------------------------------

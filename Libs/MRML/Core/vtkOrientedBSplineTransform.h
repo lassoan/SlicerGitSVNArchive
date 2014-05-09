@@ -5,15 +5,10 @@
   See COPYRIGHT.txt
   or http://www.slicer.org/copyright/copyright.txt for details.
 
-  Program:   3D Slicer
-  Module:    $RCSfile: vtkMRMLTransformNode.h,v $
-  Date:      $Date: 2006/03/19 17:12:29 $
-  Version:   $Revision: 1.13 $
-
 =========================================================================auto=*/
 
 /// \brief vtkOrientedBSplineTransform - arbitrarily oriented cubic b-spline
-/// deformation transformation between this node space and a parent node space.
+/// deformation transformation.
 ///
 /// This transforms extends vtkBSplineTransform to arbitrary grid orientation.
 /// Optional affine bulk transform component can be added to the transform so that
