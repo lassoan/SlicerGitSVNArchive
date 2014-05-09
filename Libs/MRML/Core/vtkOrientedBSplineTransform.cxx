@@ -433,8 +433,8 @@ void vtkOrientedBSplineTransform::InternalUpdate()
 
   // Pre-compute GridIndex to Output transform and store it in a member variable
   // to avoid recomputing it each time a point is transformed.
-  this->GridIndexToOutputTransformMatrixCached->Identity();
 
+  this->GridIndexToOutputTransformMatrixCached->Identity();
   for (unsigned int row=0; row < 3; row++ )
     {
     for (unsigned int col = 0; col < 3; col++)

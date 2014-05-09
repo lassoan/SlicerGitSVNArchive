@@ -735,9 +735,9 @@ int vtkMRMLTransformStorageNode::ReadGridTransform(vtkMRMLNode *refNode)
   while( !inputIt.IsAtEnd() )
     {
     GridImageType::PixelType displacementVectorLps=inputIt.Get();
-    *(displacementVectors_Ras++) = -displacementVectorLps[0];
-    *(displacementVectors_Ras++) = -displacementVectorLps[1];
-    *(displacementVectors_Ras++) =  displacementVectorLps[2];
+    *(displacementVectors_Ras++) = displacementVectorLps[0];
+    *(displacementVectors_Ras++) = displacementVectorLps[1];
+    *(displacementVectors_Ras++) = displacementVectorLps[2];
     ++inputIt;
     }
 
