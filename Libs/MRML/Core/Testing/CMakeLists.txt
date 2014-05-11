@@ -95,6 +95,7 @@ create_test_sourcelist(Tests ${KIT}CxxTests.cxx
   vtkMRMLVolumeNodeTest1.cxx
   vtkMRMLdGEMRICProceduralColorNodeTest1.cxx
   vtkObserverManagerTest1.cxx
+  vtkOrientedBSplineTransformTest1.cxx
   EXTRA_INCLUDE vtkMRMLDebugLeaksMacro.h
   )
 
@@ -192,6 +193,7 @@ simple_test( vtkMRMLVolumeDisplayNodeTest1 )
 simple_test( vtkMRMLVolumeHeaderlessStorageNodeTest1 )
 simple_test( vtkMRMLVolumeNodeTest1 )
 simple_test( vtkObserverManagerTest1 )
+simple_test( vtkOrientedBSplineTransformTest1 )
 
 macro(SIMPLE_TEST_WITH_SCENE TESTNAME SCENEFILENAME)
   add_test(
@@ -200,7 +202,6 @@ macro(SIMPLE_TEST_WITH_SCENE TESTNAME SCENEFILENAME)
       ${CMAKE_CURRENT_SOURCE_DIR}/${SCENEFILENAME}
     )
 endmacro()
-
 
 set( ScenesToTest
   clipCube.mrml

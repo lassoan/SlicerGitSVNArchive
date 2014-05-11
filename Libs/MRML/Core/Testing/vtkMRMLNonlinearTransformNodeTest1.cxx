@@ -14,7 +14,7 @@
 #include <itkConfigure.h>
 #include <itkFactoryRegistration.h>
 
-#include "vtkITKBSplineTransform.h"
+#include "vtkOrientedBSplineTransform.h"
 #include "vtkGridTransform.h"
 #include "vtkMRMLTransformNode.h"
 #include "vtkMRMLBSplineTransformNode.h"
@@ -103,12 +103,12 @@ bool TestBSplineTransform(const char *filename)
   vtkNew<vtkMRMLBSplineTransformNode> bsplineTransformNodeCopy;
   bsplineTransformNodeCopy->Copy(bsplineTransformNode);
   // Reset the original transform to make sure that it was not a shallow copy (transforms from the original transforms are not reused)
-  vtkITKBSplineTransform* emptyTransform=vtkITKBSplineTransform::New();
+  vtkOrientedBSplineTransform* emptyTransform=vtkOrientedBSplineTransform::New();
   bsplineTransformNode->SetAndObserveTransformToParent(emptyTransform);
   emptyTransform->Delete();
 
-  vtkITKBSplineTransform *xfpCopy = vtkITKBSplineTransform::SafeDownCast(bsplineTransformNodeCopy->GetTransformFromParentAs("vtkITKBSplineTransform"));
-  vtkITKBSplineTransform *xtpCopy = vtkITKBSplineTransform::SafeDownCast(bsplineTransformNodeCopy->GetTransformToParentAs("vtkITKBSplineTransform"));
+  vtkOrientedBSplineTransform *xfpCopy = vtkOrientedBSplineTransform::SafeDownCast(bsplineTransformNodeCopy->GetTransformFromParentAs("vtkOrientedBSplineTransform"));
+  vtkOrientedBSplineTransform *xtpCopy = vtkOrientedBSplineTransform::SafeDownCast(bsplineTransformNodeCopy->GetTransformToParentAs("vtkOrientedBSplineTransform"));
 
   // Test if the copied transform gives the same results as the original
   double outpCopy[3] = {0,0,0};
