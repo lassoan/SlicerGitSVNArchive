@@ -257,7 +257,6 @@ double getInverseErrorVtk(const double inputPoint[3], vtkOrientedBSplineTransfor
 
   itk::Point<double,3> inputPointVtk( inputPoint );
   itk::Point<double,3> inversePointVtk( inversePoint );
-  const double tolerance=0.01; // the tolerance value matching the inverse computation tolerance in vtkITKBsplineTransform
   double errorOfInverseComputation = inputPointVtk.EuclideanDistanceTo( inversePointVtk );
 
   if (logDetails)

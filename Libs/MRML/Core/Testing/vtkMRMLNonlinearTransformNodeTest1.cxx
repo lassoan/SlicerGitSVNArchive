@@ -69,10 +69,8 @@ bool TestBSplineTransform(const char *filename)
     }
 
   // Test if both the transform and its inverse are available
-  vtkGeneralTransform *xfp = vtkGeneralTransform::SafeDownCast(
-    bsplineTransformNode->GetTransformFromParentAs("vtkGeneralTransform"));
-  vtkGeneralTransform *xtp = vtkGeneralTransform::SafeDownCast(
-    bsplineTransformNode->GetTransformToParentAs("vtkGeneralTransform"));
+  vtkAbstractTransform *xfp = bsplineTransformNode->GetTransformFromParentAs("vtkOrientedBSplineTransform");
+  vtkAbstractTransform *xtp = bsplineTransformNode->GetTransformToParentAs("vtkOrientedBSplineTransform");
 
   if (xfp == 0 || xtp == 0)
     {
@@ -143,23 +141,19 @@ bool TestGridTransform(const char *filename)
   scene->SetURL(filename);
   scene->Import();
 
-  vtkMRMLGridTransformNode *gridTransformNode = vtkMRMLGridTransformNode::SafeDownCast(
-    scene->GetNodeByID("vtkMRMLGridTransformNode1"));
-
+  vtkMRMLGridTransformNode *gridTransformNode = vtkMRMLGridTransformNode::SafeDownCast(scene->GetNodeByID("vtkMRMLGridTransformNode1"));
   if (gridTransformNode == 0)
     {
-    std::cout << __LINE__ << ": TestBSplineTransform failed" << std::endl;
+    std::cout << __LINE__ << ": TestGridTransform failed" << std::endl;
     return false;
     }
 
-  vtkGridTransform *xfp = vtkGridTransform::SafeDownCast(
-    gridTransformNode->GetTransformFromParentAs("vtkGridTransform"));
-  vtkGridTransform *xtp = vtkGridTransform::SafeDownCast(
-    gridTransformNode->GetTransformToParentAs("vtkGridTransform"));
+  vtkAbstractTransform *xfp = gridTransformNode->GetTransformFromParentAs("vtkGridTransform");
+  vtkAbstractTransform *xtp = gridTransformNode->GetTransformToParentAs("vtkGridTransform");
 
   if (xfp == 0 || xtp == 0)
     {
-    std::cout << __LINE__ << ": TestBSplineTransform failed" << std::endl;
+    std::cout << __LINE__ << ": TestGridTransform failed" << std::endl;
     return false;
     }
 
@@ -168,14 +162,14 @@ bool TestGridTransform(const char *filename)
   xfp->TransformPoint(inp, outp);
   if (fabs(outp[0]) < 0.1 || fabs(outp[1]) < 0.1 || fabs(outp[2]) < 0.1)
     {
-    std::cout << __LINE__ << ": TestBSplineTransform failed" << std::endl;
+    std::cout << __LINE__ << ": TestGridTransform failed" << std::endl;
     return false;
     }
 
   xtp->TransformPoint(outp, inp);
   if (fabs(inp[0]) > 0.1 || fabs(inp[1]) > 0.1 || fabs(inp[2]) > 0.1)
     {
-    std::cout << __LINE__ << ": TestBSplineTransform failed" << std::endl;
+    std::cout << __LINE__ << ": TestGridTransform failed" << std::endl;
     return false;
     }
 
