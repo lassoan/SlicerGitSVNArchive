@@ -38,6 +38,31 @@ inline void vtkLinearTransformPoint(const double matrix[4][4],
 }
 
 //------------------------------------------------------------------------
+// Simple multiplication of 3x3 matrices: aMat * bMat = cMat
+// The only difference compared to Matrix3x3 multiply method is that
+// bMat is stored in a 4x4 matrix.
+inline void vtkLinearTransformJacobian(double aMat[3][3], double bMat[4][4], double cMat[3][3])
+{
+  double Accum[3][3];
+  for (int i = 0; i < 3; i++)
+    {
+    for (int k = 0; k < 3; k++)
+      {
+      Accum[i][k] = aMat[i][0] * bMat[0][k] +
+                    aMat[i][1] * bMat[1][k] +
+                    aMat[i][2] * bMat[2][k];
+      }
+    }
+  // Copy to final dest
+  for (int i = 0; i < 3; i++)
+    {
+    cMat[i][0] = Accum[i][0];
+    cMat[i][1] = Accum[i][1];
+    cMat[i][2] = Accum[i][2];
+    }
+}
+
+//------------------------------------------------------------------------
 inline void vtkLinearTransformDerivative(const double matrix[4][4],
                                          const double in[3], double out[3],
                                          double derivative[3][3])
@@ -190,11 +215,13 @@ void vtkOrientedBSplineTransform::ForwardTransformDerivative(const double inPoin
                         gridPtr,extent,increments, this->BorderMode);
 
   // derivative = BulkTransformDerivativeMatrix + SplineDerivativeMatrix * spacing * scale
+  // Take into account grid spacing and direction cosines
+  vtkLinearTransformJacobian(splineDerivative, this->OutputToGridIndexTransformMatrixCached->Element, splineDerivative);
   for (int i = 0; i < 3; i++)
     {
-    derivative[i][0] += splineDerivative[i][0]*scale/spacing[0];
-    derivative[i][1] += splineDerivative[i][1]*scale/spacing[1];
-    derivative[i][2] += splineDerivative[i][2]*scale/spacing[2];
+    derivative[i][0] += splineDerivative[i][0]*scale;
+    derivative[i][1] += splineDerivative[i][1]*scale;
+    derivative[i][2] += splineDerivative[i][2]*scale;
     }
 
   // outPoint = BulkTransformMatrix * inPointVector + displacementVector * scale

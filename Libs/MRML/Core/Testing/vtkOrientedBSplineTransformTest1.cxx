@@ -367,7 +367,7 @@ int vtkOrientedBSplineTransformTest1(int , char * [] )
           }
         // Verify VTK derivative
         double derivativeError = getDerivativeErrorVtk(inputPoint, bsplineItk, bsplineVtk.GetPointer(), false);
-        if ( derivativeError > 0.1 ) // the error is computed compared to an approximation, so we use a higher threshold
+        if ( derivativeError > 1e-6 )
           {
           getDerivativeErrorVtk(inputPoint, bsplineItk, bsplineVtk.GetPointer(), true);
           std::cout << "ERROR: Transform derivative result mismatch between VTK and numerical approximation at grid point ("<<i<<","<<j<<","<<k<<")"<< std::endl;
