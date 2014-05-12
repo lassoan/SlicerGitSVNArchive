@@ -26,7 +26,7 @@ typedef itk::BSplineDeformableTransform<double,3,3> itkBSplineType;
 
 //----------------------------------------------------------------------------
 void CreateBSplineVtk(vtkOrientedBSplineTransform* bsplineTransform,
-  double origin[3], double spacing[3], double dims[3],
+  double origin[3], double spacing[3], double direction[3][3], double dims[3],
   const double bulkMatrix[3][3], const double bulkOffset[3])
 {
   vtkNew<vtkImageData> bsplineCoefficients;
@@ -52,14 +52,18 @@ void CreateBSplineVtk(vtkOrientedBSplineTransform* bsplineTransform,
   }
 
   vtkNew<vtkMatrix4x4> bulkTransform;
+  vtkNew<vtkMatrix4x4> gridOrientation;
   for (int row=0; row<3; row++)
     {
     for (int col=0; col<3; col++)
       {
       bulkTransform->SetElement(row,col,bulkMatrix[row][col]);
+      gridOrientation->SetElement(row,col,direction[row][col]);
       }
     bulkTransform->SetElement(row,3,bulkOffset[row]);
     }
+
+  bsplineTransform->SetGridDirectionMatrix(gridOrientation.GetPointer());
 
   bsplineTransform->SetCoefficients(bsplineCoefficients.GetPointer());
   bsplineTransform->SetBulkTransformMatrix(bulkTransform.GetPointer());
@@ -78,19 +82,23 @@ void SetBSplineNodeVtk(vtkOrientedBSplineTransform* bsplineTransform,int nodeInd
 
 //----------------------------------------------------------------------------
 itkBSplineType::Pointer CreateBSplineItk(
-  const double origin[3], const double spacing[3], const double dims[3],
+  const double origin[3], const double spacing[3], double direction[3][3], const double dims[3],
   const double bulkMatrix[3][3], const double bulkOffset[3])
 {
   itkBSplineType::RegionType region;
   itkBSplineType::OriginType originItk;
   itkBSplineType::SpacingType spacinItk;
   itkBSplineType::RegionType::SizeType sz;
+  itkBSplineType::DirectionType directionItk;
 
   for (int i=0; i<3; i++)
     {
     originItk[i] = origin[i];
     spacinItk[i] = spacing[i];
     sz[i]=dims[i];
+    directionItk(i,0)=direction[i][0];
+    directionItk(i,1)=direction[i][1];
+    directionItk(i,2)=direction[i][2];
     }
 
   region.SetSize( sz );
@@ -103,6 +111,7 @@ itkBSplineType::Pointer CreateBSplineItk(
   bspline->SetGridRegion( region );
   bspline->SetGridOrigin( originItk );
   bspline->SetGridSpacing( spacinItk );
+  bspline->SetGridDirection( directionItk );
 
   typedef itk::AffineTransform< double,3 > BulkTransformType;
   const BulkTransformType::Pointer bulkTransform = BulkTransformType::New();
@@ -182,7 +191,61 @@ double getTransformedPointDifferenceItkVtk(const double inputPoint[3], itkBSplin
 }
 
 //----------------------------------------------------------------------------
-double getInverseDifferenceVtk(const double inputPoint[3], vtkOrientedBSplineTransform* bsplineVtk, bool logDetails)
+double getDerivativeErrorVtk(const double inputPoint[3], itkBSplineType::Pointer bsplineItk, vtkOrientedBSplineTransform* bsplineVtk, bool logDetails)
+{
+  // Jacobian estimated using central difference
+  double jacobianEstimation[3][3];
+  double eps=1e-3; // step size
+  for (int row=0; row<3; row++)
+    {
+    double xMinus1[3]={inputPoint[0],inputPoint[1],inputPoint[2]};
+    double xPlus1[3]={inputPoint[0],inputPoint[1],inputPoint[2]};
+    xMinus1[row]-=eps;
+    xPlus1[row]+=eps;
+    double xMinus1Transformed[3]={0};
+    bsplineVtk->TransformPoint( xMinus1, xMinus1Transformed);
+    double xPlus1Transformed[3]={0};
+    bsplineVtk->TransformPoint( xPlus1, xPlus1Transformed);
+    for (int col=0; col<3; col++)
+      {
+      jacobianEstimation[col][row] = (xPlus1Transformed[col]-xMinus1Transformed[col])/(2*eps);
+      }
+    }
+
+  // Jacobian computed by the transform class
+  double outputPoint[3]={0};
+  double jacobianVtk[3][3];
+  bsplineVtk->InternalTransformDerivative( inputPoint, outputPoint, jacobianVtk );
+
+  if (logDetails)
+    {
+    std::cout << "Compare VTK transform Jacobian to an estimation" << std::endl;
+    std::cout << " Input point: " << inputPoint[0] << " " << inputPoint[1] << " " << inputPoint[2] << std::endl;
+    }
+
+  double maxDifference = 0;
+  for (int row=0; row<3; row++)
+    {
+    for (int col=0; col<3; col++)
+      {
+      double difference=fabs(jacobianVtk[row][col]-jacobianEstimation[row][col]);
+      if (difference>maxDifference)
+        {
+        maxDifference = difference;
+        }
+      if (logDetails)
+        {
+        std::cout << " Element[" << row << "," << col << "]: Ground truth: "<< jacobianEstimation[row][col] << "  VTK: " << jacobianVtk[row][col]
+          << "  Difference: " << difference << std::endl;
+        }
+      }
+    }
+
+  return maxDifference;
+}
+
+//----------------------------------------------------------------------------
+double getInverseErrorVtk(const double inputPoint[3], vtkOrientedBSplineTransform* bsplineVtk, bool logDetails)
 {
   double outputPoint[3] = { -1, -1, -1 };
   bsplineVtk->TransformPoint( inputPoint, outputPoint);
@@ -234,73 +297,100 @@ int vtkOrientedBSplineTransformTest1(int , char * [] )
 
   double origin[3] = {-100, -100, -100};
   double spacing[3] = {100, 100, 100};
+  double direction[3][3] = {{0.92128500, -0.36017075, -0.146666625}, {0.31722386, 0.91417248, -0.25230478}, {0.22495105, 0.18591857, 0.95646814}};
   double dims[3] = {7,8,7};
 
   const double bulkMatrix[3][3]={ { 0.7, 0.2, 0.1 }, { 0.1, 0.8, 0.1 }, { 0.05, 0.2, 0.9 }};
   const double bulkOffset[3]={-5, 3, 6};
 
-  // set the parameter at image(100,200,0)=>node(2,3,1)
-  // the displacement of x at (100,200,0)
-  int modifiedBSplineNodeIndex[3]={2,3,1};
-  double modifiedBSplineNodeValue[3]={2.0,3.0,6.0};
+  // Modify a few nodes
+  int modifiedBSplineNodeIndex1[3] = {2, 3, 5};
+  double modifiedBSplineNodeValue1[3] = {20.0, -30.0, 60.0};
+  int modifiedBSplineNodeIndex2[3] = {4, 4, 3};
+  double modifiedBSplineNodeValue2[3] = {-20.0, 40.0, 20.0};
+  int modifiedBSplineNodeIndex3[3] = {0, 0, 6};
+  double modifiedBSplineNodeValue3[3] = {50.0, 70.0, -60.0};
 
   // Create an ITK BSpline transform. It'll serve as the reference.
-  itkBSplineType::Pointer bsplineItk=CreateBSplineItk(origin, spacing, dims, bulkMatrix, bulkOffset);
+  itkBSplineType::Pointer bsplineItk=CreateBSplineItk(origin, spacing, direction, dims, bulkMatrix, bulkOffset);
   // Modify a BSpline node
-  SetBSplineNodeItk(bsplineItk, modifiedBSplineNodeIndex, modifiedBSplineNodeValue);
+  SetBSplineNodeItk(bsplineItk, modifiedBSplineNodeIndex1, modifiedBSplineNodeValue1);
+  SetBSplineNodeItk(bsplineItk, modifiedBSplineNodeIndex2, modifiedBSplineNodeValue2);
+  SetBSplineNodeItk(bsplineItk, modifiedBSplineNodeIndex3, modifiedBSplineNodeValue3);
 
   // Create a VTK BSpline transform with the same parameters.
   vtkNew<vtkOrientedBSplineTransform> bsplineVtk;
-  CreateBSplineVtk(bsplineVtk.GetPointer(), origin, spacing, dims, bulkMatrix, bulkOffset);
+  CreateBSplineVtk(bsplineVtk.GetPointer(), origin, spacing, direction, dims, bulkMatrix, bulkOffset);
   // Modify a BSpline node
-  SetBSplineNodeVtk(bsplineVtk.GetPointer(), modifiedBSplineNodeIndex, modifiedBSplineNodeValue);
+  SetBSplineNodeVtk(bsplineVtk.GetPointer(), modifiedBSplineNodeIndex1, modifiedBSplineNodeValue1);
+  SetBSplineNodeVtk(bsplineVtk.GetPointer(), modifiedBSplineNodeIndex2, modifiedBSplineNodeValue2);
+  SetBSplineNodeVtk(bsplineVtk.GetPointer(), modifiedBSplineNodeIndex3, modifiedBSplineNodeValue3);
 
-  bool testPassed=true;
   int numberOfPointsTested=0;
+  int numberOfItkVtkPointMismatches=0;
+  int numberOfDerivativeMismatches=0;
+  int numberOfInverseMismatches=0;
 
-  // We take samples in the bspline region between the firs+1 and last-1 node
+  // We take samples in the bspline region (first node + 2 < node < last node - 1)
   // because the boundaries are handled differently in ITK and VTK (in ITK there is an
   // abrupt change to 0, while in VTK it is smoothly converges to zero)
-  const int numberOfSamplesPerAxis=10;
-  double startX = origin[0]+1*spacing[0];
-  double endX = origin[0]+(dims[0]-2)*spacing[0];
-  double startY = origin[1]+1*spacing[1];
-  double endY = origin[1]+(dims[1]-2)*spacing[1];
-  double startZ = origin[2]+1*spacing[2];
-  double endZ = origin[2]+(dims[2]-2)*spacing[2];
-  int incX=static_cast<int>((endX-startX)/numberOfSamplesPerAxis);
-  int incY=static_cast<int>((endY-startY)/numberOfSamplesPerAxis);
-  int incZ=static_cast<int>((endZ-startZ)/numberOfSamplesPerAxis);
-  for (int z=startZ; z<=endZ; z+=incZ)
+  const int numberOfSamplesPerAxis=25;
+  const double startMargin=2;
+  const double endMargin=1;
+  const double startI = startMargin;
+  const double endI = (dims[0]-1)-endMargin;
+  const double startJ = startMargin;
+  const double endJ = (dims[1]-1)-endMargin;
+  const double startK = startMargin;
+  const double endK = (dims[2]-1)-endMargin;
+  const double incI=(endI-startI)/numberOfSamplesPerAxis;
+  const double incJ=(endJ-startJ)/numberOfSamplesPerAxis;
+  const double incK=(endK-startK)/numberOfSamplesPerAxis;
+  for (double k=startK+incK; k<=endK-incK; k+=incK)
     {
-    for (int y=startY; y<=endY; y+=incY)
+    for (double j=startJ+incJ; j<=endJ-incJ; j+=incJ)
       {
-      for (int x=startX; x<=endX; x+=incX)
+      for (double i=startI+incI; i<=endI-incI; i+=incI)
         {
         numberOfPointsTested++;
-        double inputPoint[3] = {x,y,z};
+        double inputPoint[3];
+        inputPoint[0] = origin[0]+direction[0][0]*spacing[0]*i+direction[0][1]*spacing[1]*j+direction[0][2]*spacing[2]*k;
+        inputPoint[1] = origin[1]+direction[1][0]*spacing[0]*i+direction[1][1]*spacing[1]*j+direction[1][2]*spacing[2]*k;
+        inputPoint[2] = origin[2]+direction[2][0]*spacing[0]*i+direction[2][1]*spacing[1]*j+direction[2][2]*spacing[2]*k;
         // Compare transformation results computed by ITK and VTK.
         double differenceItkVtk = getTransformedPointDifferenceItkVtk(inputPoint, bsplineItk, bsplineVtk.GetPointer(), false);
         if ( differenceItkVtk > 1e-6 )
           {
           getTransformedPointDifferenceItkVtk(inputPoint, bsplineItk, bsplineVtk.GetPointer(), true);
-          std::cout << "ERROR: Point transfom result mismatch between ITK and VTK" << std::endl;
-          testPassed=false;
+          std::cout << "ERROR: Point transfom result mismatch between ITK and VTK at grid point ("<<i<<","<<j<<","<<k<<")"<< std::endl;
+          numberOfItkVtkPointMismatches++;
+          }
+        // Verify VTK derivative
+        double derivativeError = getDerivativeErrorVtk(inputPoint, bsplineItk, bsplineVtk.GetPointer(), false);
+        if ( derivativeError > 0.1 ) // the error is computed compared to an approximation, so we use a higher threshold
+          {
+          getDerivativeErrorVtk(inputPoint, bsplineItk, bsplineVtk.GetPointer(), true);
+          std::cout << "ERROR: Transform derivative result mismatch between VTK and numerical approximation at grid point ("<<i<<","<<j<<","<<k<<")"<< std::endl;
+          numberOfDerivativeMismatches++;
           }
         // Verify VTK inverse transform
-        double inverseDifference=getInverseDifferenceVtk(inputPoint, bsplineVtk.GetPointer(), false);
-        if ( inverseDifference > 1e-3 )
+        double inverseError = getInverseErrorVtk(inputPoint, bsplineVtk.GetPointer(), false);
+        if ( inverseError > 1e-3 )
           {
-          getInverseDifferenceVtk(inputPoint, bsplineVtk.GetPointer(), true);
+          getInverseErrorVtk(inputPoint, bsplineVtk.GetPointer(), true);
           std::cout << "ERROR: Point transformed by forward and inverse transform does not match the original point" << std::endl;
-          testPassed=false;
+          numberOfInverseMismatches++;
           }
         }
       }
     }
 
   std::cout << "Number of points tested: " << numberOfPointsTested << std::endl;
-  if (testPassed)
+  std::cout << "Number of ITK/VTK mismatches: " << numberOfItkVtkPointMismatches << std::endl;
+  std::cout << "Number of derivative mismatches: " << numberOfDerivativeMismatches << std::endl;
+  std::cout << "Number of inverse mismatches: " << numberOfInverseMismatches << std::endl;
+
+  if (numberOfItkVtkPointMismatches==0 && numberOfDerivativeMismatches==0 && numberOfInverseMismatches==0)
     {
     std::cout << "Test result: PASSED" << std::endl;
     return EXIT_SUCCESS;
