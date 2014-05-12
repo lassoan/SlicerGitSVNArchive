@@ -19,21 +19,26 @@ Version:   $Revision: 1.14 $
 #include "vtkMRMLTransformNode.h"
 
 // VTK includes
+#include <vtkAlgorithmOutput.h>
+#include <vtkAppendPolyData.h>
 #include <vtkCallbackCommand.h>
+#include <vtkGeneralTransform.h>
+#include <vtkHomogeneousTransform.h>
 #include <vtkImageData.h>
+#include <vtkImageDataGeometryFilter.h>
+#include <vtkImageResliceMask.h>
 #include <vtkMathUtilities.h>
 #include <vtkMatrix4x4.h>
-#include <vtkHomogeneousTransform.h>
-#include <vtkGeneralTransform.h>
-#include <vtkImageDataGeometryFilter.h>
-#include <vtkTransformPolyDataFilter.h>
-#include <vtkAppendPolyData.h>
 #include <vtkNew.h>
 #include <vtkSmartPointer.h>
+#include <vtkTrivialProducer.h>
 
-#include <vtkImageResliceMask.h>
+#include <cassert>
+
 //----------------------------------------------------------------------------
+#if (VTK_MAJOR_VERSION <= 5)
 vtkCxxSetObjectMacro(vtkMRMLVolumeNode, ImageData, vtkImageData);
+#endif
 
 //----------------------------------------------------------------------------
 vtkMRMLVolumeNode::vtkMRMLVolumeNode()
@@ -58,7 +63,11 @@ vtkMRMLVolumeNode::vtkMRMLVolumeNode()
     this->Origin[i] = 0.0;
     }
 
+#if (VTK_MAJOR_VERSION <= 5)
   this->ImageData = NULL;
+#else
+  this->ImageDataConnection = NULL;
+#endif
 }
 
 //----------------------------------------------------------------------------
@@ -179,12 +188,16 @@ void vtkMRMLVolumeNode::Copy(vtkMRMLNode *anode)
     this->CopyOrientation(node);
     }
 
-  if (node->ImageData != NULL)
+  if (node->GetImageData() != NULL)
     {
     // Only copy bulk data if it exists - this handles the case
     // of restoring from SceneViews, where the nodes will not
     // have bulk data.
+#if (VTK_MAJOR_VERSION <= 5)
     this->SetAndObserveImageData(node->ImageData);
+#else
+    this->SetImageDataConnection(node->GetImageDataConnection());
+#endif
     }
 
   anode->SetDisableModifiedEvent(amode);
@@ -237,10 +250,10 @@ void vtkMRMLVolumeNode::PrintSelf(ostream& os, vtkIndent indent)
     }
   os << "\n";
 
-  if (this->ImageData != NULL)
+  if (this->GetImageData() != NULL)
     {
     os << indent << "ImageData:\n";
-    this->ImageData->PrintSelf(os, indent.GetNextIndent());
+    this->GetImageData()->PrintSelf(os, indent.GetNextIndent());
     }
 }
 
@@ -690,6 +703,7 @@ const char* vtkMRMLVolumeNode::ComputeScanOrderFromIJKToRAS(vtkMatrix4x4 *ijkToR
 //----------------------------------------------------------------------------
 void vtkMRMLVolumeNode::SetAndObserveImageData(vtkImageData *imageData)
 {
+#if (VTK_MAJOR_VERSION <= 5)
   if (imageData == this->ImageData)
     {
     return;
@@ -719,6 +733,94 @@ void vtkMRMLVolumeNode::SetAndObserveImageData(vtkImageData *imageData)
   this->SetImageData(imageData);
   this->InvokeEvent(vtkMRMLVolumeNode::ImageDataModifiedEvent, NULL);
 }
+#else
+  if (imageData == 0)
+    {
+    this->SetImageDataConnection(0);
+    }
+  else
+    {
+    vtkNew<vtkTrivialProducer> tp;
+    tp->SetOutput(imageData);
+    this->SetImageDataConnection(tp->GetOutputPort());
+    }
+}
+
+//---------------------------------------------------------------------------
+vtkImageData* vtkMRMLVolumeNode::GetImageData()
+{
+  vtkAlgorithm* producer = this->ImageDataConnection ?
+    this->ImageDataConnection->GetProducer() : 0;
+  return vtkImageData::SafeDownCast(
+    producer ? producer->GetOutputDataObject(
+      this->ImageDataConnection->GetIndex()) : 0);
+}
+
+//---------------------------------------------------------------------------
+void vtkMRMLVolumeNode
+::SetImageDataConnection(vtkAlgorithmOutput *newImageDataConnection)
+{
+  if (newImageDataConnection == this->ImageDataConnection)
+    {
+    return;
+    }
+
+  vtkAlgorithm* oldImageDataAlgorithm = this->ImageDataConnection ?
+    this->ImageDataConnection->GetProducer() : 0;
+
+  this->ImageDataConnection = newImageDataConnection;
+
+  vtkAlgorithm* imageDataAlgorithm = this->ImageDataConnection ?
+    this->ImageDataConnection->GetProducer() : 0;
+  if (imageDataAlgorithm != NULL)
+    {
+    vtkEventBroker::GetInstance()->AddObservation(
+      imageDataAlgorithm, vtkCommand::ModifiedEvent, this, this->MRMLCallbackCommand );
+    imageDataAlgorithm->Register(this);
+    }
+
+  this->SetImageDataToDisplayNodes();
+
+  if (oldImageDataAlgorithm != NULL)
+    {
+    vtkEventBroker::GetInstance()->RemoveObservations (
+      oldImageDataAlgorithm, vtkCommand::ModifiedEvent, this, this->MRMLCallbackCommand );
+    oldImageDataAlgorithm->UnRegister(this);
+    }
+
+  this->StorableModifiedTime.Modified();
+  this->Modified();
+  this->InvokeEvent( vtkMRMLVolumeNode::ImageDataModifiedEvent , this);
+}
+#endif
+
+//---------------------------------------------------------------------------
+void vtkMRMLVolumeNode
+::SetImageDataToDisplayNodes()
+{
+  int ndisp = this->GetNumberOfDisplayNodes();
+  for (int n=0; n<ndisp; n++)
+    {
+    vtkMRMLVolumeDisplayNode *dnode = vtkMRMLVolumeDisplayNode::SafeDownCast(
+      this->GetNthDisplayNode(n));
+    if (dnode)
+      {
+      this->SetImageDataToDisplayNode(dnode);
+      }
+    }
+}
+
+//---------------------------------------------------------------------------
+void vtkMRMLVolumeNode
+::SetImageDataToDisplayNode(vtkMRMLVolumeDisplayNode* volumeDisplayNode)
+{
+  assert(volumeDisplayNode);
+#if (VTK_MAJOR_VERSION <= 5)
+  volumeDisplayNode->SetInputImageData(this->ImageData);
+#else
+  volumeDisplayNode->SetInputImageDataConnection(this->GetImageDataConnection());
+#endif
+}
 
 //----------------------------------------------------------------------------
 void vtkMRMLVolumeNode::OnNodeReferenceAdded(vtkMRMLNodeReference *reference)
@@ -740,7 +842,11 @@ void vtkMRMLVolumeNode::UpdateDisplayNodeImageData(vtkMRMLDisplayNode* dNode)
   vtkMRMLVolumeDisplayNode* vNode = vtkMRMLVolumeDisplayNode::SafeDownCast(dNode);
   if (vNode)
     {
+#if (VTK_MAJOR_VERSION <= 5)
     vNode->SetInputImageData(this->ImageData);
+#else
+    vNode->SetInputImageDataConnection(this->ImageDataConnection);
+#endif
     }
 }
 
@@ -760,7 +866,12 @@ void vtkMRMLVolumeNode::ProcessMRMLEvents ( vtkObject *caller,
   Superclass::ProcessMRMLEvents(caller, event, callData);
 
   // did the image data change?
-  if (this->ImageData && this->ImageData == vtkImageData::SafeDownCast(caller) &&
+#if (VTK_MAJOR_VERSION <= 5)
+  if (this->GetImageData() == vtkImageData::SafeDownCast(caller) &&
+#else
+  if (this->ImageDataConnection != 0 &&
+      this->ImageDataConnection->GetProducer() == vtkAlgorithm::SafeDownCast(caller) &&
+#endif
     event ==  vtkCommand::ModifiedEvent)
     {
     this->InvokeEvent(vtkMRMLVolumeNode::ImageDataModifiedEvent, NULL);
@@ -887,7 +998,7 @@ void vtkMRMLVolumeNode::GetRASBounds(double bounds[6])
 bool vtkMRMLVolumeNode::GetModifiedSinceRead()
 {
   return this->Superclass::GetModifiedSinceRead() ||
-    (this->ImageData && this->ImageData->GetMTime() > this->GetStoredTime());
+    (this->GetImageData() && this->GetImageData()->GetMTime() > this->GetStoredTime());
 }
 
 //---------------------------------------------------------------------------
@@ -1017,7 +1128,11 @@ void vtkMRMLVolumeNode::ApplyNonLinearTransform(vtkAbstractTransform* transform)
 
   reslice->SetResliceTransform(resampleXform.GetPointer());
 
-  reslice->SetInput(this->GetImageData());
+#if (VTK_MAJOR_VERSION <= 5)
+  reslice->SetInput(this->ImageData);
+#else
+  reslice->SetInputConnection(this->ImageDataConnection);
+#endif
   reslice->SetInterpolationModeToLinear();
   reslice->SetBackgroundColor(0, 0, 0, 0);
   reslice->AutoCropOutputOff();
@@ -1049,8 +1164,9 @@ void vtkMRMLVolumeNode::ApplyNonLinearTransform(vtkAbstractTransform* transform)
 
   reslice->SetOutputExtent( extent);
 
+#if (VTK_MAJOR_VERSION <= 5)
   reslice->GetBackgroundMask()->SetUpdateExtentToWholeExtent();
-
+#endif
   reslice->Update();
 
   vtkNew<vtkImageData> resampleImage;

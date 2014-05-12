@@ -19,6 +19,7 @@
 #include "vtkMRMLVolumeDisplayNode.h"
 
 // VTK includes
+class vtkImageAlgorithm;
 class vtkImageAccumulate;
 class vtkImageAppendComponents;
 class vtkImageBimodalAnalysis;
@@ -136,18 +137,35 @@ class VTK_MRML_EXPORT vtkMRMLScalarVolumeDisplayNode : public vtkMRMLVolumeDispl
                                    void * /*callData*/ );
 
   /// Set the pipeline input
+#if (VTK_MAJOR_VERSION <= 5)
   virtual void SetInputImageData(vtkImageData *imageData);
+#else
+  virtual void SetInputImageDataConnection(vtkAlgorithmOutput *imageDataConnection);
+#endif
 
   /// Gets the pipeline input
+#if (VTK_MAJOR_VERSION <= 5)
   virtual vtkImageData* GetInputImageData();
+#else
+  virtual vtkAlgorithmOutput* GetInputImageDataConnection();
+#endif
 
   /// Gets the pipeline output
+#if (VTK_MAJOR_VERSION <= 5)
   virtual vtkImageData* GetOutputImageData();
+#else
+  virtual vtkAlgorithmOutput* GetOutputImageDataConnection();
+#endif
 
   ///
   /// Sets ImageData for background mask
+#if (VTK_MAJOR_VERSION <= 5)
   virtual void SetBackgroundImageData(vtkImageData *imageData);
   virtual vtkImageData* GetBackgroundImageData();
+#else
+  virtual void SetBackgroundImageDataConnection(vtkAlgorithmOutput *imageDataConnection);
+  virtual vtkAlgorithmOutput* GetBackgroundImageDataConnection();
+#endif
 
   ///
   /// Parse a string with window and level as double|double, and add a preset
@@ -192,9 +210,18 @@ protected:
 
   /// Return the image data with scalar type, it can be in the middle of the
   /// pipeline, it's typically the input of the threshold/windowlevel filters
+#if (VTK_MAJOR_VERSION <= 5)
   virtual vtkImageData* GetScalarImageData();
+#else
+  vtkImageData* GetScalarImageData();
+  virtual vtkAlgorithmOutput* GetScalarImageDataConnection();
+#endif
 
+#if (VTK_MAJOR_VERSION <= 5)
   virtual void SetInputToImageDataPipeline(vtkImageData* input);
+#else
+  virtual void SetInputToImageDataPipeline(vtkAlgorithmOutput *imageDataConnection);
+#endif
 
   ///
   /// To hold preset values for window and level, so can restore this display

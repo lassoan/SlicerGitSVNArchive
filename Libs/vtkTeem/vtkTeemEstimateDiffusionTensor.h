@@ -16,9 +16,10 @@
 #define __vtkTeemEstimateDiffusionTensor_h
 
 #include "vtkTeemConfigure.h"
-#include "vtkImageToImageFilter.h"
+#include "vtkThreadedImageAlgorithm.h"
 #include "vtkDoubleArray.h"
 #include "vtkTransform.h"
+#include <vtkVersion.h>
 #include "teem/nrrd.h"
 
 /* avoid name conflicts with symbols from python */
@@ -27,11 +28,11 @@
 
 #include "teem/ten.h"
 
-class VTK_Teem_EXPORT vtkTeemEstimateDiffusionTensor : public vtkImageToImageFilter
+class VTK_Teem_EXPORT vtkTeemEstimateDiffusionTensor : public vtkThreadedImageAlgorithm
 {
  public:
   static vtkTeemEstimateDiffusionTensor *New();
-  vtkTypeMacro(vtkTeemEstimateDiffusionTensor,vtkImageToImageFilter);
+  vtkTypeMacro(vtkTeemEstimateDiffusionTensor,vtkThreadedImageAlgorithm);
 
   ///
   /// The number of gradients is the same as the number of input
@@ -41,12 +42,12 @@ class VTK_Teem_EXPORT vtkTeemEstimateDiffusionTensor : public vtkImageToImageFil
 
   ///
   /// Set the 3-vectors describing the gradient directions
-  void SetDiffusionGradient(int num, vtkFloatingPointType gradient[3])
+  void SetDiffusionGradient(int num, double gradient[3])
     {
     this->DiffusionGradients->SetTuple(num,gradient);
     this->Modified();
     }
-  void SetDiffusionGradient(int num, vtkFloatingPointType g0, vtkFloatingPointType g1, vtkFloatingPointType g2)
+  void SetDiffusionGradient(int num, double g0, double g1, double g2)
     {
       this->DiffusionGradients->SetComponent(num,0,g0);
       this->DiffusionGradients->SetComponent(num,1,g1);
@@ -171,18 +172,17 @@ class VTK_Teem_EXPORT vtkTeemEstimateDiffusionTensor : public vtkImageToImageFil
   ///
   int NumberOfWLSIterations;
 
-  void ExecuteInformation(vtkImageData *inData, vtkImageData *outData);
-  void ExecuteInformation(){this->vtkImageToImageFilter::ExecuteInformation();};
+  virtual int RequestInformation(vtkInformation *, vtkInformationVector **, vtkInformationVector *);
+
   void ThreadedExecute(vtkImageData *inData, vtkImageData *outData,
         int extent[6], int id);
 
   /// We override this in order to allocate output tensors
   /// before threading happens.  This replaces the superclass
-  /// vtkImageMultipleInputFilter's Execute function.
-  void ExecuteData(vtkDataObject *out);
-
-
-
+  /// vtkImageAlgorithm's RequestData function.
+  virtual int RequestData(vtkInformation* request,
+                          vtkInformationVector** inputVector,
+                          vtkInformationVector* outputVector);
 };
 
 #endif

@@ -12,10 +12,14 @@
 
 =========================================================================auto=*/
 #include "vtkTeemEstimateDiffusionTensor.h"
+#include "vtkInformation.h"
+#include "vtkInformationVector.h"
 #include "vtkObjectFactory.h"
+#include "vtkStreamingDemandDrivenPipeline.h"
 #include "vtkPointData.h"
 #include "vtkImageData.h"
 #include "vtkFloatArray.h"
+#include <vtkVersion.h>
 
 
 #define VTKEPS 10e-12
@@ -87,7 +91,7 @@ vtkTeemEstimateDiffusionTensor::~vtkTeemEstimateDiffusionTensor()
 //----------------------------------------------------------------------------
 void vtkTeemEstimateDiffusionTensor::PrintSelf(ostream& os, vtkIndent indent)
 {
-  vtkImageToImageFilter::PrintSelf(os,indent);
+  this->Superclass::PrintSelf(os,indent);
 
   os << indent << "NumberOfGradients: " << this->NumberOfGradients << "\n";
   double g[3];
@@ -191,20 +195,41 @@ void vtkTeemEstimateDiffusionTensor::GetDiffusionGradient(int num,double grad[3]
 
 //----------------------------------------------------------------------------
 //
-void vtkTeemEstimateDiffusionTensor::ExecuteInformation(vtkImageData *inData,
-                                             vtkImageData *outData)
+int vtkTeemEstimateDiffusionTensor::RequestInformation(
+  vtkInformation * vtkNotUsed(request),
+  vtkInformationVector **inputVector,
+  vtkInformationVector *outputVector)
 {
-  // We always want to output input scalars Type
-  outData->SetScalarType(inData->GetScalarType());
-  // We output one scalar components: baseline (for legacy issues)
-  outData->SetNumberOfScalarComponents(1);
+  // get the info objects
+  vtkInformation* outInfo = outputVector->GetInformationObject(0);
+  vtkInformation* inInfo = inputVector[0]->GetInformationObject(0);
 
+  int scalarType = VTK_INT;
+  vtkInformation *inScalarInfo =
+    vtkDataObject::GetActiveFieldInformation(inInfo,
+      vtkDataObject::FIELD_ASSOCIATION_POINTS,
+      vtkDataSetAttributes::SCALARS);
+  if (inScalarInfo)
+    {
+    scalarType = inScalarInfo->Get(vtkDataObject::FIELD_ARRAY_TYPE());
+    }
+  // We always want to output input scalars Type
+  // We output one scalar components: baseline (for legacy issues)
+  vtkDataObject::SetPointDataActiveScalarInfo(outInfo, scalarType, 1);
+
+#if (VTK_MAJOR_VERSION <= 5)
   this->Baseline->CopyTypeSpecificInformation( this->GetInput() );
   this->AverageDWI->CopyTypeSpecificInformation( this->GetInput() );
-  this->Baseline->SetScalarType(inData->GetScalarType());
-  this->AverageDWI->SetScalarType(inData->GetScalarType());
+  this->Baseline->SetScalarType(scalarType);
+  this->AverageDWI->SetScalarType(scalarType);
   this->Baseline->SetNumberOfScalarComponents(1);
   this->AverageDWI->SetNumberOfScalarComponents(1);
+#else
+//  this->Baseline->CopyTypeSpecificInformation( this->GetInput() );
+//  this->Baseline->CopyTypeSpecificInformation( this->GetInput() );
+#endif
+
+  return 1;
 
 }
 
@@ -213,26 +238,40 @@ void vtkTeemEstimateDiffusionTensor::ExecuteInformation(vtkImageData *inData,
 // as well as scalars.  This gets called before multithreader starts
 // (after which we can't allocate, for example in ThreadedExecute).
 // Note we return to the regular pipeline at the end of this function.
-void vtkTeemEstimateDiffusionTensor::ExecuteData(vtkDataObject *out)
+int vtkTeemEstimateDiffusionTensor::RequestData(
+  vtkInformation* request,
+  vtkInformationVector** inputVector,
+  vtkInformationVector* outputVector)
 {
-  vtkImageData *output = vtkImageData::SafeDownCast(out);
-  vtkImageData *inData = (vtkImageData *) this->GetInput();
+  vtkInformation* inInfo = inputVector[0]->GetInformationObject(0);
+  vtkInformation* outInfo = outputVector->GetInformationObject(0);
+
+  vtkImageData *inData = vtkImageData::SafeDownCast(
+    inInfo->Get(vtkDataObject::DATA_OBJECT()));
+  vtkImageData *output = vtkImageData::SafeDownCast(
+    outInfo->Get(vtkDataObject::DATA_OBJECT()));
 
   //Check inputs numbertenEstimateMethodLLS
-  if (inData == NULL) {
+  if (inData == NULL)
+    {
     vtkErrorMacro("Input with DWIs has not been assigned");
-    return;
-  }
+    return 0;
+    }
 
   //Check if this input is multicomponent and match the number of  gradients
-  int ncomp = this->GetInput()->GetPointData()->GetScalars()->GetNumberOfComponents();
-  if (ncomp != this->NumberOfGradients) {
-      vtkErrorMacro("The input has to have a number of components equal to the number of gradients");
-      return;
+  int ncomp = inData->GetPointData()->GetScalars()->GetNumberOfComponents();
+  if (ncomp != this->NumberOfGradients)
+    {
+    vtkErrorMacro("The input has to have a number of components equal to the number of gradients");
+    return 0;
     }
 
   // set extent so we know how many tensors to allocate
+#if (VTK_MAJOR_VERSION <= 5)
   output->SetExtent(output->GetUpdateExtent());
+#else
+  output->SetExtent(this->GetUpdateExtent());
+#endif
 
   // allocate output tensors
   vtkFloatArray* data = vtkFloatArray::New();
@@ -244,10 +283,17 @@ void vtkTeemEstimateDiffusionTensor::ExecuteData(vtkDataObject *out)
   data->Delete();
 
   // Allocate baseline and averageDWI images
+#if (VTK_MAJOR_VERSION <= 5)
   this->Baseline->SetExtent(output->GetUpdateExtent());
   this->AverageDWI->SetExtent(output->GetUpdateExtent());
   this->Baseline->AllocateScalars();
   this->AverageDWI->AllocateScalars();
+#else
+  this->Baseline->SetExtent(this->GetUpdateExtent());
+  this->AverageDWI->SetExtent(this->GetUpdateExtent());
+  this->Baseline->AllocateScalars(outInfo);
+  this->AverageDWI->AllocateScalars(outInfo);
+#endif
   this->Baseline->GetPointData()->GetScalars()->SetName("Baseline");
   this->AverageDWI->GetPointData()->GetScalars()->SetName("AverageDWI");
 
@@ -259,11 +305,8 @@ void vtkTeemEstimateDiffusionTensor::ExecuteData(vtkDataObject *out)
 
   // jump back into normal pipeline: call standard superclass method here
   //Do not jump to do the proper allocation of output data
-  this->vtkImageToImageFilter::ExecuteData(out);
-
+  return this->Superclass::RequestData(request, inputVector, outputVector);
 }
-
-
 
 //----------------------------------------------------------------------------
 // This templated function executes the filter for any type of data.
@@ -314,7 +357,11 @@ static void vtkTeemEstimateDiffusionTensorExecute(vtkTeemEstimateDiffusionTensor
   vtkIdType *outInc;
   int *outFullUpdateExt;
   outInc = self->GetOutput()->GetIncrements();
+#if (VTK_MAJOR_VERSION <= 5)
   outFullUpdateExt = self->GetOutput()->GetUpdateExtent(); //We are only working over the update extent
+#else
+  outFullUpdateExt = self->GetUpdateExtent(); //We are only working over the update extent
+#endif
   ptId = ((outExt[0] - outFullUpdateExt[0]) * outInc[0]
          + (outExt[2] - outFullUpdateExt[2]) * outInc[1]
          + (outExt[4] - outFullUpdateExt[4]) * outInc[2]);
@@ -410,7 +457,6 @@ static void vtkTeemEstimateDiffusionTensorExecute(vtkTeemEstimateDiffusionTensor
       averageDWIPtr += outIncZ;
       inPtr += inIncZ;
     }
-
   delete [] dwi;
   // Delete Context
   tenEstimateContextNix(tec);
@@ -418,6 +464,7 @@ static void vtkTeemEstimateDiffusionTensorExecute(vtkTeemEstimateDiffusionTensor
   nrrdNuke(nbmat);
 }
 
+//----------------------------------------------------------------------------
 int vtkTeemEstimateDiffusionTensor::SetGradientsToContext(tenEstimateContext *tec,Nrrd *ngrad, Nrrd *nbmat)
 {
   char *err = NULL;
@@ -456,7 +503,9 @@ int vtkTeemEstimateDiffusionTensor::SetGradientsToContext(tenEstimateContext *te
   return 0;
 }
 
-int vtkTeemEstimateDiffusionTensor::SetTenContext(  tenEstimateContext *tec,Nrrd* ngrad, Nrrd* nbmat )
+//----------------------------------------------------------------------------
+int vtkTeemEstimateDiffusionTensor
+::SetTenContext(  tenEstimateContext *tec,Nrrd* ngrad, Nrrd* nbmat )
 {
     tec->progress = AIR_TRUE;
 
@@ -512,7 +561,6 @@ int vtkTeemEstimateDiffusionTensor::SetTenContext(  tenEstimateContext *tec,Nrrd
     }
 
 return 0;
-
 }
 
 //----------------------------------------------------------------------------
@@ -527,7 +575,7 @@ void vtkTeemEstimateDiffusionTensor::ThreadedExecute(vtkImageData *inData,
   void *inPtrs;
   void *outPtr = outData->GetScalarPointerForExtent(outExt);
 
-  vtkDebugMacro("in threaded execute, " << this->GetNumberOfInputs() << " inputs ");
+  vtkDebugMacro("in threaded execute, " << this->GetNumberOfInputConnections(0) << " inputconnections ");
 
   // Loop through to fill input pointer array
   inPtrs = inData->GetScalarPointerForExtent(outExt);

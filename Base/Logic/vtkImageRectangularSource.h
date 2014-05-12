@@ -7,14 +7,15 @@
 #ifndef __vtkImageRectangularSource_h
 #define __vtkImageRectangularSource_h
 
-#include "vtkImageSource.h"
+#include "vtkImageAlgorithm.h"
 #include "vtkSlicerBaseLogic.h"
+#include <vtkVersion.h>
 
-class  VTK_SLICER_BASE_LOGIC_EXPORT vtkImageRectangularSource : public vtkImageSource
+class  VTK_SLICER_BASE_LOGIC_EXPORT vtkImageRectangularSource : public vtkImageAlgorithm
 {
 public:
   static vtkImageRectangularSource *New();
-  vtkTypeRevisionMacro(vtkImageRectangularSource,vtkImageSource);
+  vtkTypeMacro(vtkImageRectangularSource,vtkImageAlgorithm);
   void PrintSelf(ostream& os, vtkIndent indent);
 
   ///
@@ -92,8 +93,12 @@ protected:
   int OutputScalarType;
   int InsideGraySlopeFlag;
 
-  virtual void ExecuteInformation();
+  virtual int RequestInformation(vtkInformation *, vtkInformationVector **, vtkInformationVector *);
+#if (VTK_MAJOR_VERSION <= 5)
   virtual void ExecuteData(vtkDataObject *outData);
+#else
+  virtual void ExecuteDataWithInformation(vtkDataObject *output, vtkInformation* outInfo);
+#endif
 private:
   vtkImageRectangularSource(const vtkImageRectangularSource&);  /// Not implemented.
   void operator=(const vtkImageRectangularSource&);  /// Not implemented.

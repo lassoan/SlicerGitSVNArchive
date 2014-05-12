@@ -21,7 +21,7 @@
 #include "vtkTeemConfigure.h"
 
 #include "vtkImageMask.h"
-#include "vtkImageTwoInputFilter.h"
+#include "vtkThreadedImageAlgorithm.h"
 
 /// \brief Combines a mask and an image.
 ///
@@ -38,7 +38,7 @@ class VTK_Teem_EXPORT vtkTensorMask : public vtkImageMask
 {
 public:
 
-  vtkTypeRevisionMacro(vtkTensorMask,vtkImageMask);
+  vtkTypeMacro(vtkTensorMask,vtkImageMask);
 
   static vtkTensorMask *New();
   void PrintSelf(ostream& os, vtkIndent indent);
@@ -51,7 +51,7 @@ protected:
 
   /// We override this in order to allocate output tensors
   /// before threading happens.  This replaces the superclass
-  /// vtkImageMultipleInputFilter's Execute function.
+  /// vtkImageAlgorithm's Execute function.
   void ExecuteData(vtkDataObject *out);
 
   virtual void ThreadedRequestData(vtkInformation *request,

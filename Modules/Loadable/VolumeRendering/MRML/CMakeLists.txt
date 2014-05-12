@@ -31,9 +31,13 @@ set(${KIT}_SRCS
 set(${KIT}_TARGET_LIBRARIES
   ${ITK_LIBRARIES}
   ${MRML_LIBRARIES}
-  vtkRendering
   vtkSlicerAnnotationsModuleMRML
   )
+if(${VTK_VERSION_MAJOR} LESS 6)
+  list(APPEND ${KIT}_TARGET_LIBRARIES
+       vtkRendering
+       )
+endif()
 
 #-----------------------------------------------------------------------------
 SlicerMacroBuildModuleMRML(

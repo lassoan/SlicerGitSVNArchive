@@ -19,6 +19,7 @@
 #include "vtkMRMLDisplayNode.h"
 
 // VTK includes
+class vtkAlgorithm;
 class vtkAlgorithmOutput;
 class vtkAssignAttribute;
 class vtkPassThrough;
@@ -41,7 +42,12 @@ public:
 
   /// Set and observe poly data for this model. It should be the output
   /// polydata of the model node.
+#if (VTK_MAJOR_VERSION <= 5)
   virtual void SetInputPolyData(vtkPolyData* polydata);
+# else
+  virtual void SetInputPolyDataConnection(vtkAlgorithmOutput* polyDataConnection);
+  virtual vtkAlgorithmOutput* GetInputPolyDataConnection();
+#endif
 
   /// Return the polydata that was set by SetInputPolyData()
   /// \sa GetOutputPolyData()
@@ -52,9 +58,12 @@ public:
   /// Return 0 if there is no input polydata but it is required.
   /// GetOutputPolyData() should be reimplemented only if the model display
   /// node doesn't take a polydata as input but produce an output polydata.
-  /// In all other cases, GetOutputPort() should be reimplemented.
-  /// \sa GetInputPolyData(), GetOutputPort()
+  /// In all other cases, GetOutputPolyDataConnection() should be reimplemented.
+  /// \sa GetInputPolyData(), GetOutputPolyDataConnection()
   virtual vtkPolyData* GetOutputPolyData();
+  /// Return the polydata that is processed by the display node.
+  /// This is the polydata that needs to be connected with the mappers.
+  virtual vtkAlgorithmOutput* GetOutputPolyDataConnection();
 
   /// Reimplemented to update pipeline with new value
   /// \sa SetActiveAttributeLocation()
@@ -83,11 +92,11 @@ protected:
                                  void *callData);
 
   /// To be reimplemented in subclasses if the input of the pipeline changes
+#if (VTK_MAJOR_VERSION <= 5)
   virtual void SetInputToPolyDataPipeline(vtkPolyData* polyData);
-
-  /// Return the polydata that is processed by the display node.
-  /// This is the polydata that needs to be connected with the mappers.
-  virtual vtkAlgorithmOutput* GetOutputPort();
+#else
+  virtual void SetInputToPolyDataPipeline(vtkAlgorithmOutput* polyDataConnection);
+#endif
 
   /// Filter that changes the active scalar of the input polydata
   /// using the ActiveScalarName and ActiveAttributeLocation properties.

@@ -453,7 +453,9 @@ class EndoscopyPathModel:
     model.SetAndObserveDisplayNodeID(modelDisplay.GetID())
 
     # Add to scene
-    modelDisplay.SetInputPolyData(model.GetPolyData())
+    if vtk.VTK_MAJOR_VERSION <= 5:
+      # shall not be needed.
+      modelDisplay.SetInputPolyData(model.GetPolyData())
     scene.AddNode(model)
 
     # Camera cursor
@@ -464,7 +466,10 @@ class EndoscopyPathModel:
     cursor = slicer.vtkMRMLModelNode()
     cursor.SetScene(scene)
     cursor.SetName(scene.GenerateUniqueName("Cursor-%s" % fids.GetName()))
-    cursor.SetAndObservePolyData(sphere.GetOutput())
+    if vtk.VTK_MAJOR_VERSION <= 5:
+      cursor.SetAndObservePolyData(sphere.GetOutput())
+    else:
+      cursor.SetPolyDataConnection(sphere.GetOutputPort())
 
     # Create display node
     cursorModelDisplay = slicer.vtkMRMLModelDisplayNode()
@@ -474,7 +479,9 @@ class EndoscopyPathModel:
     cursor.SetAndObserveDisplayNodeID(cursorModelDisplay.GetID())
 
     # Add to scene
-    cursorModelDisplay.SetInputPolyData(sphere.GetOutput())
+    if vtk.VTK_MAJOR_VERSION <= 5:
+      # Shall not be needed.
+      cursorModelDisplay.SetInputPolyData(sphere.GetOutput())
     scene.AddNode(cursor)
 
     # Create transform node

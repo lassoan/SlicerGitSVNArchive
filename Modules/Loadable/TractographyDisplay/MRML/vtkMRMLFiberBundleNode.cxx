@@ -12,18 +12,6 @@ Version:   $Revision: 1.3 $
 
 =========================================================================auto=*/
 
-// VTK includes
-#include <vtkCleanPolyData.h>
-#include <vtkCommand.h>
-#include <vtkExtractPolyDataGeometry.h>
-#include <vtkExtractSelectedPolyDataIds.h>
-#include <vtkIdTypeArray.h>
-#include <vtkInformation.h>
-#include <vtkObjectFactory.h>
-#include <vtkPlanes.h>
-#include <vtkSelection.h>
-#include <vtkSelectionNode.h>
-
 // TractographyMRML includes
 #include "vtkMRMLFiberBundleGlyphDisplayNode.h"
 #include "vtkMRMLFiberBundleLineDisplayNode.h"
@@ -36,6 +24,20 @@ Version:   $Revision: 1.3 $
 #include <vtkMRMLScene.h>
 #include <vtkMRMLAnnotationNode.h>
 #include <vtkMRMLAnnotationROINode.h>
+
+// VTK includes
+#include <vtkAlgorithmOutput.h>
+#include <vtkCleanPolyData.h>
+#include <vtkCommand.h>
+#include <vtkExtractPolyDataGeometry.h>
+#include <vtkExtractSelectedPolyDataIds.h>
+#include <vtkIdTypeArray.h>
+#include <vtkInformation.h>
+#include <vtkObjectFactory.h>
+#include <vtkPlanes.h>
+#include <vtkSelection.h>
+#include <vtkSelectionNode.h>
+#include <vtkVersion.h>
 
 // STD includes
 #include <algorithm>
@@ -253,6 +255,7 @@ void vtkMRMLFiberBundleNode::UpdateReferenceID(const char *oldID, const char *ne
 }
 
 //----------------------------------------------------------------------------
+#if (VTK_MAJOR_VERSION <= 5)
 vtkPolyData* vtkMRMLFiberBundleNode::GetFilteredPolyData()
 {
   if (this->SelectWithAnnotationNode)
@@ -264,6 +267,30 @@ vtkPolyData* vtkMRMLFiberBundleNode::GetFilteredPolyData()
     return this->CleanPolyDataPostSubsampling->GetOutput();
     }
 }
+#else
+vtkAlgorithmOutput* vtkMRMLFiberBundleNode::GetFilteredPolyDataConnection()
+{
+  if (this->SelectWithAnnotationNode)
+    {
+    return this->CleanPolyDataPostROISelection->GetOutputPort();
+    }
+  else
+    {
+    return this->CleanPolyDataPostSubsampling->GetOutputPort();
+    }
+}
+
+//----------------------------------------------------------------------------
+vtkPolyData* vtkMRMLFiberBundleNode::GetFilteredPolyData()
+{
+  vtkAlgorithm* producer = this->GetFilteredPolyDataConnection() ?
+    this->GetFilteredPolyDataConnection()->GetProducer() : 0;
+  int index = this->GetFilteredPolyDataConnection() ?
+    this->GetFilteredPolyDataConnection()->GetIndex() : -1;
+  return vtkPolyData::SafeDownCast(
+    producer ? producer->GetOutputDataObject(index) : 0);
+}
+#endif
 
 //----------------------------------------------------------------------------
 vtkMRMLFiberBundleDisplayNode* vtkMRMLFiberBundleNode::GetLineDisplayNode()
@@ -387,10 +414,18 @@ vtkMRMLFiberBundleDisplayNode* vtkMRMLFiberBundleNode::AddGlyphDisplayNode()
 }
 
 //----------------------------------------------------------------------------
+#if (VTK_MAJOR_VERSION <= 5)
 void vtkMRMLFiberBundleNode::SetAndObservePolyData(vtkPolyData* polyData)
 {
   this->ExtractSelectedPolyDataIds->SetInput(0, polyData);
   this->Superclass::SetAndObservePolyData(polyData);
+#else
+void vtkMRMLFiberBundleNode::SetPolyDataConnection(vtkAlgorithmOutput *inputPort)
+{
+  this->ExtractSelectedPolyDataIds->SetInputConnection(0, inputPort);
+  this->Superclass::SetPolyDataConnection(inputPort);
+  vtkPolyData* polyData = this->GetPolyData();
+#endif
 
   if (polyData)
     {
@@ -437,7 +472,11 @@ void vtkMRMLFiberBundleNode
 ::SetPolyDataToDisplayNode(vtkMRMLModelDisplayNode* modelDisplayNode)
 {
   assert(modelDisplayNode->IsA("vtkMRMLFiberBundleDisplayNode"));
+#if (VTK_MAJOR_VERSION <= 5)
   modelDisplayNode->SetInputPolyData(this->GetFilteredPolyData());
+#else
+  modelDisplayNode->SetInputPolyDataConnection(this->GetFilteredPolyDataConnection());
+#endif
 }
 
 //----------------------------------------------------------------------------
@@ -550,7 +589,11 @@ void vtkMRMLFiberBundleNode::PrepareSubsampling()
   arr->SetNumberOfTuples(0);
   node->SetSelectionList(arr);
 
+#if (VTK_MAJOR_VERSION <= 5)
   this->ExtractSelectedPolyDataIds->SetInput(1, sel);
+#else
+  this->ExtractSelectedPolyDataIds->SetInputData(1, sel);
+#endif
 
   this->CleanPolyDataPostSubsampling = vtkCleanPolyData::New();
   this->CleanPolyDataPostSubsampling->ConvertLinesToPointsOff();

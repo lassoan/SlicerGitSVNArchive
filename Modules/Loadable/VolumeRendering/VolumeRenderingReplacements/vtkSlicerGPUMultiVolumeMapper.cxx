@@ -13,26 +13,39 @@
 
 =========================================================================*/
 #include "vtkSlicerGPUMultiVolumeMapper.h"
-#include "vtkSlicerVolumeRenderingFactory.h"
 
-#include "vtkDataArray.h"
-#include "vtkMultiThreader.h"
-#include "vtkVolume.h"
-#include "vtkMath.h"
-#include "vtkPointData.h"
-#include "vtkImageData.h"
 #include "vtkColorTransferFunction.h"
-#include "vtkPiecewiseFunction.h"
-#include "vtkVolumeProperty.h"
 #include "vtkCommand.h"
+#include "vtkDataArray.h"
 #include "vtkExecutive.h"
+#include "vtkImageData.h"
+#include "vtkMath.h"
+#include "vtkMultiThreader.h"
+#include <vtkObjectFactory.h>
+#include "vtkPiecewiseFunction.h"
+#include "vtkPointData.h"
+#include "vtkVolume.h"
+#include "vtkVolumeProperty.h"
+#include <vtkVersion.h>
 
-vtkCxxRevisionMacro(vtkSlicerGPUMultiVolumeMapper, "$Revision: 1.6 $");
+#if VTK_MAJOR_VERSION <= 5
+#include "vtkSlicerVolumeRenderingFactory.h"
 
 //----------------------------------------------------------------------------
 // Needed when we don't use the vtkStandardNewMacro.
 vtkInstantiatorNewMacro(vtkSlicerGPUMultiVolumeMapper);
+
 //----------------------------------------------------------------------------
+vtkSlicerGPUMultiVolumeMapper *vtkSlicerGPUMultiVolumeMapper::New()
+{
+  // First try to create the object from the vtkObjectFactory
+  vtkObject* ret =
+    vtkSlicerVolumeRenderingFactory::CreateInstance("vtkSlicerGPUMultiVolumeMapper");
+  return (vtkSlicerGPUMultiVolumeMapper*)ret;
+}
+#else
+vtkStandardNewMacro(vtkSlicerGPUMultiVolumeMapper);
+#endif
 
 //
 //  1 component three input volumes (A, B, and LabelMap):
@@ -539,27 +552,27 @@ vtkSlicerGPUMultiVolumeMapper::~vtkSlicerGPUMultiVolumeMapper()
   }
 }
 
-vtkSlicerGPUMultiVolumeMapper *vtkSlicerGPUMultiVolumeMapper::New()
-{
-  // First try to create the object from the vtkObjectFactory
-  vtkObject* ret =
-    vtkSlicerVolumeRenderingFactory::CreateInstance("vtkSlicerGPUMultiVolumeMapper");
-  return (vtkSlicerGPUMultiVolumeMapper*)ret;
-}
-
 int vtkSlicerGPUMultiVolumeMapper::UpdateVolumes(vtkVolume *vtkNotUsed(vol))
 {
   int needToUpdate = 0;
 
   // Get the image data
   vtkImageData *input = this->GetNthInput(0);
+#if (VTK_MAJOR_VERSION <= 5)
   input->Update();
+#else
+  this->Update(0);
+#endif
 
   vtkImageData *input1 = this->GetNthInput(1);
   unsigned long input1MTime = this->SavedTextureMTime2nd.GetMTime();
   if (input1)
   {
+#if (VTK_MAJOR_VERSION <= 5)
     input1->Update();
+#else
+    this->Update(1);
+#endif
     input1MTime = input1->GetMTime();
   }
 
@@ -853,13 +866,21 @@ int vtkSlicerGPUMultiVolumeMapper::UpdateColorLookup( vtkVolume *vol )
 
   // Get the image data
   vtkImageData *input = this->GetNthInput(0);
+#if (VTK_MAJOR_VERSION <= 5)
   input->Update();
+#else
+  this->Update(0);
+#endif
 
   vtkImageData *input1 = this->GetNthInput(1);
   unsigned long input1MTime = this->SavedTextureMTime2nd.GetMTime();
   if (input1)
   {
+#if (VTK_MAJOR_VERSION <= 5)
     input1->Update();
+#else
+    this->Update(1);
+#endif
     input1MTime = input1->GetMTime();
   }
 
@@ -1176,6 +1197,7 @@ void vtkSlicerGPUMultiVolumeMapper::PrintSelf(ostream& os, vtkIndent indent)
      << this->VolumeSpacing[1] << " " << this->VolumeSpacing[2] << endl;
 }
 
+#if VTK_MAJOR_VERSION <= 5
 void vtkSlicerGPUMultiVolumeMapper::SetNthInput( int index, vtkDataSet *genericInput)
 {
   vtkImageData *input = vtkImageData::SafeDownCast( genericInput );
@@ -1195,11 +1217,17 @@ void vtkSlicerGPUMultiVolumeMapper::SetNthInput( int index, vtkImageData *input 
   if (this->GetNumberOfInputPorts() < index + 1)
     this->SetNumberOfInputPorts(index + 1);
 
-  if(input)
-    this->SetInputConnection(index, input->GetProducerPort());
-  else
-    this->SetInputConnection(index, 0);
+  this->SetInputConnection(index, input ? input->GetProducerPort() : 0);
 }
+#else
+void vtkSlicerGPUMultiVolumeMapper
+::SetInputConnection( int port, vtkAlgorithmOutput * inputPort)
+{
+  if (this->GetNumberOfInputPorts() < port + 1)
+    this->SetNumberOfInputPorts(port + 1);
+  this->Superclass::SetInputConnection(port, inputPort);
+}
+#endif
 
 vtkImageData *vtkSlicerGPUMultiVolumeMapper::GetNthInput(int index)
 {

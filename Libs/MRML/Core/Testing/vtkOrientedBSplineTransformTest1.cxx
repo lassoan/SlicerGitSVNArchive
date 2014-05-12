@@ -33,9 +33,15 @@ void CreateBSplineVtk(vtkOrientedBSplineTransform* bsplineTransform,
   bsplineCoefficients->SetExtent(0, dims[0]-1, 0, dims[1]-1, 0, dims[2]-1);
   bsplineCoefficients->SetOrigin(origin);
   bsplineCoefficients->SetSpacing(spacing);
-  bsplineCoefficients->SetScalarTypeToDouble();
+
+#if (VTK_MAJOR_VERSION <= 5)
+  bsplineCoefficients->SetScalarType(VTK_DOUBLE);
   bsplineCoefficients->SetNumberOfScalarComponents(3);
   bsplineCoefficients->AllocateScalars();
+#else
+  bsplineCoefficients->AllocateScalars(VTK_DOUBLE, 3);
+#endif
+
 
   // Fill with 0
   for (int z = 0; z < dims[2]; z++)

@@ -17,17 +17,17 @@
 // VTK includes
 #include <vtkNew.h>
 #include <vtkObjectFactory.h>
+#include <vtkVersion.h>
 
 
-vtkCxxRevisionMacro(vtkImageSlicePaint, "$Revision$");
 vtkStandardNewMacro(vtkImageSlicePaint);
 
 //----------------------------------------------------------------------------
 vtkImageSlicePaint::vtkImageSlicePaint()
 {
-  for (int i = 0; i < 3; i++)
+  for (size_t i = 0; i < 3; ++i)
     {
-    this->TopLeft[i] = this->TopLeft[i] = this->BottomLeft[i] = this->BottomRight[i] = 0;
+    this->TopLeft[i] = this->TopRight[i] = this->BottomLeft[i] = this->BottomRight[i] = 0;
     }
 
   this->MaskImage = NULL;
@@ -148,8 +148,12 @@ void vtkImageSlicePaintPaint(vtkImageSlicePaint *self, T *vtkNotUsed(ptr))
   if ( extractImage != NULL )
     {
     extractImage->SetDimensions(maxColumnDelta+1, maxRowDelta+1, 1);
+#if (VTK_MAJOR_VERSION <= 5)
     extractImage->SetScalarType( self->GetWorkingImage()->GetScalarType() );
     extractImage->AllocateScalars();
+#else
+    extractImage->AllocateScalars(self->GetWorkingImage()->GetScalarType(), 1);
+#endif
     extracting = 1;
     }
 
@@ -398,7 +402,9 @@ void vtkImageSlicePaint::Paint()
     vtkErrorMacro (<< "Working image cannot be NULL\n");
     return;
     }
+#if (VTK_MAJOR_VERSION <= 5)
   this->GetWorkingImage()->Update();
+#endif
 
   switch (this->GetWorkingImage()->GetScalarType())
     {

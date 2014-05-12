@@ -25,22 +25,22 @@
 #include "vtkSlicerEditorLibModuleLogicExport.h"
 
 // VTK includes
-#include <vtkImageToImageFilter.h>
+#include <vtkImageAlgorithm.h>
 
 #define SHAPE_POLYGON 1
 #define SHAPE_LINES   2
 #define SHAPE_POINTS  3
 
 class vtkPoints;
-class VTK_SLICER_EDITORLIB_MODULE_LOGIC_EXPORT vtkImageFillROI : public vtkImageToImageFilter
+class VTK_SLICER_EDITORLIB_MODULE_LOGIC_EXPORT vtkImageFillROI : public vtkImageAlgorithm
 {
 public:
   static vtkImageFillROI *New();
-  vtkTypeRevisionMacro(vtkImageFillROI,vtkImageToImageFilter);
+  vtkTypeMacro(vtkImageFillROI,vtkImageAlgorithm);
   void PrintSelf(ostream& os, vtkIndent indent);
 
-  vtkSetMacro(Value, vtkFloatingPointType);
-  vtkGetMacro(Value, vtkFloatingPointType);
+  vtkSetMacro(Value, double);
+  vtkGetMacro(Value, double);
 
   void SetShapeToPolygon() {this->Shape = SHAPE_POLYGON;};
   void SetShapeToLines() {this->Shape = SHAPE_LINES;};
@@ -83,12 +83,15 @@ protected:
   ~vtkImageFillROI();
 
   vtkPoints *Points;
-  vtkFloatingPointType Value;
+  double Value;
   int Radius;
   int Shape;
 
-  /// not threaded because too simple a filter
-  void ExecuteData(vtkDataObject *);
+  /// Reimplemented.
+  /// Not threaded because too simple a filter
+  virtual int RequestData(vtkInformation* request,
+                          vtkInformationVector** inputVectors,
+                          vtkInformationVector* outputVector);
 
 private:
   vtkImageFillROI(const vtkImageFillROI&);

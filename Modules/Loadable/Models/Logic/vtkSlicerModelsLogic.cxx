@@ -23,6 +23,7 @@
 #include <vtkMRMLTransformNode.h>
 
 /// VTK includes
+#include <vtkAlgorithmOutput.h>
 #include <vtkGeneralTransform.h>
 #include <vtkNew.h>
 #include <vtkObjectFactory.h>
@@ -37,7 +38,6 @@
 /// STD includes
 #include <cassert>
 
-vtkCxxRevisionMacro(vtkSlicerModelsLogic, "$Revision$");
 vtkStandardNewMacro(vtkSlicerModelsLogic);
 vtkCxxSetObjectMacro(vtkSlicerModelsLogic, ColorLogic, vtkMRMLColorLogic);
 
@@ -108,6 +108,27 @@ vtkMRMLModelNode* vtkSlicerModelsLogic::AddModel(vtkPolyData* polyData)
 
   return model.GetPointer();
 }
+
+//----------------------------------------------------------------------------
+#if VTK_MAJOR_VERSION >5
+vtkMRMLModelNode* vtkSlicerModelsLogic::AddModel(vtkAlgorithmOutput* polyData)
+{
+  if (this->GetMRMLScene() == 0)
+    {
+    return 0;
+    }
+
+  vtkNew<vtkMRMLModelDisplayNode> display;
+  this->GetMRMLScene()->AddNode(display.GetPointer());
+
+  vtkNew<vtkMRMLModelNode> model;
+  model->SetPolyDataConnection(polyData);
+  model->SetAndObserveDisplayNodeID(display->GetID());
+  this->GetMRMLScene()->AddNode(model.GetPointer());
+
+  return model.GetPointer();
+}
+#endif
 
 //----------------------------------------------------------------------------
 int vtkSlicerModelsLogic::AddModels (const char* dirname, const char* suffix )
@@ -428,7 +449,11 @@ void vtkSlicerModelsLogic::TransformModel(vtkMRMLTransformNode *tnode,
     //--- Triangle strips are broken up into triangle polygons.
     //--- Polygons are not automatically re-stripped.
     vtkNew<vtkPolyDataNormals> normals;
+#if (VTK_MAJOR_VERSION <= 5)
     normals->SetInput(poly.GetPointer());
+#else
+    normals->SetInputData(poly.GetPointer());
+#endif
     //--- NOTE: This assumes a completely closed surface
     //---(i.e. no boundary edges) and no non-manifold edges.
     //--- If these constraints do not hold, the AutoOrientNormals
@@ -442,7 +467,11 @@ void vtkSlicerModelsLogic::TransformModel(vtkMRMLTransformNode *tnode,
     normals->ConsistencyOn();
 
     normals->Update();
+#if (VTK_MAJOR_VERSION <= 5)
     modelOut->SetAndObservePolyData(normals->GetOutput());
+#else
+    modelOut->SetPolyDataConnection(normals->GetOutputPort());
+#endif
    }
 
   modelOut->SetAndObserveTransformNodeID(mtnode == NULL ? NULL : mtnode->GetID());

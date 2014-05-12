@@ -541,13 +541,19 @@ int vtkModelMirrorLogic::FlipNormals()
     return ( 0 );
     }
 
-  vtkPolyData *surface =   this->ModelMirrorNode->GetOutputModel()->GetPolyData();
   //--- NOTE: This filter recomputes normals for polygons and
   //--- triangle strips only. Normals are not computed for lines or vertices.
   //--- Triangle strips are broken up into triangle polygons.
   //--- Polygons are not automatically re-stripped.
   vtkPolyDataNormals *normals = vtkPolyDataNormals::New();
+#if (VTK_MAJOR_VERSION <= 5)
+  vtkPolyData *surface =   this->ModelMirrorNode->GetOutputModel()->GetPolyData();
   normals->SetInput ( surface );
+#else
+  vtkAlgorithmOutput *polyDataConnection =
+    this->ModelMirrorNode->GetOutputModel()->GetPolyDataConnection();
+  normals->SetInputConnection(polyDataConnection);
+#endif
   //--- NOTE: This assumes a completely closed surface
   //---(i.e. no boundary edges) and no non-manifold edges.
   //--- If these constraints do not hold, the AutoOrientNormals
@@ -562,32 +568,29 @@ int vtkModelMirrorLogic::FlipNormals()
   normals->SplittingOff();
   //--- enforce consistent polygon ordering.
   normals->ConsistencyOn();
-  normals->Update();
-  surface = normals->GetOutput();
+  //normals->Update();
 
   //--- now get the output of the flip & cleaner and put into new model node.
-  if ( surface )
-    {
-    vtkCleanPolyData *cleaner = vtkCleanPolyData::New();
-    cleaner->SetInput ( surface );
-    cleaner->Update();
+  vtkCleanPolyData *cleaner = vtkCleanPolyData::New();
+#if (VTK_MAJOR_VERSION <= 5)
+  cleaner->SetInput ( normals->GetOutput() );
+#else
+  cleaner->SetInputConnection( normals->GetOutputPort() );
+#endif
+  //cleaner->Update();
 
-    //--- refresh polydata
-    this->ModelMirrorNode->GetOutputModel()->SetAndObservePolyData ( cleaner->GetOutput() );
-    cleaner->Delete();
-    cleaner= NULL;
-    }
+  //--- refresh polydata
+#if (VTK_MAJOR_VERSION <= 5)
+  this->ModelMirrorNode->GetOutputModel()->SetAndObservePolyData ( cleaner->GetOutput() );
+#else
+  this->ModelMirrorNode->GetOutputModel()->SetPolyDataConnection ( cleaner->GetOutputPort() );
+#endif
+  cleaner->Delete();
+  cleaner= NULL;
 
   normals->Delete();
   normals = NULL;
-  if ( surface )
-    {
-    return ( 1 );
-    }
-  else
-    {
-    return ( 0 );
-    }
+  return 1;
 }
 
 

@@ -15,9 +15,13 @@
 #include "vtkFloatArray.h"
 #include "vtkPointData.h"
 #include "vtkImageData.h"
+#include "vtkInformation.h"
+#include "vtkInformationVector.h"
 #include "vtkObjectFactory.h"
+#include "vtkStreamingDemandDrivenPipeline.h"
 #include "vtkMath.h"
 #include <vtkStructuredPointsWriter.h>
+#include <vtkVersion.h>
 
 
 //----------------------------------------------------------------------------
@@ -46,7 +50,11 @@ void vtkImageSetTensorComponents::ExecuteData(vtkDataObject *out)
   vtkImageData *output = vtkImageData::SafeDownCast(out);
 
   // set extent so we know how many tensors to allocate
+#if (VTK_MAJOR_VERSION <= 5)
   output->SetExtent(output->GetUpdateExtent());
+#else
+  output->SetExtent(this->GetUpdateExtent());
+#endif
 
   // allocate output tensors
   vtkFloatArray* data = vtkFloatArray::New();
@@ -57,17 +65,36 @@ void vtkImageSetTensorComponents::ExecuteData(vtkDataObject *out)
   data->Delete();
 
   // jump back into normal pipeline: call standard superclass method here
-  this->vtkImageToImageFilter::ExecuteData(out);
+  this->vtkImageAlgorithm::ExecuteData(out);
 }
 
 //----------------------------------------------------------------------------
-void vtkImageSetTensorComponents::ExecuteInformation(
-                   vtkImageData *inData, vtkImageData *outData)
+int vtkImageSetTensorComponents::RequestInformation(
+  vtkInformation * vtkNotUsed(request),
+  vtkInformationVector **inputVector,
+  vtkInformationVector *outputVector)
 {
+  // get the info objects
+  vtkInformation *outInfo = outputVector->GetInformationObject(0);
+  vtkInformation *inInfo = inputVector[0]->GetInformationObject(0);
+
   int ext[6];
-  outData->SetNumberOfScalarComponents(this->NumberOfComponents);
-  inData->GetWholeExtent(ext);
-  outData->SetWholeExtent(ext);
+  int scalarType = VTK_INT;
+
+  vtkInformation *inScalarInfo =
+    vtkDataObject::GetActiveFieldInformation(inInfo,
+      vtkDataObject::FIELD_ASSOCIATION_POINTS,
+      vtkDataSetAttributes::SCALARS);
+  if (inScalarInfo)
+    {
+    scalarType = inScalarInfo->Get(vtkDataObject::FIELD_ARRAY_TYPE());
+    }
+
+  vtkDataObject::SetPointDataActiveScalarInfo(
+    outInfo, this->OutputScalarType, this->NumberOfComponents);
+  inInfo->Get(vtkStreamingDemandDrivenPipeline::WHOLE_EXTENT(), ext);
+  outInfo->Set(vtkStreamingDemandDrivenPipeline::WHOLE_EXTENT(), ext, 6);
+  return 1;
 }
 
 
@@ -95,7 +122,11 @@ static void vtkImageSetTensorComponentsExecute(vtkImageSetTensorComponents *self
   // changed from arrays to pointers
   int *outInc,*outFullUpdateExt;
   outInc = self->GetOutput()->GetIncrements();
+#if (VTK_MAJOR_VERSION <= 5)
   outFullUpdateExt = self->GetOutput()->GetUpdateExtent(); //We are only working over the update extent
+#else
+  outFullUpdateExt = self->GetUpdateExtent(); //We are only working over the update extent
+#endif
   ptId = ((outExt[0] - outFullUpdateExt[0]) * outInc[0]
          + (outExt[2] - outFullUpdateExt[2]) * outInc[1]
          + (outExt[4] - outFullUpdateExt[4]) * outInc[2]);

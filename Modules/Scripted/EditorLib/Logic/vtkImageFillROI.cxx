@@ -8,14 +8,18 @@
 =========================================================================auto=*/
 #include "vtkImageFillROI.h"
 
-#include "vtkObjectFactory.h"
-#include "vtkImageData.h"
-#include "vtkPoints.h"
+// VTK includes
+#include <vtkImageData.h>
+#include <vtkInformation.h>
+#include <vtkInformationVector.h>
+#include <vtkObjectFactory.h>
+#include <vtkPoints.h>
+#include <vtkStreamingDemandDrivenPipeline.h>
+#include <vtkVersion.h>
 
 vtkCxxSetObjectMacro(vtkImageFillROI,Points,vtkPoints);
 
 //------------------------------------------------------------------------------
-vtkCxxRevisionMacro(vtkImageFillROI, "$Revision$");
 vtkStandardNewMacro(vtkImageFillROI);
 
 //----------------------------------------------------------------------------
@@ -666,7 +670,7 @@ static void vtkImageFillROIExecute(vtkImageFillROI* self,
   int r = self->GetRadius();
   int i, j, x, y, z, nPts, nx, ny, outExt[6];
   int *xPts, *yPts;
-  vtkFloatingPointType *pt;
+  double *pt;
 
   vtkPoints *points = self->GetPoints();
   if (points == NULL)
@@ -741,52 +745,68 @@ static void vtkImageFillROIExecute(vtkImageFillROI* self,
 }
 
 //----------------------------------------------------------------------------
-void vtkImageFillROI::ExecuteData(vtkDataObject *out)
+int vtkImageFillROI::RequestData(
+   vtkInformation *vtkNotUsed(request),
+   vtkInformationVector **inputVector,
+   vtkInformationVector *outputVector)
 {
+  vtkInformation *inInfo = inputVector[0]->GetInformationObject(0);
+  vtkInformation *outInfo = outputVector->GetInformationObject(0);
+
+  // Get the image data.
+  vtkImageData *input = vtkImageData::SafeDownCast(
+    inInfo->Get(vtkDataObject::DATA_OBJECT()));
+  vtkImageData *output = vtkImageData::SafeDownCast(
+    outInfo->Get(vtkDataObject::DATA_OBJECT()));
+
   // Make sure the Input has been set.
-  if ( this->GetInput() == NULL )
+  if ( input == NULL )
     {
     vtkErrorMacro(<< "ExecuteData: Input is not set.");
-    return;
+    return 0;
     }
 
-  this->AllocateOutputData(out);
+#if (VTK_MAJOR_VERSION <= 5)
+  this->AllocateOutputData(this->GetOutput());
+#else
+  this->AllocateOutputData(output, outInfo);
+#endif
 
-  if ( this->GetInput()->GetDataObjectType() != VTK_IMAGE_DATA )
+  if ( !input ||
+       input->GetDataObjectType() != VTK_IMAGE_DATA )
     {
     vtkWarningMacro ("was sent non-image data data object");
-    return;
+    return 0;
     }
 
-  vtkImageData *inData = (vtkImageData *) this->GetInput();
-
   void *ptr = NULL;
-  int x1, *inExt;
+  int x1, inExt[6];
 
   // ensure 1 component data
-  x1 = inData->GetNumberOfScalarComponents();
+  x1 = input->GetNumberOfScalarComponents();
   if (x1 != 1)
     {
     vtkErrorMacro("Input has "<<x1<<" components instead of 1.");
-    return;
+    return 0;
     }
 
   // Ensure intput is 2D
-  inExt = inData->GetWholeExtent();
+  inInfo->Get(vtkStreamingDemandDrivenPipeline::WHOLE_EXTENT(), inExt);
   if (inExt[5] != inExt[4])
     {
     vtkErrorMacro("Input must be 2D.");
-    return;
+    return 0;
     }
 
-  switch (this->GetOutput()->GetScalarType())
+  switch (output->GetScalarType())
     {
-    vtkTemplateMacro( vtkImageFillROIExecute ( this, this->GetOutput(), static_cast<VTK_TT*>(ptr) ) );
+    vtkTemplateMacro( vtkImageFillROIExecute ( this, output, static_cast<VTK_TT*>(ptr) ) );
     default:
       {
       vtkErrorMacro(<< "Execute: Unknown ScalarType\n");
-      return;
+      return 0;
       }
     }
+  return 1;
 }
 

@@ -18,13 +18,13 @@
 #include "vtkDataArray.h"
 #include "vtkPointData.h"
 #include "vtkImageData.h"
-#include "vtkProcessObject.h"
+#include "vtkAlgorithm.h"
+#include <vtkVersion.h>
 
 #include "itkConnectedComponentImageFilter.h"
 #include "itkRelabelComponentImageFilter.h"
 #include "itkCommand.h"
 
-vtkCxxRevisionMacro(vtkITKIslandMath, "$Revision: 1900 $");
 vtkStandardNewMacro(vtkITKIslandMath);
 
 vtkITKIslandMath::vtkITKIslandMath()
@@ -32,7 +32,11 @@ vtkITKIslandMath::vtkITKIslandMath()
   this->FullyConnected = 0;
   this->SliceBySlice = 0;
   this->MinimumSize = 0;
+#if (VTK_MAJOR_VERSION <= 5)
   this->MaximumSize = VTK_LARGE_ID;
+#else
+  this->MaximumSize = VTK_ID_MAX;
+#endif
   this->NumberOfIslands = 0;
   this->OriginalNumberOfIslands = 0;
 
@@ -59,8 +63,8 @@ void vtkITKIslandMathHandleProgressEvent (itk::Object *caller,
                                           const itk::EventObject& vtkNotUsed(eventObject),
                                           void *clientdata)
 {
-  itk::ProcessObject *itkFilter = static_cast<itk::ProcessObject*>(caller);
-  vtkProcessObject *vtkFilter = static_cast<vtkProcessObject*>(clientdata);
+  itk::ProcessObject *itkFilter = dynamic_cast<itk::ProcessObject*>(caller);
+  vtkAlgorithm *vtkFilter = reinterpret_cast<vtkAlgorithm*>(clientdata);
   if ( itkFilter && vtkFilter )
     {
     vtkFilter->UpdateProgress ( itkFilter->GetProgress() );

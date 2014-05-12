@@ -43,8 +43,9 @@
 #include "vtkMRMLDiffusionTensorVolumeNode.h"
 
 // VTK includes
-#include "vtkImageLogic.h"
-#include "vtkImageExtractComponents.h"
+#include <vtkImageLogic.h>
+#include <vtkImageExtractComponents.h>
+#include <vtkVersion.h>
 
 class vtkAssignAttribute;
 class vtkImageResliceMask;
@@ -63,7 +64,7 @@ public:
 
   /// The Usual vtk class functions
   static vtkMRMLSliceLayerLogic *New();
-  vtkTypeRevisionMacro(vtkMRMLSliceLayerLogic,vtkMRMLAbstractLogic);
+  vtkTypeMacro(vtkMRMLSliceLayerLogic,vtkMRMLAbstractLogic);
   void PrintSelf(ostream& os, vtkIndent indent);
 
   ///
@@ -100,11 +101,17 @@ public:
 
   ///
   /// Get the output of the pipeline for this layer
-  vtkImageData *GetImageData ();
+  vtkImageData *GetImageData();
+#if (VTK_MAJOR_VERSION > 5)
+  vtkAlgorithmOutput *GetImageDataConnection();
+#endif
 
   ///
   /// Get the output of the texture UVW pipeline for this layer
-  vtkImageData *GetImageDataUVW ();
+  vtkImageData *GetImageDataUVW();
+#if (VTK_MAJOR_VERSION > 5)
+  vtkAlgorithmOutput *GetImageDataConnectionUVW();
+#endif
 
   void UpdateImageDisplay();
 
@@ -146,10 +153,13 @@ protected:
                                       void* callData);
   void UpdateLogic();
   virtual void OnMRMLNodeModified(vtkMRMLNode* node);
-
+#if (VTK_MAJOR_VERSION <= 5)
   vtkImageData* GetSliceImageData();
-
   vtkImageData* GetSliceImageDataUVW();
+#else
+  vtkAlgorithmOutput* GetSliceImageDataConnection();
+  vtkAlgorithmOutput* GetSliceImageDataConnectionUVW();
+#endif
 
   // Copy VolumeDisplayNodeObserved into VolumeDisplayNode
   void UpdateVolumeDisplayNode();

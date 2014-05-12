@@ -1,10 +1,16 @@
-#include "vtkImageRectangularSource.h"
-#include "vtkObjectFactory.h"
-#include "assert.h"
-#include "vtkImageData.h"
+#include <vtkImageRectangularSource.h>
+
+// VTK includes
+#include <vtkImageData.h>
+#include <vtkInformation.h>
+#include <vtkInformationVector.h>
+#include <vtkObjectFactory.h>
+#include <vtkStreamingDemandDrivenPipeline.h>
+
+// STD includes
+#include <cassert>
 
 //----------------------------------------------------------------------------
-vtkCxxRevisionMacro(vtkImageRectangularSource, "$Revision$");
 vtkStandardNewMacro(vtkImageRectangularSource);
 
 //----------------------------------------------------------------------------
@@ -99,14 +105,19 @@ void vtkImageRectangularSource::GetWholeExtent(int extent[6])
 }
 
 //----------------------------------------------------------------------------
-void vtkImageRectangularSource::ExecuteInformation()
+int vtkImageRectangularSource::RequestInformation(
+  vtkInformation * vtkNotUsed(request),
+  vtkInformationVector **vtkNotUsed(inputVector),
+  vtkInformationVector *outputVector)
 {
-  vtkImageData *data = this->GetOutput();
+  // get the info objects
+  vtkInformation* outInfo = outputVector->GetInformationObject(0);
 
-  data->SetSpacing(1.0, 1.0, 1.0);
-  data->SetWholeExtent(this->WholeExtent);
-  data->SetNumberOfScalarComponents(1);
-  data->SetScalarType(this->OutputScalarType);
+  double spacing[3] = {1.0, 1.0, 1.0};
+  outInfo->Set(vtkDataObject::SPACING(), spacing, 3);
+  outInfo->Set(vtkStreamingDemandDrivenPipeline::WHOLE_EXTENT(), this->WholeExtent, 6);
+  vtkDataObject::SetPointDataActiveScalarInfo(outInfo, this->OutputScalarType, 1);
+  return 1;
 }
 
 //----------------------------------------------------------------------------
@@ -399,14 +410,23 @@ void vtkImageRectangularSource_GeneralExecute(vtkImageRectangularSource *self, v
 
 
 //----------------------------------------------------------------------------
+#if (VTK_MAJOR_VERSION <= 5)
 void vtkImageRectangularSource::ExecuteData(vtkDataObject *output)
 {
   int *extent;
   void *ptr;
 
   vtkImageData *data = this->AllocateOutputData(output);
-
   extent = this->GetOutput()->GetUpdateExtent();
+#else
+void vtkImageRectangularSource::ExecuteDataWithInformation(vtkDataObject *output, vtkInformation* outInfo)
+{
+  int *extent;
+  void *ptr;
+
+  vtkImageData *data = this->AllocateOutputData(output, outInfo);
+  extent = this->GetUpdateExtent();
+#endif
   ptr = data->GetScalarPointerForExtent(extent);
 
   if (this->Corners ) {

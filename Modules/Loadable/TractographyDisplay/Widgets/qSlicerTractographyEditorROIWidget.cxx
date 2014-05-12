@@ -341,11 +341,11 @@ void qSlicerTractographyEditorROIWidget::createNewBundleFromSelection()
   vtkMRMLFiberBundleNode *fiberBundleFromSelection = vtkMRMLFiberBundleNode::SafeDownCast(d->FiberBundleFromSelection->currentNode());
   if (d->FiberBundleNode && fiberBundleFromSelection && (d->FiberBundleNode != fiberBundleFromSelection))
   {
-    //if (mrmlScene()) mrmlScene()->SaveStateForUndo();
-    vtkPolyData *FilteredPolyData = vtkPolyData::New();
-    FilteredPolyData->DeepCopy(d->FiberBundleNode->GetFilteredPolyData());
-    fiberBundleFromSelection->SetAndObservePolyData(FilteredPolyData);
-    FilteredPolyData->Delete();
+    // Detach polydata from pipeline
+    vtkPolyData *filteredPolyData = vtkPolyData::New();
+    filteredPolyData->DeepCopy(d->FiberBundleNode->GetFilteredPolyData());
+    fiberBundleFromSelection->SetAndObservePolyData(filteredPolyData);
+    filteredPolyData->Delete();
 
     if (!fiberBundleFromSelection->GetDisplayNode())
     {
@@ -398,10 +398,11 @@ void qSlicerTractographyEditorROIWidget::updateBundleFromSelection()
     if (proceedWithUpdate || (d->ConfirmFiberBundleUpdate->checkState() != Qt::Checked))
     {
       d->FiberBundleNode->GetScene()->SaveStateForUndo();
-      vtkPolyData *FilteredPolyData = vtkPolyData::New();
-      FilteredPolyData->DeepCopy(d->FiberBundleNode->GetFilteredPolyData());
-      d->FiberBundleNode->SetAndObservePolyData(FilteredPolyData);
-      FilteredPolyData->Delete();
+      // Detach polydata from pipeline
+      vtkPolyData *filteredPolyData = vtkPolyData::New();
+      filteredPolyData->DeepCopy(d->FiberBundleNode->GetFilteredPolyData());
+      d->FiberBundleNode->SetAndObservePolyData(filteredPolyData);
+      filteredPolyData->Delete();
       d->FiberBundleNode->SetSubsamplingRatio(1);
     }
 }

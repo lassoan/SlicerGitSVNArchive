@@ -256,49 +256,56 @@ MRMLIDImageIO
       }
 
     // PixelType
+    int dataType = VTK_UNSIGNED_CHAR;
     if (this->GetNumberOfComponents() == 1)
       {
       this->SetPixelType(SCALAR);
+      dataType = node->GetImageData()->GetScalarType();
       }
     else if (vtkMRMLDiffusionTensorVolumeNode::SafeDownCast(node) != 0)
       {
       // tensor at each voxel
       this->SetPixelType(DIFFUSIONTENSOR3D);
+      dataType = node->GetImageData()->GetPointData()->GetTensors()->GetDataType();
       }
     else if (vtkMRMLDiffusionWeightedVolumeNode::SafeDownCast(node) != 0)
       {
       // raw DWI
       this->SetPixelType(VECTOR);
+      dataType = node->GetImageData()->GetPointData()->GetTensors()->GetDataType();
       }
     else if (vtkMRMLDiffusionImageVolumeNode::SafeDownCast(node) != 0)
       {
       // derived data from a diffusion weighted image, e.g. Q-ball
       this->SetPixelType(VECTOR);
+      dataType = node->GetImageData()->GetPointData()->GetTensors()->GetDataType();
       }
     else
       {
       // everything else...
       // what should the mapping be for multi-component scalars?
       this->SetPixelType(VECTOR);
+      dataType = node->GetImageData()->GetScalarType();
       }
-
+    IOComponentType componentType = UCHAR;
     // ComponentType
-    switch (node->GetImageData()->GetScalarType())
+    switch (dataType)
       {
-      case VTK_FLOAT: this->SetComponentType(FLOAT); break;
-      case VTK_DOUBLE: this->SetComponentType(DOUBLE); break;
-      case VTK_INT: this->SetComponentType(INT); break;
-      case VTK_UNSIGNED_INT: this->SetComponentType(UINT); break;
-      case VTK_SHORT: this->SetComponentType(SHORT); break;
-      case VTK_UNSIGNED_SHORT: this->SetComponentType(USHORT); break;
-      case VTK_LONG: this->SetComponentType(LONG); break;
-      case VTK_UNSIGNED_LONG: this->SetComponentType(ULONG); break;
-      case VTK_CHAR: this->SetComponentType(CHAR); break;
-      case VTK_UNSIGNED_CHAR: this->SetComponentType(UCHAR); break;
+      case VTK_FLOAT: componentType = FLOAT; break;
+      case VTK_DOUBLE: componentType = DOUBLE; break;
+      case VTK_INT: componentType = INT; break;
+      case VTK_UNSIGNED_INT: componentType = UINT; break;
+      case VTK_SHORT: componentType = SHORT; break;
+      case VTK_UNSIGNED_SHORT: componentType = USHORT; break;
+      case VTK_LONG: componentType = LONG; break;
+      case VTK_UNSIGNED_LONG: componentType = ULONG; break;
+      case VTK_CHAR: componentType = CHAR; break;
+      case VTK_UNSIGNED_CHAR: componentType = UCHAR; break;
       default: itkWarningMacro("Unknown scalar type.");
-        this->SetComponentType(UNKNOWNCOMPONENTTYPE);
+        componentType = UNKNOWNCOMPONENTTYPE;
         break;
       }
+    this->SetComponentType(componentType);
 
     // For diffusion data, we need to get the measurement frame,
     // diffusion gradients, and b-values
@@ -426,10 +433,16 @@ MRMLIDImageIO
 {
 }
 
-
+#if (VTK_MAJOR_VERSION <= 5)
 void
 MRMLIDImageIO
 ::WriteImageInformation(vtkMRMLVolumeNode *node, vtkImageData *img)
+#else
+void
+MRMLIDImageIO
+::WriteImageInformation(vtkMRMLVolumeNode *node, vtkImageData *img,
+                        int *scalarType, int *numberOfScalarComponents)
+#endif
 {
   unsigned int i, j;
 
@@ -508,6 +521,7 @@ MRMLIDImageIO
   // ComponentType
   switch (this->GetComponentType())
     {
+#if (VTK_MAJOR_VERSION <= 5)
     case FLOAT: img->SetScalarTypeToFloat(); break;
     case DOUBLE: img->SetScalarTypeToDouble(); break;
     case INT: img->SetScalarTypeToInt(); break;
@@ -523,13 +537,34 @@ MRMLIDImageIO
       itkWarningMacro("Unknown scalar type.");
       img->SetScalarTypeToShort();
       break;
+#else
+  case FLOAT: *scalarType = VTK_FLOAT; break;
+  case DOUBLE: *scalarType = VTK_DOUBLE; break;
+  case INT: *scalarType = VTK_INT; break;
+  case UINT: *scalarType = VTK_UNSIGNED_INT; break;
+  case SHORT: *scalarType = VTK_SHORT; break;
+  case USHORT: *scalarType = VTK_UNSIGNED_SHORT; break;
+  case LONG: *scalarType = VTK_LONG; break;
+  case ULONG: *scalarType = VTK_UNSIGNED_LONG; break;
+  case CHAR: *scalarType = VTK_CHAR; break;
+  case UCHAR: *scalarType = VTK_UNSIGNED_CHAR; break;
+  default:
+    // What should we do?
+    itkWarningMacro("Unknown scalar type.");
+   *scalarType = VTK_SHORT;
+    break;
+#endif
     }
 
   // Number of components, PixelType
   if (vtkMRMLDiffusionTensorVolumeNode::SafeDownCast(node) == 0)
     {
     // Scalar, Diffusion Weighted, or Vector image
+#if (VTK_MAJOR_VERSION <= 5)
     img->SetNumberOfScalarComponents(this->GetNumberOfComponents());
+#else
+    *numberOfScalarComponents = GetNumberOfComponents();
+#endif
     }
   else
     {
@@ -618,7 +653,13 @@ MRMLIDImageIO
     // Configure the information on the node/image data
     //
     //
+#if (VTK_MAJOR_VERSION <= 5)
     this->WriteImageInformation(node, img);
+#else
+    int scalarType = VTK_SHORT;
+    int numberOfScalarComponents = 1;
+    this->WriteImageInformation(node, img, &scalarType, &numberOfScalarComponents);
+#endif
 
     // Allocate the data, copy the data
     //
@@ -626,7 +667,11 @@ MRMLIDImageIO
     if (vtkMRMLDiffusionTensorVolumeNode::SafeDownCast(node) == 0)
       {
       // Everything but tensor images are passed in the scalars
+#if (VTK_MAJOR_VERSION <= 5)
       img->AllocateScalars();
+#else
+      img->AllocateScalars(scalarType, numberOfScalarComponents);
+#endif
 
       memcpy(img->GetScalarPointer(), buffer,
              img->GetPointData()->GetScalars()->GetNumberOfComponents() *

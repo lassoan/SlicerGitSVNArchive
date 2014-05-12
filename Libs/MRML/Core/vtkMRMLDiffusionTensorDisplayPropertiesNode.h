@@ -19,6 +19,7 @@
 
 // VTK includes
 class vtkPolyData;
+class vtkAlgorithmOutput;
 
 /// \brief MRML node for display of a diffusion tensor.
 ///
@@ -153,7 +154,6 @@ class VTK_MRML_EXPORT vtkMRMLDiffusionTensorDisplayPropertiesNode : public vtkMR
   /// Return a text string describing the ScalarInvariant variable
   virtual const char * GetScalarInvariantAsString();
 
-
   //--------------------------------------------------------------------------
   /// Display Information: Types of glyph geometry that can be displayed
   //--------------------------------------------------------------------------
@@ -179,7 +179,6 @@ class VTK_MRML_EXPORT vtkMRMLDiffusionTensorDisplayPropertiesNode : public vtkMR
   //vtkSetMacro(GlyphGeometry, int);
   /// Also update the glyph polydata source
   void SetGlyphGeometry( int geometry ) {
-
     if ( this->GlyphGeometry != geometry )
       {
       this->GlyphGeometry = geometry;
@@ -200,7 +199,6 @@ class VTK_MRML_EXPORT vtkMRMLDiffusionTensorDisplayPropertiesNode : public vtkMR
   void SetGlyphGeometryToSuperquadrics() {
     this->SetGlyphGeometry(this->Superquadrics);
   };
-
 
   ///
   /// Return the lowest and highest integers, for use in looping
@@ -236,9 +234,9 @@ class VTK_MRML_EXPORT vtkMRMLDiffusionTensorDisplayPropertiesNode : public vtkMR
 
   enum
   {
-    Major = 1,
-    Middle = 2,
-    Minor = 3
+    Major = 0,
+    Middle = 1,
+    Minor = 2
   };
 
   /// Description
@@ -253,7 +251,6 @@ class VTK_MRML_EXPORT vtkMRMLDiffusionTensorDisplayPropertiesNode : public vtkMR
   //vtkSetMacro(GlyphGeometry, int);
   /// Also update the glyph polydata source
   void SetGlyphEigenvector( int eigenvector ) {
-
     if ( this->GlyphEigenvector != eigenvector )
       {
       this->GlyphEigenvector = eigenvector;
@@ -295,7 +292,6 @@ class VTK_MRML_EXPORT vtkMRMLDiffusionTensorDisplayPropertiesNode : public vtkMR
   virtual const char * GetGlyphEigenvectorAsString();
   virtual const char * GetGlyphEigenvectorAsString(int);
 
-
   //--------------------------------------------------------------------------
   /// Display Information: Parameters of Lines glyph geometry
   //--------------------------------------------------------------------------
@@ -305,7 +301,6 @@ class VTK_MRML_EXPORT vtkMRMLDiffusionTensorDisplayPropertiesNode : public vtkMR
   vtkGetMacro(LineGlyphResolution, int);
   //vtkSetMacro(LineGlyphResolution, int);
   void SetLineGlyphResolution( int resolution ) {
-
     if ( this->LineGlyphResolution != resolution )
       {
       this->LineGlyphResolution = resolution;
@@ -331,7 +326,6 @@ class VTK_MRML_EXPORT vtkMRMLDiffusionTensorDisplayPropertiesNode : public vtkMR
   /// Set the radius of the tube glyph
   //vtkSetMacro(TubeGlyphRadius, double);
   void SetTubeGlyphRadius( double radius ) {
-
     if ( this->TubeGlyphRadius != radius )
       {
       this->TubeGlyphRadius = radius;
@@ -350,7 +344,6 @@ class VTK_MRML_EXPORT vtkMRMLDiffusionTensorDisplayPropertiesNode : public vtkMR
   vtkGetMacro(TubeGlyphNumberOfSides, int);
   //vtkSetMacro(TubeGlyphNumberOfSides, int);
   void SetTubeGlyphNumberOfSides( int numberOfSides ) {
-
     if ( this->TubeGlyphNumberOfSides != numberOfSides )
       {
       this->TubeGlyphNumberOfSides = numberOfSides;
@@ -445,7 +438,11 @@ class VTK_MRML_EXPORT vtkMRMLDiffusionTensorDisplayPropertiesNode : public vtkMR
   ///
   /// Get a polydata object according to current glyph display settings
   /// (so a line, sphere, or tube) to use as a source for a glyphing filter.
+#if VTK_MAJOR_VERSION <= 5
   vtkGetObjectMacro( GlyphSource, vtkPolyData );
+#else
+  vtkGetObjectMacro( GlyphConnection, vtkAlgorithmOutput );
+#endif
 
  //Helper function to get the string of Scalar enums
   static const char *GetScalarEnumAsString(int val);
@@ -491,21 +488,22 @@ class VTK_MRML_EXPORT vtkMRMLDiffusionTensorDisplayPropertiesNode : public vtkMR
 
   /// ---- End of parameters that should be written to MRML --- //
 
-
-  /// ---- VTK objects for display --- //
-  vtkPolyData * GlyphSource;
-
   /// This is used internally to set a pointer to this polydata
   /// and reference count it.
   /// TO DO: is this causing an extra modified event?
+#if (VTK_MAJOR_VERSION <= 5)
   virtual void SetGlyphSource(vtkPolyData* glyphSource);
-
+  /// ---- VTK objects for display --- //
+  vtkPolyData * GlyphSource;
+#else
+  virtual void SetGlyphConnection(vtkAlgorithmOutput* glyphPort);
+  vtkAlgorithmOutput * GlyphConnection;
+#endif
 
   /// TO DO: add specific lookup tables ranging from 0..1 for or -1 1
   /// for scalar invariants with those ranges
 
   /// TO DO: read/write MRML for all parameters
-
 };
 
 #endif

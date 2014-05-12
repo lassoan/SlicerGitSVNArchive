@@ -46,6 +46,7 @@
 #include <vtkSmartPointer.h>
 #include <vtkStringArray.h>
 #include <vtksys/SystemTools.hxx>
+#include <vtkVersion.h>
 #include <vtkWeakPointer.h>
 
 //----------------------------------------------------------------------------
@@ -150,7 +151,6 @@ void vtkSlicerErrorSink::CallbackFunction(vtkObject* vtkNotUsed(caller),
 // vtkSlicerVolumesLogic methods
 
 //----------------------------------------------------------------------------
-vtkCxxRevisionMacro(vtkSlicerVolumesLogic, "$Revision: 1.9.12.1 $");
 vtkStandardNewMacro(vtkSlicerVolumesLogic);
 
 //----------------------------------------------------------------------------
@@ -766,12 +766,19 @@ vtkSlicerVolumesLogic::CreateAndAddLabelVolume(vtkMRMLScene *scene,
   thresh->SetInValue(0);
   thresh->SetOutValue(0);
   thresh->SetOutputScalarType (VTK_SHORT);
+#if (VTK_MAJOR_VERSION <= 5)
   thresh->SetInput( volumeNode->GetImageData() );
   thresh->GetOutput()->Update();
 
   vtkNew<vtkImageData> imageData;
   imageData->DeepCopy( thresh->GetOutput() );
   labelNode->SetAndObserveImageData( imageData.GetPointer() );
+#else
+  thresh->SetInputData(volumeNode->GetImageData());
+  thresh->Update();
+  labelNode->SetImageDataConnection( thresh->GetOutputPort() );
+#endif
+
 
   // add the label volume to the scene
   scene->AddNode(labelNode.GetPointer());
@@ -845,9 +852,12 @@ vtkSlicerVolumesLogic::FillLabelVolumeFromTemplate(vtkMRMLScene *scene,
   thresh->SetInValue(0);
   thresh->SetOutValue(0);
   thresh->SetOutputScalarType (VTK_SHORT);
+#if (VTK_MAJOR_VERSION <= 5)
   thresh->SetInput( templateNode->GetImageData() );
   thresh->GetOutput()->Update();
-  labelNode->SetAndObserveImageData( thresh->GetOutput() );
+#else
+  labelNode->SetImageDataConnection( thresh->GetOutputPort() );
+#endif
 
   return labelNode;
 }

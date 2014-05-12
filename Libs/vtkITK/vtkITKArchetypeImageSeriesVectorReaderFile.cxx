@@ -18,6 +18,7 @@
 // VTK includes
 #include <vtkCommand.h>
 #include <vtkDataArray.h>
+#include <vtkDataArrayTemplate.h>
 #include <vtkImageData.h>
 #include <vtkObjectFactory.h>
 #include <vtkPointData.h>
@@ -27,7 +28,20 @@
 #include <itkOrientImageFilter.h>
 
 vtkStandardNewMacro(vtkITKArchetypeImageSeriesVectorReaderFile);
-vtkCxxRevisionMacro(vtkITKArchetypeImageSeriesVectorReaderFile, "$Revision: 4068 $");
+
+namespace {
+
+template <class T>
+vtkDataArrayTemplate<T>* DownCast(vtkAbstractArray* a)
+{
+#if VTK_MAJOR_VERSION <= 5
+  return static_cast<vtkDataArrayTemplate<T>*>(a);
+#else
+  return vtkDataArrayTemplate<T>::FastDownCast(a);
+#endif
+}
+
+};
 
 //----------------------------------------------------------------------------
 vtkITKArchetypeImageSeriesVectorReaderFile::vtkITKArchetypeImageSeriesVectorReaderFile()
@@ -52,7 +66,6 @@ void vtkITKExecuteDataFromFileVector(
   vtkITKArchetypeImageSeriesVectorReaderFile* self,
   vtkImageData *data)
 {
-  typedef itk::Vector<T, 3> VectorPixelType;
   typedef itk::VectorImage<T,3> image2;
   typedef itk::ImageSource<image2> FilterType;
   typename FilterType::Pointer filter;
@@ -78,14 +91,16 @@ void vtkITKExecuteDataFromFileVector(
   typename itk::ImportImageContainer<unsigned long, T>::Pointer PixelContainer2;
   PixelContainer2 = filter->GetOutput()->GetPixelContainer();
   void *ptr = static_cast<void *> (PixelContainer2->GetBufferPointer());
-  data->GetPointData()->GetScalars()
-    ->SetVoidArray(ptr, PixelContainer2->Size(), 0);
+  DownCast<T>(data->GetPointData()->GetScalars())
+    ->SetVoidArray(ptr, PixelContainer2->Size(), 0,
+                   vtkDataArrayTemplate<T>::VTK_DATA_ARRAY_DELETE);
   PixelContainer2->ContainerManageMemoryOff();
 }
 
 //----------------------------------------------------------------------------
 // This function reads a data from a file.  The datas extent/axes
 // are assumed to be the same as the file extent/order.
+#if (VTK_MAJOR_VERSION <= 5)
 void vtkITKArchetypeImageSeriesVectorReaderFile::ExecuteData(vtkDataObject *output)
 {
   if (!this->Superclass::Archetype)
@@ -99,6 +114,16 @@ void vtkITKArchetypeImageSeriesVectorReaderFile::ExecuteData(vtkDataObject *outp
   data->SetExtent(0,0,0,0,0,0);
   data->AllocateScalars();
   data->SetExtent(data->GetWholeExtent());
+#else
+void vtkITKArchetypeImageSeriesVectorReaderFile::ExecuteDataWithInformation(vtkDataObject *output, vtkInformation* outInfo)
+{
+    if (!this->Superclass::Archetype)
+      {
+        vtkErrorMacro("An Archetype must be specified.");
+        return;
+      }
+    vtkImageData *data = this->AllocateOutputData(output, outInfo);
+#endif
 
     // If there is only one file in the series, just use an image file reader
   if (this->FileNames.size() == 1)

@@ -41,8 +41,6 @@ int DoIt( int argc, char * argv[], PixelType )
   typedef double                                       PixelTypeDouble;
   typedef itk::VectorImage<PixelTypeDouble, DIMENSION> DoubleDiffusionImageType;
 
-  typedef itk::Image<PixelTypeDouble, DIMENSION> ScalarDoubleImageType;
-
   typedef itk::CovariantVector<double, DIMENSION> CovariantVectorType;
 
   std::vector<CovariantVectorType> diffusionDirections;
@@ -54,7 +52,6 @@ int DoIt( int argc, char * argv[], PixelType )
 
   itk::MetaDataDictionary            imgMetaDictionary = reader->GetMetaDataDictionary();
   std::vector<std::string>           imgMetaKeys = imgMetaDictionary.GetKeys();
-  std::vector<std::string>::iterator itKey = imgMetaKeys.begin();
   std::string                        metaString;
 
   std::cout << "Number of keys = " << imgMetaKeys.size() << std::endl;

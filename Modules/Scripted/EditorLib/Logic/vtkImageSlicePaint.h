@@ -45,14 +45,16 @@
 #include "vtkSlicerEditorLibModuleLogicExport.h"
 
 // VTK includes
+#include <vtkImageAlgorithm.h>
 #include <vtkImageData.h>
 #include <vtkMatrix4x4.h>
+#include <vtkVersion.h>
 
 class VTK_SLICER_EDITORLIB_MODULE_LOGIC_EXPORT vtkImageSlicePaint : public vtkObject
 {
 public:
   static vtkImageSlicePaint *New();
-  vtkTypeRevisionMacro(vtkImageSlicePaint,vtkObject);
+  vtkTypeMacro(vtkImageSlicePaint,vtkObject);
   void PrintSelf(ostream& os, vtkIndent indent);
 
 
@@ -170,9 +172,4 @@ private:
   void operator=(const vtkImageSlicePaint&);  /// Not implemented.
 };
 
-
-
 #endif
-
-
-

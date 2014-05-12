@@ -26,15 +26,21 @@
 #include <vtkMRMLScene.h>
 
 // VTK includes
+#include <vtkAlgorithm.h>
+#include <vtkAlgorithmOutput.h>
 #include <vtkDataSetAttributes.h>
 #include <vtkImageData.h>
+#include <vtkImageAlgorithm.h>
+#include <vtkInformation.h>
 #include <vtkNew.h>
+#include <vtkTrivialProducer.h>
 
 // ITK includes
 #include <itkConfigure.h>
 #include <itkFactoryRegistration.h>
 
 //-----------------------------------------------------------------------------
+#if VTK_MAJOR_VERSION <= 5
 bool isImageDataValid(vtkImageData* imageData)
 {
   if (!imageData)
@@ -43,14 +49,30 @@ bool isImageDataValid(vtkImageData* imageData)
     }
   imageData->GetProducerPort();
   vtkInformation* info = imageData->GetPipelineInformation();
+  info = imageData->GetPipelineInformation();
+#else
+bool isImageDataValid(vtkAlgorithmOutput* imageDataConnection)
+{
+  if (!imageDataConnection ||
+      !imageDataConnection->GetProducer())
+    {
+    std::cout << "No image data port" << std::endl;
+    return false;
+    }
+  imageDataConnection->GetProducer()->Update();
+  vtkInformation* info =
+    imageDataConnection->GetProducer()->GetOutputInformation(0);
+#endif
   if (!info)
     {
+    std::cout << "No output information" << std::endl;
     return false;
     }
   vtkInformation *scalarInfo = vtkDataObject::GetActiveFieldInformation(info,
     vtkDataObject::FIELD_ASSOCIATION_POINTS, vtkDataSetAttributes::SCALARS);
   if (!scalarInfo)
     {
+    std::cout << "No scalar information" << std::endl;
     return false;
     }
   return true;
@@ -76,7 +98,11 @@ int vtkSlicerVolumesLogicTest1( int argc, char * argv[] )
     logic->AddArchetypeVolume(argv[1], "volume", 0);
 
   if (!volume ||
+#if VTK_MAJOR_VERSION <=5
       !isImageDataValid(volume->GetImageData()))
+#else
+      !isImageDataValid(volume->GetImageDataConnection()))
+#endif
     {
     std::cerr << "Failed to load scalar image." << std::endl;
     return EXIT_FAILURE;

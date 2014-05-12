@@ -22,8 +22,10 @@
 #include <vtkNew.h>
 #include <vtkPointData.h>
 #include <vtkPolyDataWriter.h>
+#include <vtkStreamingDemandDrivenPipeline.h>
 #include <vtkTimerLog.h>
 #include <vtkTransformPolyDataFilter.h>
+#include <vtkVersion.h>
 
 // STD includes
 #include <sstream>
@@ -49,6 +51,9 @@ vtkSeedTracts::vtkSeedTracts()
   this->InputROIValue = -1;
   this->InputMultipleROIValues = NULL;
   this->InputROI2 = NULL;
+#if VTK_MAJOR_VERSION > 5
+  this->InputROIPipelineInfo = NULL;
+#endif
   this->IsotropicSeeding = 0;
   this->IsotropicSeedingResolution = 2;
   this->RandomGrid = 0;
@@ -89,6 +94,9 @@ vtkSeedTracts::~vtkSeedTracts()
   if (this->InputTensorField) this->InputTensorField->Delete();
   if (this->InputROI) this->InputROI->Delete();
   if (this->InputROI2) this->InputROI2->Delete();
+#if VTK_MAJOR_VERSION > 5
+  if (this->InputROIPipelineInfo) this->InputROIPipelineInfo->Delete();
+#endif
 
   // settings
   if (this->VtkHyperStreamlineSettings)
@@ -369,7 +377,7 @@ void vtkSeedTracts::UpdateHyperStreamlineTeemSettings( vtkHyperStreamlineTeem *c
 //----------------------------------------------------------------------------
 int vtkSeedTracts::PointWithinTensorData(double *point, double *pointw)
 {
-  vtkFloatingPointType *bounds;
+  double *bounds;
   int inbounds;
 
   bounds=this->InputTensorField->GetBounds();
@@ -429,7 +437,11 @@ void vtkSeedTracts::SeedStreamlineFromPoint(double x,
   newStreamline=(vtkHyperStreamlineDTMRI *)this->CreateHyperStreamline();
 
   // Set its input information.
+#if (VTK_MAJOR_VERSION <= 5)
   newStreamline->SetInput(this->InputTensorField);
+#else
+  newStreamline->SetInputData(this->InputTensorField);
+#endif
   newStreamline->SetStartPosition(point[0],point[1],point[2]);
   //newStreamline->DebugOn();
 
@@ -507,15 +519,24 @@ void vtkSeedTracts::SeedStreamlinesInROI()
   // make sure we are creating objects with points
   this->UseVtkHyperStreamlinePoints();
 
-  int extent[6];
   double spacing[3];
 
+  // extent is not used in the function?
+#if (VTK_MAJOR_VERSION <= 5)
+  int extent[6];
+
   this->InputTensorField->GetWholeExtent(extent);
+#endif
   this->InputTensorField->GetSpacing(spacing);
 
   // currently this filter is not multithreaded, though in the future
   // it could be (especially if it inherits from an image filter class)
+#if (VTK_MAJOR_VERSION <= 5)
   this->InputROI->GetWholeExtent(inExt);
+#else
+  this->InputROIPipelineInfo->Get(
+    vtkStreamingDemandDrivenPipeline::WHOLE_EXTENT(), inExt);
+#endif
 
   // find the region to loop over
   maxX = inExt[1] - inExt[0];
@@ -672,7 +693,11 @@ void vtkSeedTracts::SeedStreamlinesInROI()
                         this->CreateHyperStreamline();
 
                       // Set its input information.
+#if (VTK_MAJOR_VERSION <= 5)
                       newStreamline->SetInput(this->InputTensorField);
+#else
+                      newStreamline->SetInputData(this->InputTensorField);
+#endif
                       newStreamline->SetStartPosition(point[0],point[1],point[2]);
                       //newStreamline->DebugOn();
 
@@ -700,10 +725,18 @@ void vtkSeedTracts::SeedStreamlinesInROI()
                             this->SetFilePrefix("line");
                             }
                           // transform model
+#if (VTK_MAJOR_VERSION <= 5)
                           transformer->SetInput(newStreamline->GetOutput());
+#else
+                          transformer->SetInputConnection(newStreamline->GetOutputPort());
+#endif
 
                           // Save the model to disk
+#if (VTK_MAJOR_VERSION <= 5)
                           writer->SetInput(transformer->GetOutput());
+#else
+                          writer->SetInputConnection(transformer->GetOutputPort());
+#endif
                           writer->SetFileType(2);
 
                           std::stringstream fileNameStr;
@@ -839,7 +872,11 @@ void vtkSeedTracts::TransformStreamlinesToRASAndAppendToPolyData(vtkPolyData *ou
   for (int i=0; i<this->Streamlines->GetNumberOfItems(); i++)
     {
     streamline = static_cast<vtkHyperStreamline*> (this->Streamlines->GetItemAsObject(i));
-    transformer->SetInput(streamline->GetOutput());
+#if (VTK_MAJOR_VERSION <= 5)
+   transformer->SetInput(streamline->GetOutput());
+#else
+    transformer->SetInputConnection(streamline->GetOutputPort());
+#endif
     transformer->Update();
 
     // Fill points and cells
@@ -998,7 +1035,12 @@ void vtkSeedTracts::SeedStreamlinesFromROIIntersectWithROI2()
 
   // currently this filter is not multithreaded, though in the future
   // it could be (especially if it inherits from an image filter class)
+#if (VTK_MAJOR_VERSION <= 5)
   this->InputROI->GetWholeExtent(inExt);
+#else
+  this->InputROIPipelineInfo->Get(
+    vtkStreamingDemandDrivenPipeline::WHOLE_EXTENT(), inExt);
+#endif
   this->InputROI->GetContinuousIncrements(inExt, inIncX, inIncY, inIncZ);
 
   // find the region to loop over
@@ -1050,7 +1092,11 @@ void vtkSeedTracts::SeedStreamlinesFromROIIntersectWithROI2()
                       newStreamline=(vtkHyperStreamlineDTMRI *) this->CreateHyperStreamline();
 
                       // Set its input information.
+#if (VTK_MAJOR_VERSION <= 5)
                       newStreamline->SetInput(this->InputTensorField);
+#else
+                      newStreamline->SetInputData(this->InputTensorField);
+#endif
                       newStreamline->SetStartPosition(point[0],point[1],point[2]);
 
                       // Force it to update to access the path points
@@ -1124,10 +1170,18 @@ void vtkSeedTracts::SeedStreamlinesFromROIIntersectWithROI2()
                             this->SetFilePrefix("line");
                             }
                           // transform model
+#if (VTK_MAJOR_VERSION <= 5)
                           transformer->SetInput(newStreamline->GetOutput());
+#else
+                          transformer->SetInputConnection(newStreamline->GetOutputPort());
+#endif
 
                           // Save the model to disk
+#if (VTK_MAJOR_VERSION <= 5)
                           writer->SetInput(transformer->GetOutput());
+#else
+                          writer->SetInputConnection(transformer->GetOutputPort());
+#endif
                           writer->SetFileType(2);
 
                           std::stringstream fileNameStr;

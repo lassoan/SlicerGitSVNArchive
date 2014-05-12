@@ -28,7 +28,6 @@ PURPOSE.  See the above copyright notice for more information.
 
 
 
-vtkCxxRevisionMacro(vtkPolyDataColorLinesByOrientation, "$Revision: 1.41 $");
 vtkStandardNewMacro(vtkPolyDataColorLinesByOrientation);
 
 // Construct with lower threshold=0, upper threshold=1, and threshold
@@ -37,7 +36,7 @@ vtkPolyDataColorLinesByOrientation::vtkPolyDataColorLinesByOrientation()
 {
   this->ScalarArrayName = NULL;
   this->SetScalarArrayName("MeanOrientation");
-  this->CopyOriginalDataOff();
+  this->CopyOriginalData = 0;
   this->ColorMode = vtkPolyDataColorLinesByOrientation::colorModeMeanFiberOrientation;
 }
 

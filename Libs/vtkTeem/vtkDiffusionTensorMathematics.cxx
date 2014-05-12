@@ -88,13 +88,13 @@ int vtkDiffusionTensorMathematics::RequestInformation (
   vtkInformationVector *outputVector)
 {
   // get the info objects
-  vtkInformation* outInfo = outputVector->GetInformationObject(0);
+  vtkInformation *outInfo = outputVector->GetInformationObject(0);
   vtkInformation *inInfo = inputVector[0]->GetInformationObject(0);
   //vtkInformation *inInfo2 = inputVector[1]->GetInformationObject(0);
 
   int ext[6];
 
-  inInfo->Get(vtkStreamingDemandDrivenPipeline::WHOLE_EXTENT(),ext);
+  inInfo->Get(vtkStreamingDemandDrivenPipeline::WHOLE_EXTENT(), ext);
 
   //int ext[6], *ext2, idx;
 
@@ -120,7 +120,7 @@ int vtkDiffusionTensorMathematics::RequestInformation (
   else {
     vtkDataObject::SetPointDataActiveScalarInfo(outInfo, VTK_FLOAT, 1);
     }
-  outInfo->Set(vtkStreamingDemandDrivenPipeline::WHOLE_EXTENT(),ext,6);
+  outInfo->Set(vtkStreamingDemandDrivenPipeline::WHOLE_EXTENT(), ext, 6);
   return 1;
 }
 
@@ -836,13 +836,13 @@ void vtkDiffusionTensorMathematics::ThreadedRequestData(
 
   if (inData[0][0] == NULL)
     {
-      vtkErrorMacro(<< "Input " << 0 << " must be specified.");
-      return;
+    vtkErrorMacro(<< "Input " << 0 << " must be specified.");
+    return;
     }
   if (inData[0][0]->GetPointData() == NULL || inData[0][0]->GetPointData()->GetTensors() == NULL)
     {
-      vtkErrorMacro(<< "Input " << 0 << " must have tensors.");
-      return;
+    vtkErrorMacro(<< "Input " << 0 << " must have tensors. PointData: " << inData[0][0]->GetPointData());
+    return;
     }
 
   outPtr = outData[0]->GetScalarPointerForExtent(outExt);

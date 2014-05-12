@@ -304,7 +304,10 @@ class PaintEffectTool(LabelEffect.LabelEffectTool):
     self.createGlyph(self.brush)
     self.mapper = vtk.vtkPolyDataMapper2D()
     self.actor = vtk.vtkActor2D()
-    self.mapper.SetInput(self.brush)
+    if vtk.VTK_MAJOR_VERSION <= 5:
+      self.mapper.SetInput(self.brush)
+    else:
+      self.mapper.SetInputData(self.brush)
     self.actor.SetMapper(self.mapper)
     self.actor.VisibilityOff()
 

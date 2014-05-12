@@ -68,6 +68,7 @@
 #include "vtkRenderer.h"
 #include "vtkVolume.h"
 #include "vtkVolumeProperty.h"
+#include <vtkVersion.h>
 
 // ITKSys includes
 //#include <itksys/SystemTools.hxx>
@@ -80,7 +81,6 @@
 
 //---------------------------------------------------------------------------
 vtkStandardNewMacro (vtkMRMLVolumeRenderingDisplayableManager);
-vtkCxxRevisionMacro (vtkMRMLVolumeRenderingDisplayableManager, "$Revision: 1.0 $");
 
 //---------------------------------------------------------------------------
 bool vtkMRMLVolumeRenderingDisplayableManager::First = true;
@@ -305,7 +305,11 @@ void vtkMRMLVolumeRenderingDisplayableManager::SetupHistograms(vtkMRMLVolumeRend
   //gradient histogram
   vtkImageGradientMagnitude *grad = vtkImageGradientMagnitude::New();
   grad->SetDimensionality(3);
+#if (VTK_MAJOR_VERSION <= 5)
   grad->SetInput(input);
+#else
+  grad->SetInputData(input);
+#endif
   grad->Update();
 
   vtkKWHistogram *gradHisto = vtkKWHistogram::New();
@@ -344,7 +348,11 @@ void vtkMRMLVolumeRenderingDisplayableManager
   //gradient histogram
   vtkImageGradientMagnitude *grad = vtkImageGradientMagnitude::New();
   grad->SetDimensionality(3);
+#if (VTK_MAJOR_VERSION <= 5)
   grad->SetInput(input);
+#else
+  grad->SetInputData(input);
+#endif
   grad->Update();
 
   vtkKWHistogram *gradHisto = vtkKWHistogram::New();
@@ -644,15 +652,26 @@ int vtkMRMLVolumeRenderingDisplayableManager
     }
   vtkRenderWindow* window = this->GetRenderer()->GetRenderWindow();
 
+#if (VTK_MAJOR_VERSION <= 5)
   volumeMapper->SetInput(vtkMRMLScalarVolumeNode::SafeDownCast(
                            vspNode->GetVolumeNode())->GetImageData() );
+#else
+  volumeMapper->SetInputData(vtkMRMLScalarVolumeNode::SafeDownCast(
+                           vspNode->GetVolumeNode())->GetImageData() );
+#endif
   if (vtkSlicerGPURayCastMultiVolumeMapper::SafeDownCast(volumeMapper) &&
       vtkMRMLNCIMultiVolumeRayCastVolumeRenderingDisplayNode::SafeDownCast(vspNode))
     {
+#if VTK_MAJOR_VERSION <= 5
     vtkSlicerGPURayCastMultiVolumeMapper::SafeDownCast(volumeMapper)->SetNthInput(
       1, vtkMRMLScalarVolumeNode::SafeDownCast(
         vtkMRMLNCIMultiVolumeRayCastVolumeRenderingDisplayNode::SafeDownCast(vspNode)
                                               ->GetFgVolumeNode())->GetImageData());
+#else
+    vtkSlicerGPURayCastMultiVolumeMapper::SafeDownCast(volumeMapper)->SetInputConnection(
+      1, vtkMRMLNCIMultiVolumeRayCastVolumeRenderingDisplayNode::SafeDownCast(
+        vspNode)->GetFgVolumeNode()->GetImageDataConnection());
+#endif
     }
   int supported = 0;
   if (volumeMapper->IsA("vtkFixedPointVolumeRayCastMapper"))
@@ -754,11 +773,16 @@ void vtkMRMLVolumeRenderingDisplayableManager
                             vtkVolumeMapper* volumeMapper,
                             int index)
 {
-  vtkImageData* imageData = volumeNode ? volumeNode->GetImageData() : 0;
   if (volumeMapper &&
       volumeMapper->GetNumberOfInputPorts() > index)
     {
+#if (VTK_MAJOR_VERSION <= 5)
+    vtkImageData* imageData = volumeNode ? volumeNode->GetImageData() : 0;
     volumeMapper->SetInputConnection(index, imageData ? imageData->GetProducerPort() : 0);
+#else
+    volumeMapper->SetInputConnection(
+      index, volumeNode ? volumeNode->GetImageDataConnection() : 0);
+#endif
     }
 }
 

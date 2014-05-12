@@ -10,13 +10,14 @@
 
 #include "vtkObjectFactory.h"
 #include "vtkImageData.h"
+#include <vtkInformation.h>
+#include <vtkStreamingDemandDrivenPipeline.h>
 
 #include <limits.h>
 #include <assert.h>
 #include <stddef.h>
 
 //----------------------------------------------------------------------------
-vtkCxxRevisionMacro(vtkImageConnectivity, "$Revision$");
 vtkStandardNewMacro(vtkImageConnectivity);
 
 //----------------------------------------------------------------------------
@@ -826,15 +827,25 @@ static void vtkImageConnectivityExecute(vtkImageConnectivity *self,
 // algorithm to fill the output from the input.
 // It just executes a switch statement to call the correct function for
 // the datas data types.
+#if (VTK_MAJOR_VERSION <= 5)
 void vtkImageConnectivity::ExecuteData(vtkDataObject *)
 {
-  vtkImageData *inData = this->GetInput();
+  vtkImageData *inData = this->GetImageDataInput(0);
   vtkImageData *outData = this->GetOutput();
   outData->SetExtent(outData->GetWholeExtent());
   outData->AllocateScalars();
 
   int outExt[6], s;
   outData->GetWholeExtent(outExt);
+#else
+void vtkImageConnectivity::ExecuteDataWithInformation(vtkDataObject *output, vtkInformation* outInfo)
+{
+  vtkImageData *inData = vtkImageData::SafeDownCast(this->GetInput());
+  vtkImageData *outData = this->AllocateOutputData(output, outInfo);
+
+  int outExt[6], s;
+  outInfo->Get(vtkStreamingDemandDrivenPipeline::WHOLE_EXTENT(), outExt);
+#endif
   void *inPtr = inData->GetScalarPointerForExtent(outExt);
   void *outPtr = outData->GetScalarPointerForExtent(outExt);
 

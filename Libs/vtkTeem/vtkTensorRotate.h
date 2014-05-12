@@ -16,8 +16,9 @@
 #define __vtkTensorRotate_h
 
 #include "vtkTeemConfigure.h"
-#include "vtkImageToImageFilter.h"
+#include "vtkThreadedImageAlgorithm.h"
 #include "vtkTransform.h"
+#include <vtkVersion.h>
 
 class vtkFloatArray;
 class vtkImageData;
@@ -28,11 +29,11 @@ class vtkImageData;
 ///
 /// \warning The filter will always output floating point (loose precision)
 /// explicit use of vtkFloatArray.
-class VTK_Teem_EXPORT vtkTensorRotate : public vtkImageToImageFilter
+class VTK_Teem_EXPORT vtkTensorRotate : public vtkThreadedImageAlgorithm
 {
 public:
   static vtkTensorRotate *New();
-  vtkTypeRevisionMacro(vtkTensorRotate,vtkImageToImageFilter);
+  vtkTypeMacro(vtkTensorRotate,vtkThreadedImageAlgorithm);
   void PrintSelf(ostream& os, vtkIndent indent);
 
   /// Set the tensor type for the filter
@@ -51,14 +52,18 @@ protected:
   vtkTensorRotate(const vtkTensorRotate&);
   void operator=(const vtkTensorRotate&);
 
-  void ExecuteInformation(vtkImageData *inData, vtkImageData *outData);
-  void ExecuteInformation(){this->Superclass::ExecuteInformation();};
+  virtual int RequestInformation(vtkInformation *, vtkInformationVector **, vtkInformationVector *);
   void ThreadedExecute(vtkImageData *inData, vtkImageData *outData,
         int extent[6], int id);
 
-
   /// This also copies other arrays from point and cell data from input to output.
-  vtkImageData *AllocateOutputData(vtkDataObject *out);
+#if (VTK_MAJOR_VERSION <= 5)
+  virtual vtkImageData *AllocateOutputData(vtkDataObject *out);
+#else
+  virtual void AllocateOutputData(vtkImageData *out, vtkInformation* outInfo, int *uExtent){
+      vtkThreadedImageAlgorithm::AllocateOutputData(out, outInfo, uExtent);};
+  virtual vtkImageData *AllocateOutputData(vtkDataObject *out, vtkInformation* outInfo);
+#endif
   void AllocateTensors(vtkImageData *data);
 
   int TensorType;

@@ -1,5 +1,5 @@
 
-set(proj VTK)
+set(proj VTKv6)
 
 # Set dependency list
 set(${proj}_DEPENDENCIES "zlib")
@@ -46,27 +46,32 @@ if((NOT DEFINED VTK_DIR OR NOT DEFINED VTK_SOURCE_DIR) AND NOT ${CMAKE_PROJECT_N
       )
   endif()
 
-  if(NOT APPLE)
-    list(APPEND EXTERNAL_PROJECT_OPTIONAL_ARGS
-      #-DDESIRED_QT_VERSION:STRING=4 # Unused
-      -DVTK_USE_GUISUPPORT:BOOL=ON
-      -DVTK_USE_QVTK_QTOPENGL:BOOL=ON
-      -DVTK_USE_QT:BOOL=ON
-      -DQT_QMAKE_EXECUTABLE:FILEPATH=${QT_QMAKE_EXECUTABLE}
-      )
-  else()
+  list(APPEND EXTERNAL_PROJECT_OPTIONAL_ARGS
+    #-DDESIRED_QT_VERSION:STRING=4 # Unused
+    -DVTK_USE_GUISUPPORT:BOOL=ON
+    -DVTK_USE_QVTK_QTOPENGL:BOOL=ON
+    -DVTK_USE_QT:BOOL=ON
+    -DModule_vtkTestingRendering:BOOL=ON
+    -DQT_QMAKE_EXECUTABLE:FILEPATH=${QT_QMAKE_EXECUTABLE}
+    )
+  if(APPLE)
     list(APPEND EXTERNAL_PROJECT_OPTIONAL_ARGS
       -DVTK_USE_CARBON:BOOL=OFF
       -DVTK_USE_COCOA:BOOL=ON # Default to Cocoa, VTK/CMakeLists.txt will enable Carbon and disable cocoa if needed
       -DVTK_USE_X:BOOL=OFF
+      -DVTK_REQUIRED_OBJCXX_FLAGS:STRING=
       #-DVTK_USE_RPATH:BOOL=ON # Unused
-      #-DDESIRED_QT_VERSION:STRING=4 # Unused
-      -DVTK_USE_GUISUPPORT:BOOL=ON
-      -DVTK_USE_QVTK_QTOPENGL:BOOL=ON
-      -DVTK_USE_QT:BOOL=ON
-      -DQT_QMAKE_EXECUTABLE:FILEPATH=${QT_QMAKE_EXECUTABLE}
       )
   endif()
+  if(UNIX AND NOT APPLE)
+    find_package(FontConfig QUIET)
+    if(FONTCONFIG_FOUND)
+      list(APPEND EXTERNAL_PROJECT_OPTIONAL_ARGS
+        -DModule_vtkRenderingFreeTypeFontConfig:BOOL=ON
+        )
+    endif()
+  endif()
+
 
   # Disable Tk when Python wrapping is enabled
   if(Slicer_USE_PYTHONQT)
@@ -84,7 +89,7 @@ if((NOT DEFINED VTK_DIR OR NOT DEFINED VTK_SOURCE_DIR) AND NOT ${CMAKE_PROJECT_N
   endif()
 
   set(${CMAKE_PROJECT_NAME}_${proj}_GIT_REPOSITORY "github.com/Slicer/VTK.git" CACHE STRING "Repository from which to get VTK" FORCE)
-  set(${CMAKE_PROJECT_NAME}_${proj}_GIT_TAG "d8540e7ee356bbc025cb9917a41b7c7fa0548d4b" CACHE STRING "VTK git tag to use" FORCE)
+  set(${CMAKE_PROJECT_NAME}_${proj}_GIT_TAG "9e9747347def9b55e7d530074c8ebb4ca7a50c60" CACHE STRING "VTK git tag to use" FORCE)
 
   mark_as_advanced(${CMAKE_PROJECT_NAME}_${proj}_GIT_REPOSITORY ${CMAKE_PROJECT_NAME}_${proj}_GIT_TAG)
 
@@ -113,6 +118,7 @@ if((NOT DEFINED VTK_DIR OR NOT DEFINED VTK_SOURCE_DIR) AND NOT ${CMAKE_PROJECT_N
       #-DVTK_USE_RPATH:BOOL=ON # Unused
       -DVTK_WRAP_PYTHON:BOOL=${VTK_WRAP_PYTHON}
       -DVTK_INSTALL_LIB_DIR:PATH=${Slicer_INSTALL_LIB_DIR}
+      -DVTK_Group_Qt:BOOL=ON
       -DVTK_USE_SYSTEM_ZLIB:BOOL=ON
       -DZLIB_ROOT:PATH=${ZLIB_ROOT}
       -DZLIB_INCLUDE_DIR:PATH=${ZLIB_INCLUDE_DIR}
@@ -125,19 +131,19 @@ if((NOT DEFINED VTK_DIR OR NOT DEFINED VTK_SOURCE_DIR) AND NOT ${CMAKE_PROJECT_N
   set(VTK_DIR ${CMAKE_BINARY_DIR}/${proj}-build)
   set(VTK_SOURCE_DIR ${CMAKE_BINARY_DIR}/${proj})
 
-  set(PNG_INCLUDE_DIR ${VTK_SOURCE_DIR}/Utilities/vtkpng)
+#  set(PNG_INCLUDE_DIR ${VTK_SOURCE_DIR}/ThirdParty/png/vtkpng)
 
-  set(PNG_LIBRARY_DIR ${VTK_DIR}/bin)
-  if(CMAKE_CONFIGURATION_TYPES)
-    set(PNG_LIBRARY_DIR ${PNG_LIBRARY_DIR}/${CMAKE_CFG_INTDIR})
-  endif()
-  if(WIN32)
-    set(PNG_LIBRARY ${PNG_LIBRARY_DIR}/vtkpng.lib)
-  elseif(APPLE)
-    set(PNG_LIBRARY ${PNG_LIBRARY_DIR}/libvtkpng.dylib)
-  else()
-    set(PNG_LIBRARY ${PNG_LIBRARY_DIR}/libvtkpng.so)
-  endif()
+#  set(PNG_LIBRARY_DIR ${VTK_DIR}/lib)
+#  if(CMAKE_CONFIGURATION_TYPES)
+#    set(PNG_LIBRARY_DIR ${PNG_LIBRARY_DIR}/${CMAKE_CFG_INTDIR})
+#  endif()
+#  if(WIN32)
+#    set(PNG_LIBRARY ${PNG_LIBRARY_DIR}/vtkpng-6.0.lib)
+#  elseif(APPLE)
+#    set(PNG_LIBRARY ${PNG_LIBRARY_DIR}/libvtkpng-6.0.dylib)
+#  else()
+#    set(PNG_LIBRARY ${PNG_LIBRARY_DIR}/libvtkpng-6.0.so)
+#  endif()
 
 else()
   ExternalProject_Add_Empty(${proj} DEPENDS ${${proj}_DEPENDENCIES})

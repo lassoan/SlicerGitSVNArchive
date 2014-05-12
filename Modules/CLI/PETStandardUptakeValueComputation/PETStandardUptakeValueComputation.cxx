@@ -21,6 +21,7 @@
 #include <vtkImageThreshold.h>
 #include <vtkImageToImageStencil.h>
 #include <vtkNew.h>
+#include <vtkVersion.h>
 
 // ITK includes
 #include <itkGDCMImageIO.h>
@@ -147,12 +148,10 @@ double ConvertTimeToSeconds(const char *time )
   // --- convert to a double count of seconds.
   // ---
   std::string timeStr = time;
-  size_t      i = timeStr.find_first_of(":");
   h = timeStr.substr( 0, 2 );
   hours = atof( h.c_str() );
 
   minAndsecStr = timeStr.substr( 3 );
-  i = minAndsecStr.find_first_of( ":" );
   m = minAndsecStr.substr(0, 2 );
   minutes = atof( m.c_str() );
 
@@ -765,20 +764,6 @@ const char * MapLabelIDtoColorName( int id, std::string colorFile )
 template <class T>
 int LoadImagesAndComputeSUV( parameters & list, T )
 {
-
-
-  typedef    T                           InputPixelType;
-  typedef itk::Image<InputPixelType,  3> InputImageType;
-
-  typedef itk::Image<unsigned char, 3> LabelImageType;
-
-  typedef    T                           OutputPixelType;
-  typedef itk::Image<OutputPixelType, 3> OutputImageType;
-
-  typedef itk::ImageFileReader<InputImageType>  ReaderType;
-  typedef itk::ImageFileReader<LabelImageType>  LabelReaderType;
-  typedef itk::ImageFileWriter<OutputImageType> WriterType;
-
   //
   // for writing csv output files
   //
@@ -790,6 +775,10 @@ int LoadImagesAndComputeSUV( parameters & list, T )
   vtkImageData *                    voiVolume;
   vtkITKArchetypeImageSeriesReader *reader1 = NULL;
   vtkITKArchetypeImageSeriesReader *reader2 = NULL;
+#if VTK_MAJOR_VERSION > 5
+  vtkAlgorithmOutput* petVolumeConnection = 0;
+  vtkAlgorithmOutput* voiVolumeConnection = 0;
+#endif
 
   // check for the input files
   FILE * petfile;
@@ -833,12 +822,17 @@ int LoadImagesAndComputeSUV( parameters & list, T )
   std::cout << "Done reading the file " << list.VOIVolumeName.c_str() << endl;
 
   // stuff the images.
-//  reader1->Update();
-//  reader2->Update();
+#if (VTK_MAJOR_VERSION <= 5)
   petVolume = reader1->GetOutput();
   petVolume->Update();
   voiVolume = reader2->GetOutput();
   voiVolume->Update();
+#else
+  petVolume = reader1->GetOutput();
+  petVolumeConnection = reader1->GetOutputPort();
+  voiVolume = reader2->GetOutput();
+  voiVolumeConnection = reader2->GetOutputPort();
+#endif
 
 
   //
@@ -863,11 +857,7 @@ int LoadImagesAndComputeSUV( parameters & list, T )
   typedef short PixelValueType;
   typedef itk::Image< PixelValueType, 3 > VolumeType;
   typedef itk::ImageSeriesReader< VolumeType > VolumeReaderType;
-  typedef itk::Image< PixelValueType, 2 > SliceType;
-  typedef itk::ImageFileReader< SliceType > SliceReaderType;
-  typedef itk::GDCMImageIO ImageIOType;
   typedef itk::GDCMSeriesFileNames InputNamesGeneratorType;
-  typedef itk::VectorImage< PixelValueType, 3 > NRRDImageType;
 
   if ( !list.PETDICOMPath.compare(""))
     {
@@ -1367,7 +1357,11 @@ int LoadImagesAndComputeSUV( parameters & list, T )
 
   // --- find the max and min label in mask
   vtkImageAccumulate *stataccum = vtkImageAccumulate::New();
+#if (VTK_MAJOR_VERSION <= 5)
   stataccum->SetInput( voiVolume );
+#else
+  stataccum->SetInputConnection( voiVolumeConnection );
+#endif
   stataccum->Update();
   int lo = static_cast<int>(stataccum->GetMin()[0]);
   int hi = static_cast<int>(stataccum->GetMax()[0]);
@@ -1399,7 +1393,11 @@ int LoadImagesAndComputeSUV( parameters & list, T )
 
     // create the binary volume of the label
     vtkImageThreshold *thresholder = vtkImageThreshold::New();
+#if (VTK_MAJOR_VERSION <= 5)
     thresholder->SetInput(voiVolume);
+#else
+    thresholder->SetInputConnection(voiVolumeConnection);
+#endif
     thresholder->SetInValue(1);
     thresholder->SetOutValue(0);
     thresholder->ReplaceOutOn();
@@ -1409,12 +1407,21 @@ int LoadImagesAndComputeSUV( parameters & list, T )
 
     // use vtk's statistics class with the binary labelmap as a stencil
     vtkImageToImageStencil *stencil = vtkImageToImageStencil::New();
+#if (VTK_MAJOR_VERSION <= 5)
     stencil->SetInput(thresholder->GetOutput() );
+#else
+    stencil->SetInputConnection(thresholder->GetOutputPort() );
+#endif
     stencil->ThresholdBetween(1, 1);
 
     vtkImageAccumulate *labelstat = vtkImageAccumulate::New();
+#if (VTK_MAJOR_VERSION <= 5)
     labelstat->SetInput(petVolume);
     labelstat->SetStencil(stencil->GetOutput() );
+#else
+    labelstat->SetInputConnection(petVolumeConnection);
+    labelstat->SetInputConnection(1, stencil->GetOutputPort() ); // == SetStencilData()
+#endif
     labelstat->Update();
 
     stencil->Delete();

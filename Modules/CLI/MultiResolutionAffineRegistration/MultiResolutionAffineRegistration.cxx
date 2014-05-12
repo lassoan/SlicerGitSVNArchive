@@ -202,14 +202,12 @@ int main( int argc, char * argv[] )
   // 2) downsample until one image would have gone below 20
 
   ImagePyramid::Pointer fpyramid = ImagePyramid::New();
-  typedef ImagePyramid::ScheduleType Schedule;
   fpyramid->UseShrinkImageFilterOff();
   fpyramid->SetInput(freader->GetOutput() );
   scheduleImagePyramid<ImagePyramid>(fpyramid);
   fpyramid->Update();
 
   ImagePyramid::Pointer mpyramid = ImagePyramid::New();
-  typedef ImagePyramid::ScheduleType Schedule;
   mpyramid->UseShrinkImageFilterOff();
   // hard code for now
   mpyramid->SetInput(mreader->GetOutput() );

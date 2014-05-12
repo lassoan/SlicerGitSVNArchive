@@ -36,10 +36,13 @@
 
 // VTK includes
 #include <vtkPythonUtil.h>
+#include <vtkVersion.h>
 
 //-----------------------------------------------------------------------------
-qSlicerCorePythonManager::qSlicerCorePythonManager(QObject* _parent) : Superclass(_parent)
+qSlicerCorePythonManager::qSlicerCorePythonManager(QObject* _parent)
+  : Superclass(_parent)
 {
+  this->Factory = 0;
   int flags = this->initializationFlags();
   flags &= ~(PythonQt::IgnoreSiteModule); // Clear bit
   this->setInitializationFlags(flags);
@@ -48,6 +51,11 @@ qSlicerCorePythonManager::qSlicerCorePythonManager(QObject* _parent) : Superclas
 //-----------------------------------------------------------------------------
 qSlicerCorePythonManager::~qSlicerCorePythonManager()
 {
+  if (this->Factory)
+    {
+    delete this->Factory;
+    this->Factory = 0;
+    }
 }
 
 //-----------------------------------------------------------------------------
@@ -92,10 +100,19 @@ QStringList qSlicerCorePythonManager::pythonPaths()
   if (!app->isInstalled())
     {
     // Add here python path specific to the BUILD tree
-#ifdef CMAKE_INTDIR
-    paths << VTK_DIR "/bin/" CMAKE_INTDIR "/";
+#if (VTK_MAJOR_VERSION <= 5)
+      QString vtkLibSubDir("bin");
 #else
-    paths << VTK_DIR "/bin/";
+#if defined(Q_WS_WIN)
+      QString vtkLibSubDir("bin");
+#else
+      QString vtkLibSubDir("lib");
+#endif
+#endif
+#ifdef CMAKE_INTDIR
+    paths << VTK_DIR "/" + vtkLibSubDir + "/" CMAKE_INTDIR "/";
+#else
+    paths << VTK_DIR "/" + vtkLibSubDir + "/";
 #endif
     paths << QString("%1/Wrapping/Python").arg(VTK_DIR);
 #ifdef CMAKE_INTDIR
@@ -130,7 +147,8 @@ QStringList qSlicerCorePythonManager::pythonPaths()
 void qSlicerCorePythonManager::preInitialization()
 {
   Superclass::preInitialization();
-  this->addWrapperFactory(new ctkVTKPythonQtWrapperFactory);
+  this->Factory = new ctkVTKPythonQtWrapperFactory;
+  this->addWrapperFactory(this->Factory);
   qSlicerCoreApplication* app = qSlicerCoreApplication::application();
   if (app)
     {

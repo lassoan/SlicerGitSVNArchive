@@ -18,9 +18,11 @@
 
 #include "vtkObjectFactory.h"
 
+#include <vtkInformation.h>
 #include "vtkPichonFastMarching.h"
 #include "vtkPointData.h"
 #include "vtkDataArray.h"
+#include <vtkStreamingDemandDrivenPipeline.h>
 
 
 ///////////////////////////////////////////////////////////////////////
@@ -36,7 +38,6 @@ int compareInt(const void *a, const void *b)
 ///////////////////////////////////////////////////////////////////////
 
 //------------------------------------------------------------------------------
-vtkCxxRevisionMacro(vtkPichonFastMarching, "$Revision$");
 vtkStandardNewMacro(vtkPichonFastMarching);
 
 //------------------------------------------------------------------------------
@@ -498,9 +499,10 @@ void vtkPichonFastMarching::setActiveLabel(int _label)
 // algorithm to fill the output from the input.
 // It just executes a switch statement to call the correct function for
 // the datas data types.
+#if (VTK_MAJOR_VERSION <= 5)
 void vtkPichonFastMarching::ExecuteData(vtkDataObject *)
 {
-  vtkImageData *inData = this->GetInput();
+  vtkImageData *inData = this->GetImageDataInput(0);
   vtkImageData *outData = this->GetOutput();
 
   outData->SetExtent(this->GetOutput()->GetWholeExtent());
@@ -508,12 +510,21 @@ void vtkPichonFastMarching::ExecuteData(vtkDataObject *)
 
   int outExt[6], s;
   outData->GetWholeExtent(outExt);
+#else
+void vtkPichonFastMarching::ExecuteDataWithInformation(vtkDataObject *output, vtkInformation* outInfo)
+{
+  vtkImageData *inData = vtkImageData::SafeDownCast(this->GetInput());
+  vtkImageData *outData = this->AllocateOutputData(output, outInfo);
+
+  int outExt[6], s;
+  outInfo->Get(vtkStreamingDemandDrivenPipeline::WHOLE_EXTENT(), outExt);
+#endif
   void *inPtr = inData->GetScalarPointerForExtent(outExt);
   void *outPtr = outData->GetScalarPointerForExtent(outExt);
 
   int x1;
 
-  x1 = GetInput()->GetNumberOfScalarComponents();
+  x1 = this->GetImageDataInput(0)->GetNumberOfScalarComponents();
   if (x1 != 1)
     {
       vtkErrorMacro(<<"Input has "<<x1<<" instead of 1 scalar component.");
@@ -543,7 +554,7 @@ void vtkPichonFastMarching::setNPointsEvolution( int n )
 
 void vtkPichonFastMarching::PrintSelf(ostream& os, vtkIndent indent)
 {
-  vtkImageToImageFilter::PrintSelf(os,indent);
+  vtkImageAlgorithm::PrintSelf(os,indent);
 
   os << indent << "dimX: " << this->dimX << "\n";
   os << indent << "dimY: " << this->dimY << "\n";

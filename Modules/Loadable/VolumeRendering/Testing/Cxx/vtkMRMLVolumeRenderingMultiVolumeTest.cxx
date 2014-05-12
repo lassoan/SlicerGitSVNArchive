@@ -46,6 +46,7 @@
 #include <vtkRenderer.h>
 #include <vtkRenderWindow.h>
 #include <vtkRenderWindowInteractor.h>
+#include <vtkVersion.h>
 #include <vtkWindowToImageFilter.h>
 
 // STD includes
@@ -93,9 +94,13 @@ void SetupImageData(vtkImageData* imageData)
   const int dimY = 3;
   const int dimZ = 3;
   imageData->SetDimensions(dimX, dimY, dimZ);
+#if (VTK_MAJOR_VERSION <= 5)
   imageData->SetScalarTypeToUnsignedChar();
   imageData->SetNumberOfScalarComponents(1);
   imageData->AllocateScalars();
+#else
+  imageData->AllocateScalars(VTK_UNSIGNED_CHAR, 1);
+#endif
   unsigned char* ptr = reinterpret_cast<unsigned char*>(
     imageData->GetScalarPointer(0,0,0));
   for (int z = 0; z < dimZ; ++z)
@@ -227,6 +232,8 @@ bool TestChangeImageData(int copyBehavior, vtkImageData* screenShot)
   changeImageCallback->Interactor = renderWindow->GetInteractor();
   changeImageCallback->ChangeImageBehavior = copyBehavior;
 
+  renderer->ResetCamera();
+
   renderWindow->GetInteractor()->AddObserver(
     vtkCommand::KeyPressEvent, changeImageCallback.GetPointer());
   displayableManagerGroup->AddObserver(
@@ -276,8 +283,13 @@ int vtkMRMLVolumeRenderingMultiVolumeTest(int vtkNotUsed(argc),
       screenShots->GetItemAsObject(i));
 
     vtkNew<vtkImageDifference> diff;
+#if (VTK_MAJOR_VERSION <= 5)
     diff->SetInput(referenceScreenShot.GetPointer());
     diff->SetImage(screenShotImage);
+#else
+    diff->SetInputData(referenceScreenShot.GetPointer());
+    diff->SetImageData(screenShotImage);
+#endif
     diff->Update();
     double error = diff->GetThresholdedError();
     if (error > 0)

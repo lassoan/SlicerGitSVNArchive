@@ -22,6 +22,7 @@ Version:   $Revision: 1.2 $
 #include <vtkImageMapToWindowLevelColors.h>
 #include <vtkImageThreshold.h>
 #include <vtkObjectFactory.h>
+#include <vtkVersion.h>
 
 // STD includes
 #include <sstream>
@@ -87,10 +88,10 @@ void vtkMRMLDiffusionWeightedVolumeDisplayNode::Copy(vtkMRMLNode *anode)
 {
   int disabledModify = this->StartModify();
 
-  Superclass::Copy(anode);
   vtkMRMLDiffusionWeightedVolumeDisplayNode *node = (vtkMRMLDiffusionWeightedVolumeDisplayNode *) anode;
-
   this->SetDiffusionComponent(node->DiffusionComponent);
+  this->Superclass::Copy(anode);
+
 
   this->EndModify(disabledModify);
 }
@@ -106,6 +107,7 @@ void vtkMRMLDiffusionWeightedVolumeDisplayNode::PrintSelf(ostream& os, vtkIndent
 }
 
 //----------------------------------------------------------------------------
+#if (VTK_MAJOR_VERSION <= 5)
 void vtkMRMLDiffusionWeightedVolumeDisplayNode
 ::SetInputToImageDataPipeline(vtkImageData *imageData)
 {
@@ -118,17 +120,42 @@ vtkImageData* vtkMRMLDiffusionWeightedVolumeDisplayNode::GetInputImageData()
   return vtkImageData::SafeDownCast(this->ExtractComponent->GetInput());
 }
 
+#else
+void vtkMRMLDiffusionWeightedVolumeDisplayNode
+::SetInputToImageDataPipeline(vtkAlgorithmOutput *imageDataConnection)
+{
+  this->ExtractComponent->SetInputConnection(imageDataConnection);
+}
+
+//----------------------------------------------------------------------------
+vtkAlgorithmOutput* vtkMRMLDiffusionWeightedVolumeDisplayNode::GetInputImageDataConnection()
+{
+  return this->ExtractComponent->GetNumberOfInputConnections(0) ?
+    this->ExtractComponent->GetInputConnection(0,0) : 0;;
+}
+
+#endif
+
+#if (VTK_MAJOR_VERSION <= 5)
 //----------------------------------------------------------------------------
 vtkImageData* vtkMRMLDiffusionWeightedVolumeDisplayNode::GetOutputImageData()
 {
   return this->AppendComponents->GetOutput();
 }
+#endif
 
 //---------------------------------------------------------------------------
+#if (VTK_MAJOR_VERSION <= 5)
 vtkImageData* vtkMRMLDiffusionWeightedVolumeDisplayNode::GetScalarImageData()
 {
   return vtkImageData::SafeDownCast(this->ExtractComponent->GetOutput());
 }
+#else
+vtkAlgorithmOutput* vtkMRMLDiffusionWeightedVolumeDisplayNode::GetScalarImageDataConnection()
+{
+  return this->ExtractComponent->GetOutputPort();
+}
+#endif
 
 //----------------------------------------------------------------------------
 void vtkMRMLDiffusionWeightedVolumeDisplayNode::UpdateImageDataPipeline()

@@ -26,6 +26,31 @@ option(${CMAKE_PROJECT_NAME}_USE_GIT_PROTOCOL "If behind a firewall turn this of
 set(git_protocol "git")
 if(NOT ${CMAKE_PROJECT_NAME}_USE_GIT_PROTOCOL)
   set(git_protocol "http")
+
+  # Verify that the global git config has been updated with the expected "insteadOf" option.
+  function(_check_for_required_git_config_insteadof base insteadof)
+    execute_process(
+      COMMAND ${GIT_EXECUTABLE} config --global --get "url.${base}.insteadof"
+      OUTPUT_VARIABLE output
+      OUTPUT_STRIP_TRAILING_WHITESPACE
+      RESULT_VARIABLE error_code
+      )
+    if(error_code OR NOT "${output}" STREQUAL "${insteadof}")
+      message(FATAL_ERROR
+"Since the ExternalProject modules doesn't provide a mechanism to customize the clone step by "
+"adding 'git config' statement between the 'git checkout' and the 'submodule init', it is required "
+"to manually update your global git config to successfully build ${CMAKE_PROJECT_NAME} with "
+"option ${CMAKE_PROJECT_NAME}_USE_GIT_PROTOCOL set to FALSE. "
+"See http://na-mic.org/Mantis/view.php?id=2731"
+"\nYou could do so by running the command:\n"
+"  ${GIT_EXECUTABLE} config --global url.\"${base}\".insteadOf \"${insteadof}\"\n")
+    endif()
+  endfunction()
+
+  if("${ITK_VERSION_MAJOR}" LESS 4)
+    _check_for_required_git_config_insteadof("http://itk.org/" "git://itk.org/")
+  endif()
+
 endif()
 
 #-----------------------------------------------------------------------------
@@ -60,7 +85,9 @@ mark_as_superbuild(
 
 set(ITK_EXTERNAL_NAME ITKv4)
 
-set(Slicer_DEPENDENCIES curl teem VTK ${ITK_EXTERNAL_NAME} CTK LibArchive)
+set(VTK_EXTERNAL_NAME VTKv${VTK_VERSION_MAJOR})
+
+set(Slicer_DEPENDENCIES curl teem ${VTK_EXTERNAL_NAME} ${ITK_EXTERNAL_NAME} CTK LibArchive)
 
 set(CURL_ENABLE_SSL ${Slicer_USE_PYTHONQT_WITH_OPENSSL})
 
@@ -147,7 +174,7 @@ list(APPEND Slicer_REMOTE_DEPENDENCIES jqPlot)
 
 Slicer_Remote_Add(OpenIGTLinkIF
   GIT_REPOSITORY ${git_protocol}://github.com/openigtlink/OpenIGTLinkIF.git
-  GIT_TAG 24ae5443ecb633a54ab7b7b8178da53d1c5e2f74
+  GIT_TAG fa2b2ad4f83bbf60f632ea2a32dd967e5a52517e
   OPTION_NAME Slicer_BUILD_OpenIGTLinkIF
   OPTION_DEPENDS "Slicer_BUILD_QTLOADABLEMODULES;Slicer_USE_OpenIGTLink"
   LABELS REMOTE_MODULE
@@ -159,7 +186,7 @@ mark_as_advanced(Slicer_BUILD_MULTIVOLUME_SUPPORT)
 
 Slicer_Remote_Add(MultiVolumeExplorer
   GIT_REPOSITORY ${git_protocol}://github.com/fedorov/MultiVolumeExplorer.git
-  GIT_TAG 1f297b515366e67608d908c80b28c481f7994fc4
+  GIT_TAG 17a9095c72a38efb3d80933c03f826c0dd512d25
   OPTION_NAME Slicer_BUILD_MultiVolumeExplorer
   OPTION_DEPENDS "Slicer_BUILD_QTLOADABLEMODULES;Slicer_BUILD_MULTIVOLUME_SUPPORT;Slicer_USE_PYTHONQT"
   LABELS REMOTE_MODULE
@@ -234,7 +261,7 @@ list_conditional_append(Slicer_BUILD_BRAINSTOOLS Slicer_REMOTE_DEPENDENCIES BRAI
 
 Slicer_Remote_Add(EMSegment
   SVN_REPOSITORY "http://svn.slicer.org/Slicer3/branches/Slicer4-EMSegment"
-  SVN_REVISION -r "17044"
+  SVN_REVISION -r "17047"
   OPTION_NAME Slicer_BUILD_EMSegment
   OPTION_DEPENDS "Slicer_BUILD_BRAINSTOOLS;Slicer_BUILD_QTLOADABLEMODULES;Slicer_USE_PYTHONQT_WITH_TCL"
   LABELS REMOTE_MODULE
@@ -251,7 +278,7 @@ list_conditional_append(Slicer_BUILD_DataStore Slicer_REMOTE_DEPENDENCIES DataSt
 
 Slicer_Remote_Add(CompareVolumes
   GIT_REPOSITORY "${git_protocol}://github.com/pieper/CompareVolumes"
-  GIT_TAG "a04bebcc86f7fa34e7d6ca603f4cf8508a18997b"
+  GIT_TAG "2a44722ee1cf907945123c1bb7bffdb4073879ca"
   OPTION_NAME Slicer_BUILD_CompareVolumes
   OPTION_DEPENDS "Slicer_USE_PYTHONQT"
   LABELS REMOTE_MODULE
@@ -260,7 +287,7 @@ list_conditional_append(Slicer_BUILD_CompareVolumes Slicer_REMOTE_DEPENDENCIES C
 
 Slicer_Remote_Add(LandmarkRegistration
   GIT_REPOSITORY "${git_protocol}://github.com/pieper/LandmarkRegistration"
-  GIT_TAG "634c8eb69a94a5d0fc271b1ff3af7c90d764f742"
+  GIT_TAG "60e73766934c7dbdc9457128d57f4d99edc12187"
   OPTION_NAME Slicer_BUILD_LandmarkRegistration
   OPTION_DEPENDS "Slicer_BUILD_CompareVolumes;Slicer_USE_PYTHONQT"
   LABELS REMOTE_MODULE
@@ -331,10 +358,10 @@ ExternalProject_Add(${proj}
 # This custom external project step forces the build and later
 # steps to run whenever a top level build is done...
 ExternalProject_Add_Step(${proj} forcebuild
-  COMMAND ${CMAKE_COMMAND} -E echo_append ""
+  COMMAND ${CMAKE_COMMAND} -E remove
+    ${CMAKE_CURRENT_BINARY_DIR}/Slicer-prefix/src/Slicer-stamp/Slicer-build
   COMMENT "Forcing build step for '${proj}'"
-  DEPENDEES configure
-  DEPENDERS build
+  DEPENDEES build
   ALWAYS 1
   )
 

@@ -88,15 +88,20 @@ set(lib_name ${PROJECT_NAME})
 set(srcs ${MRMLLogic_SRCS})
 add_library(${lib_name} ${srcs})
 
-set(VTK_LIBRARIES
-  #Common # Provided by MRMLCore, vtkTeem, RemoteIO
-  #Filtering # Provided by MRMLCore, vtkTeem
-  #Graphics # Provided by MRMLCore, vtkTeem
-  #Imaging # Provided by MRMLCore, vtkTeem
-  #Rendering # Provided by MRMLCore
-  "" # Since no direct dependency to VTK libraries are required, let's explicitly set
-     # the variable to an empty string to avoid complaints from vtkMacroKitPythonWraps.cmake.
+if(${VTK_VERSION_MAJOR} GREATER 5)
+  set(VTK_LIBRARIES
+    vtkImagingGeneral
+    vtkInteractionImage
+    vtkRenderingFreeType
+    vtkRenderingVolumeOpenGL
+    )
+else()
+  set(VTK_LIBRARIES
+    "" # Since no direct dependency to VTK libraries are required, let's explicitly set
+    # the variable to an empty string to avoid complaints from vtkMacroKitPythonWraps.cmake.
   )
+endif()
+
 set(libs
   MRMLCore
   vtkTeem
@@ -104,6 +109,7 @@ set(libs
   ${VTK_LIBRARIES}
   ${LibArchive_LIBRARY}
   )
+
 target_link_libraries(${lib_name} ${libs})
 
 # Apply user-defined properties to the library target.
