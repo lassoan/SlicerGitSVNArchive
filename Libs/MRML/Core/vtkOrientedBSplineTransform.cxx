@@ -279,7 +279,6 @@ void vtkOrientedBSplineTransform::InverseTransformDerivative(const double inPoin
 
   double errorSquared = 0.0;
   double toleranceSquared = this->InverseTolerance * this->InverseTolerance;
-  double dummyPoint[3];
 
   double f = 1.0;
   double a;
@@ -322,15 +321,15 @@ void vtkOrientedBSplineTransform::InverseTransformDerivative(const double inPoin
     // Get displacement and derivative from bulk
     if (this->BulkTransformMatrix!=NULL)
       {
-      vtkLinearTransformPoint(this->BulkTransformMatrix->Element, inverse, inverseBulkTransformed);
-      vtkLinearTransformDerivative(this->BulkTransformMatrix->Element,inverse,dummyPoint/*not used*/,derivative);
+      vtkLinearTransformDerivative(this->BulkTransformMatrix->Element,inverse,inverseBulkTransformed,derivative);
 
       // Compute total derivative
+      vtkLinearTransformJacobian(splineDerivative, this->OutputToGridIndexTransformMatrixCached->Element, splineDerivative);
       for (int i = 0; i < 3; i++)
         {
-        derivative[i][0] += splineDerivative[i][0]*scale/spacing[0];
-        derivative[i][1] += splineDerivative[i][1]*scale/spacing[1];
-        derivative[i][2] += splineDerivative[i][2]*scale/spacing[2];
+        derivative[i][0] += splineDerivative[i][0]*scale;
+        derivative[i][1] += splineDerivative[i][1]*scale;
+        derivative[i][2] += splineDerivative[i][2]*scale;
         }
 
       // Compute total displacement error
@@ -341,11 +340,12 @@ void vtkOrientedBSplineTransform::InverseTransformDerivative(const double inPoin
     else
       {
       // Compute derivative
+      vtkLinearTransformJacobian(splineDerivative, this->OutputToGridIndexTransformMatrixCached->Element, splineDerivative);
       for (int i = 0; i < 3; i++)
         {
-        derivative[i][0] = splineDerivative[i][0]*scale/spacing[0];
-        derivative[i][1] = splineDerivative[i][1]*scale/spacing[1];
-        derivative[i][2] = splineDerivative[i][2]*scale/spacing[2];
+        derivative[i][0] = splineDerivative[i][0]*scale;
+        derivative[i][1] = splineDerivative[i][1]*scale;
+        derivative[i][2] = splineDerivative[i][2]*scale;
         derivative[i][i] += 1.0;
         }
 
