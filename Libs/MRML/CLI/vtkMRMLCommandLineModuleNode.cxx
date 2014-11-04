@@ -965,7 +965,37 @@ std::string vtkMRMLCommandLineModuleNode::GetParameterCoordinateSystem ( unsigne
 //----------------------------------------------------------------------------
 bool vtkMRMLCommandLineModuleNode::ReadParameterFile(const std::string& filename)
 {
+  // Point list is special case: we update fiducial node from a float vector
+  // iterate over each parameter group
+  std::map< std::string, std::string > pointLists; // maps from tag to markup point node name
+  std::vector<ModuleParameterGroup>::iterator pgbeginit = this->Internal->ModuleDescriptionObject.GetParameterGroups().begin();
+  std::vector<ModuleParameterGroup>::iterator pgendit = this->Internal->ModuleDescriptionObject.GetParameterGroups().end();
+  std::vector<ModuleParameterGroup>::iterator pgit;
+  for (pgit = pgbeginit; pgit != pgendit; ++pgit)
+    {
+    // iterate over each parameter in this group
+    std::vector<ModuleParameter>::iterator pbeginit = (*pgit).GetParameters().begin();
+    std::vector<ModuleParameter>::iterator pendit = (*pgit).GetParameters().end();
+    std::vector<ModuleParameter>::iterator pit;
+    for (pit = pbeginit; pit != pendit; ++pit)
+      {
+      if ((*pit).GetTag() == "point" && (*pit).GetChannel() == "output")
+        {
+        pointLists[ (*pit).GetName() ] = (*pit).GetDefault();
+        (*pit).SetDefault("");
+        }
+      }
+    }
+
   bool modified = this->Internal->ModuleDescriptionObject.ReadParameterFile(filename);
+
+  // Update fiducial list node from vector
+  // maps from tag to markup point node name
+  for (std::map< std::string, std::string >::iterator pointListIt = pointLists.begin(); pointListIt != pointLists.end(); ++pointListIt)
+    {
+    std::string stringVector = this->Internal->ModuleDescriptionObject.GetParameterDefaultValue(pointListIt->first);
+    // update node pointListIt->second with vector contents stringVector
+    }
 
   if (modified)
     {
