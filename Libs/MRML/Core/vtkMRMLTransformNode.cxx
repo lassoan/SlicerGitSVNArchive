@@ -738,6 +738,12 @@ int vtkMRMLTransformNode::GetMatrixTransformToParent(vtkMatrix4x4* matrix)
     vtkErrorMacro("vtkMRMLTransformNode::GetMatrixTransformToParent failed: matrix is invalid");
     return 0;
     }
+  // No transform means identity transform, which is a linear transform
+  if (this->TransformToParent==NULL && this->TransformFromParent==NULL)
+    {
+    matrix->Identity();
+    return 1;
+    }
   vtkLinearTransform* transform=vtkLinearTransform::SafeDownCast(GetTransformToParentAs("vtkLinearTransform", false));
   if (transform==NULL)
     {
