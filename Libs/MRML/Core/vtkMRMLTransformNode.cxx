@@ -629,7 +629,6 @@ int vtkMRMLTransformNode::Split()
   // If number of items is 1 we still continue, in this case we simplify the transform
   // (as one transform can be in a general transform hierarchy)
   vtkMRMLTransformNode* parentTransformNode = this->GetParentTransformNode();
-  vtkAbstractTransform* transformCopyComponent = NULL;
   for (int transformComponentIndex = numberOfTransformComponents-1; transformComponentIndex>=0; transformComponentIndex--)
     {
     vtkAbstractTransform* transformComponent = vtkAbstractTransform::SafeDownCast(transformComponentList->GetItemAsObject(transformComponentIndex));
