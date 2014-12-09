@@ -1,6 +1,10 @@
 """ This module loads the Slicer library modules into its namespace."""
 
 import imp
+import logging
+
+# Define a root 'slicer' logger
+logger = logging.getLogger('slicer')
 
 # Add module 'slicer.modules'
 __modules = imp.new_module( 'modules' )

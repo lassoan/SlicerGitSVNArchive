@@ -25,6 +25,7 @@
 #include <QPalette>
 
 // CTK includes
+#include <ctkErrorLogLevel.h>
 #include <ctkPimpl.h>
 #include <ctkSettingsDialog.h>
 
@@ -79,6 +80,13 @@ public:
 
   /// Get errorLogModel
   Q_INVOKABLE ctkErrorLogModel* errorLogModel()const;
+
+  /// Add a log entry to the error model
+  /// This method is necessary becase ctkErrorLogContext struct is not Python-wrapped and
+  /// we need to be able to log messages from Python.
+  Q_INVOKABLE void addLogEntry(ctkErrorLogLevel::LogLevel logLevel, const QString& text,
+    const QDateTime& currentDateTime, const QString& threadId, const QString& origin,
+    int contextLine=0, const QString& contextFile="unknown", const QString& contextFunction="unknown", const QString& contextMessage="", const QString& contextCategory="")const;
 
   /// Get commandOptions
   Q_INVOKABLE qSlicerCommandOptions* commandOptions();
