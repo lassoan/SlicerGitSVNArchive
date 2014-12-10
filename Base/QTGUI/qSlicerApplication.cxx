@@ -702,23 +702,3 @@ void qSlicerApplication::setupFileLogging()
     f.close();
     }
 }
-
-// --------------------------------------------------------------------------
-void qSlicerApplication::addLogEntry(ctkErrorLogLevel::LogLevel logLevel, const QString& text,
-    const QDateTime& currentDateTime, const QString& threadId, const QString& origin,
-    int contextLine/*=0*/, const QString& contextFile/*="unknown"*/, const QString& contextFunction/*="unknown"*/,
-    const QString& contextMessage/*=""*/, const QString& contextCategory/*=""*/)const
-{
-  ctkErrorLogModel* logModel=errorLogModel();
-  if (logModel==NULL)
-    {
-    return;
-    }
-  ctkErrorLogContext context;
-  context.Category = contextCategory;
-  context.Category = contextLine;
-  context.Category = contextFile;
-  context.Category = contextFunction;
-  context.Category = contextMessage;
-  logModel->addEntry(currentDateTime, threadId, logLevel, origin, context, text);
-}
