@@ -54,6 +54,15 @@ qMRMLLayoutManager* qMRMLLayoutWidget::layoutManager()const
 }
 
 //------------------------------------------------------------------------------
+void qMRMLLayoutWidget::setLayoutManager(qMRMLLayoutManager* layoutManager)
+{
+  Q_D(qMRMLLayoutWidget);
+  d->LayoutManager = layoutManager;
+  d->LayoutManager->setParent(this);
+  d->LayoutManager->setViewport(this);
+}
+
+//------------------------------------------------------------------------------
 void qMRMLLayoutWidget::setMRMLScene(vtkMRMLScene* scene)
 {
   Q_D(qMRMLLayoutWidget);

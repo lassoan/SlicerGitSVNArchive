@@ -38,9 +38,9 @@ public:
 
   /// Set the directory from which build-in scripted
   /// displayableManagers should be sourced from.
-  void setScriptedDisplayableManagerDirectory(const QString& scriptedDisplayableManagerDirectory);
+  Q_INVOKABLE void setScriptedDisplayableManagerDirectory(const QString& scriptedDisplayableManagerDirectory);
 
-  void setCurrentModule(const QString& moduleName);
+  Q_INVOKABLE void setCurrentModule(const QString& moduleName);
 
 signals:
   void selectModule(const QString& moduleName);
