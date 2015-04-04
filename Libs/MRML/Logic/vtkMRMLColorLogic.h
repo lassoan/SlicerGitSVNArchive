@@ -44,15 +44,20 @@ public:
   vtkTypeMacro(vtkMRMLColorLogic,vtkMRMLAbstractLogic);
   void PrintSelf(ostream& os, vtkIndent indent);
 
-  /// Add a series of color nodes, setting the types to the defaults, so that
-  /// they're accessible to the rest of Slicer
-  /// Each node is a singleton and is not included in a saved scene. The color
-  /// node singleton tags are the same as the node IDs:
-  /// vtkMRMLColorTableNodeGrey, vtkMRMLPETProceduralColorNodeHeat, etc.
-  virtual void AddDefaultColorNodes();
+  /// Return the scene containing the default color nodes.
+  /// If there is no default colors scene, a scene is created and default colors are loaded
+  /// into.
+  /// The default colors scene is created from presets defined in this class, in MRML color nodes, and
+  /// loaded from .txt files located in the share/ColorFiles directory
+  /// \sa vtkMRMLColorNode, GetModuleShareDirectory()
+  vtkMRMLScene* GetDefaultColorsScene();
 
-  /// Remove the colour nodes that were added
-  virtual void RemoveDefaultColorNodes();
+  /// Return the default color node contained in the presets scene
+  /// loaded using \a GetDefaultColorsScene().
+  /// If no color nodes are found, return 0.
+  /// If multiple color nodes are found, the first one is returned.
+  /// \sa GetDefaultColorsScene(), vtkMRMLColorNode
+  vtkMRMLColorNode* GetDefaultColorByName(const char *colorName);
 
   /// Return the default color table node id for a given type
   static const char * GetColorTableNodeID(int type);
@@ -132,13 +137,6 @@ protected:
   vtkMRMLColorLogic(const vtkMRMLColorLogic&);
   void operator=(const vtkMRMLColorLogic&);
 
-  /// Reimplemented to listen to specific scene events
-  virtual void SetMRMLSceneInternal(vtkMRMLScene* newScene);
-
-  /// Called when the scene fires vtkMRMLScene::NewSceneEvent.
-  /// We add the default LUTs.
-  virtual void OnMRMLSceneNewEvent();
-
   vtkMRMLColorTableNode* CreateLabelsNode();
   vtkMRMLColorTableNode* CreateDefaultTableNode(int type);
   vtkMRMLProceduralColorNode* CreateRandomNode();
@@ -175,6 +173,11 @@ protected:
   /// Return the ID of a node that doesn't belong to a scene.
   /// It is the concatenation of the node class name and its type.
   static const char * GetColorNodeID(vtkMRMLColorNode* colorNode);
+
+  /// Add a series of color nodes, setting the types to the defaults.
+  /// Returns true on success.
+  bool LoadDefaultColors();
+  vtkMRMLScene* DefaultColorsScene;
 
   /// a vector holding discovered default colour files, found in the
   /// Resources/ColorFiles directory, white space separated with:
