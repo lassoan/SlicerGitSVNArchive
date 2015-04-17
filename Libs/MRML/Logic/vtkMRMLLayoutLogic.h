@@ -120,6 +120,10 @@ public:
   void CreateMaximizedViewLayoutDescription(int layout,
                                             vtkMRMLAbstractViewNode* viewToMaximize);
 
+  /// Not public as we internally take care of chosing/updating the layout node
+  void SetLayoutNode(vtkMRMLLayoutNode* layoutNode);
+
+
 protected:
   /// Logic constructor
   vtkMRMLLayoutLogic();
@@ -146,9 +150,6 @@ protected:
   /// Call SetLayoutNode with the unique layout node in the mrml scene
   /// Create a vtkMRMLLayoutNode if there is no layout node in the scene
   void UpdateLayoutNode();
-
-  /// Not public as we internally take care of chosing/updating the layout node
-  void SetLayoutNode(vtkMRMLLayoutNode* layoutNode);
 
   /// Update the logic when the layout node is set or modified
   void UpdateFromLayoutNode();

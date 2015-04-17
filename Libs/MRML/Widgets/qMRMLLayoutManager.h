@@ -41,6 +41,7 @@ class vtkMRMLColorLogic;
 class vtkMRMLLayoutLogic;
 class vtkMRMLScene;
 class vtkMRMLChartNode;
+class vtkMRMLLayoutNode;
 class vtkMRMLNode;
 class vtkMRMLChartViewNode;
 class vtkMRMLViewNode;
@@ -189,6 +190,8 @@ public slots:
   /// Change the current layout (see vtkMRMLLayoutNode::SlicerLayout)
   /// It creates views if needed.
   void setLayout(int newLayout);
+
+  void setMRMLLayoutNode(vtkMRMLLayoutNode* node);
 
   /// Change the number of viewers in comparison modes
   /// It creates views if needed.

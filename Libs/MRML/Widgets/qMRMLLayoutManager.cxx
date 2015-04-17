@@ -345,15 +345,6 @@ QWidget* qMRMLLayoutManagerPrivate::viewWidget(vtkMRMLNode* viewNode)const
 }
 
 // --------------------------------------------------------------------------
-void qMRMLLayoutManagerPrivate::setMRMLLayoutNode(vtkMRMLLayoutNode* layoutNode)
-{
-  this->qvtkReconnect(this->MRMLLayoutNode, layoutNode, vtkCommand::ModifiedEvent,
-                    this, SLOT(onLayoutNodeModifiedEvent(vtkObject*)));
-  this->MRMLLayoutNode = layoutNode;
-  this->onLayoutNodeModifiedEvent(layoutNode);
-}
-
-// --------------------------------------------------------------------------
 void qMRMLLayoutManagerPrivate::setActiveMRMLThreeDViewNode(vtkMRMLViewNode * node)
 {
   Q_Q(qMRMLLayoutManager);
@@ -415,13 +406,12 @@ void qMRMLLayoutManagerPrivate::onNodeAddedEvent(vtkObject* scene, vtkObject* no
   if (layoutNode)
     {
     //qDebug() << "qMRMLLayoutManagerPrivate::onLayoutNodeAddedEvent";
-    // Only one Layout node is expected
-    Q_ASSERT(this->MRMLLayoutNode == 0);
     if (this->MRMLLayoutNode != 0)
       {
+      // Layout node is already set, ignore this one
       return;
       }
-    this->setMRMLLayoutNode(layoutNode);
+    q->setMRMLLayoutNode(layoutNode);
     }
 
   vtkMRMLAbstractViewNode* viewNode =
@@ -444,11 +434,10 @@ void qMRMLLayoutManagerPrivate::onNodeRemovedEvent(vtkObject* scene, vtkObject* 
   Q_ASSERT(scene == this->MRMLScene);
   // Layout node
   vtkMRMLLayoutNode * layoutNode = vtkMRMLLayoutNode::SafeDownCast(node);
-  if (layoutNode)
+  if (layoutNode && this->MRMLLayoutNode == layoutNode)
     {
     // The layout to be removed should be the same as the stored one
-    Q_ASSERT(this->MRMLLayoutNode == layoutNode);
-    this->setMRMLLayoutNode(0);
+    q->setMRMLLayoutNode(0);
     }
   vtkMRMLAbstractViewNode* viewNode =
     vtkMRMLAbstractViewNode::SafeDownCast(node);
@@ -523,7 +512,7 @@ void qMRMLLayoutManagerPrivate::updateLayoutFromMRMLScene()
     {
     viewFactory->onSceneModified();
     }
-  this->setMRMLLayoutNode(this->MRMLLayoutLogic->GetLayoutNode());
+  q->setMRMLLayoutNode(this->MRMLLayoutLogic->GetLayoutNode());
 }
 
 /*
@@ -637,6 +626,20 @@ qMRMLLayoutManager::qMRMLLayoutManager(qMRMLLayoutManagerPrivate* pimpl,
 // --------------------------------------------------------------------------
 qMRMLLayoutManager::~qMRMLLayoutManager()
 {
+}
+
+// --------------------------------------------------------------------------
+void qMRMLLayoutManager::setMRMLLayoutNode(vtkMRMLLayoutNode* layoutNode)
+{
+  Q_D(qMRMLLayoutManager);
+  d->qvtkReconnect(d->MRMLLayoutNode, layoutNode, vtkCommand::ModifiedEvent,
+                    d, SLOT(onLayoutNodeModifiedEvent(vtkObject*)));
+  d->MRMLLayoutNode = layoutNode;
+  if (d->MRMLLayoutLogic->GetLayoutNode()!=d->MRMLLayoutNode)
+    {
+    d->MRMLLayoutLogic->SetLayoutNode(d->MRMLLayoutNode);
+    }
+  d->onLayoutNodeModifiedEvent(layoutNode);
 }
 
 // --------------------------------------------------------------------------

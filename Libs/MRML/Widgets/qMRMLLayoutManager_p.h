@@ -83,7 +83,6 @@ public:
 
   virtual void init();
 
-  void setMRMLLayoutNode(vtkMRMLLayoutNode* node);
   void setActiveMRMLThreeDViewNode(vtkMRMLViewNode * node);
   void setActiveMRMLChartViewNode(vtkMRMLChartViewNode * node);
 
