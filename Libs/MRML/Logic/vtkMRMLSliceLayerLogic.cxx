@@ -921,8 +921,6 @@ void vtkMRMLSliceLayerLogic::UpdateImageDisplay()
       volumeDisplayNode->SetInputImageDataConnection(this->GetSliceImageDataConnection());
       volumeDisplayNode->SetBackgroundImageStencilDataConnection(this->Reslice->GetOutputPort(1));
 #endif
-
-#endif
       //volumeDisplayNode->EndModify(wasModifying);
       }
     }
