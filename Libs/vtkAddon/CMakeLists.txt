@@ -63,6 +63,8 @@ set(vtkAddon_SRCS
   vtkOrientedBSplineTransform.h
   vtkOrientedGridTransform.cxx
   vtkOrientedGridTransform.h
+  vtkImageAlphaLogic.cxx
+  vtkImageAlphaLogic.h
   )
 
 # Abstract/pure virtual classes
