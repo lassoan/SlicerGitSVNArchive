@@ -1,3 +1,4 @@
+#include "vtkImageAlphaLogic.h"
 #include "vtkInformation.h"
 #include "vtkImageData.h"
 #include "vtkImageIterator.h"
@@ -23,15 +24,15 @@ vtkImageAlphaLogic::vtkImageAlphaLogic()
 //----------------------------------------------------------------------------
 // This templated function executes the filter for any type of data.
 template <class T>
-void vtkImageAlphaLogicExecute(vtkImageAlphaLogic *self, vtkImageData *inData,
-                                vtkImageData *outData, int outExt[6], int id, T *)
+void vtkImageAlphaLogicExecute(vtkImageAlphaLogic *self, vtkImageData ***inData,
+                                vtkImageData **outData, int outExt[6], int id, T *)
 {
   int numScalarsImage = inData[0][0]->GetNumberOfScalarComponents();
   int numScalarsMask  = inData[1][0]->GetNumberOfScalarComponents();
   int maskAlphaComponent = numScalarsMask - 1;
 
   vtkImageStencilData *stencil = vtkImageStencilData::SafeDownCast(inData[2][0]);
-  vtkImageStencilIterator<T> outIter(outData, stencil, outExt, self, id);
+  vtkImageStencilIterator<T> outIter(outData[0], stencil, outExt, self, id);
   vtkImageIterator<T> inImageIter(inData[0][0], outExt);
   vtkImageIterator<T> inMaskIter(inData[1][0], outExt);
 
@@ -71,12 +72,6 @@ void vtkImageAlphaLogicExecute(vtkImageAlphaLogic *self, vtkImageData *inData,
 
     // go to the next span
     outIter.NextSpan();
-    if (inPtr == inSpanEndPtr)
-      {
-      inIter.NextSpan();
-      inPtr = inIter.BeginSpan();
-      inSpanEndPtr = inIter.EndSpan();
-      }
     }
 }
 
@@ -128,8 +123,8 @@ void vtkImageAlphaLogic::ThreadedRequestData (
   switch (inData[0][0]->GetScalarType())
     {
     vtkTemplateMacro(
-      vtkImageAlphaLogicExecute(this, inData[0][0],
-                                outData[0], outExt, id,
+      vtkImageAlphaLogicExecute(this, inData,
+                                outData, outExt, id,
                                 static_cast<VTK_TT *>(0)));
     default:
       vtkErrorMacro(<< "Execute: Unknown ScalarType");

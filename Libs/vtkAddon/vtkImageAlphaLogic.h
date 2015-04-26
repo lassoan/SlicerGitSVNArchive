@@ -1,4 +1,4 @@
-// .NAME vtkImageAlphaLogic - And, or, xor, nand, nor, not.
+// .NAME vtkImageAlphaLogic
 // .SECTION Description
 // vtkImageAlphaLogic implements Slicer's slice rendering.
 // The filter takes three inputs: an image, a stencil, and a mask
@@ -10,15 +10,16 @@
 #define vtkImageAlphaLogic_h
 
 
-#include "vtkImagingMathModule.h" // For export macro
+#include "vtkAddon.h"
 #include "vtkThreadedImageAlgorithm.h"
+#include "vtkImageStencilData.h"
 
 //Which class should I inherit from? vtkThreadedImageAlgorithm, or vtkImageInPlaceFilter?
-class VTKIMAGINGMATH_EXPORT vtkImageAlphaLogic : public vtkThreadedImageAlgorithm
+class VTK_ADDON_EXPORT vtkImageAlphaLogic : public vtkThreadedImageAlgorithm
 {
 public:
   static vtkImageAlphaLogic *New();
-  vtkTypeMacro(vtkImageLogic,vtkThreadedImageAlgorithm);
+  vtkTypeMacro(vtkImageAlphaLogic,vtkThreadedImageAlgorithm);
   void PrintSelf(ostream& os, vtkIndent indent);
 
   // Description:
@@ -41,7 +42,7 @@ public:
 
   // Description:
   // Get the Stencil data
-  vtkImageStencilData *GetStencilData() { return (vtkImageStencilData*)this->GetInputData(0);};
+  vtkImageStencilData *GetStencilData() { return (vtkImageStencilData*)this->GetInput(0);};
 
   // Description:
   // Set the Stencil connection
@@ -50,8 +51,8 @@ public:
   // TODO: Set up connections for all of the inputs
 
 protected:
-  vtkImageLogic();
-  ~vtkImageLogic() {}
+  vtkImageAlphaLogic();
+  ~vtkImageAlphaLogic() {}
 
   double BackgroundColor[3];
 
@@ -63,8 +64,8 @@ protected:
   virtual int FillInputPortInformation(int port, vtkInformation* info);
 
 private:
-  vtkImageLogic(const vtkImageLogic&);  // Not implemented.
-  void operator=(const vtkImageLogic&);  // Not implemented.
+  vtkImageAlphaLogic(const vtkImageAlphaLogic&);  // Not implemented.
+  void operator=(const vtkImageAlphaLogic&);  // Not implemented.
 };
 
 #endif
