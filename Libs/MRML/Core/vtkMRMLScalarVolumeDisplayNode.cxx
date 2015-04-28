@@ -24,12 +24,11 @@ Version:   $Revision: 1.2 $
 #include <vtkCallbackCommand.h>
 #include <vtkColorTransferFunction.h>
 #include <vtkImageAccumulate.h>
-#include <vtkImageAppendComponents.h>
-#include <vtkImageExtractComponents.h>
+#include <vtkImageAlphaLogic.h>
 #include <vtkImageBimodalAnalysis.h>
 #include <vtkImageCast.h>
 #include <vtkImageData.h>
-#include <vtkImageLogic.h>
+//#include <vtkImageLogic.h>
 #include <vtkImageMapToWindowLevelColors.h>
 #include <vtkImageStencil.h>
 #include <vtkImageThreshold.h>
@@ -63,14 +62,9 @@ vtkMRMLScalarVolumeDisplayNode::vtkMRMLScalarVolumeDisplayNode()
   //this->SetDefaultColorMap(0);
 
   // create and set visulaization pipeline
-  this->AlphaLogic = vtkImageLogic::New();
+  this->AlphaLogic = vtkImageAlphaLogic::New();
   this->MapToColors = vtkImageMapToColors::New();
   this->Threshold = vtkImageThreshold::New();
-  this->AppendComponents = vtkImageAppendComponents::New();
-
-  this->ExtractRGB = vtkImageExtractComponents::New();
-  this->ExtractAlpha = vtkImageExtractComponents::New();
-  this->MultiplyAlpha = vtkImageStencil::New();
 
   this->MapToWindowLevelColors = vtkImageMapToWindowLevelColors::New();
   this->MapToWindowLevelColors->SetOutputFormatToLuminance();
@@ -80,12 +74,6 @@ vtkMRMLScalarVolumeDisplayNode::vtkMRMLScalarVolumeDisplayNode()
   this->MapToColors->SetOutputFormatToRGBA();
   this->MapToColors->SetInputConnection(this->MapToWindowLevelColors->GetOutputPort() );
 
-  this->ExtractRGB->SetInputConnection(this->MapToColors->GetOutputPort());
-  this->ExtractRGB->SetComponents(0,1,2);
-
-  this->ExtractAlpha->SetInputConnection(this->MapToColors->GetOutputPort());
-  this->ExtractAlpha->SetComponents(3);
-
   this->Threshold->ReplaceInOn();
   this->Threshold->SetInValue(255);
   this->Threshold->ReplaceOutOn();
@@ -93,20 +81,8 @@ vtkMRMLScalarVolumeDisplayNode::vtkMRMLScalarVolumeDisplayNode()
   this->Threshold->SetOutputScalarTypeToUnsignedChar();
   this->Threshold->ThresholdBetween(VTK_SHORT_MIN, VTK_SHORT_MAX);
 
-  this->MultiplyAlpha->SetInputConnection(0, this->ExtractAlpha->GetOutputPort() );
-  this->MultiplyAlpha->SetBackgroundValue(0);
-
-  this->AlphaLogic->SetOperationToAnd();
-  this->AlphaLogic->SetOutputTrueValue(255);
-
-  this->AlphaLogic->SetInputConnection(0, this->Threshold->GetOutputPort() );
-  //this->AlphaLogic->SetInputConnection(1, this->Threshold->GetOutputPort() );
-  this->AlphaLogic->SetInputConnection(1, this->MultiplyAlpha->GetOutputPort() );
-
-  this->AppendComponents->RemoveAllInputs();
-  this->AppendComponents->AddInputConnection(0, this->ExtractRGB->GetOutputPort() );
-  this->AppendComponents->AddInputConnection(0, this->AlphaLogic->GetOutputPort() );
-
+  this->AlphaLogic->SetImageConnection(this->MapToColors->GetOutputPort());
+  this->AlphaLogic->SetMaskConnection(this->Threshold->GetOutputPort());
 
   this->Bimodal = NULL;
   this->Accumulate = NULL;
@@ -124,12 +100,7 @@ vtkMRMLScalarVolumeDisplayNode::~vtkMRMLScalarVolumeDisplayNode()
   this->AlphaLogic->Delete();
   this->MapToColors->Delete();
   this->Threshold->Delete();
-  this->AppendComponents->Delete();
   this->MapToWindowLevelColors->Delete();
-  this->ExtractRGB->Delete();
-  this->ExtractAlpha->Delete();
-  this->MultiplyAlpha->Delete();
-
 
   if (this->Bimodal)
     {
@@ -215,18 +186,18 @@ void vtkMRMLScalarVolumeDisplayNode
 #if (VTK_MAJOR_VERSION <= 5)
 void vtkMRMLScalarVolumeDisplayNode::SetBackgroundImageStencilData(vtkImageStencilData *imageData)
 {
-  this->MultiplyAlpha->SetStencil(imageData);
+  this->AlphaLogic->SetStencilData(imageData);
 }
 //----------------------------------------------------------------------------
 vtkImageStencilData* vtkMRMLScalarVolumeDisplayNode::GetBackgroundImageStencilData()
 {
-  return vtkImageStencilData::SafeDownCast(this->MultiplyAlpha->GetStencil());
+  return vtkImageStencilData::SafeDownCast(this->AlphaLogic->GetStencilData());
 }
 #else
 void vtkMRMLScalarVolumeDisplayNode
 ::SetBackgroundImageStencilDataConnection(vtkAlgorithmOutput *imageDataConnection)
 {
-  this->MultiplyAlpha->SetStencilConnection(imageDataConnection);
+  this->AlphaLogic->SetStencilConnection(imageDataConnection);
 }
 //----------------------------------------------------------------------------
 vtkAlgorithmOutput* vtkMRMLScalarVolumeDisplayNode::GetBackgroundImageStencilDataConnection()
@@ -234,8 +205,8 @@ vtkAlgorithmOutput* vtkMRMLScalarVolumeDisplayNode::GetBackgroundImageStencilDat
   // Input ports:
   // 0 = foreground image, 1 = background image, 2 = stencil
   const int stencilInputPort = 2;
-  return this->MultiplyAlpha->GetNumberOfInputConnections(0)>stencilInputPort ?
-    this->MultiplyAlpha->GetInputConnection(0,stencilInputPort) : 0;
+  return this->AlphaLogic->GetNumberOfInputConnections(0)>stencilInputPort ?
+    this->AlphaLogic->GetInputConnection(0,stencilInputPort) : 0;
 }
 #endif
 
@@ -257,12 +228,12 @@ vtkAlgorithmOutput* vtkMRMLScalarVolumeDisplayNode::GetInputImageDataConnection(
 #if (VTK_MAJOR_VERSION <= 5)
 vtkImageData* vtkMRMLScalarVolumeDisplayNode::GetOutputImageData()
 {
-  return this->AppendComponents->GetOutput();
+  return this->AlphaLogic->GetOutput();
 }
 #else
 vtkAlgorithmOutput* vtkMRMLScalarVolumeDisplayNode::GetOutputImageDataConnection()
 {
-  return this->AppendComponents->GetOutputPort();
+  return this->AlphaLogic->GetOutputPort();
 }
 #endif
 

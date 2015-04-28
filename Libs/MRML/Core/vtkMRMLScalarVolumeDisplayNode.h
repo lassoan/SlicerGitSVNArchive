@@ -20,17 +20,14 @@
 
 // VTK includes
 class vtkImageAlgorithm;
+class vtkImageAlphaLogic;
 class vtkImageAccumulate;
-class vtkImageAppendComponents;
 class vtkImageBimodalAnalysis;
 class vtkImageCast;
-class vtkImageLogic;
 class vtkImageMapToColors;
 class vtkImageMapToWindowLevelColors;
 class vtkImageStencil;
 class vtkImageThreshold;
-class vtkImageExtractComponents;
-class vtkImageMathematics;
 
 // STD includes
 #include <vector>
@@ -246,14 +243,10 @@ protected:
   int ApplyThreshold;
   int AutoThreshold;
 
-  vtkImageLogic *AlphaLogic;
+  vtkImageAlphaLogic *AlphaLogic;
   vtkImageMapToColors *MapToColors;
   vtkImageThreshold *Threshold;
-  vtkImageAppendComponents *AppendComponents;
   vtkImageMapToWindowLevelColors *MapToWindowLevelColors;
-  vtkImageExtractComponents *ExtractRGB;
-  vtkImageExtractComponents *ExtractAlpha;
-  vtkImageStencil *MultiplyAlpha;
 
   ///
   /// window level presets
