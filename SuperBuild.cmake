@@ -194,7 +194,7 @@ list_conditional_append(Slicer_BUILD_MultiVolumeExplorer Slicer_REMOTE_DEPENDENC
 
 Slicer_Remote_Add(MultiVolumeImporter
   GIT_REPOSITORY ${git_protocol}://github.com/fedorov/MultiVolumeImporter.git
-  GIT_TAG c0760e48cb767a57a868b46cafce8a875a4222e3
+  GIT_TAG 8b6d1ce8f47d9b7695e153a63ea9bdb9366a0b6f
   OPTION_NAME Slicer_BUILD_MultiVolumeImporter
   OPTION_DEPENDS "Slicer_BUILD_QTLOADABLEMODULES;Slicer_BUILD_MULTIVOLUME_SUPPORT;Slicer_USE_PYTHONQT"
   LABELS REMOTE_MODULE
@@ -261,7 +261,7 @@ list_conditional_append(Slicer_BUILD_BRAINSTOOLS Slicer_REMOTE_DEPENDENCIES BRAI
 
 Slicer_Remote_Add(EMSegment
   SVN_REPOSITORY "http://svn.slicer.org/Slicer3/branches/Slicer4-EMSegment"
-  SVN_REVISION -r "17095"
+  SVN_REVISION -r "17099"
   OPTION_NAME Slicer_BUILD_EMSegment
   OPTION_DEPENDS "Slicer_BUILD_BRAINSTOOLS;Slicer_BUILD_QTLOADABLEMODULES;Slicer_USE_PYTHONQT_WITH_TCL"
   LABELS REMOTE_MODULE
