@@ -57,6 +57,7 @@
 #include <vtkProperty.h>
 #include <vtkRenderWindowInteractor.h>
 #include <vtkSmartPointer.h>
+#include <vtkStaticOpacityTexture.h>
 #include <vtkTransformPolyDataFilter.h>
 #include <vtkVersion.h>
 #include <vtkWeakPointer.h>
@@ -1810,9 +1811,14 @@ void vtkMRMLModelDisplayableManager::SetModelDisplayProperty(vtkMRMLDisplayableN
           {
           if (actor->GetTexture() == 0)
             {
-            vtkTexture *texture = vtkTexture::New();
-            actor->SetTexture(texture);
-            texture->Delete();
+            // Use a texture with a fixed opacity status.
+            // Computation of opacity status (if the texture is translucent or not) is a very expensive
+            // operation in vtkTexture, therefore setting it to a fixed value makes the rendering much faster
+            // in case the image contents changes frequently.
+            vtkNew<vtkStaticOpacityTexture> texture;
+            //vtkNew<vtkTexture> texture;
+            //texture->SetOpacityToAlwaysOpaque();
+            actor->SetTexture(texture.GetPointer());
             }
 #if (VTK_MAJOR_VERSION <= 5)
           actor->GetTexture()->SetInput(modelDisplayNode->GetTextureImageData());

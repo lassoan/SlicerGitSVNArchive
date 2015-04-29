@@ -78,6 +78,7 @@ template <class T>
 void vtkImageAlphaLogicExecute(vtkImageAlphaLogic *self, vtkImageData ***inData,
                                 vtkImageData **outData, int outExt[6], int id, T *)
 {
+  return;
   int numScalarsImage = inData[vtkImageAlphaLogic::IMAGE_INPUT_PORT][0]->GetNumberOfScalarComponents();
   int numScalarsMask  = inData[vtkImageAlphaLogic::MASK_INPUT_PORT][0]->GetNumberOfScalarComponents();
   int maskAlphaComponent = 0;
