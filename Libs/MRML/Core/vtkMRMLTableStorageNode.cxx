@@ -74,8 +74,7 @@ int vtkMRMLTableStorageNode::ReadDataInternal(vtkMRMLNode *refNode)
 
   if (tableNode == NULL)
     {
-    vtkErrorMacro("ReadData: unable to cast input node " << refNode->GetID()
-                  << " to a table (measurement) node");
+    vtkErrorMacro("ReadData: unable to cast input node " << refNode->GetID() << " to a table node");
     return 0;
     }
 
@@ -178,14 +177,14 @@ int vtkMRMLTableStorageNode::WriteDataInternal(vtkMRMLNode *refNode)
 //----------------------------------------------------------------------------
 void vtkMRMLTableStorageNode::InitializeSupportedReadFileTypes()
 {
-  this->SupportedReadFileTypes->InsertNextValue("Measurement CSV (.csv)");
+  this->SupportedReadFileTypes->InsertNextValue("Comma-separated values (.csv)");
   this->SupportedReadFileTypes->InsertNextValue("Text (.txt)");
 }
 
 //----------------------------------------------------------------------------
 void vtkMRMLTableStorageNode::InitializeSupportedWriteFileTypes()
 {
-  this->SupportedWriteFileTypes->InsertNextValue("Measurement CSV (.csv)");
+  this->SupportedWriteFileTypes->InsertNextValue("Comma-separated values (.csv)");
   this->SupportedWriteFileTypes->InsertNextValue("Text (.txt)");
 }
 

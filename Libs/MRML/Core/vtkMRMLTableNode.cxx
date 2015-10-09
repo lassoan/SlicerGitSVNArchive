@@ -36,7 +36,8 @@ vtkMRMLNodeNewMacro(vtkMRMLTableNode);
 vtkMRMLTableNode::vtkMRMLTableNode()
 {
   this->Table = vtkTable::New();
-
+  this->Locked = false;
+  this->Sortable = false;
   this->HideFromEditorsOff();
 }
 
@@ -54,9 +55,11 @@ vtkMRMLTableNode::~vtkMRMLTableNode()
 //----------------------------------------------------------------------------
 void vtkMRMLTableNode::WriteXML(ostream& of, int nIndent)
 {
-
   // Start by having the superclass write its information
   Superclass::WriteXML(of, nIndent);
+  vtkIndent indent(nIndent);
+  of << indent << " locked=\"" << (this->GetLocked() ? "true" : "false") << "\"";
+  of << indent << " sortable=\"" << (this->GetSortable() ? "true" : "false") << "\"";
 }
 
 
@@ -67,13 +70,43 @@ void vtkMRMLTableNode::ReadXMLAttributes(const char** atts)
 
   vtkMRMLNode::ReadXMLAttributes(atts);
 
+  const char* attName;
+  const char* attValue;
+  while (*atts != NULL)
+    {
+    attName = *(atts++);
+    attValue = *(atts++);
+    if (!strcmp(attName, "locked"))
+      {
+      if (!strcmp(attValue,"true"))
+        {
+        this->SetLocked(1);
+        }
+      else
+        {
+        this->SetLocked(0);
+        }
+      }
+    else if (!strcmp(attName, "sortable"))
+      {
+      if (!strcmp(attValue,"true"))
+        {
+        this->SetSortable(1);
+        }
+      else
+        {
+        this->SetSortable(0);
+        }
+      }
+    }
+
   this->EndModify(disabledModify);
 }
 
 
 //----------------------------------------------------------------------------
 // Copy the node's attributes to this object.
-// 
+//
 void vtkMRMLTableNode::Copy(vtkMRMLNode *anode)
 {
   int disabledModify = this->StartModify();

@@ -21,44 +21,44 @@ Ontario Ministry of Health and Long-Term Care.
 ==============================================================================*/
 
 
-#include "qMRMLTableWidgetPlugin.h"
-#include "qMRMLTableWidget.h"
+#include "qMRMLTableViewPlugin.h"
+#include "qMRMLTableView.h"
 
 //------------------------------------------------------------------------------
-qMRMLTableWidgetPlugin::qMRMLTableWidgetPlugin(QObject *_parent)
+qMRMLTableViewPlugin::qMRMLTableViewPlugin(QObject *_parent)
 : QObject(_parent)
 {
 }
 
 //------------------------------------------------------------------------------
-QWidget *qMRMLTableWidgetPlugin::createWidget(QWidget *_parent)
+QWidget *qMRMLTableViewPlugin::createWidget(QWidget *_parent)
 {
-qMRMLTableWidget* _widget = new qMRMLTableWidget(_parent);
+qMRMLTableView* _widget = new qMRMLTableView(_parent);
 return _widget;
 }
 
 //------------------------------------------------------------------------------
-QString qMRMLTableWidgetPlugin::domXml() const
+QString qMRMLTableViewPlugin::domXml() const
 {
-return "<widget class=\"qMRMLTableWidget\" \
-name=\"MRMLTableWidget\">\n"
+return "<widget class=\"qMRMLTableView\" \
+name=\"MRMLTableView\">\n"
 "</widget>\n";
 }
 
 //------------------------------------------------------------------------------
-QString qMRMLTableWidgetPlugin::includeFile() const
+QString qMRMLTableViewPlugin::includeFile() const
 {
-return "qMRMLTableWidget.h";
+return "qMRMLTableView.h";
 }
 
 //------------------------------------------------------------------------------
-bool qMRMLTableWidgetPlugin::isContainer() const
+bool qMRMLTableViewPlugin::isContainer() const
 {
 return false;
 }
 
 //------------------------------------------------------------------------------
-QString qMRMLTableWidgetPlugin::name() const
+QString qMRMLTableViewPlugin::name() const
 {
-return "qMRMLTableWidget";
+return "qMRMLTableView";
 }

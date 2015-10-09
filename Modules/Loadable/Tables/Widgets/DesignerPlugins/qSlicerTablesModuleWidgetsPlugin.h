@@ -28,7 +28,7 @@
 #include <QDesignerCustomWidgetCollectionInterface>
 
 // Tables includes
-#include "qMRMLTableWidgetPlugin.h"
+#include "qMRMLTableViewPlugin.h"
 
 // \class Group the plugins in one library
 class Q_SLICER_MODULE_TABLES_WIDGETS_PLUGINS_EXPORT qSlicerTablesModuleWidgetsPlugin
@@ -42,7 +42,7 @@ public:
   QList<QDesignerCustomWidgetInterface*> customWidgets() const
     {
     QList<QDesignerCustomWidgetInterface *> plugins;
-    plugins << new qMRMLTableWidgetPlugin;
+    plugins << new qMRMLTableViewPlugin;
 
     return plugins;
     }

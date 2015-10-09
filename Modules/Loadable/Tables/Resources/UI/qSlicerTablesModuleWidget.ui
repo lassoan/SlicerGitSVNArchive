@@ -72,7 +72,7 @@
      </property>
      <layout class="QVBoxLayout" name="verticalLayout_8">
       <item>
-       <widget class="qMRMLTableWidget" name="TableWidget"/>
+       <widget class="qMRMLTableView" name="TableView"/>
       </item>
      </layout>
     </widget>
@@ -109,9 +109,9 @@
    <container>1</container>
   </customwidget>
   <customwidget>
-   <class>qMRMLTableWidget</class>
-   <extends>qSlicerWidget</extends>
-   <header>qMRMLTableWidget.h</header>
+   <class>qMRMLTableView</class>
+   <extends>QTableView</extends>
+   <header>qMRMLTableView.h</header>
   </customwidget>
   <customwidget>
    <class>ctkCollapsibleButton</class>
@@ -144,8 +144,8 @@
   <connection>
    <sender>TableNodeSelector</sender>
    <signal>currentNodeChanged(vtkMRMLNode*)</signal>
-   <receiver>TableWidget</receiver>
-   <slot>setTableNode(vtkMRMLNode*)</slot>
+   <receiver>TableView</receiver>
+   <slot>setMRMLTableNode(vtkMRMLNode*)</slot>
    <hints>
     <hint type="sourcelabel">
      <x>240</x>
@@ -160,7 +160,7 @@
   <connection>
    <sender>qSlicerTablesModuleWidget</sender>
    <signal>mrmlSceneChanged(vtkMRMLScene*)</signal>
-   <receiver>TableWidget</receiver>
+   <receiver>TableView</receiver>
    <slot>setMRMLScene(vtkMRMLScene*)</slot>
    <hints>
     <hint type="sourcelabel">

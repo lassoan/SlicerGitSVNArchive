@@ -9,14 +9,14 @@ set(${KIT}_SRCS
   qSlicer${MODULE_NAME}ModuleWidgetsPlugin.cxx
   qSlicer${MODULE_NAME}ModuleWidgetsPlugin.h
 
-  qMRMLTableWidgetPlugin.cxx
-  qMRMLTableWidgetPlugin.h
+  qMRMLTableViewPlugin.cxx
+  qMRMLTableViewPlugin.h
   )
 
 set(${KIT}_MOC_SRCS
   qSlicer${MODULE_NAME}ModuleWidgetsPlugin.h
 
-  qMRMLTableWidgetPlugin.h
+  qMRMLTableViewPlugin.h
   )
 
 set(${KIT}_TARGET_LIBRARIES

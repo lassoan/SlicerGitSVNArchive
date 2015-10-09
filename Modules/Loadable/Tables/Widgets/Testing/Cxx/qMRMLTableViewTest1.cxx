@@ -24,7 +24,7 @@
 
 // qMRML includes
 #include "qSlicerCoreApplication.h"
-#include "qMRMLTableWidget.h"
+#include "qMRMLTableView.h"
 
 // MRML includes
 #include "vtkMRMLScene.h"
@@ -32,15 +32,15 @@
 // VTK includes
 #include <vtkNew.h>
 
-int qMRMLTableWidgetTest1( int argc, char * argv [] )
+int qMRMLTableViewTest1( int argc, char * argv [] )
 {
   qSlicerCoreApplication app(argc, argv);
 
-  qMRMLTableWidget tableWidget;
-  tableWidget.show();
+  qMRMLTableView tableView;
+  tableView.show();
   vtkNew<vtkMRMLScene> scene;
 
-  tableWidget.setMRMLScene(scene.GetPointer());
+  //TODO: tableView.setMRMLScene(scene.GetPointer());
 
   if (argc < 3 || QString(argv[2]) != "-I")
     {

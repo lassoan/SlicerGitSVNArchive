@@ -78,6 +78,16 @@ public:
   vtkGetObjectMacro ( Table, vtkTable );
 
   ///
+  /// Table contents cannot be edited through the user interface
+  vtkGetMacro(Locked, bool);
+  vtkSetMacro(Locked, bool);
+
+  ///
+  /// Rows are allowed be sorted based on values in a selected column
+  vtkGetMacro(Sortable, bool);
+  vtkSetMacro(Sortable, bool);
+
+  ///
   /// Create default storage node or NULL if does not have one
   virtual vtkMRMLStorageNode* CreateDefaultStorageNode();
 
@@ -97,6 +107,8 @@ public:
   //----------------------------------------------------------------
 
   vtkTable* Table;
+  bool Locked;
+  bool Sortable;
 };
 
 #endif

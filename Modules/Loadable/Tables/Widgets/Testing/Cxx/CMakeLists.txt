@@ -5,7 +5,7 @@ set(INPUT ${MRMLCore_SOURCE_DIR}/Testing)
 
 #-----------------------------------------------------------------------------
 set(KIT_TEST_SRCS
-  qMRMLTableWidgetTest1.cxx
+  qMRMLTableViewTest1.cxx
   )
 
 #-----------------------------------------------------------------------------
@@ -17,4 +17,4 @@ slicerMacroConfigureModuleCxxTestDriver(
   )
 
 #-----------------------------------------------------------------------------
-simple_test( qMRMLTableWidgetTest1 )
+simple_test( qMRMLTableViewTest1 )

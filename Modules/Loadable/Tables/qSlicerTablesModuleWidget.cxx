@@ -33,20 +33,19 @@
 #include "ui_qSlicerTablesModuleWidget.h"
 
 // vtkSlicerLogic includes
-#include "vtkSlicerTransformLogic.h"
+#include "vtkSlicerTablesLogic.h"
 
 // MRMLWidgets includes
 #include <qMRMLUtils.h>
 
 // MRML includes
 #include "vtkMRMLTableNode.h"
-#include "vtkMRMLTransformDisplayNode.h"
 #include "vtkMRMLScene.h"
 
 // VTK includes
 #include <vtkNew.h>
 #include <vtkSmartPointer.h>
-#include <vtkTransform.h>
+#include <vtkTable.h>
 
 //-----------------------------------------------------------------------------
 class qSlicerTablesModuleWidgetPrivate: public Ui_qSlicerTablesModuleWidget
@@ -58,7 +57,7 @@ public:
   qSlicerTablesModuleWidgetPrivate(qSlicerTablesModuleWidget& object);
 //  static QList<vtkSmartPointer<vtkMRMLTransformableNode> > getSelectedNodes(qMRMLTreeView* tree);
   vtkSlicerTablesLogic*      logic()const;
-  vtkMRMLTableNode*         MRMLTableNode;
+  vtkWeakPointer<vtkMRMLTableNode> MRMLTableNode;
   QAction*                      CopyAction;
   QAction*                      PasteAction;
 };
@@ -222,9 +221,9 @@ void qSlicerTablesModuleWidget::onNodeSelected(vtkMRMLNode* node)
     ->setHiddenNodeIDs(hiddenNodeIDs);
 
     */
-  this->qvtkReconnect(d->MRMLTableNode, tableNode,
-                      vtkMRMLTransformableNode::TransformModifiedEvent,
-                      this, SLOT(onMRMLTableNodeModified(vtkObject*)));
+  this->qvtkReconnect(d->MRMLTableNode,
+    tableNode, vtkCommand::ModifiedEvent,
+    this, SLOT(onMRMLTableNodeModified(vtkObject*)));
 
   d->MRMLTableNode = tableNode;
 

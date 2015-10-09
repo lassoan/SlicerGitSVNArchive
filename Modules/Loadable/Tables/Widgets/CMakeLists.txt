@@ -10,16 +10,18 @@ set(${KIT}_INCLUDE_DIRECTORIES
   )
 
 set(${KIT}_SRCS
-  qMRMLTableWidget.cxx
-  qMRMLTableWidget.h
+  qMRMLTableModel.cxx
+  qMRMLTableModel.h
+  qMRMLTableView.cxx
+  qMRMLTableView.h
   )
 
 set(${KIT}_MOC_SRCS
-  qMRMLTableWidget.h
+  qMRMLTableModel.h
+  qMRMLTableView.h
   )
 
 set(${KIT}_UI_SRCS
-  Resources/UI/qMRMLTableWidget.ui
   )
 
 set(${KIT}_RESOURCES

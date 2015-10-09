@@ -27,13 +27,13 @@
 #include "qSlicerTablesModuleWidgetsAbstractPlugin.h"
 
 class Q_SLICER_MODULE_TABLES_WIDGETS_PLUGINS_EXPORT
-qMRMLTableWidgetPlugin
+qMRMLTableViewPlugin
   : public QObject, public qSlicerTablesModuleWidgetsAbstractPlugin
 {
   Q_OBJECT
 
 public:
-  qMRMLTableWidgetPlugin(QObject *_parent = 0);
+  qMRMLTableViewPlugin(QObject *_parent = 0);
 
   QWidget *createWidget(QWidget *_parent);
   QString  domXml() const;
