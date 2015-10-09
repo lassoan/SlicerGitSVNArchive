@@ -21,6 +21,7 @@
 macro(SlicerMacroConfigureModuleCxxTestDriver)
   set(options
     WITH_VTK_DEBUG_LEAKS_CHECK
+    WITH_VTK_ERROR_OUTPUT_CHECK
     )
   set(oneValueArgs
     NAME
@@ -61,7 +62,18 @@ macro(SlicerMacroConfigureModuleCxxTestDriver)
     outputWindow->SendToStdErrOn();
     }
 #endif")
+
+    set(CMAKE_TESTDRIVER_AFTER_TESTMAIN  "")
+
     set(EXTRA_INCLUDE "vtkWin32OutputWindow.h")
+
+    if(WITH_VTK_ERROR_OUTPUT_CHECK)
+      set(CMAKE_TESTDRIVER_BEFORE_TESTMAIN
+        "${CMAKE_TESTDRIVER_BEFORE_TESTMAIN}\nTESTING_OUTPUT_ASSERT_WARNINGS_ERRORS(0);")
+      set(CMAKE_TESTDRIVER_AFTER_TESTMAIN
+        "${CMAKE_TESTDRIVER_AFTER_TESTMAIN}\nTESTING_OUTPUT_ASSERT_WARNINGS_ERRORS(0);")
+      set(EXTRA_INCLUDE "${EXTRA_INCLUDE}\"\n\#include \"vtkTestingOutputWindow.h")
+    endif()
 
     if(SLICER_TEST_DRIVER_WITH_VTK_DEBUG_LEAKS_CHECK)
       set(CMAKE_TESTDRIVER_BEFORE_TESTMAIN
