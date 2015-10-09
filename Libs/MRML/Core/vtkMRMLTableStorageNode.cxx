@@ -1,16 +1,22 @@
-/*=auto=========================================================================
+/*==============================================================================
 
-Portions (c) Copyright 2005 Brigham and Women's Hospital (BWH) All Rights Reserved.
+  Program: 3D Slicer
 
-See COPYRIGHT.txt
-or http://www.slicer.org/copyright/copyright.txt for details.
+  Copyright (c) Kitware Inc.
 
-Program:   3D Slicer
-Module:    $RCSfile: vtkMRMLTableStorageNode.cxx,v $
-Date:      $Date: 2006/03/17 15:10:10 $
-Version:   $Revision: 1.6 $
+  See COPYRIGHT.txt
+  or http://www.slicer.org/copyright/copyright.txt for details.
 
-=========================================================================auto=*/
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This file was originally developed by Kevin Wang, PMH.
+  and was partially funded by OCAIRO and Sparkit.
+
+==============================================================================*/
 
 // MRML includes
 #include "vtkMRMLTableStorageNode.h"
@@ -98,10 +104,10 @@ int vtkMRMLTableStorageNode::ReadDataInternal(vtkMRMLNode *refNode)
       vtkNew<vtkDelimitedTextReader> reader;
       reader->SetFileName(fullName.c_str());
       reader->SetFieldDelimiterCharacters(",");
-      reader->SetHaveHeaders(false);
+      reader->SetHaveHeaders(true); // TODO: Changed from original vtkMRMLTableNode code. Should this be an option in the reader?
       reader->SetDetectNumericColumns(true);
       reader->Update();
-      tableNode->SetTable(reader->GetOutput());
+      tableNode->SetAndObserveTable(reader->GetOutput());
       }
     else
       {

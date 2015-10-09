@@ -1,16 +1,22 @@
-/*=auto=========================================================================
+/*==============================================================================
 
-  Portions (c) Copyright 2009 Brigham and Women's Hospital (BWH) All Rights Reserved.
+  Program: 3D Slicer
+
+  Copyright (c) Kitware Inc.
 
   See COPYRIGHT.txt
   or http://www.slicer.org/copyright/copyright.txt for details.
 
-  Program:   3D Slicer
-  Module:    $RCSfile: vtkMRMLTableNode.h,v $
-  Date:      $Date: 2006/03/19 17:12:29 $
-  Version:   $Revision: 1.3 $
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
 
-=========================================================================auto=*/
+  This file was originally developed by Kevin Wang, PMH.
+  and was partially funded by OCAIRO and Sparkit.
+
+==============================================================================*/
 
 #ifndef __vtkMRMLTableNode_h
 #define __vtkMRMLTableNode_h
@@ -68,7 +74,7 @@ public:
   //----------------------------------------------------------------
   /// Get and Set Macros
   //----------------------------------------------------------------
-  virtual void SetTable(vtkTable*);
+  virtual void SetAndObserveTable(vtkTable* table);
   vtkGetObjectMacro ( Table, vtkTable );
 
   ///

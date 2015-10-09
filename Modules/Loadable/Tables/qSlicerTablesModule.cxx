@@ -29,6 +29,7 @@
 // Tables includes
 #include "qSlicerTablesModule.h"
 #include "qSlicerTablesReader.h"
+#include "qSlicerTablesModuleWidget.h"
 
 //-----------------------------------------------------------------------------
 Q_EXPORT_PLUGIN2(qSlicerTablesModule, qSlicerTablesModule);
@@ -65,6 +66,12 @@ qSlicerTablesModule::~qSlicerTablesModule()
 }
 
 //-----------------------------------------------------------------------------
+QIcon qSlicerTablesModule::icon()const
+{
+  return QIcon(":/Icons/Tables.png");
+}
+
+//-----------------------------------------------------------------------------
 QString qSlicerTablesModule::helpText()const
 {
   return "This module provides support for double array nodes";
@@ -87,8 +94,9 @@ QStringList qSlicerTablesModule::contributors()const
 //-----------------------------------------------------------------------------
 QStringList qSlicerTablesModule::categories() const
 {
-  return QStringList() << "Developer Tools";
+  return QStringList() << "Informatics";
 }
+
 
 //-----------------------------------------------------------------------------
 QStringList qSlicerTablesModule::dependencies() const
@@ -108,19 +116,14 @@ void qSlicerTablesModule::setup()
   ioManager->registerIO(new qSlicerTablesReader(TablesLogic,this));
   ioManager->registerIO(new qSlicerNodeWriter(
     "Tables", QString("TableFile"),
-    QStringList() << "vtkMRMLTableNode", this));
+    QStringList() << "vtkMRMLTableNode", false, this));
 }
 
-//-----------------------------------------------------------------------------
-bool qSlicerTablesModule::isHidden() const
-{
-  return true;
-}
 
 //-----------------------------------------------------------------------------
 qSlicerAbstractModuleRepresentation * qSlicerTablesModule::createWidgetRepresentation()
 {
-  return 0;
+  return new qSlicerTablesModuleWidget;
 }
 
 //-----------------------------------------------------------------------------

@@ -1,16 +1,22 @@
-/*=auto=========================================================================
+/*==============================================================================
 
-Portions (c) Copyright 2009 Brigham and Women's Hospital (BWH) All Rights Reserved.
+  Program: 3D Slicer
 
-See COPYRIGHT.txt
-or http://www.slicer.org/copyright/copyright.txt for details.
+  Copyright (c) Kitware Inc.
 
-Program:   3D Slicer
-Module:    $RCSfile: vtkMRMLTableNode.cxx,v $
-Date:      $Date: 2006/03/17 15:10:10 $
-Version:   $Revision: 1.2 $
+  See COPYRIGHT.txt
+  or http://www.slicer.org/copyright/copyright.txt for details.
 
-=========================================================================auto=*/
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This file was originally developed by Kevin Wang, PMH.
+  and was partially funded by OCAIRO and Sparkit.
+
+==============================================================================*/
 
 // MRML includes
 #include "vtkMRMLTableNode.h"
@@ -22,9 +28,6 @@ Version:   $Revision: 1.2 $
 
 // STD includes
 #include <sstream>
-
-//------------------------------------------------------------------------------
-vtkCxxSetObjectMacro(vtkMRMLTableNode, Table, vtkTable)
 
 //------------------------------------------------------------------------------
 vtkMRMLNodeNewMacro(vtkMRMLTableNode);
@@ -78,7 +81,7 @@ void vtkMRMLTableNode::Copy(vtkMRMLNode *anode)
   vtkMRMLTableNode *node = vtkMRMLTableNode::SafeDownCast(anode);
   if (node)
     {
-    this->SetTable(node->GetTable());
+    this->SetAndObserveTable(node->GetTable());
     }
   this->EndModify(disabledModify);
 }
@@ -131,3 +134,13 @@ vtkMRMLStorageNode* vtkMRMLTableNode::CreateDefaultStorageNode()
   return vtkMRMLStorageNode::SafeDownCast(vtkMRMLTableStorageNode::New());
 }
 
+//----------------------------------------------------------------------------
+void vtkMRMLTableNode::SetAndObserveTable(vtkTable* table)
+{
+  if (table==this->Table)
+    {
+    return;
+    }
+  vtkSetAndObserveMRMLObjectMacro(this->Table, table);
+  this->Modified(); // TODO: check if modified event is invoked by vtkSetAndObserveMRMLObjectMacro; if yes then don't invoke it again here
+}

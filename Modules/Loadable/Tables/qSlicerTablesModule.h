@@ -40,13 +40,13 @@ public:
 
   qSlicerGetTitleMacro(QTMODULE_TITLE);
 
+  virtual QIcon icon()const;
   virtual QString helpText()const;
   virtual QString acknowledgementText()const;
   virtual QStringList contributors()const;
 
   virtual QStringList categories()const;
   virtual QStringList dependencies() const;
-  virtual bool isHidden()const;
 
 protected:
 
