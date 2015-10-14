@@ -38,6 +38,7 @@ vtkMRMLTableNode::vtkMRMLTableNode()
   this->Table = vtkTable::New();
   this->Locked = false;
   this->Sortable = false;
+  this->LabelInFirstColumn = false;
   this->HideFromEditorsOff();
 }
 
@@ -60,6 +61,7 @@ void vtkMRMLTableNode::WriteXML(ostream& of, int nIndent)
   vtkIndent indent(nIndent);
   of << indent << " locked=\"" << (this->GetLocked() ? "true" : "false") << "\"";
   of << indent << " sortable=\"" << (this->GetSortable() ? "true" : "false") << "\"";
+  of << indent << " labelInFirstColumn=\"" << (this->GetLabelInFirstColumn() ? "true" : "false") << "\"";
 }
 
 
@@ -78,25 +80,15 @@ void vtkMRMLTableNode::ReadXMLAttributes(const char** atts)
     attValue = *(atts++);
     if (!strcmp(attName, "locked"))
       {
-      if (!strcmp(attValue,"true"))
-        {
-        this->SetLocked(1);
-        }
-      else
-        {
-        this->SetLocked(0);
-        }
+      this->SetLocked(strcmp(attValue,"true")?0:1);
       }
     else if (!strcmp(attName, "sortable"))
       {
-      if (!strcmp(attValue,"true"))
-        {
-        this->SetSortable(1);
-        }
-      else
-        {
-        this->SetSortable(0);
-        }
+      this->SetSortable(strcmp(attValue,"true")?0:1);
+      }
+    else if (!strcmp(attName, "labelInFirstColumn"))
+      {
+      this->SetLabelInFirstColumn(strcmp(attValue,"true")?0:1);
       }
     }
 
@@ -115,6 +107,9 @@ void vtkMRMLTableNode::Copy(vtkMRMLNode *anode)
   if (node)
     {
     this->SetAndObserveTable(node->GetTable());
+    this->SetLocked(node->GetLocked());
+    this->SetSortable(node->GetSortable());
+    this->SetLabelInFirstColumn(node->GetLabelInFirstColumn());
     }
   this->EndModify(disabledModify);
 }
@@ -149,6 +144,9 @@ void vtkMRMLTableNode::ProcessMRMLEvents( vtkObject *caller, unsigned long event
 void vtkMRMLTableNode::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os,indent);
+  os << indent << "\nLocked: " << this->GetLocked();
+  os << indent << "\nSortable: " << this->GetSortable();
+  os << indent << "\nLabelInFirstColumn: " << this->GetLabelInFirstColumn();
   os << indent << "\nTable Data:";
   if (this->GetTable())
     {

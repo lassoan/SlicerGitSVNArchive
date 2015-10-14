@@ -148,24 +148,22 @@ void qMRMLTableModel::updateModelFromMRML()
                     this, SLOT(onItemChanged(QStandardItem*)));
 
   vtkMRMLTableNode* tableNode = vtkMRMLTableNode::SafeDownCast(d->MRMLTableNode);
-  if (tableNode==NULL)
+  vtkTable* table = (tableNode ? tableNode->GetTable() : NULL);
+  if (table==NULL || table->GetNumberOfColumns()==0)
     {
-    this->setRowCount(0);
-    return;
-    }
-  vtkTable* table = tableNode->GetTable();
-  if (table==NULL)
-    {
-    this->setRowCount(0);
+    // setRowCount and setColumnCount to 0 would not be enough,
+    // it's necesary to remove the header as well
+    this->reset();
     return;
     }
 
-  //TODO: bool sortable = tableNode->GetSortable();
-  bool sortable = false;
+  bool locked = tableNode->GetLocked();
+  bool sortable = tableNode->GetSortable();
+  bool labelInFirstColumn = tableNode->GetLabelInFirstColumn();
 
   vtkIdType numberOfRows = table->GetNumberOfRows();
   vtkIdType numberOfColumns = table->GetNumberOfColumns();
-  vtkIdType colOffset = sortable ? 0 : 1;
+  vtkIdType colOffset = labelInFirstColumn ? 1 : 0;
 
   setRowCount(static_cast<int>(numberOfRows));
   setColumnCount(static_cast<int>(numberOfColumns - colOffset));
@@ -190,20 +188,16 @@ void qMRMLTableModel::updateModelFromMRML()
         {
         item->setData(variant.ToDouble(), SortRole);
         }
-      item->setFlags(Qt::ItemIsEnabled | Qt::ItemIsSelectable); // Item is view-only
+      if (locked)
+        {
+        item->setFlags(Qt::ItemIsEnabled | Qt::ItemIsSelectable); // Item is view-only
+        }
       setItem(static_cast<int>(r), modelCol, item);
       }
     }
-  for (vtkIdType r = 0; r < numberOfRows; ++r)
+  if(labelInFirstColumn)
     {
-    if(sortable)
-      {
-      QStandardItem * item = this->item(r, 0);
-      item->setBackground(QPalette().color(QPalette::Window));
-      item->setData(r, SortRole);
-      setHeaderData(static_cast<int>(r), Qt::Vertical, QString());
-      }
-    else
+    for (vtkIdType r = 0; r < numberOfRows; ++r)
       {
       setHeaderData(static_cast<int>(r), Qt::Vertical, QString(table->GetValue(r, 0).ToString()));
       }
@@ -237,11 +231,11 @@ void qMRMLTableModel::updateMRMLFromModel(QStandardItem* item)const
     return;
     }
 
-  vtkVariant itemText(item->text().toLatin1().constData()); // the vtkVariant constructor makes a copy of the input buffer
-  table->SetValue(item->row(), item->column(), itemText);
-  // TODO: if sortable then index may nneed to be shifted and
-  //  item->setData(variant.ToDouble(), SortRole);
-  // is probably needed
+  vtkVariant itemText(item->text().toLatin1().constData()); // the vtkVariant constructor makes a copy of the input buffer, so using constData is safe
+  int tableColumn = tableNode->GetLabelInFirstColumn() ? item->column()+1 : item->column();
+  // TODO: catch conversion error and revert value on GUI if failed
+  // use isnumeric and getdatatypemin/max?
+  table->SetValue(item->row(), tableColumn, itemText);
 
   /*
   switch(item->column())
@@ -300,4 +294,18 @@ void qMRMLTableModel::onItemChanged(QStandardItem * item)
     return;
     }
   this->updateMRMLFromModel(item);
+
+  // Update sorting data
+  bool wasBlocked = blockSignals(true);
+  vtkVariant itemText(item->text().toLatin1().constData()); // the vtkVariant constructor makes a copy of the input buffer, so using constData is safe
+  if (itemText.IsNumeric())
+    {
+    item->setData(itemText.ToDouble(), SortRole);
+    }
+  else
+    {
+    item->setData(itemText.ToString().c_str(), SortRole);
+    }
+  blockSignals(wasBlocked);
+
 }

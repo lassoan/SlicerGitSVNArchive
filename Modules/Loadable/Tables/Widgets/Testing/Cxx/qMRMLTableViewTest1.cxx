@@ -28,9 +28,12 @@
 
 // MRML includes
 #include "vtkMRMLScene.h"
+#include "vtkMRMLTableNode.h"
 
 // VTK includes
+#include <vtkDoubleArray.h>
 #include <vtkNew.h>
+#include <vtkTable.h>
 
 int qMRMLTableViewTest1( int argc, char * argv [] )
 {
@@ -38,11 +41,35 @@ int qMRMLTableViewTest1( int argc, char * argv [] )
 
   qMRMLTableView tableView;
   tableView.show();
-  vtkNew<vtkMRMLScene> scene;
 
-  //TODO: tableView.setMRMLScene(scene.GetPointer());
+  // Create a table with some points in it...
+  vtkNew<vtkTable> table;
+  vtkNew<vtkDoubleArray> arrX;
+  arrX->SetName("X Axis");
+  table->AddColumn(arrX.GetPointer());
+  vtkNew<vtkDoubleArray> arrY;
+  arrY->SetName("Y Axis");
+  table->AddColumn(arrY.GetPointer());
+  vtkNew<vtkDoubleArray> arrSum;
+  arrSum->SetName("Sum");
+  table->AddColumn(arrSum.GetPointer());
+  int numPoints = 31;
+  table->SetNumberOfRows(numPoints);
+  for (int i = 0; i < numPoints; ++i)
+    {
+    table->SetValue(i, 0, i*0.5-10 );
+    table->SetValue(i, 1, i*1.2+12);
+    table->SetValue(i, 2, table->GetValue(i,0).ToDouble()+table->GetValue(i,1).ToDouble());
+    }
 
-  if (argc < 3 || QString(argv[2]) != "-I")
+  vtkNew<vtkMRMLTableNode> tableNode;
+  tableNode->SetAndObserveTable(table.GetPointer());
+  //tableNode->SetSortable(true);
+  tableNode->SetLabelInFirstColumn(false);
+
+  tableView.setMRMLTableNode(tableNode.GetPointer());
+
+  if (argc < 2 || QString(argv[1]) != "-I")
     {
     QTimer::singleShot(200, &app, SLOT(quit()));
     }

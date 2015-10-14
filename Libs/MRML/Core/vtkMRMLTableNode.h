@@ -87,6 +87,10 @@ public:
   vtkGetMacro(Sortable, bool);
   vtkSetMacro(Sortable, bool);
 
+  /// First column should be treated as row label
+  vtkGetMacro(LabelInFirstColumn, bool);
+  vtkSetMacro(LabelInFirstColumn, bool);
+
   ///
   /// Create default storage node or NULL if does not have one
   virtual vtkMRMLStorageNode* CreateDefaultStorageNode();
@@ -109,6 +113,7 @@ public:
   vtkTable* Table;
   bool Locked;
   bool Sortable;
+  bool LabelInFirstColumn;
 };
 
 #endif
