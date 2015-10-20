@@ -98,7 +98,7 @@ int vtkMRMLTableStorageNode::ReadDataInternal(vtkMRMLNode *refNode)
   int result = 1;
   try
     {
-    if ( extension == std::string(".csv") )
+    if ( extension == std::string(".dcsv") )
       {
       vtkNew<vtkDelimitedTextReader> reader;
       reader->SetFileName(fullName.c_str());
@@ -151,7 +151,7 @@ int vtkMRMLTableStorageNode::WriteDataInternal(vtkMRMLNode *refNode)
   std::string extension = vtkMRMLStorageNode::GetLowercaseExtensionFromFileName(fullName);
 
   int result = 1;
-  if (extension == ".csv")
+  if (extension == ".dcsv")
     {
     vtkNew<vtkDelimitedTextWriter> writer;
     writer->SetFileName(fullName.c_str());
@@ -177,19 +177,19 @@ int vtkMRMLTableStorageNode::WriteDataInternal(vtkMRMLNode *refNode)
 //----------------------------------------------------------------------------
 void vtkMRMLTableStorageNode::InitializeSupportedReadFileTypes()
 {
-  this->SupportedReadFileTypes->InsertNextValue("Comma-separated values (.csv)");
+  this->SupportedReadFileTypes->InsertNextValue("Comma-separated values (.dcsv)");
   this->SupportedReadFileTypes->InsertNextValue("Text (.txt)");
 }
 
 //----------------------------------------------------------------------------
 void vtkMRMLTableStorageNode::InitializeSupportedWriteFileTypes()
 {
-  this->SupportedWriteFileTypes->InsertNextValue("Comma-separated values (.csv)");
+  this->SupportedWriteFileTypes->InsertNextValue("Comma-separated values (.dcsv)");
   this->SupportedWriteFileTypes->InsertNextValue("Text (.txt)");
 }
 
 //----------------------------------------------------------------------------
 const char* vtkMRMLTableStorageNode::GetDefaultWriteFileExtension()
 {
-  return "csv";
+  return "dcsv";
 }
