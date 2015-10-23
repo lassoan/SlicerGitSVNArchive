@@ -677,6 +677,19 @@ vtkSlicerCLIModuleLogic
     fname = fname + ext;
     }
 
+  if (tag == "datatable")
+    {
+    // tables are currently always passed via files
+
+    // Use default fname construction, tack on extension
+    std::string ext = ".dcsv";
+    if (extensions.size() != 0)
+      {
+      ext = extensions[0];
+      }
+    fname = fname + ext;
+    }
+
   if (tag == "pointfile")
     {
     // fiducial files are always passed via files
@@ -947,7 +960,8 @@ void vtkSlicerCLIModuleLogic::ApplyTask(void *clientdata)
       {
       if ((*pit).GetTag() == "image" || (*pit).GetTag() == "geometry"
           || (*pit).GetTag() == "transform" || (*pit).GetTag() == "table"
-          || (*pit).GetTag() == "measurement" || (*pit).GetTag() == "pointfile")
+          || (*pit).GetTag() == "measurement" || (*pit).GetTag() == "datatable"
+          || (*pit).GetTag() == "pointfile")
         {
         std::string id = (*pit).GetDefault();
 
@@ -1336,7 +1350,8 @@ void vtkSlicerCLIModuleLogic::ApplyTask(void *clientdata)
             && (*pit).GetTag() != "transform"
             && (*pit).GetTag() != "geometry"
             && (*pit).GetTag() != "table"
-            && (*pit).GetTag() != "measurement")
+            && (*pit).GetTag() != "measurement"
+            && (*pit).GetTag() != "datatable")
           {
           // simple parameter, write flag and value
           commandLineAsString.push_back(prefix + flag);
@@ -1378,7 +1393,7 @@ void vtkSlicerCLIModuleLogic::ApplyTask(void *clientdata)
           }
         if ((*pit).GetTag() == "image" || (*pit).GetTag() == "geometry"
             || (*pit).GetTag() == "transform" || (*pit).GetTag() == "table"
-            || (*pit).GetTag() == "measurement"
+            || (*pit).GetTag() == "measurement" || (*pit).GetTag() == "datatable"
             || (*pit).GetTag() == "pointfile")
           {
           std::string fname;
@@ -1697,6 +1712,7 @@ void vtkSlicerCLIModuleLogic::ApplyTask(void *clientdata)
         && (*iit).second.GetTag() != "transform"
         && (*iit).second.GetTag() != "table"
         && (*iit).second.GetTag() != "measurement"
+        && (*iit).second.GetTag() != "datatable"
         && (*iit).second.GetTag() != "file"
         && (*iit).second.GetTag() != "directory"
         && (*iit).second.GetTag() != "string"

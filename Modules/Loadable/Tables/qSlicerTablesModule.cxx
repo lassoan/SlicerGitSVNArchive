@@ -74,7 +74,7 @@ QIcon qSlicerTablesModule::icon()const
 //-----------------------------------------------------------------------------
 QString qSlicerTablesModule::helpText()const
 {
-  return "This module provides support for double array nodes";
+  return "This module provides support for data table nodes";
 }
 
 //-----------------------------------------------------------------------------
@@ -115,7 +115,7 @@ void qSlicerTablesModule::setup()
     qSlicerCoreApplication::application()->coreIOManager();
   ioManager->registerIO(new qSlicerTablesReader(TablesLogic,this));
   ioManager->registerIO(new qSlicerNodeWriter(
-    "Tables", QString("TableFile"),
+    "DataTable", QString("DataTableFile"),
     QStringList() << "vtkMRMLTableNode", false, this));
 }
 

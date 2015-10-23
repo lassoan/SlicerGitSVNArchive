@@ -105,6 +105,7 @@ WIDGET_VALUE_WRAPPER(Directory, ctkDirectoryButton, directory, setDirectory, Str
 WIDGET_VALUE_WRAPPER(File, ctkPathLineEdit, currentPath, setCurrentPath, String, currentPathChanged(QString));
 WIDGET_VALUE_WRAPPER(Enumeration, ButtonGroupWidgetWrapper, checkedValue, setCheckedValue, String, valueChanged());
 WIDGET_VALUE_WRAPPER(Measurement, qMRMLNodeComboBox, currentNodeID, setCurrentNodeID, String, currentNodeIDChanged(QString));
+WIDGET_VALUE_WRAPPER(DataTable, qMRMLNodeComboBox, currentNodeID, setCurrentNodeID, String, currentNodeIDChanged(QString));
 
 //-----------------------------------------------------------------------------
 #define INSTANCIATE_WIDGET_VALUE_WRAPPER(_NAME, _PARAM_NAME, _LABEL, _WIDGET_INSTANCE) \
@@ -182,6 +183,7 @@ public:
   QWidget* createFileTagWidget(const ModuleParameter& moduleParameter);
   QWidget* createEnumerationTagWidget(const ModuleParameter& moduleParameter);
   QWidget* createMeasurementTagWidget(const ModuleParameter& moduleParameter);
+  QWidget* createDataTableTagWidget(const ModuleParameter& moduleParameter);
 
   /// Return true if the None option of the widget associated with the parameter should
   /// be enabled
@@ -767,6 +769,42 @@ QWidget* qSlicerCLIModuleUIHelperPrivate::createMeasurementTagWidget(const Modul
 }
 
 //-----------------------------------------------------------------------------
+QWidget* qSlicerCLIModuleUIHelperPrivate::createDataTableTagWidget(const ModuleParameter& moduleParameter)
+{
+  QString type = QString::fromStdString(moduleParameter.GetType());
+  QString nodeType = "vtkMRMLTableNode";
+  if (nodeType.isEmpty())
+    {
+    qWarning() << "DataTableTag - Unknown type:" << type;
+    return 0;
+    }
+
+  QString channel = QString::fromStdString(moduleParameter.GetChannel());
+  if (channel != "input" && channel != "output")
+    {
+    qWarning() << "DataTableTag - Unknown channel:" << channel;
+    return 0;
+    }
+
+  // TODO - title + " DataTable"
+  // TODO - SetNoneEnabled(1)
+
+  QString _label = QString::fromStdString(moduleParameter.GetLabel());
+  QString _name = QString::fromStdString(moduleParameter.GetName());
+  qMRMLNodeComboBox * widget = new qMRMLNodeComboBox;
+  widget->setNodeTypes(QStringList(nodeType));
+  widget->setRenameEnabled(true);
+  widget->setBaseName(_label);
+  widget->setMRMLScene(this->CLIModuleWidget->mrmlScene());
+  QObject::connect(this->CLIModuleWidget, SIGNAL(mrmlSceneChanged(vtkMRMLScene*)),
+                   widget, SLOT(setMRMLScene(vtkMRMLScene*)));
+
+  INSTANCIATE_WIDGET_VALUE_WRAPPER(DataTable, _name, _label, widget);
+
+  return widget;
+}
+
+//-----------------------------------------------------------------------------
 QWidget* qSlicerCLIModuleUIHelperPrivate::createTransformTagWidget(const ModuleParameter& moduleParameter)
 {
   QString channel = QString::fromStdString(moduleParameter.GetChannel());
@@ -964,6 +1002,10 @@ QWidget* qSlicerCLIModuleUIHelper::createTagWidget(const ModuleParameter& module
   else if (moduleParameter.GetTag() == "measurement")
     {
     widget = d->createMeasurementTagWidget(moduleParameter);
+    }
+  else if (moduleParameter.GetTag() == "datatable")
+    {
+    widget = d->createDataTableTagWidget(moduleParameter);
     }
   else if (moduleParameter.GetTag() == "transform")
     {

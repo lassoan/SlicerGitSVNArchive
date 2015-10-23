@@ -6,6 +6,9 @@
 
 // VTK includes
 #include <vtkNew.h>
+#include <vtkDelimitedTextReader.h>
+#include <vtkDelimitedTextWriter.h>
+#include <vtkTable.h>
 
 // Markups includes
 #include <vtkMRMLMarkupsFiducialNode.h>
@@ -131,6 +134,19 @@ int main(int argc, char *argv[])
   // coordinate system
   outputFiducialStorageNode->UseLPSOn();
   outputFiducialStorageNode->WriteData(copiedFiducialNode.GetPointer());
+
+  // data tables
+  std::cout << "before csv" << std:endl;
+  vtkNew<vtkDelimitedTextReader> csvReader;
+  csvReader->SetFileName(inputDT.c_str());
+  csvReader->SetFieldDelimiterCharacters(",");
+  csvReader->SetHaveHeaders(true); 
+  csvReader->SetDetectNumericColumns(true);
+  csvReader->Update();
+  std::cout << "after csv" << std::endl;
+  vtkTable* csvTable = csvReader->GetOutput();
+  std::cout << "number of rows:" << csvTable->GetNumberOfRows() << std::endl;
+  std::cout << "number of cols:" << csvTable->GetNumberOfColumns() << std::endl;
 
   // Write out the return parameters in "name = value" form
   std::ofstream rts;

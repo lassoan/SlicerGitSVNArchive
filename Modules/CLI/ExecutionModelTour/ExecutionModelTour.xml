@@ -198,6 +198,23 @@
     </measurement>
   </parameters>
   <parameters>
+    <label>Data Tables</label>
+    <datatable>
+      <name>inputDT</name>
+      <channel>input</channel>
+      <label>Input Data Table</label>
+      <longflag>inputDT</longflag>
+      <description><![CDATA[Array of Data Table values to process]]></description>
+    </datatable>
+    <datatable>
+      <name>outputDT</name>
+      <channel>output</channel>
+      <label>Output Data Table</label>
+      <longflag>outputDT</longflag>
+      <description><![CDATA[Array of processed (output) Data Table values]]></description>
+    </datatable>
+  </parameters>
+  <parameters>
     <label>Simple return types</label>
     <integer>
       <name>anintegerreturn</name>
