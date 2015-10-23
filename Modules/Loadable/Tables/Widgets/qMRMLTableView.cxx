@@ -58,11 +58,7 @@ void qMRMLTableViewPrivate::init()
   sortFilterModel->setSourceModel(tableModel);
   q->setModel(sortFilterModel);
 
-  //q->setSelectionBehavior(QAbstractItemView::SelectRows);
   q->horizontalHeader()->setStretchLastSection(false);
-  //q->horizontalHeader()->setResizeMode(qMRMLTableModel::ColorColumn, QHeaderView::ResizeToContents);
-  //q->horizontalHeader()->setResizeMode(qMRMLTableModel::LabelColumn, QHeaderView::Stretch);
-  //q->horizontalHeader()->setResizeMode(qMRMLTableModel::OpacityColumn, QHeaderView::ResizeToContents);
 
   q->setItemDelegate(new qMRMLItemDelegate(q));
 }
@@ -153,3 +149,27 @@ bool qMRMLTableView::showOnlyNamedColors()const
   return this->sortFilterProxyModel()->filterRegExp().isEmpty();
 }
 */
+
+//------------------------------------------------------------------------------
+void qMRMLTableView::setTransposed(bool transposed)
+{
+  qMRMLTableModel* tableModel = this->tableModel();
+  if (tableModel == NULL)
+    {
+    qCritical("qMRMLTableView::setTransposed failed: tableModel is invalid");
+    return;
+    }
+  tableModel->setTransposed(transposed);
+}
+
+//------------------------------------------------------------------------------
+bool qMRMLTableView::transposed()const
+{
+  qMRMLTableModel* tableModel = this->tableModel();
+  if (tableModel == NULL)
+    {
+    qCritical("qMRMLTableView::transposed failed: tableModel is invalid");
+    return false;
+    }
+  return tableModel->transposed();
+}

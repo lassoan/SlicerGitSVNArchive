@@ -38,6 +38,7 @@ class vtkMRMLNode;
 class Q_SLICER_MODULE_TABLES_WIDGETS_EXPORT qMRMLTableView : public QTableView
 {
   Q_OBJECT
+  Q_PROPERTY(bool transposed READ transposed WRITE setTransposed)
   //Q_PROPERTY(bool readOnly READ readOnly WRITE setReadOnly)
 public:
   qMRMLTableView(QWidget *parent=0);
@@ -47,7 +48,10 @@ public:
   qMRMLTableModel* tableModel()const;
   QSortFilterProxyModel* sortFilterProxyModel()const;
 
-  //bool readOnly()const;
+    /// Set/Get transposed flag
+  /// If transposed is true then columns of the MRML table are added as rows in the model.
+  void setTransposed(bool transposed);
+  bool transposed()const;
 
 public slots:
   void setMRMLTableNode(vtkMRMLTableNode* tableNode);

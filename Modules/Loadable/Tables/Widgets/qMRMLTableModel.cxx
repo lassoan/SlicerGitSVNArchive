@@ -49,6 +49,7 @@ public:
 
   vtkSmartPointer<vtkCallbackCommand> CallBack;
   vtkSmartPointer<vtkMRMLTableNode>   MRMLTableNode;
+  bool Transposed;
 };
 
 //------------------------------------------------------------------------------
@@ -56,8 +57,7 @@ qMRMLTableModelPrivate::qMRMLTableModelPrivate(qMRMLTableModel& object)
   : q_ptr(&object)
 {
   this->CallBack = vtkSmartPointer<vtkCallbackCommand>::New();
-  //this->NoneEnabled = false;
-  //this->LabelInColor = false;
+  this->Transposed = false;
 }
 
 //------------------------------------------------------------------------------
@@ -75,20 +75,8 @@ void qMRMLTableModelPrivate::init()
   Q_Q(qMRMLTableModel);
   this->CallBack->SetClientData(q);
   this->CallBack->SetCallback(qMRMLTableModel::onMRMLNodeEvent);
-  q->setColumnCount(1);
-  /*
-  if (this->LabelInColor)
-    {
-    q->setHorizontalHeaderLabels(QStringList() << "Color" << "Label" << "Opacity");
-    }
-  else
-    {
-    q->setHorizontalHeaderLabels(QStringList() << "" << "Label" << "Opacity");
-    }
-  */
-  QObject::connect(q, SIGNAL(itemChanged(QStandardItem*)),
-                   q, SLOT(onItemChanged(QStandardItem*)),
-                   Qt::UniqueConnection);
+  q->setColumnCount(0);
+  QObject::connect(q, SIGNAL(itemChanged(QStandardItem*)), q, SLOT(onItemChanged(QStandardItem*)), Qt::UniqueConnection);
 }
 
 //------------------------------------------------------------------------------
@@ -144,69 +132,87 @@ void qMRMLTableModel::updateModelFromMRML()
 {
   Q_D(qMRMLTableModel);
 
-  QObject::disconnect(this, SIGNAL(itemChanged(QStandardItem*)),
-                    this, SLOT(onItemChanged(QStandardItem*)));
+  QObject::disconnect(this, SIGNAL(itemChanged(QStandardItem*)), this, SLOT(onItemChanged(QStandardItem*)));
 
   vtkMRMLTableNode* tableNode = vtkMRMLTableNode::SafeDownCast(d->MRMLTableNode);
   vtkTable* table = (tableNode ? tableNode->GetTable() : NULL);
   if (table==NULL || table->GetNumberOfColumns()==0)
     {
-    // setRowCount and setColumnCount to 0 would not be enough,
-    // it's necesary to remove the header as well
+    // setRowCount and setColumnCount to 0 would not be enough, it's necesary to remove the header as well
     this->reset();
+    QObject::connect(this, SIGNAL(itemChanged(QStandardItem*)), this, SLOT(onItemChanged(QStandardItem*)), Qt::UniqueConnection);
     return;
     }
 
   bool locked = tableNode->GetLocked();
   bool sortable = tableNode->GetSortable();
-  bool labelInFirstColumn = tableNode->GetLabelInFirstColumn();
+  bool labelInFirstTableColumn = tableNode->GetLabelInFirstColumn();
 
-  vtkIdType numberOfRows = table->GetNumberOfRows();
-  vtkIdType numberOfColumns = table->GetNumberOfColumns();
-  vtkIdType colOffset = labelInFirstColumn ? 1 : 0;
-
-  setRowCount(static_cast<int>(numberOfRows));
-  setColumnCount(static_cast<int>(numberOfColumns - colOffset));
-  for (vtkIdType dataCol = colOffset; dataCol < numberOfColumns; ++dataCol)
+  vtkIdType numberOfTableColumns = table->GetNumberOfColumns();
+  vtkIdType numberOfTableRows = table->GetNumberOfRows();
+  vtkIdType tableColOffset = labelInFirstTableColumn ? 1 : 0;
+  if (d->Transposed)
     {
-    int modelCol = static_cast<int>(dataCol - colOffset);
+    setRowCount(static_cast<int>(numberOfTableColumns-tableColOffset));
+    setColumnCount(static_cast<int>(numberOfTableRows));
+    }
+  else
+    {
+    setRowCount(static_cast<int>(numberOfTableRows));
+    setColumnCount(static_cast<int>(numberOfTableColumns-tableColOffset));
+    }
 
-    QString columnName(table->GetColumnName(dataCol));
+  for (vtkIdType tableCol = tableColOffset; tableCol < numberOfTableColumns; ++tableCol)
+    {
+    int modelCol = static_cast<int>(tableCol - tableColOffset);
+
+    QString columnName(table->GetColumnName(tableCol));
     // unkown is used to encode columns with no name
     if (columnName == "unknown")
-    {
+      {
       columnName = "";
-    }
-    setHeaderData(modelCol, Qt::Horizontal, columnName);
+      }
+    setHeaderData(modelCol, d->Transposed ? Qt::Vertical : Qt::Horizontal, columnName);
 
-    for (vtkIdType r = 0; r < numberOfRows; ++r)
+    for (vtkIdType tableRow = 0; tableRow < numberOfTableRows; ++tableRow)
       {
       QStandardItem* item = new QStandardItem();
-      vtkVariant variant = table->GetValue(r, dataCol);
+      vtkVariant variant = table->GetValue(tableRow, tableCol);
       item->setText(QString(variant.ToString()));
       if (sortable)
         {
-        item->setData(variant.ToDouble(), SortRole);
+        if (variant.IsNumeric())
+          {
+          item->setData(variant.ToDouble(), SortRole);
+          }
+        else
+          {
+          item->setData(variant.ToString().c_str(), SortRole);
+          }
         }
       if (locked)
         {
         item->setFlags(Qt::ItemIsEnabled | Qt::ItemIsSelectable); // Item is view-only
         }
-      setItem(static_cast<int>(r), modelCol, item);
+      if (d->Transposed)
+        {
+        setItem(modelCol, static_cast<int>(tableRow), item);
+        }
+      else
+        {
+        setItem(static_cast<int>(tableRow), modelCol, item);
+        }
       }
     }
-  if(labelInFirstColumn)
+  if(labelInFirstTableColumn)
     {
-    for (vtkIdType r = 0; r < numberOfRows; ++r)
+    for (vtkIdType tableRow = 0; tableRow < numberOfTableRows; ++tableRow)
       {
-      setHeaderData(static_cast<int>(r), Qt::Vertical, QString(table->GetValue(r, 0).ToString()));
+      setHeaderData(static_cast<int>(tableRow), d->Transposed ? Qt::Horizontal : Qt::Vertical, QString(table->GetValue(tableRow, 0).ToString()));
       }
     }
 
-  QObject::connect(this, SIGNAL(itemChanged(QStandardItem*)),
-               this, SLOT(onItemChanged(QStandardItem*)),
-               Qt::UniqueConnection);
-
+  QObject::connect(this, SIGNAL(itemChanged(QStandardItem*)), this, SLOT(onItemChanged(QStandardItem*)), Qt::UniqueConnection);
 }
 
 //------------------------------------------------------------------------------
@@ -232,30 +238,33 @@ void qMRMLTableModel::updateMRMLFromModel(QStandardItem* item)const
     }
 
   vtkVariant itemText(item->text().toLatin1().constData()); // the vtkVariant constructor makes a copy of the input buffer, so using constData is safe
-  int tableColumn = tableNode->GetLabelInFirstColumn() ? item->column()+1 : item->column();
-  // TODO: catch conversion error and revert value on GUI if failed
-  // use isnumeric and getdatatypemin/max?
-  table->SetValue(item->row(), tableColumn, itemText);
-
-  /*
-  switch(item->column())
+  int tableRow=0;
+  int tableCol=0;
+  if (d->Transposed)
     {
-    case qMRMLTableModel::ColorColumn:
-      {
-      QColor rgba(item->data(qMRMLTableModel::ColorRole).value<QColor>());
-      tableNode->SetColor(color, rgba.redF(), rgba.greenF(), rgba.blueF(), rgba.alphaF());
-      break;
-      }
-    case qMRMLTableModel::LabelColumn:
-      tableNode->SetColorName(color, item->text().toLatin1());
-      break;
-    case qMRMLTableModel::OpacityColumn:
-      tableNode->SetOpacity(color, item->data(Qt::DisplayRole).toDouble());
-      break;
-    default:
-      break;
+    tableRow = item->column();
+    tableCol = tableNode->GetLabelInFirstColumn() ? item->row()+1 : item->row();
     }
-  */
+  else
+    {
+    tableRow = item->row();
+    tableCol = tableNode->GetLabelInFirstColumn() ? item->column()+1 : item->column();
+    }
+
+  vtkVariant valueInTableBefore = table->GetValue(tableRow, tableCol);
+  table->SetValue(tableRow, tableCol, itemText);
+  vtkVariant valueInTableAfter = table->GetValue(tableRow, tableCol);
+  if (valueInTableBefore == valueInTableAfter)
+    {
+    // the value is not changed, this means that the table cannot store this value - revert the value in the table
+    QObject::disconnect(this, SIGNAL(itemChanged(QStandardItem*)), this, SLOT(onItemChanged(QStandardItem*)));
+    item->setText(QString(valueInTableBefore.ToString()));
+    QObject::connect(this, SIGNAL(itemChanged(QStandardItem*)), this, SLOT(onItemChanged(QStandardItem*)), Qt::UniqueConnection);
+    }
+  else
+    {
+    tableNode->Modified();
+    }
 }
 
 //-----------------------------------------------------------------------------
@@ -294,18 +303,23 @@ void qMRMLTableModel::onItemChanged(QStandardItem * item)
     return;
     }
   this->updateMRMLFromModel(item);
+}
 
-  // Update sorting data
-  bool wasBlocked = blockSignals(true);
-  vtkVariant itemText(item->text().toLatin1().constData()); // the vtkVariant constructor makes a copy of the input buffer, so using constData is safe
-  if (itemText.IsNumeric())
+//------------------------------------------------------------------------------
+void qMRMLTableModel::setTransposed(bool transposed)
+{
+  Q_D(qMRMLTableModel);
+  if (d->Transposed == transposed)
     {
-    item->setData(itemText.ToDouble(), SortRole);
+    return;
     }
-  else
-    {
-    item->setData(itemText.ToString().c_str(), SortRole);
-    }
-  blockSignals(wasBlocked);
+  d->Transposed = transposed;
+  this->updateModelFromMRML();
+}
 
+//------------------------------------------------------------------------------
+bool qMRMLTableModel::transposed()const
+{
+  Q_D(const qMRMLTableModel);
+  return d->Transposed;
 }

@@ -20,10 +20,13 @@
 
 // QT includes
 #include <QApplication>
+#include <QPushButton>
 #include <QTimer>
+#include <QVBoxLayout>
 
 // qMRML includes
 #include "qSlicerCoreApplication.h"
+#include "qMRMLTableModel.h"
 #include "qMRMLTableView.h"
 
 // MRML includes
@@ -39,9 +42,6 @@ int qMRMLTableViewTest1( int argc, char * argv [] )
 {
   qSlicerCoreApplication app(argc, argv);
 
-  qMRMLTableView tableView;
-  tableView.show();
-
   // Create a table with some points in it...
   vtkNew<vtkTable> table;
   vtkNew<vtkDoubleArray> arrX;
@@ -53,7 +53,7 @@ int qMRMLTableViewTest1( int argc, char * argv [] )
   vtkNew<vtkDoubleArray> arrSum;
   arrSum->SetName("Sum");
   table->AddColumn(arrSum.GetPointer());
-  int numPoints = 31;
+  int numPoints = 15;
   table->SetNumberOfRows(numPoints);
   for (int i = 0; i < numPoints; ++i)
     {
@@ -64,10 +64,28 @@ int qMRMLTableViewTest1( int argc, char * argv [] )
 
   vtkNew<vtkMRMLTableNode> tableNode;
   tableNode->SetAndObserveTable(table.GetPointer());
-  //tableNode->SetSortable(true);
-  tableNode->SetLabelInFirstColumn(false);
 
-  tableView.setMRMLTableNode(tableNode.GetPointer());
+  //
+  // Create a simple gui with non-tranposed and transposed table view
+  //
+  QWidget parentWidget;
+  parentWidget.setWindowTitle("qMRMLTableViewTest1");
+  QVBoxLayout vbox;
+  parentWidget.setLayout(&vbox);
+
+  qMRMLTableView* tableView = new qMRMLTableView();
+  tableView->setParent(&parentWidget);
+  tableView->setMRMLTableNode(tableNode.GetPointer());
+  vbox.addWidget(tableView);
+
+  qMRMLTableView* tableViewTransposed = new qMRMLTableView();
+  tableViewTransposed->setParent(&parentWidget);
+  tableViewTransposed->setTransposed(true);
+  tableViewTransposed->setMRMLTableNode(tableNode.GetPointer());
+  vbox.addWidget(tableViewTransposed);
+
+  parentWidget.show();
+  parentWidget.raise();
 
   if (argc < 2 || QString(argv[1]) != "-I")
     {

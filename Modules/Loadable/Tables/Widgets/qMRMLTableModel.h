@@ -43,7 +43,7 @@ class Q_SLICER_MODULE_TABLES_WIDGETS_EXPORT qMRMLTableModel : public QStandardIt
   Q_OBJECT
   QVTK_OBJECT
   Q_ENUMS(ItemDataRole)
-  //Q_PROPERTY(bool noneEnabled READ noneEnabled WRITE setNoneEnabled)
+  Q_PROPERTY(bool transposed READ transposed WRITE setTransposed)
 
 public:
   typedef QAbstractItemModel Superclass;
@@ -54,56 +54,19 @@ public:
     SortRole = Qt::UserRole + 1
   };
 
-  /*
-  /// The color column contains a Qt::DecorationRole with a pixmap of the color,
-  /// the ColorRole with the color QColor, the colorName as Qt::TooltipRole and
-  /// the colorName as Qt::DisplayRole only if LabelInColorColumn is true.
-  enum Columns{
-    ColorColumn = 0,
-    LabelColumn = 1,
-    OpacityColumn = 2
-  };
-  */
-
   void setMRMLTableNode(vtkMRMLTableNode* node);
   vtkMRMLTableNode* mrmlTableNode()const;
 
-  /*
-  /// Set/Get NoneEnabled flags
-  /// An additional item is added into the menu list, where the user can select "None".
-  void setNoneEnabled(bool enable);
-  bool noneEnabled()const;
-  */
+  /// Set/Get transposed flag
+  /// If transposed is true then columns of the MRML table are added as rows in the model.
+  void setTransposed(bool transposed);
+  bool transposed()const;
 
-  /*
-  /// Control wether or not displaying the label in the color column
-  void setLabelInColorColumn(bool enable);
-  bool isLabelInColorColumn()const;
-
-  /// Return the vtkMRMLNode associated to the node index.
-  /// -1 if the node index is not a MRML node (i.e. vtkMRMLScene, extra item...)
-  inline int colorFromIndex(const QModelIndex &nodeIndex)const;
-  */
   /// Return the VTK table cell associated to the node index.
   void updateMRMLFromModel(QStandardItem* item)const;
 
   /// Update the entire table from the MRML node
   void updateModelFromMRML();
-/*
-  QStandardItem* itemFromColor(int color, int column = 0)const;
-  QModelIndexList indexes(int color)const;
-
-  inline QColor qcolorFromIndex(const QModelIndex& nodeIndex)const;
-  inline QColor qcolorFromItem(QStandardItem* nodeItem)const;
-  QColor qcolorFromColor(int color)const;
-
-  /// Return the name of the color \a colorEntry
-  QString nameFromColor(int colorEntry)const;
-
-  /// Overload the header data method for the veritical header
-  /// so that can return the color index rather than the row
-  virtual QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const;
-  */
 
 protected slots:
   void onMRMLTableNodeModified(vtkObject* node);
