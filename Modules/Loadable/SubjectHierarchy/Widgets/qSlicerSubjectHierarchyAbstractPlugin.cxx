@@ -64,6 +64,13 @@ QString qSlicerSubjectHierarchyAbstractPlugin::name()const
   return this->m_Name;
 }
 
+//-----------------------------------------------------------------------------
+void qSlicerSubjectHierarchyAbstractPlugin::setName(QString name)
+{
+  Q_UNUSED(name);
+  qCritical() << "qSlicerSubjectHierarchyAbstractPlugin::setName: Cannot set plugin name by method, only in constructor!";
+}
+
 //---------------------------------------------------------------------------
 double qSlicerSubjectHierarchyAbstractPlugin::canOwnSubjectHierarchyNode(vtkMRMLSubjectHierarchyNode* node)const
 {
@@ -186,7 +193,7 @@ bool qSlicerSubjectHierarchyAbstractPlugin::reparentNodeInsideSubjectHierarchy(v
 }
 
 //-----------------------------------------------------------------------------
-QString qSlicerSubjectHierarchyAbstractPlugin::displayedName(vtkMRMLSubjectHierarchyNode* node)const
+QString qSlicerSubjectHierarchyAbstractPlugin::displayedNodeName(vtkMRMLSubjectHierarchyNode* node)const
 {
   QString nodeText(node->GetName());
   if (nodeText.endsWith(QString(vtkMRMLSubjectHierarchyConstants::GetSubjectHierarchyNodeNamePostfix().c_str())))

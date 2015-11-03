@@ -95,16 +95,23 @@ int vtkMRMLTableStorageNode::ReadDataInternal(vtkMRMLNode *refNode)
 
   vtkDebugMacro("ReadDataInternal: extension = " << extension.c_str());
 
+  vtkNew<vtkDelimitedTextReader> reader;
+  reader->SetFileName(fullName.c_str());
+  reader->SetHaveHeaders(true);
+  reader->SetDetectNumericColumns(true);
+
   int result = 1;
   try
     {
-    if ( extension == std::string(".dcsv") )
+    if ( extension == std::string(".tsv") || extension == std::string(".txt"))
       {
-      vtkNew<vtkDelimitedTextReader> reader;
-      reader->SetFileName(fullName.c_str());
+      reader->SetFieldDelimiterCharacters("\t");
+      reader->Update();
+      tableNode->SetAndObserveTable(reader->GetOutput());
+      }
+    else if ( extension == std::string(".csv") )
+      {
       reader->SetFieldDelimiterCharacters(",");
-      reader->SetHaveHeaders(true); // TODO: Changed from original vtkMRMLTableNode code. Should this be an option in the reader?
-      reader->SetDetectNumericColumns(true);
       reader->Update();
       tableNode->SetAndObserveTable(reader->GetOutput());
       }
@@ -132,7 +139,7 @@ int vtkMRMLTableStorageNode::WriteDataInternal(vtkMRMLNode *refNode)
     }
 
   std::string fullName = this->GetFullNameFromFileName();
-  if (fullName == std::string(""))
+  if (fullName.empty())
     {
     vtkErrorMacro("vtkMRMLTableStorageNode: File name not specified");
     return 0;
@@ -151,11 +158,16 @@ int vtkMRMLTableStorageNode::WriteDataInternal(vtkMRMLNode *refNode)
   std::string extension = vtkMRMLStorageNode::GetLowercaseExtensionFromFileName(fullName);
 
   int result = 1;
-  if (extension == ".dcsv")
+  if (extension == ".tsv" || extension == ".txt" || extension == ".csv")
     {
     vtkNew<vtkDelimitedTextWriter> writer;
     writer->SetFileName(fullName.c_str());
     writer->SetInputData( tableNode->GetTable() );
+    writer->SetFieldDelimiter("\t"); // use tab as delimiter for tsv and txt
+    if (extension == ".csv")
+      {
+      writer->SetFieldDelimiter(",");
+      }
     try
       {
       writer->Write();
@@ -163,6 +175,7 @@ int vtkMRMLTableStorageNode::WriteDataInternal(vtkMRMLNode *refNode)
     catch (...)
       {
       result = 0;
+      vtkErrorMacro( << "Failed to write file: " << fullName.c_str() );
       }
     }
   else
@@ -177,19 +190,21 @@ int vtkMRMLTableStorageNode::WriteDataInternal(vtkMRMLNode *refNode)
 //----------------------------------------------------------------------------
 void vtkMRMLTableStorageNode::InitializeSupportedReadFileTypes()
 {
-  this->SupportedReadFileTypes->InsertNextValue("Comma-separated values (.dcsv)");
+  this->SupportedReadFileTypes->InsertNextValue("Tab-separated values (.tsv)");
+  this->SupportedReadFileTypes->InsertNextValue("Comma-separated values (.csv)");
   this->SupportedReadFileTypes->InsertNextValue("Text (.txt)");
 }
 
 //----------------------------------------------------------------------------
 void vtkMRMLTableStorageNode::InitializeSupportedWriteFileTypes()
 {
-  this->SupportedWriteFileTypes->InsertNextValue("Comma-separated values (.dcsv)");
+  this->SupportedWriteFileTypes->InsertNextValue("Tab-separated values (.tsv)");
+  this->SupportedWriteFileTypes->InsertNextValue("Comma-separated values (.csv)");
   this->SupportedWriteFileTypes->InsertNextValue("Text (.txt)");
 }
 
 //----------------------------------------------------------------------------
 const char* vtkMRMLTableStorageNode::GetDefaultWriteFileExtension()
 {
-  return "dcsv";
+  return "tsv";
 }
