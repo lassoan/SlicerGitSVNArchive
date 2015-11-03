@@ -135,18 +135,23 @@ int main(int argc, char *argv[])
   outputFiducialStorageNode->UseLPSOn();
   outputFiducialStorageNode->WriteData(copiedFiducialNode.GetPointer());
 
-  // data tables
-  std::cout << "before csv" << std:endl;
-  vtkNew<vtkDelimitedTextReader> csvReader;
-  csvReader->SetFileName(inputDT.c_str());
-  csvReader->SetFieldDelimiterCharacters(",");
-  csvReader->SetHaveHeaders(true); 
-  csvReader->SetDetectNumericColumns(true);
-  csvReader->Update();
-  std::cout << "after csv" << std::endl;
-  vtkTable* csvTable = csvReader->GetOutput();
-  std::cout << "number of rows:" << csvTable->GetNumberOfRows() << std::endl;
-  std::cout << "number of cols:" << csvTable->GetNumberOfColumns() << std::endl;
+  // generic tables
+  vtkNew<vtkDelimitedTextReader> tsvReader;
+  tsvReader->SetFileName(inputDT.c_str());
+  tsvReader->SetFieldDelimiterCharacters("\t");
+  tsvReader->SetHaveHeaders(true);
+  tsvReader->SetDetectNumericColumns(true);
+  tsvReader->Update();
+  vtkTable* table = tsvReader->GetOutput();
+  std::cout << "number of rows:" << table->GetNumberOfRows() << std::endl;
+  std::cout << "number of cols:" << table->GetNumberOfColumns() << std::endl;
+
+  table->SetValue(0,0,vtkVariant("Computed"));
+  vtkNew<vtkDelimitedTextWriter> tsvWriter;
+  tsvWriter->SetFileName(outputDT.c_str());
+  tsvWriter->SetFieldDelimiter("\t");
+  tsvWriter->SetInputData(table);
+  tsvWriter->Update();
 
   // Write out the return parameters in "name = value" form
   std::ofstream rts;

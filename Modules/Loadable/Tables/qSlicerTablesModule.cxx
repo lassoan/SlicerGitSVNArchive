@@ -115,7 +115,7 @@ void qSlicerTablesModule::setup()
     qSlicerCoreApplication::application()->coreIOManager();
   ioManager->registerIO(new qSlicerTablesReader(TablesLogic,this));
   ioManager->registerIO(new qSlicerNodeWriter(
-    "DataTable", QString("DataTableFile"),
+    "Table", QString("TableFile"),
     QStringList() << "vtkMRMLTableNode", false, this));
 }
 

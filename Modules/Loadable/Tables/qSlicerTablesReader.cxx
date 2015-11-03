@@ -78,20 +78,22 @@ vtkSlicerTablesLogic* qSlicerTablesReader::logic()const
 //-----------------------------------------------------------------------------
 QString qSlicerTablesReader::description()const
 {
-  return "DataTable";
+  return "Table";
 }
 
 //-----------------------------------------------------------------------------
 qSlicerIO::IOFileType qSlicerTablesReader::fileType()const
 {
-  return QString("DataTableFile");
+  return QString("TableFile");
 }
 
 //-----------------------------------------------------------------------------
 QStringList qSlicerTablesReader::extensions()const
 {
   return QStringList()
-    << "Table (*.dcsv)"
+    << "Table (*.tsv)"
+    << "Table (*.csv)"
+    << "Table (*.txt)"
     ;
 }
 

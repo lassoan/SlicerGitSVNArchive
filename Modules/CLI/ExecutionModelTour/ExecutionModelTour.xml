@@ -198,21 +198,21 @@
     </measurement>
   </parameters>
   <parameters>
-    <label>Data Tables</label>
-    <datatable>
+    <label>Generic Tables</label>
+    <table>
       <name>inputDT</name>
       <channel>input</channel>
-      <label>Input Data Table</label>
+      <label>Input Table</label>
       <longflag>inputDT</longflag>
-      <description><![CDATA[Array of Data Table values to process]]></description>
-    </datatable>
-    <datatable>
+      <description><![CDATA[Array of Table values to process]]></description>
+    </table>
+    <table>
       <name>outputDT</name>
       <channel>output</channel>
-      <label>Output Data Table</label>
+      <label>Output Table</label>
       <longflag>outputDT</longflag>
-      <description><![CDATA[Array of processed (output) Data Table values]]></description>
-    </datatable>
+      <description><![CDATA[Array of processed (output) Table values]]></description>
+    </table>
   </parameters>
   <parameters>
     <label>Simple return types</label>
