@@ -26,6 +26,8 @@
 #include <vtkMRMLDiffusionWeightedVolumeNode.h>
 #include <vtkMRMLDoubleArrayNode.h>
 #include <vtkMRMLDoubleArrayStorageNode.h>
+#include <vtkMRMLTableNode.h>
+#include <vtkMRMLTableStorageNode.h>
 #include <vtkMRMLFreeSurferModelOverlayStorageNode.h>
 #include <vtkMRMLFreeSurferModelStorageNode.h>
 #include <vtkMRMLLabelMapVolumeDisplayNode.h>
@@ -903,6 +905,7 @@ void vtkSlicerApplicationLogic::ProcessReadNodeData(ReadDataRequest& req)
   vtkMRMLDisplayableNode *fbnd = 0;
   vtkMRMLColorTableNode *cnd = 0;
   vtkMRMLDoubleArrayNode *dand = 0;
+  vtkMRMLTableNode *dtnd = 0;
   vtkMRMLDisplayableNode *markupsFiducialNode = 0;
 #ifdef Slicer_BUILD_CLI_SUPPORT
   vtkMRMLCommandLineModuleNode *clp = 0;
@@ -944,6 +947,7 @@ void vtkSlicerApplicationLogic::ProcessReadNodeData(ReadDataRequest& req)
   fbnd  = vtkMRMLDisplayableNode::SafeDownCast(nd);
   cnd = vtkMRMLColorTableNode::SafeDownCast(nd);
   dand = vtkMRMLDoubleArrayNode::SafeDownCast(nd);
+  dtnd = vtkMRMLTableNode::SafeDownCast(nd);
   markupsFiducialNode = vtkMRMLDisplayableNode::SafeDownCast(nd);
 #ifdef Slicer_BUILD_CLI_SUPPORT
   clp = vtkMRMLCommandLineModuleNode::SafeDownCast(nd);
@@ -1026,6 +1030,11 @@ void vtkSlicerApplicationLogic::ProcessReadNodeData(ReadDataRequest& req)
         {
         // load in a color node
         storageNode = vtkMRMLDoubleArrayStorageNode::New();
+        }
+      else if (dtnd)
+        {
+        // load in a color node
+        storageNode = vtkMRMLTableStorageNode::New();
         }
       else if (mnd)
         {
