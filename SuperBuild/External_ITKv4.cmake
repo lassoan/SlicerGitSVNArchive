@@ -30,7 +30,7 @@ if(NOT DEFINED ITK_DIR AND NOT ${CMAKE_PROJECT_NAME}_USE_SYSTEM_${proj})
   endif()
 
   set(ITKv4_REPOSITORY ${git_protocol}://github.com/Slicer/ITK.git)
-  set(ITKv4_GIT_TAG 06a56e6399905033cb12dab45104384a8461cdf7) # slicer-v4.8
+  set(ITKv4_GIT_TAG 087e9384fc54e5d9ede5707bfc5cf472be51c00c) # release branch + Slicer patches for CMP0042
 
   set(EXTERNAL_PROJECT_OPTIONAL_CMAKE_CACHE_ARGS)
 
@@ -62,7 +62,7 @@ if(NOT DEFINED ITK_DIR AND NOT ${CMAKE_PROJECT_NAME}_USE_SYSTEM_${proj})
     string(REGEX REPLACE "\n" "" py_spp_no_newline "${py_spp}")
     string(REGEX REPLACE "\\\\" "/" py_spp_nobackslashes "${py_spp_no_newline}")
     set(ITKv4_INSTALL_COMMAND ${CMAKE_COMMAND} -E copy
-          "${CMAKE_BINARY_DIR}/${proj}-build/Wrapping/Generators/Python/WrapITK.pth"
+          "${CMAKE_BINARY_DIR}/${proj}-build/Wrapping/Generators/Python/${CMAKE_CFG_INTDIR}/WrapITK.pth"
           "${py_spp_nobackslashes}"
           )
   else()
