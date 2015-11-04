@@ -177,7 +177,10 @@ void qMRMLItemDelegate::setEditorData(QWidget *editor,
     {
     ctkSliderWidget *sliderWidget = qobject_cast<ctkSliderWidget*>(editor);
     double value = index.data(Qt::EditRole).toDouble();
-    sliderWidget->setValue(value);
+    if (sliderWidget)
+      {
+      sliderWidget->setValue(value);
+      }
     }
   else
     {
