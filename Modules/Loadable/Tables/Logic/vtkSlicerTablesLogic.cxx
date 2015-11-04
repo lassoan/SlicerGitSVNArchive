@@ -55,8 +55,14 @@ void vtkSlicerTablesLogic::PrintSelf(ostream& os, vtkIndent indent)
 vtkMRMLTableNode* vtkSlicerTablesLogic
 ::AddTable(const char* fileName, const char* name)
 {
-  if (this->GetMRMLScene() == 0 || fileName == 0)
+  if (!this->GetMRMLScene())
     {
+    vtkErrorMacro("vtkSlicerTablesLogic::AddTable failed: scene is invalid");
+    return 0;
+    }
+  if (!fileName)
+    {
+    vtkErrorMacro("vtkSlicerTablesLogic::AddTable failed: fileName is invalid");
     return 0;
     }
 
@@ -73,6 +79,7 @@ vtkMRMLTableNode* vtkSlicerTablesLogic
   int res = tableStorageNode->ReadData(tableNode.GetPointer());
   if (res == 0) // failed to read
     {
+    vtkErrorMacro("vtkSlicerTablesLogic::AddTable failed: failed to read data from file: "<<fileName);
     this->GetMRMLScene()->RemoveNode(tableStorageNode.GetPointer());
     this->GetMRMLScene()->RemoveNode(tableNode.GetPointer());
     return 0;

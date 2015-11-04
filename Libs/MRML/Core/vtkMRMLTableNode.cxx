@@ -23,8 +23,10 @@
 #include "vtkMRMLTableStorageNode.h"
 
 // VTK includes
-#include <vtkTable.h>
+#include <vtkNew.h>
 #include <vtkObjectFactory.h>
+#include <vtkStringArray.h>
+#include <vtkTable.h>
 
 // STD includes
 #include <sstream>
@@ -174,4 +176,148 @@ void vtkMRMLTableNode::SetAndObserveTable(vtkTable* table)
     }
   vtkSetAndObserveMRMLObjectMacro(this->Table, table);
   this->Modified(); // TODO: check if modified event is invoked by vtkSetAndObserveMRMLObjectMacro; if yes then don't invoke it again here
+}
+
+//----------------------------------------------------------------------------
+vtkAbstractArray* vtkMRMLTableNode::AddColumn(vtkAbstractArray* column)
+{
+  // Create table (if not available already)
+  if (!this->Table)
+    {
+    this->SetAndObserveTable(vtkSmartPointer<vtkTable>::New());
+    if (!this->Table)
+      {
+      vtkErrorMacro("vtkMRMLTableNode::AddColumn failed: failed to add VTK table");
+      return 0;
+      }
+    }
+  int tableWasModified = this->StartModify();
+  // Create new column (if not provided)
+  vtkSmartPointer<vtkAbstractArray> newColumn;
+  if (column)
+    {
+    newColumn = column;
+    if (this->Table->GetNumberOfColumns()>0)
+      {
+      // There are columns in the table already, so we need to make sure the number of rows is matching
+      int numberOfColumnsToAddToTable = newColumn->GetNumberOfTuples()-this->Table->GetNumberOfRows();
+      if (numberOfColumnsToAddToTable>0)
+        {
+        // Table is shorter than the array, add empty rows to the table.
+        for (int i=0; i<numberOfColumnsToAddToTable; i++)
+          {
+          this->Table->InsertNextBlankRow();
+          }
+        }
+      else if (numberOfColumnsToAddToTable<0)
+        {
+        // Need to add more items to the array to match the table size.
+        // To make sure that augmentation of the array is consistent, we create a dummy vtkTable
+        // and use its InsertNextBlankRow() method.
+        vtkNew<vtkTable> augmentingTable;
+        augmentingTable->AddColumn(newColumn);
+        int numberOfColumnsToAddToArray = -numberOfColumnsToAddToTable;
+        for (int i=0; i<numberOfColumnsToAddToArray; i++)
+          {
+          augmentingTable->InsertNextBlankRow();
+          }
+        }
+      }
+    }
+  else
+    {
+    int numberOfRows = this->Table->GetNumberOfRows();
+    if (numberOfRows==0)
+      {
+      // add at least one element
+      numberOfRows=1;
+      }
+    newColumn = vtkSmartPointer<vtkStringArray>::New();
+    newColumn->SetNumberOfTuples(numberOfRows);
+    vtkVariant emptyCell("");
+    for (int i=0; i<numberOfRows; i++)
+      {
+      newColumn->SetVariantValue(i, emptyCell);
+      }
+    }
+
+  // Generate a new unique column name (if not provided)
+  if (!newColumn->GetName())
+    {
+    std::string newColumnName;
+    int i=1;
+    do
+      {
+      std::stringstream ss;
+      ss << "Column " << i;
+      newColumnName = ss.str();
+      i++;
+      }
+    while (this->Table->GetColumnByName(newColumnName.c_str())!=0);
+    newColumn->SetName(newColumnName.c_str());
+    }
+
+  this->Table->AddColumn(newColumn);
+  this->Modified();
+  this->EndModify(tableWasModified);
+  return newColumn;
+}
+
+//----------------------------------------------------------------------------
+bool vtkMRMLTableNode::RemoveColumn(int columnIndex)
+{
+  if (!this->Table)
+    {
+    vtkErrorMacro("vtkMRMLTableNode::RemoveColumn failed: invalid table");
+    return false;
+    }
+  if (columnIndex<0 || columnIndex>=this->Table->GetNumberOfColumns())
+    {
+    vtkErrorMacro("vtkMRMLTableNode::RemoveColumn failed: invalid column index: "<<columnIndex);
+    return false;
+    }
+  this->Table->RemoveColumn(columnIndex);
+  this->Modified();
+  return true;
+}
+
+//----------------------------------------------------------------------------
+int vtkMRMLTableNode::AddEmptyRow()
+{
+  if (!this->Table)
+    {
+    vtkErrorMacro("vtkMRMLTableNode::AddEmptyRow failed: invalid table");
+    return -1;
+    }
+  if (this->Table->GetNumberOfColumns()==0)
+    {
+    vtkErrorMacro("vtkMRMLTableNode::AddEmptyRow failed: no columns are defined");
+    return -1;
+    }
+  vtkIdType rowIndex = this->Table->InsertNextBlankRow();
+  this->Modified();
+  return rowIndex;
+}
+
+//----------------------------------------------------------------------------
+bool vtkMRMLTableNode::RemoveRow(int rowIndex)
+{
+  if (!this->Table)
+    {
+    vtkErrorMacro("vtkMRMLTableNode::RemoveRow failed: invalid table");
+    return false;
+    }
+  if (this->Table->GetNumberOfColumns()==0)
+    {
+    vtkErrorMacro("vtkMRMLTableNode::RemoveRow failed: no columns are defined");
+    return false;
+    }
+    if (rowIndex<0 || rowIndex>=this->Table->GetNumberOfRows())
+    {
+    vtkErrorMacro("vtkMRMLTableNode::RemoveRow failed: invalid row index: "<<rowIndex);
+    return false;
+    }
+  this->Table->RemoveRow(rowIndex);
+  this->Modified();
+  return true;
 }

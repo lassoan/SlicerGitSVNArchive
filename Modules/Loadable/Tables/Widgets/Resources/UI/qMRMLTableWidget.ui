@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>400</width>
-    <height>300</height>
+    <width>416</width>
+    <height>421</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -53,25 +53,24 @@
       </widget>
      </item>
      <item>
-      <widget class="QPushButton" name="ClipboardButton">
-       <property name="sizePolicy">
-        <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-         <horstretch>0</horstretch>
-         <verstretch>0</verstretch>
-        </sizepolicy>
-       </property>
-       <property name="toolTip">
-        <string>Copy metric names and values to clipboard.</string>
-       </property>
+      <widget class="QToolButton" name="LockTableButton">
        <property name="text">
-        <string/>
+        <string>...</string>
+       </property>
+       <property name="icon">
+        <iconset resource="../../../../../../Base/QTGUI/Resources/qSlicerBaseQTGUI.qrc">
+         <normaloff>:/Icons/Medium/SlicerUnlock.png</normaloff>
+         <normalon>:/Icons/Medium/SlicerLock.png</normalon>:/Icons/Medium/SlicerUnlock.png</iconset>
+       </property>
+       <property name="checkable">
+        <bool>true</bool>
        </property>
       </widget>
      </item>
     </layout>
    </item>
    <item>
-    <widget class="QTableWidget" name="MetricsTable"/>
+    <widget class="QTableView" name="TableView"/>
    </item>
   </layout>
  </widget>
@@ -80,6 +79,7 @@
    <class>qMRMLNodeComboBox</class>
    <extends>QWidget</extends>
    <header>qMRMLNodeComboBox.h</header>
+   <container>1</container>
   </customwidget>
   <customwidget>
    <class>qSlicerWidget</class>
@@ -88,7 +88,10 @@
    <container>1</container>
   </customwidget>
  </customwidgets>
- <resources/>
+ <resources>
+  <include location="../../../../../../Base/QTGUI/Resources/qSlicerBaseQTGUI.qrc"/>
+  <include location="../qSlicerTablesModuleWidgets.qrc"/>
+ </resources>
  <connections>
   <connection>
    <sender>qMRMLTableWidget</sender>

@@ -68,6 +68,18 @@ public:
   /// Update the entire table from the MRML node
   void updateModelFromMRML();
 
+  /// Get MRML table index from model index
+  int mrmlTableRowIndex(QModelIndex modelIndex)const;
+
+  /// Get MRML table index from model index
+  int mrmlTableColumnIndex(QModelIndex modelIndex)const;
+
+  /// Delete entire row or column from the MRML table that contains item in the selection.
+  /// Returns the number of deleted rows or columns.
+  /// If removeModelRow is true then entire model rows are deleted, otherwise entire
+  /// model columns are deleted.
+  int removeSelectionFromMRML(QModelIndexList selection, bool removeModelRow);
+
 protected slots:
   void onMRMLTableNodeModified(vtkObject* node);
   void onItemChanged(QStandardItem * item);

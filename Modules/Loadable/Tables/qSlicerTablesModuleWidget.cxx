@@ -37,6 +37,7 @@
 
 // MRMLWidgets includes
 #include <qMRMLUtils.h>
+#include <qMRMLTableModel.h>
 
 // MRML includes
 #include "vtkMRMLTableNode.h"
@@ -45,6 +46,7 @@
 // VTK includes
 #include <vtkNew.h>
 #include <vtkSmartPointer.h>
+#include <vtkStringArray.h>
 #include <vtkTable.h>
 
 //-----------------------------------------------------------------------------
@@ -56,7 +58,10 @@ protected:
 public:
   qSlicerTablesModuleWidgetPrivate(qSlicerTablesModuleWidget& object);
 //  static QList<vtkSmartPointer<vtkMRMLTransformableNode> > getSelectedNodes(qMRMLTreeView* tree);
+
   vtkSlicerTablesLogic*      logic()const;
+  vtkTable* table()const;
+
   vtkWeakPointer<vtkMRMLTableNode> MRMLTableNode;
   QAction*                      CopyAction;
   QAction*                      PasteAction;
@@ -75,6 +80,17 @@ vtkSlicerTablesLogic* qSlicerTablesModuleWidgetPrivate::logic()const
 {
   Q_Q(const qSlicerTablesModuleWidget);
   return vtkSlicerTablesLogic::SafeDownCast(q->logic());
+}
+
+//-----------------------------------------------------------------------------
+vtkTable* qSlicerTablesModuleWidgetPrivate::table()const
+{
+  Q_Q(const qSlicerTablesModuleWidget);
+  if (this->MRMLTableNode.GetPointer()==NULL)
+    {
+    return NULL;
+    }
+  return this->MRMLTableNode->GetTable();
 }
 
 //-----------------------------------------------------------------------------
@@ -135,40 +151,26 @@ void qSlicerTablesModuleWidget::setup()
                 SIGNAL(currentNodeChanged(vtkMRMLNode*)),
                 SLOT(onNodeSelected(vtkMRMLNode*)));
 
-  // Set a static min/max range to let users freely enter values
-//  d->MatrixWidget->setRange(-1e10, 1e10);
+  this->connect(d->ColumnInsertButton, SIGNAL(clicked()), SLOT(insertColumn()));
+  this->connect(d->ColumnDeleteButton, SIGNAL(clicked()), SLOT(deleteColumn()));
+  this->connect(d->RowInsertButton, SIGNAL(clicked()), SLOT(insertRow()));
+  this->connect(d->RowDeleteButton, SIGNAL(clicked()), SLOT(deleteRow()));
+  this->connect(d->LabelInFirstColumn, SIGNAL(clicked()), SLOT(toggleLabelInFirstColumn()));
 
-  // Transform nodes connection
-  /*
-  this->connect(d->TransformToolButton, SIGNAL(clicked()),
-                SLOT(transformSelectedNodes()));
-  this->connect(d->UntransformToolButton, SIGNAL(clicked()),
-                SLOT(untransformSelectedNodes()));
-  this->connect(d->HardenToolButton, SIGNAL(clicked()),
-                SLOT(hardenSelectedNodes()));
-                */
+
+
 
   // Connect copy and paste actions
-/*
-d->copyTableToolButton->setDefaultAction(d->CopyAction);
+  d->CopyButton->setDefaultAction(d->CopyAction);
   this->connect(d->CopyAction,
                 SIGNAL(triggered()),
-                SLOT(copyTable()));
+                SLOT(copySelection()));
 
-  d->pasteTableToolButton->setDefaultAction(d->PasteAction);
+  d->PasteButton->setDefaultAction(d->PasteAction);
   this->connect(d->PasteAction,
                 SIGNAL(triggered()),
-                SLOT(pasteTable()));
+                SLOT(pasteSelection()));
 
-  // Icons
-  QIcon rightIcon =
-    QApplication::style()->standardIcon(QStyle::SP_ArrowRight);
-  d->TransformToolButton->setIcon(rightIcon);
-
-  QIcon leftIcon =
-    QApplication::style()->standardIcon(QStyle::SP_ArrowLeft);
-  d->UntransformToolButton->setIcon(leftIcon);
-*/
   this->onNodeSelected(0);
 }
 
@@ -194,8 +196,8 @@ void qSlicerTablesModuleWidget::onNodeSelected(vtkMRMLNode* node)
   d->TranslationSliders->setVisible(isLinearTransform);
   d->RotationSliders->setVisible(isLinearTransform);
 
-  d->copyTableToolButton->setVisible(isLinearTransform);
-  d->pasteTableToolButton->setVisible(isLinearTransform);
+  d->copySelectionToolButton->setVisible(isLinearTransform);
+  d->pasteSelectionToolButton->setVisible(isLinearTransform);
 
   d->SplitPushButton->setVisible(isCompositeTransform);
 
@@ -269,13 +271,13 @@ void qSlicerTablesModuleWidget::onMRMLTableNodeModified(vtkObject* caller)
     {
     d->RotationSliders->setVisible(isLinearTransform);
     }
-  if (isLinearTransform!=d->copyTableToolButton->isVisible())
+  if (isLinearTransform!=d->copySelectionToolButton->isVisible())
     {
-    d->copyTableToolButton->setVisible(isLinearTransform);
+    d->copySelectionToolButton->setVisible(isLinearTransform);
     }
-  if (isLinearTransform!=d->pasteTableToolButton->isVisible())
+  if (isLinearTransform!=d->pasteSelectionToolButton->isVisible())
     {
-    d->pasteTableToolButton->setVisible(isLinearTransform);
+    d->pasteSelectionToolButton->setVisible(isLinearTransform);
     }
 
   d->SplitPushButton->setVisible(isCompositeTransform);
@@ -283,79 +285,186 @@ void qSlicerTablesModuleWidget::onMRMLTableNodeModified(vtkObject* caller)
 }
 
 //-----------------------------------------------------------------------------
-void qSlicerTablesModuleWidget::copyTable()
+void qSlicerTablesModuleWidget::copySelection()
 {
   Q_D(qSlicerTablesModuleWidget);
-/*
-  vtkLinearTransform* linearTransform =
-      vtkLinearTransform::SafeDownCast(d->MRMLTableNode->GetTransformToParent());
-  if (!linearTransform)
+
+  if (!d->TableView->selectionModel()->hasSelection())
     {
-    // Silent fail, no worries!
-    qDebug() << "Unable to cast parent transform as a vtkLinearTransform";
     return;
     }
 
-  vtkMatrix4x4* internalMatrix = linearTransform->GetMatrix();
-  QString output;
-
-  for (int rowIndex = 0; rowIndex < 4; ++rowIndex)
+  qMRMLTableModel* tableModel = d->TableView->tableModel();
+  if (tableModel == NULL)
     {
-    for (int columnIndex = 0; columnIndex < 4; ++columnIndex)
-     {
-      output.append(
-            QString::number(internalMatrix->GetElement(rowIndex, columnIndex)));
-      output.append(" ");
-     }
-    output.append("\n");
+    qWarning("qSlicerTablesModuleWidget::copySelection failed: invalid table model");
+    return;
     }
 
-  QApplication::clipboard()->setText(output);
-  */
+  QModelIndexList selection = d->TableView->selectionModel()->selectedIndexes();
+  QString textToCopy;
+  bool firstLine = true;
+  for (int rowIndex=0; rowIndex<tableModel->rowCount(); rowIndex++)
+    {
+    if (!d->TableView->selectionModel()->rowIntersectsSelection(rowIndex, QModelIndex()))
+      {
+      // no items are selected in this entire row, skip it
+      continue;
+      }
+    if (firstLine)
+      {
+      firstLine = false;
+      }
+    else
+      {
+      textToCopy.append('\n');
+      }
+    bool firstItemInLine = true;
+    for (int columnIndex=0; columnIndex<tableModel->columnCount(); columnIndex++)
+      {
+      if (!d->TableView->selectionModel()->columnIntersectsSelection(columnIndex, QModelIndex()))
+        {
+        // no items are selected in this entire column, skip it
+        continue;
+        }
+      if (firstItemInLine)
+        {
+        firstItemInLine = false;
+        }
+      else
+        {
+        textToCopy.append('\t');
+        }
+      textToCopy.append(tableModel->item(rowIndex,columnIndex)->text());
+      }
+    }
+
+  QApplication::clipboard()->setText(textToCopy);
 }
 
 //-----------------------------------------------------------------------------
-void qSlicerTablesModuleWidget::pasteTable()
+void qSlicerTablesModuleWidget::pasteSelection()
 {
   Q_D(qSlicerTablesModuleWidget);
 
-  /*
-  vtkNew<vtkMatrix4x4> tempMatrix;
-
   QString text = QApplication::clipboard()->text();
-  QRegExp rx("(\\ |\\,|\\:|\\t|\\n|\\[|\\])");
-  QStringList entries = text.split(rx, QString::SkipEmptyParts);
-
-  if (entries.count() != 4
-      && entries.count() != 9
-      && entries.count() != 16)
+  if (text.isEmpty())
     {
-    // Silent fail, incompatible matrix size
-    qDebug() << "qSlicerTablesModuleWidget::pasteTable -- "
-                "Pasted matrix is not a 2x2 or 3x3 or 4x4 matrix.";
     return;
     }
 
-  bool ok = true;
-  int index = 0;
-  foreach(const QString& entry, entries)
+  qMRMLTableModel* tableModel = d->TableView->tableModel();
+  if (tableModel == NULL)
     {
-    double numericEntry = entry.toDouble(&ok);
-    if (!ok)
-      {
-      // Silent fail, no problem!
-      qDebug() << "qSlicerTablesModuleWidget::pasteTable -- "
-                  "Unable to cast string to double: " << entry;
-      return;
-      }
-    tempMatrix->SetElement(index / static_cast<int>(sqrt(static_cast<double>(entries.count()))),
-                           index % static_cast<int>(sqrt(static_cast<double>(entries.count()))),
-                           numericEntry);
-    ++index;
-  }
+    qWarning("qSlicerTablesModuleWidget::copySelection failed: invalid table model");
+    return;
+    }
 
-  d->MRMLTableNode->SetMatrixTransformToParent(tempMatrix.GetPointer());
-  */
+  int rowIndex = d->TableView->currentIndex().row();
+  int startColumnIndex = d->TableView->currentIndex().column();
+  QStringList lines = text.split('\n');
+  foreach(QString line, lines)
+    {
+    if (rowIndex>=tableModel->rowCount())
+        {
+        // reached last row in the table, ignore subsequent rows
+        break;
+        }
+    int columnIndex = startColumnIndex;
+    QStringList cells = line.split('\t');
+    foreach(QString cell, cells)
+      {
+      if (columnIndex>=tableModel->columnCount())
+        {
+        // reached last column in the table, ignore subsequent columns
+        break;
+        }
+      tableModel->item(rowIndex,columnIndex)->setText(cell);
+      columnIndex++;
+      }
+    rowIndex++;
+  }
+}
+
+//-----------------------------------------------------------------------------
+void qSlicerTablesModuleWidget::insertColumn()
+{
+  Q_D(qSlicerTablesModuleWidget);
+  vtkMRMLTableNode* tableNode = d->MRMLTableNode;
+  if (tableNode==NULL)
+    {
+    qWarning("qSlicerTablesModuleWidget::insertColumn failed: invalid table node");
+    return;
+    }
+  if (d->TableView->tableModel()->transposed())
+    {
+    tableNode->AddEmptyRow();
+    }
+  else
+    {
+    tableNode->AddColumn();
+    }
+}
+
+//-----------------------------------------------------------------------------
+void qSlicerTablesModuleWidget::deleteColumn()
+{
+  Q_D(qSlicerTablesModuleWidget);
+  vtkMRMLTableNode* tableNode = d->MRMLTableNode;
+  if (tableNode==NULL)
+    {
+    qWarning("qSlicerTablesModuleWidget::deleteColumn failed: invalid table node");
+    return;
+    }
+  QModelIndexList selection = d->TableView->selectionModel()->selectedIndexes();
+  d->TableView->tableModel()->removeSelectionFromMRML(selection, false);
+}
+
+//-----------------------------------------------------------------------------
+void qSlicerTablesModuleWidget::insertRow()
+{
+  Q_D(qSlicerTablesModuleWidget);
+  vtkMRMLTableNode* tableNode = d->MRMLTableNode;
+  if (tableNode==NULL)
+    {
+    qWarning("qSlicerTablesModuleWidget::insertRow failed: invalid table node");
+    return;
+    }
+  if (d->TableView->tableModel()->transposed())
+    {
+    tableNode->AddColumn();
+    }
+  else
+    {
+    tableNode->AddEmptyRow();
+    }
+}
+
+//-----------------------------------------------------------------------------
+void qSlicerTablesModuleWidget::deleteRow()
+{
+  Q_D(qSlicerTablesModuleWidget);
+  vtkMRMLTableNode* tableNode = d->MRMLTableNode;
+  if (tableNode==NULL)
+    {
+    qWarning("qSlicerTablesModuleWidget::deleteRow failed: invalid table node");
+    return;
+    }
+  QModelIndexList selection = d->TableView->selectionModel()->selectedIndexes();
+  d->TableView->tableModel()->removeSelectionFromMRML(selection, true);
+}
+
+//-----------------------------------------------------------------------------
+void qSlicerTablesModuleWidget::toggleLabelInFirstColumn()
+{
+  Q_D(qSlicerTablesModuleWidget);
+  vtkMRMLTableNode* tableNode = d->MRMLTableNode;
+  if (tableNode==NULL)
+    {
+    qWarning("qSlicerTablesModuleWidget::toggleLabelInFirstColumn failed: invalid table node");
+    return;
+    }
+  tableNode->SetLabelInFirstColumn(!tableNode->GetLabelInFirstColumn());
 }
 
 //-----------------------------------------------------------------------------

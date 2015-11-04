@@ -98,7 +98,7 @@ int vtkMRMLTableStorageNode::ReadDataInternal(vtkMRMLNode *refNode)
   vtkNew<vtkDelimitedTextReader> reader;
   reader->SetFileName(fullName.c_str());
   reader->SetHaveHeaders(true);
-  reader->SetDetectNumericColumns(true);
+  reader->DetectNumericColumnsOff(); // we preserve all data better if we don't try to detect numeric columns
 
   int result = 1;
   try

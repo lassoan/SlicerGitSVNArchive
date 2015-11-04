@@ -139,7 +139,9 @@ void qMRMLTableModel::updateModelFromMRML()
   if (table==NULL || table->GetNumberOfColumns()==0)
     {
     // setRowCount and setColumnCount to 0 would not be enough, it's necesary to remove the header as well
-    this->reset();
+    setRowCount(0);
+    setColumnCount(0);
+    reset();
     QObject::connect(this, SIGNAL(itemChanged(QStandardItem*)), this, SLOT(onItemChanged(QStandardItem*)), Qt::UniqueConnection);
     return;
     }
@@ -192,7 +194,13 @@ void qMRMLTableModel::updateModelFromMRML()
         }
       if (locked)
         {
-        item->setFlags(Qt::ItemIsEnabled | Qt::ItemIsSelectable); // Item is view-only
+        // Item is view-only, clear the ItemIsEditable flag
+        item->setFlags(item->flags() & (~Qt::ItemIsEditable));
+        }
+      else
+        {
+        // Item is editable, set the ItemIsEditable flag
+        item->setFlags(item->flags() | Qt::ItemIsEditable);
         }
       if (d->Transposed)
         {
@@ -204,12 +212,19 @@ void qMRMLTableModel::updateModelFromMRML()
         }
       }
     }
-  if(labelInFirstTableColumn)
+  // Set row label: either simply 1, 2, ... or values of the first column
+  for (vtkIdType tableRow = 0; tableRow < numberOfTableRows; ++tableRow)
     {
-    for (vtkIdType tableRow = 0; tableRow < numberOfTableRows; ++tableRow)
+    QString rowLabel;
+    if(labelInFirstTableColumn)
       {
-      setHeaderData(static_cast<int>(tableRow), d->Transposed ? Qt::Horizontal : Qt::Vertical, QString(table->GetValue(tableRow, 0).ToString()));
+      rowLabel = QString(table->GetValue(tableRow, 0).ToString());
       }
+    else
+      {
+      rowLabel = QString::number(tableRow+1);
+      }
+    setHeaderData(static_cast<int>(tableRow), d->Transposed ? Qt::Horizontal : Qt::Vertical, rowLabel);
     }
 
   QObject::connect(this, SIGNAL(itemChanged(QStandardItem*)), this, SLOT(onItemChanged(QStandardItem*)), Qt::UniqueConnection);
@@ -238,18 +253,8 @@ void qMRMLTableModel::updateMRMLFromModel(QStandardItem* item)const
     }
 
   vtkVariant itemText(item->text().toLatin1().constData()); // the vtkVariant constructor makes a copy of the input buffer, so using constData is safe
-  int tableRow=0;
-  int tableCol=0;
-  if (d->Transposed)
-    {
-    tableRow = item->column();
-    tableCol = tableNode->GetLabelInFirstColumn() ? item->row()+1 : item->row();
-    }
-  else
-    {
-    tableRow = item->row();
-    tableCol = tableNode->GetLabelInFirstColumn() ? item->column()+1 : item->column();
-    }
+  int tableRow = mrmlTableRowIndex(item->index());
+  int tableCol = mrmlTableColumnIndex(item->index());
 
   vtkVariant valueInTableBefore = table->GetValue(tableRow, tableCol);
   table->SetValue(tableRow, tableCol, itemText);
@@ -322,4 +327,84 @@ bool qMRMLTableModel::transposed()const
 {
   Q_D(const qMRMLTableModel);
   return d->Transposed;
+}
+
+//------------------------------------------------------------------------------
+int qMRMLTableModel::mrmlTableRowIndex(QModelIndex modelIndex)const
+{
+  Q_D(const qMRMLTableModel);
+  if (!d->MRMLTableNode)
+    {
+    qWarning("qMRMLTableModel::mrmlTableRowIndex failed: invalid table node");
+    return -1;
+    }
+  if (d->Transposed)
+    {
+    return modelIndex.column();
+    }
+  else
+    {
+    return modelIndex.row();
+    }
+}
+
+//------------------------------------------------------------------------------
+int qMRMLTableModel::mrmlTableColumnIndex(QModelIndex modelIndex)const
+{
+  Q_D(const qMRMLTableModel);
+  if (!d->MRMLTableNode)
+    {
+    qWarning("qMRMLTableModel::mrmlTableColumnIndex failed: invalid table node");
+    return -1;
+    }
+  if (d->Transposed)
+    {
+    return d->MRMLTableNode->GetLabelInFirstColumn() ? modelIndex.row()+1 : modelIndex.row();
+    }
+  else
+    {
+    return d->MRMLTableNode->GetLabelInFirstColumn() ? modelIndex.column()+1 : modelIndex.column();
+    }
+}
+
+//------------------------------------------------------------------------------
+int qMRMLTableModel::removeSelectionFromMRML(QModelIndexList selection, bool removeModelRow)
+{
+  Q_D(const qMRMLTableModel);
+  if (!d->MRMLTableNode)
+    {
+    return 0;
+    }
+  bool removeMRMLRows = d->Transposed ? !removeModelRow : removeModelRow;
+
+  QModelIndex index;
+  QList<int> mrmlIndexList; // list of MRML table columns or rows that will be removed
+  foreach(index, selection)
+    {
+    int mrmlIndex = removeMRMLRows ? mrmlTableRowIndex(index) : mrmlTableColumnIndex(index);
+    if (!mrmlIndexList.contains(mrmlIndex))
+      {
+      // insert unique row/column index only
+      mrmlIndexList.push_back(mrmlIndex);
+      }
+    }
+  // reverse sort to start removing last index first to keep remaining indices valid
+  qSort(mrmlIndexList.begin(), mrmlIndexList.end(), qGreater<int>());
+
+  // block modified events to prevent updating of the table during processing
+  int wasModified = d->MRMLTableNode->StartModify();
+  foreach(int mrmlIndex, mrmlIndexList)
+    {
+    if (removeMRMLRows)
+      {
+      d->MRMLTableNode->RemoveRow(mrmlIndex);
+      }
+    else
+      {
+      d->MRMLTableNode->RemoveColumn(mrmlIndex);
+      }
+    }
+  d->MRMLTableNode->EndModify(wasModified);
+
+  return mrmlIndexList.size();
 }

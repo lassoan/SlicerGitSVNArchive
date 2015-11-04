@@ -25,10 +25,12 @@
 #include "vtkSlicerModuleLogic.h"
 
 // MRML includes
-class vtkMRMLTableNode;
 
 // Tables includes
 #include "vtkSlicerTablesModuleLogicExport.h"
+
+class vtkAbstractArray;
+class vtkMRMLTableNode;
 
 /// \ingroup Slicer_QtModules_ExtensionTemplate
 /// \brief Slicer logic class for double array manipulation
@@ -43,8 +45,8 @@ public:
   vtkTypeMacro(vtkSlicerTablesLogic, vtkSlicerModuleLogic);
   void PrintSelf(ostream& os, vtkIndent indent);
 
-  vtkMRMLTableNode* AddTable(const char* fileName,
-                                         const char* name = 0);
+  vtkMRMLTableNode* AddTable(const char* fileName, const char* name = 0);
+
 protected:
   vtkSlicerTablesLogic();
   virtual ~vtkSlicerTablesLogic();

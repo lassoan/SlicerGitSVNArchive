@@ -20,9 +20,8 @@
 
 ==============================================================================*/
 
-
-#ifndef __qMRMLTransformDisplayNodeWidgetPlugin_h
-#define __qMRMLTransformDisplayNodeWidgetPlugin_h
+#ifndef __qMRMLTableViewPlugin_h
+#define __qMRMLTableViewPlugin_h
 
 #include "qSlicerTablesModuleWidgetsAbstractPlugin.h"
 

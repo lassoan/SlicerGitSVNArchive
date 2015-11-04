@@ -20,12 +20,12 @@
 
 // QT includes
 #include <QHeaderView>
+#include <QKeyEvent>
 #include <QSortFilterProxyModel>
 
 // qMRML includes
 #include "qMRMLTableView.h"
 #include "qMRMLTableModel.h"
-#include "qMRMLItemDelegate.h"
 
 // MRML includes
 #include <vtkMRMLTableNode.h>
@@ -54,13 +54,10 @@ void qMRMLTableViewPrivate::init()
 
   qMRMLTableModel* tableModel = new qMRMLTableModel(q);
   QSortFilterProxyModel* sortFilterModel = new QSortFilterProxyModel(q);
-  //sortFilterModel->setFilterKeyColumn(qMRMLTableModel::LabelColumn);
   sortFilterModel->setSourceModel(tableModel);
   q->setModel(sortFilterModel);
 
   q->horizontalHeader()->setStretchLastSection(false);
-
-  q->setItemDelegate(new qMRMLItemDelegate(q));
 }
 
 //------------------------------------------------------------------------------
@@ -104,21 +101,8 @@ void qMRMLTableView::setMRMLTableNode(vtkMRMLTableNode* node)
   mrmlModel->setMRMLTableNode(node);
   this->sortFilterProxyModel()->invalidate();
 
-  bool readOnly = (node==NULL) || (node->GetLocked());
-  this->setEditTriggers( readOnly ? QAbstractItemView::NoEditTriggers : QAbstractItemView::DoubleClicked | QAbstractItemView::EditKeyPressed );
-
   this->horizontalHeader()->setMinimumSectionSize(120);
   this->resizeColumnsToContents();
-
-  //TODO:
-  /*
-  this->setSortingEnabled(sortable);
-  if (mrmlModel)
-    {
-    mrmlModel->setSortRole(SortRole);
-    }
-  */
-
 }
 
 //------------------------------------------------------------------------------
@@ -128,27 +112,6 @@ vtkMRMLTableNode* qMRMLTableView::mrmlTableNode()const
   Q_ASSERT(mrmlModel);
   return mrmlModel->mrmlTableNode();
 }
-
-/*
-//------------------------------------------------------------------------------
-void qMRMLTableView::setReadOnly(bool readOnly)
-{
-  if (readOnly)
-    {
-    this->setEditTriggers( this->readOnly ? QAbstractItemView::NoEditTriggers : QAbstractItemView::DoubleClicked | QAbstractItemView::EditKeyPressed );
-    }
-  else
-    {
-    this->sortFilterProxyModel()->setFilterRegExp(QRegExp());
-    }
-}
-
-//------------------------------------------------------------------------------
-bool qMRMLTableView::showOnlyNamedColors()const
-{
-  return this->sortFilterProxyModel()->filterRegExp().isEmpty();
-}
-*/
 
 //------------------------------------------------------------------------------
 void qMRMLTableView::setTransposed(bool transposed)
@@ -172,4 +135,24 @@ bool qMRMLTableView::transposed()const
     return false;
     }
   return tableModel->transposed();
+}
+
+//------------------------------------------------------------------------------
+void qMRMLTableView::keyPressEvent(QKeyEvent *event)
+{
+  if (model())
+    {
+    // Prevent giving the focus to the previous/next widget if arrow keys are used
+    // at the edge of the table (without this: if the current cell is in the top
+    // row and user press the Up key, the focus goes from the table to the previous
+    // widget in the tab order)
+    if (event->key() == Qt::Key_Left && currentIndex().column() == 0
+      || event->key() == Qt::Key_Up && currentIndex().row() == 0
+      || event->key() == Qt::Key_Right && currentIndex().column() == model()->columnCount()-1
+      || event->key() == Qt::Key_Down && currentIndex().row() == model()->rowCount()-1)
+      {
+      return;
+      }
+    }
+  QTableView::keyPressEvent(event);
 }

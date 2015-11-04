@@ -47,18 +47,6 @@ public:
 
 public slots:
 
-  /*
-  /// Set the transform to identity. Only for linear transforms.
-  /// The sliders are reset to the position 0.
-  void identity();
-
-  /// Invert the transform.
-  void invert();
-
-  /// Split composite transform to its components
-  void split();
-  */
-
 protected:
 
   virtual void setup();
@@ -69,22 +57,14 @@ protected slots:
 
   void onNodeSelected(vtkMRMLNode* node);
 
-  void copyTable();
-  void pasteTable();
+  void copySelection();
+  void pasteSelection();
 
-  /*
-  void onTranslateFirstButtonPressed(bool checked);
-
-
-
-
-  void transformSelectedNodes();
-  void untransformSelectedNodes();
-  void hardenSelectedNodes();
-
-  void onDisplaySectionClicked(bool);
-  void onTransformableSectionClicked(bool);
-  */
+  void insertColumn();
+  void deleteColumn();
+  void insertRow();
+  void deleteRow();
+  void toggleLabelInFirstColumn();
 
 protected:
   ///

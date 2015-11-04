@@ -95,6 +95,27 @@ public:
   /// Create default storage node or NULL if does not have one
   virtual vtkMRMLStorageNode* CreateDefaultStorageNode();
 
+  /// Add an array to the table as a new column.
+  /// If no column is provided then an empty column is added.
+  /// If a column is provided then the number of rows in the table and tuples in
+  /// the provided array will be matched by either adding empty rows to the table
+  /// or empty elements to the array.
+  /// If a column is provided that does not have a name then a name will be generated
+  /// automatically that is unique among all table column names.
+  vtkAbstractArray* AddColumn(vtkAbstractArray* column = 0);
+
+  /// Remove array from the table.
+  /// Returns with true on success.
+  bool RemoveColumn(int columnIndex);
+
+  /// Add an empty row at the end of the table
+  /// Returns the index of the inserted row or -1 on failure.
+  int AddEmptyRow();
+
+  /// Remove row from the table
+  /// Returns with true on success.
+  bool RemoveRow(int rowIndex);
+
   //----------------------------------------------------------------
   /// Constructor and destroctor
   //----------------------------------------------------------------
