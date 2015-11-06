@@ -21,8 +21,6 @@
 // Qt includes
 #include <QAction>
 #include <QFileDialog>
-#include <QApplication>
-#include <QClipboard>
 #include <QStringBuilder>
 
 // C++ includes
@@ -94,27 +92,6 @@ vtkTable* qSlicerTablesModuleWidgetPrivate::table()const
 }
 
 //-----------------------------------------------------------------------------
-/*
-QList<vtkSmartPointer<vtkMRMLTransformableNode> > qSlicerTablesModuleWidgetPrivate::getSelectedNodes(qMRMLTreeView* tree)
-{
-  QModelIndexList selectedIndexes =
-    tree->selectionModel()->selectedRows();
-  selectedIndexes = qMRMLTreeView::removeChildren(selectedIndexes);
-
-  // Return the list of nodes
-  QList<vtkSmartPointer<vtkMRMLTransformableNode> > selectedNodes;
-  foreach(QModelIndex selectedIndex, selectedIndexes)
-    {
-    vtkMRMLTransformableNode* node = vtkMRMLTransformableNode::SafeDownCast(
-      tree->sortFilterProxyModel()->
-      mrmlNodeFromIndex( selectedIndex ));
-    Q_ASSERT(node);
-    selectedNodes << node;
-    }
-  return selectedNodes;
-}
-*/
-//-----------------------------------------------------------------------------
 qSlicerTablesModuleWidget::qSlicerTablesModuleWidget(QWidget* _parentWidget)
   : Superclass(_parentWidget)
   , d_ptr(new qSlicerTablesModuleWidgetPrivate(*this))
@@ -151,25 +128,18 @@ void qSlicerTablesModuleWidget::setup()
                 SIGNAL(currentNodeChanged(vtkMRMLNode*)),
                 SLOT(onNodeSelected(vtkMRMLNode*)));
 
-  this->connect(d->ColumnInsertButton, SIGNAL(clicked()), SLOT(insertColumn()));
-  this->connect(d->ColumnDeleteButton, SIGNAL(clicked()), SLOT(deleteColumn()));
-  this->connect(d->RowInsertButton, SIGNAL(clicked()), SLOT(insertRow()));
-  this->connect(d->RowDeleteButton, SIGNAL(clicked()), SLOT(deleteRow()));
-  this->connect(d->LabelInFirstColumn, SIGNAL(clicked()), SLOT(toggleLabelInFirstColumn()));
-
-
-
+  this->connect(d->ColumnInsertButton, SIGNAL(clicked()), d->TableView, SLOT(insertColumn()));
+  this->connect(d->ColumnDeleteButton, SIGNAL(clicked()), d->TableView, SLOT(deleteColumn()));
+  this->connect(d->RowInsertButton, SIGNAL(clicked()), d->TableView, SLOT(insertRow()));
+  this->connect(d->RowDeleteButton, SIGNAL(clicked()), d->TableView, SLOT(deleteRow()));
+  this->connect(d->LockFirstRowButton, SIGNAL(toggled(bool)), d->TableView, SLOT(setFirstRowLocked(bool)));
+  this->connect(d->LockFirstColumnButton, SIGNAL(toggled(bool)), d->TableView, SLOT(setFirstColumnLocked(bool)));
 
   // Connect copy and paste actions
   d->CopyButton->setDefaultAction(d->CopyAction);
-  this->connect(d->CopyAction,
-                SIGNAL(triggered()),
-                SLOT(copySelection()));
-
+  this->connect(d->CopyAction, SIGNAL(triggered()), d->TableView, SLOT(copySelection()));
   d->PasteButton->setDefaultAction(d->PasteAction);
-  this->connect(d->PasteAction,
-                SIGNAL(triggered()),
-                SLOT(pasteSelection()));
+  this->connect(d->PasteAction, SIGNAL(triggered()), d->TableView, SLOT(pasteSelection()));
 
   this->onNodeSelected(0);
 }
@@ -282,189 +252,6 @@ void qSlicerTablesModuleWidget::onMRMLTableNodeModified(vtkObject* caller)
 
   d->SplitPushButton->setVisible(isCompositeTransform);
 */
-}
-
-//-----------------------------------------------------------------------------
-void qSlicerTablesModuleWidget::copySelection()
-{
-  Q_D(qSlicerTablesModuleWidget);
-
-  if (!d->TableView->selectionModel()->hasSelection())
-    {
-    return;
-    }
-
-  qMRMLTableModel* tableModel = d->TableView->tableModel();
-  if (tableModel == NULL)
-    {
-    qWarning("qSlicerTablesModuleWidget::copySelection failed: invalid table model");
-    return;
-    }
-
-  QModelIndexList selection = d->TableView->selectionModel()->selectedIndexes();
-  QString textToCopy;
-  bool firstLine = true;
-  for (int rowIndex=0; rowIndex<tableModel->rowCount(); rowIndex++)
-    {
-    if (!d->TableView->selectionModel()->rowIntersectsSelection(rowIndex, QModelIndex()))
-      {
-      // no items are selected in this entire row, skip it
-      continue;
-      }
-    if (firstLine)
-      {
-      firstLine = false;
-      }
-    else
-      {
-      textToCopy.append('\n');
-      }
-    bool firstItemInLine = true;
-    for (int columnIndex=0; columnIndex<tableModel->columnCount(); columnIndex++)
-      {
-      if (!d->TableView->selectionModel()->columnIntersectsSelection(columnIndex, QModelIndex()))
-        {
-        // no items are selected in this entire column, skip it
-        continue;
-        }
-      if (firstItemInLine)
-        {
-        firstItemInLine = false;
-        }
-      else
-        {
-        textToCopy.append('\t');
-        }
-      textToCopy.append(tableModel->item(rowIndex,columnIndex)->text());
-      }
-    }
-
-  QApplication::clipboard()->setText(textToCopy);
-}
-
-//-----------------------------------------------------------------------------
-void qSlicerTablesModuleWidget::pasteSelection()
-{
-  Q_D(qSlicerTablesModuleWidget);
-
-  QString text = QApplication::clipboard()->text();
-  if (text.isEmpty())
-    {
-    return;
-    }
-
-  qMRMLTableModel* tableModel = d->TableView->tableModel();
-  if (tableModel == NULL)
-    {
-    qWarning("qSlicerTablesModuleWidget::copySelection failed: invalid table model");
-    return;
-    }
-
-  int rowIndex = d->TableView->currentIndex().row();
-  int startColumnIndex = d->TableView->currentIndex().column();
-  QStringList lines = text.split('\n');
-  foreach(QString line, lines)
-    {
-    if (rowIndex>=tableModel->rowCount())
-        {
-        // reached last row in the table, ignore subsequent rows
-        break;
-        }
-    int columnIndex = startColumnIndex;
-    QStringList cells = line.split('\t');
-    foreach(QString cell, cells)
-      {
-      if (columnIndex>=tableModel->columnCount())
-        {
-        // reached last column in the table, ignore subsequent columns
-        break;
-        }
-      tableModel->item(rowIndex,columnIndex)->setText(cell);
-      columnIndex++;
-      }
-    rowIndex++;
-  }
-}
-
-//-----------------------------------------------------------------------------
-void qSlicerTablesModuleWidget::insertColumn()
-{
-  Q_D(qSlicerTablesModuleWidget);
-  vtkMRMLTableNode* tableNode = d->MRMLTableNode;
-  if (tableNode==NULL)
-    {
-    qWarning("qSlicerTablesModuleWidget::insertColumn failed: invalid table node");
-    return;
-    }
-  if (d->TableView->tableModel()->transposed())
-    {
-    tableNode->AddEmptyRow();
-    }
-  else
-    {
-    tableNode->AddColumn();
-    }
-}
-
-//-----------------------------------------------------------------------------
-void qSlicerTablesModuleWidget::deleteColumn()
-{
-  Q_D(qSlicerTablesModuleWidget);
-  vtkMRMLTableNode* tableNode = d->MRMLTableNode;
-  if (tableNode==NULL)
-    {
-    qWarning("qSlicerTablesModuleWidget::deleteColumn failed: invalid table node");
-    return;
-    }
-  QModelIndexList selection = d->TableView->selectionModel()->selectedIndexes();
-  d->TableView->tableModel()->removeSelectionFromMRML(selection, false);
-}
-
-//-----------------------------------------------------------------------------
-void qSlicerTablesModuleWidget::insertRow()
-{
-  Q_D(qSlicerTablesModuleWidget);
-  vtkMRMLTableNode* tableNode = d->MRMLTableNode;
-  if (tableNode==NULL)
-    {
-    qWarning("qSlicerTablesModuleWidget::insertRow failed: invalid table node");
-    return;
-    }
-  if (d->TableView->tableModel()->transposed())
-    {
-    tableNode->AddColumn();
-    }
-  else
-    {
-    tableNode->AddEmptyRow();
-    }
-}
-
-//-----------------------------------------------------------------------------
-void qSlicerTablesModuleWidget::deleteRow()
-{
-  Q_D(qSlicerTablesModuleWidget);
-  vtkMRMLTableNode* tableNode = d->MRMLTableNode;
-  if (tableNode==NULL)
-    {
-    qWarning("qSlicerTablesModuleWidget::deleteRow failed: invalid table node");
-    return;
-    }
-  QModelIndexList selection = d->TableView->selectionModel()->selectedIndexes();
-  d->TableView->tableModel()->removeSelectionFromMRML(selection, true);
-}
-
-//-----------------------------------------------------------------------------
-void qSlicerTablesModuleWidget::toggleLabelInFirstColumn()
-{
-  Q_D(qSlicerTablesModuleWidget);
-  vtkMRMLTableNode* tableNode = d->MRMLTableNode;
-  if (tableNode==NULL)
-    {
-    qWarning("qSlicerTablesModuleWidget::toggleLabelInFirstColumn failed: invalid table node");
-    return;
-    }
-  tableNode->SetLabelInFirstColumn(!tableNode->GetLabelInFirstColumn());
 }
 
 //-----------------------------------------------------------------------------

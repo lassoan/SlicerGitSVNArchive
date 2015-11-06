@@ -88,8 +88,12 @@ public:
   vtkSetMacro(Sortable, bool);
 
   /// First column should be treated as row label
-  vtkGetMacro(LabelInFirstColumn, bool);
-  vtkSetMacro(LabelInFirstColumn, bool);
+  vtkGetMacro(UseFirstColumnAsRowHeader, bool);
+  vtkSetMacro(UseFirstColumnAsRowHeader, bool);
+
+  /// Column name should be treated as column label
+  vtkGetMacro(UseColumnNameAsColumnHeader, bool);
+  vtkSetMacro(UseColumnNameAsColumnHeader, bool);
 
   ///
   /// Create default storage node or NULL if does not have one
@@ -134,7 +138,8 @@ public:
   vtkTable* Table;
   bool Locked;
   bool Sortable;
-  bool LabelInFirstColumn;
+  bool UseColumnNameAsColumnHeader;
+  bool UseFirstColumnAsRowHeader;
 };
 
 #endif

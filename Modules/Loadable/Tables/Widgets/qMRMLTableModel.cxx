@@ -147,20 +147,22 @@ void qMRMLTableModel::updateModelFromMRML()
     }
 
   bool locked = tableNode->GetLocked();
-  bool sortable = tableNode->GetSortable();
-  bool labelInFirstTableColumn = tableNode->GetLabelInFirstColumn();
+  bool labelInFirstTableColumn = tableNode->GetUseFirstColumnAsRowHeader();
+  bool useColumnNameAsColumnHeader = tableNode->GetUseColumnNameAsColumnHeader();
 
   vtkIdType numberOfTableColumns = table->GetNumberOfColumns();
   vtkIdType numberOfTableRows = table->GetNumberOfRows();
+  // offset: modelIndex = mrmlIndex - offset
   vtkIdType tableColOffset = labelInFirstTableColumn ? 1 : 0;
+  vtkIdType tableRowOffset = useColumnNameAsColumnHeader ? 0 : -1;
   if (d->Transposed)
     {
     setRowCount(static_cast<int>(numberOfTableColumns-tableColOffset));
-    setColumnCount(static_cast<int>(numberOfTableRows));
+    setColumnCount(static_cast<int>(numberOfTableRows-tableRowOffset));
     }
   else
     {
-    setRowCount(static_cast<int>(numberOfTableRows));
+    setRowCount(static_cast<int>(numberOfTableRows-tableRowOffset));
     setColumnCount(static_cast<int>(numberOfTableColumns-tableColOffset));
     }
 
@@ -169,28 +171,48 @@ void qMRMLTableModel::updateModelFromMRML()
     int modelCol = static_cast<int>(tableCol - tableColOffset);
 
     QString columnName(table->GetColumnName(tableCol));
-    // unkown is used to encode columns with no name
-    if (columnName == "unknown")
+    // unknown is used to encode columns with no name
+    /*if (columnName == "unknown")
       {
       columnName = "";
-      }
-    setHeaderData(modelCol, d->Transposed ? Qt::Vertical : Qt::Horizontal, columnName);
-
-    for (vtkIdType tableRow = 0; tableRow < numberOfTableRows; ++tableRow)
+      }*/
+    if (useColumnNameAsColumnHeader)
       {
+      setHeaderData(modelCol, d->Transposed ? Qt::Vertical : Qt::Horizontal, columnName);
+      }
+    else
+      {
+      QString autoColumnHeader = QString::number(modelCol+1);
+      setHeaderData(modelCol, d->Transposed ? Qt::Vertical : Qt::Horizontal, autoColumnHeader);
+      }
+
+    for (vtkIdType tableRow = tableRowOffset; tableRow < numberOfTableRows; ++tableRow)
+      {
+      int modelRow = static_cast<int>(tableRow - tableRowOffset);
       QStandardItem* item = new QStandardItem();
-      vtkVariant variant = table->GetValue(tableRow, tableCol);
-      item->setText(QString(variant.ToString()));
-      if (sortable)
+      /*
+ttt
+    if (role == Qt::FontRole && index.column() == 0) { // First column items are bold.
+        QFont font;
+        font.setBold(true);
+        return font;
+    } else if (role == Qt::ForegroundRole && index.column() == 0) {
+        return QColor(Qt::red);
+    } else {
+        [..]
+    }*/
+
+      if (tableRow>=0)
         {
-        if (variant.IsNumeric())
-          {
-          item->setData(variant.ToDouble(), SortRole);
-          }
-        else
-          {
-          item->setData(variant.ToString().c_str(), SortRole);
-          }
+        vtkVariant variant = table->GetValue(tableRow, tableCol);
+        item->setText(QString(variant.ToString()));
+        }
+      else
+        {
+        item->setText(columnName);
+        QFont font;
+        font.setBold(true);
+        item->setData(font, Qt::FontRole);
         }
       if (locked)
         {
@@ -204,27 +226,35 @@ void qMRMLTableModel::updateModelFromMRML()
         }
       if (d->Transposed)
         {
-        setItem(modelCol, static_cast<int>(tableRow), item);
+        setItem(modelCol, static_cast<int>(modelRow), item);
         }
       else
         {
-        setItem(static_cast<int>(tableRow), modelCol, item);
+        setItem(static_cast<int>(modelRow), modelCol, item);
         }
       }
     }
   // Set row label: either simply 1, 2, ... or values of the first column
-  for (vtkIdType tableRow = 0; tableRow < numberOfTableRows; ++tableRow)
+  for (vtkIdType tableRow = tableRowOffset; tableRow < numberOfTableRows; ++tableRow)
     {
+    int modelRow = static_cast<int>(tableRow - tableRowOffset);
     QString rowLabel;
     if(labelInFirstTableColumn)
       {
-      rowLabel = QString(table->GetValue(tableRow, 0).ToString());
+      if (tableRow>=0)
+        {
+        rowLabel = QString(table->GetValue(tableRow, 0).ToString());
+        }
+      else
+        {
+        rowLabel = QString(table->GetColumnName(0));;
+        }
       }
     else
       {
-      rowLabel = QString::number(tableRow+1);
+      rowLabel = QString::number(modelRow+1);
       }
-    setHeaderData(static_cast<int>(tableRow), d->Transposed ? Qt::Horizontal : Qt::Vertical, rowLabel);
+    setHeaderData(static_cast<int>(modelRow), d->Transposed ? Qt::Horizontal : Qt::Vertical, rowLabel);
     }
 
   QObject::connect(this, SIGNAL(itemChanged(QStandardItem*)), this, SLOT(onItemChanged(QStandardItem*)), Qt::UniqueConnection);
@@ -252,23 +282,41 @@ void qMRMLTableModel::updateMRMLFromModel(QStandardItem* item)const
     return;
     }
 
-  vtkVariant itemText(item->text().toLatin1().constData()); // the vtkVariant constructor makes a copy of the input buffer, so using constData is safe
   int tableRow = mrmlTableRowIndex(item->index());
   int tableCol = mrmlTableColumnIndex(item->index());
 
-  vtkVariant valueInTableBefore = table->GetValue(tableRow, tableCol);
-  table->SetValue(tableRow, tableCol, itemText);
-  vtkVariant valueInTableAfter = table->GetValue(tableRow, tableCol);
-  if (valueInTableBefore == valueInTableAfter)
+  if (tableRow>=0)
     {
-    // the value is not changed, this means that the table cannot store this value - revert the value in the table
-    QObject::disconnect(this, SIGNAL(itemChanged(QStandardItem*)), this, SLOT(onItemChanged(QStandardItem*)));
-    item->setText(QString(valueInTableBefore.ToString()));
-    QObject::connect(this, SIGNAL(itemChanged(QStandardItem*)), this, SLOT(onItemChanged(QStandardItem*)), Qt::UniqueConnection);
+    // cell value changed
+    vtkVariant itemText(item->text().toLatin1().constData()); // the vtkVariant constructor makes a copy of the input buffer, so using constData is safe
+    vtkVariant valueInTableBefore = table->GetValue(tableRow, tableCol);
+    table->SetValue(tableRow, tableCol, itemText);
+    vtkVariant valueInTableAfter = table->GetValue(tableRow, tableCol);
+    if (valueInTableBefore == valueInTableAfter)
+      {
+      // the value is not changed, this means that the table cannot store this value - revert the value in the table
+      QObject::disconnect(this, SIGNAL(itemChanged(QStandardItem*)), this, SLOT(onItemChanged(QStandardItem*)));
+      item->setText(QString(valueInTableBefore.ToString()));
+      QObject::connect(this, SIGNAL(itemChanged(QStandardItem*)), this, SLOT(onItemChanged(QStandardItem*)), Qt::UniqueConnection);
+      }
+    else
+      {
+      tableNode->Modified();
+      }
     }
   else
     {
-    tableNode->Modified();
+    // column header changed
+    vtkAbstractArray* column = table->GetColumn(tableCol);
+    if (column)
+      {
+      QString valueBefore = QString::fromStdString(column->GetName()?column->GetName():"");
+      if (valueBefore!=item->text())
+        {
+        column->SetName(item->text().toLatin1().constData());
+        tableNode->Modified();
+        }
+      }
     }
 }
 
@@ -340,11 +388,11 @@ int qMRMLTableModel::mrmlTableRowIndex(QModelIndex modelIndex)const
     }
   if (d->Transposed)
     {
-    return modelIndex.column();
+    return d->MRMLTableNode->GetUseColumnNameAsColumnHeader() ? modelIndex.column() : modelIndex.column()-1;
     }
   else
     {
-    return modelIndex.row();
+    return d->MRMLTableNode->GetUseColumnNameAsColumnHeader() ? modelIndex.row() : modelIndex.row()-1;
     }
 }
 
@@ -359,11 +407,11 @@ int qMRMLTableModel::mrmlTableColumnIndex(QModelIndex modelIndex)const
     }
   if (d->Transposed)
     {
-    return d->MRMLTableNode->GetLabelInFirstColumn() ? modelIndex.row()+1 : modelIndex.row();
+    return d->MRMLTableNode->GetUseFirstColumnAsRowHeader() ? modelIndex.row()+1 : modelIndex.row();
     }
   else
     {
-    return d->MRMLTableNode->GetLabelInFirstColumn() ? modelIndex.column()+1 : modelIndex.column();
+    return d->MRMLTableNode->GetUseFirstColumnAsRowHeader() ? modelIndex.column()+1 : modelIndex.column();
     }
 }
 
@@ -397,7 +445,33 @@ int qMRMLTableModel::removeSelectionFromMRML(QModelIndexList selection, bool rem
     {
     if (removeMRMLRows)
       {
-      d->MRMLTableNode->RemoveRow(mrmlIndex);
+      if (mrmlIndex==-1)
+        {
+        // the header row is deleted, move up the first line to header
+        vtkTable* table = d->MRMLTableNode->GetTable();
+        if (table)
+          {
+          for (int columnIndex=0; columnIndex<table->GetNumberOfColumns(); columnIndex++)
+            {
+              vtkAbstractArray* column = table->GetColumn(columnIndex);
+              if (!column)
+                {
+                qCritical("qMRMLTableModel::updateMRMLFromModel failed: column %d is invalid", columnIndex);
+                continue;
+                }
+              column->SetName(table->GetValue(0,columnIndex).ToString());
+            }
+          d->MRMLTableNode->RemoveRow(0);
+          }
+        else
+          {
+          qCritical("qMRMLTableModel::updateMRMLFromModel failed: table is invalid");
+          }
+        }
+      else
+        {
+        d->MRMLTableNode->RemoveRow(mrmlIndex);
+        }
       }
     else
       {

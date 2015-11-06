@@ -40,7 +40,8 @@ vtkMRMLTableNode::vtkMRMLTableNode()
   this->Table = vtkTable::New();
   this->Locked = false;
   this->Sortable = false;
-  this->LabelInFirstColumn = false;
+  this->UseColumnNameAsColumnHeader = true;
+  this->UseFirstColumnAsRowHeader = false;
   this->HideFromEditorsOff();
 }
 
@@ -63,7 +64,8 @@ void vtkMRMLTableNode::WriteXML(ostream& of, int nIndent)
   vtkIndent indent(nIndent);
   of << indent << " locked=\"" << (this->GetLocked() ? "true" : "false") << "\"";
   of << indent << " sortable=\"" << (this->GetSortable() ? "true" : "false") << "\"";
-  of << indent << " labelInFirstColumn=\"" << (this->GetLabelInFirstColumn() ? "true" : "false") << "\"";
+  of << indent << " useFirstColumnAsRowHeader=\"" << (this->GetUseFirstColumnAsRowHeader() ? "true" : "false") << "\"";
+  of << indent << " useColumnNameAsColumnHeader=\"" << (this->GetUseColumnNameAsColumnHeader() ? "true" : "false") << "\"";
 }
 
 
@@ -88,9 +90,13 @@ void vtkMRMLTableNode::ReadXMLAttributes(const char** atts)
       {
       this->SetSortable(strcmp(attValue,"true")?0:1);
       }
-    else if (!strcmp(attName, "labelInFirstColumn"))
+    else if (!strcmp(attName, "useColumnNameAsColumnHeader"))
       {
-      this->SetLabelInFirstColumn(strcmp(attValue,"true")?0:1);
+      this->SetUseColumnNameAsColumnHeader(strcmp(attValue,"true")?0:1);
+      }
+    else if (!strcmp(attName, "useFirstColumnAsRowHeader"))
+      {
+      this->SetUseFirstColumnAsRowHeader(strcmp(attValue,"true")?0:1);
       }
     }
 
@@ -111,7 +117,8 @@ void vtkMRMLTableNode::Copy(vtkMRMLNode *anode)
     this->SetAndObserveTable(node->GetTable());
     this->SetLocked(node->GetLocked());
     this->SetSortable(node->GetSortable());
-    this->SetLabelInFirstColumn(node->GetLabelInFirstColumn());
+    this->SetUseColumnNameAsColumnHeader(node->GetUseColumnNameAsColumnHeader());
+    this->SetUseFirstColumnAsRowHeader(node->GetUseFirstColumnAsRowHeader());
     }
   this->EndModify(disabledModify);
 }
@@ -148,7 +155,8 @@ void vtkMRMLTableNode::PrintSelf(ostream& os, vtkIndent indent)
   this->Superclass::PrintSelf(os,indent);
   os << indent << "\nLocked: " << this->GetLocked();
   os << indent << "\nSortable: " << this->GetSortable();
-  os << indent << "\nLabelInFirstColumn: " << this->GetLabelInFirstColumn();
+  os << indent << "\nUseColumnNameAsColumnHeader: " << this->GetUseColumnNameAsColumnHeader();
+  os << indent << "\nUseFirstColumnAsRowHeader: " << this->GetUseFirstColumnAsRowHeader();
   os << indent << "\nTable Data:";
   if (this->GetTable())
     {

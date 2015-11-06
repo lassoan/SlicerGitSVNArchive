@@ -39,6 +39,8 @@ class Q_SLICER_MODULE_TABLES_WIDGETS_EXPORT qMRMLTableView : public QTableView
 {
   Q_OBJECT
   Q_PROPERTY(bool transposed READ transposed WRITE setTransposed)
+  Q_PROPERTY(bool firstRowLocked READ firstRowLocked WRITE setFirstRowLocked)
+  Q_PROPERTY(bool firstColumnLocked READ firstColumnLocked WRITE setFirstColumnLocked)
 public:
   qMRMLTableView(QWidget *parent=0);
   virtual ~qMRMLTableView();
@@ -47,16 +49,31 @@ public:
   qMRMLTableModel* tableModel()const;
   QSortFilterProxyModel* sortFilterProxyModel()const;
 
-  /// Set/Get transposed flag
-  /// If transposed is true then columns of the MRML table are added as rows in the model.
-  /// This affects only this particular view, the settings is not stored in MRML.
-  void setTransposed(bool transposed);
   bool transposed()const;
+  bool firstRowLocked()const;
+  bool firstColumnLocked()const;
 
 public slots:
   void setMRMLTableNode(vtkMRMLTableNode* tableNode);
   /// Utility function to simply connect signals/slots with Qt Designer
   void setMRMLTableNode(vtkMRMLNode* tableNode);
+
+  /// Set transposed flag.
+  /// If transposed is true then columns of the MRML table are added as rows in the model.
+  /// This affects only this particular view, the settings is not stored in MRML.
+  void setTransposed(bool transposed);
+
+  void setFirstRowLocked(bool locked);
+  void setFirstColumnLocked(bool locked);
+
+  void copySelection();
+  void pasteSelection();
+
+  void insertRow();
+  void insertColumn();
+
+  void deleteRow();
+  void deleteColumn();
 
 protected:
   virtual void keyPressEvent(QKeyEvent* event);

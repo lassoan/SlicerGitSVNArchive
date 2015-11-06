@@ -2,6 +2,7 @@
   <qresource>
     <file>Icons/column_add.png</file>
     <file>Icons/column_delete.png</file>
+    <file>Icons/column_header_lock.png</file>
     <file>Icons/row_add.png</file>
     <file>Icons/row_delete.png</file>
     <file>Icons/row_header_lock.png</file>

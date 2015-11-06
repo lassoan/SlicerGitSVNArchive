@@ -88,7 +88,7 @@
      <property name="sizePolicy">
       <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
        <horstretch>0</horstretch>
-       <verstretch>0</verstretch>
+       <verstretch>1</verstretch>
       </sizepolicy>
      </property>
      <property name="text">
@@ -203,9 +203,9 @@
             </widget>
            </item>
            <item>
-            <widget class="QToolButton" name="LabelInFirstColumn">
+            <widget class="QToolButton" name="LockFirstColumnButton">
              <property name="toolTip">
-              <string>Use first column as row header</string>
+              <string>Lock first column</string>
              </property>
              <property name="text">
               <string>...</string>
@@ -213,6 +213,9 @@
              <property name="icon">
               <iconset resource="../../Widgets/Resources/qSlicerTablesModuleWidgets.qrc">
                <normaloff>:/Icons/row_header_lock.png</normaloff>:/Icons/row_header_lock.png</iconset>
+             </property>
+             <property name="checkable">
+              <bool>true</bool>
              </property>
             </widget>
            </item>
@@ -260,6 +263,26 @@
              </property>
             </widget>
            </item>
+           <item>
+            <widget class="QToolButton" name="LockFirstRowButton">
+             <property name="toolTip">
+              <string>Lock first row</string>
+             </property>
+             <property name="text">
+              <string>...</string>
+             </property>
+             <property name="icon">
+              <iconset resource="../../Widgets/Resources/qSlicerTablesModuleWidgets.qrc">
+               <normaloff>:/Icons/column_header_lock.png</normaloff>:/Icons/column_header_lock.png</iconset>
+             </property>
+             <property name="checkable">
+              <bool>true</bool>
+             </property>
+             <property name="checked">
+              <bool>true</bool>
+             </property>
+            </widget>
+           </item>
           </layout>
          </widget>
         </item>
@@ -267,13 +290,38 @@
       </item>
       <item>
        <widget class="qMRMLTableView" name="TableView">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
         <property name="editTriggers">
          <set>QAbstractItemView::AnyKeyPressed|QAbstractItemView::DoubleClicked|QAbstractItemView::EditKeyPressed|QAbstractItemView::SelectedClicked</set>
+        </property>
+        <property name="horizontalScrollMode">
+         <enum>QAbstractItemView::ScrollPerPixel</enum>
         </property>
        </widget>
       </item>
      </layout>
     </widget>
+   </item>
+   <item>
+    <spacer name="verticalSpacer">
+     <property name="orientation">
+      <enum>Qt::Vertical</enum>
+     </property>
+     <property name="sizeType">
+      <enum>QSizePolicy::Expanding</enum>
+     </property>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>20</width>
+       <height>1</height>
+      </size>
+     </property>
+    </spacer>
    </item>
    <item>
     <spacer name="BottomSpacer">

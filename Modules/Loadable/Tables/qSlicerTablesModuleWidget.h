@@ -54,17 +54,7 @@ protected:
 protected slots:
 
   void onMRMLTableNodeModified(vtkObject* caller);
-
   void onNodeSelected(vtkMRMLNode* node);
-
-  void copySelection();
-  void pasteSelection();
-
-  void insertColumn();
-  void deleteColumn();
-  void insertRow();
-  void deleteRow();
-  void toggleLabelInFirstColumn();
 
 protected:
   ///
