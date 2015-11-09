@@ -109,7 +109,7 @@ void qSlicerTablesModuleWidget::setup()
   Q_D(qSlicerTablesModuleWidget);
   d->setupUi(this);
 
-  // Add coordinate reference button to a button group
+  // Create shortcuts for copy/paste
   d->CopyAction = new QAction(this);
   d->CopyAction->setIcon(QIcon(":Icons/Medium/SlicerEditCopy.png"));
   d->CopyAction->setShortcutContext(Qt::WidgetWithChildrenShortcut);
@@ -124,9 +124,9 @@ void qSlicerTablesModuleWidget::setup()
   this->addAction(d->PasteAction);
 
   // Connect node selector with module itself
-  this->connect(d->TableNodeSelector,
-                SIGNAL(currentNodeChanged(vtkMRMLNode*)),
-                SLOT(onNodeSelected(vtkMRMLNode*)));
+  this->connect(d->TableNodeSelector, SIGNAL(currentNodeChanged(vtkMRMLNode*)), SLOT(onNodeSelected(vtkMRMLNode*)));
+
+  this->connect(d->LockTableButton, SIGNAL(clicked()), SLOT(onLockTableButtonClicked()));
 
   this->connect(d->ColumnInsertButton, SIGNAL(clicked()), d->TableView, SLOT(insertColumn()));
   this->connect(d->ColumnDeleteButton, SIGNAL(clicked()), d->TableView, SLOT(deleteColumn()));
@@ -148,57 +148,13 @@ void qSlicerTablesModuleWidget::setup()
 void qSlicerTablesModuleWidget::onNodeSelected(vtkMRMLNode* node)
 {
   Q_D(qSlicerTablesModuleWidget);
-
   vtkMRMLTableNode* tableNode = vtkMRMLTableNode::SafeDownCast(node);
 
-  // Enable/Disable CoordinateReference, identity, split buttons, MatrixViewGroupBox, and
-  // Min/Max translation inputs
-
-  /*
-  d->InvertPushButton->setEnabled(tableNode != 0);
-
-  d->TranslateFirstToolButton->setEnabled(isLinearTransform);
-  d->IdentityPushButton->setEnabled(isLinearTransform);
-  d->MatrixViewGroupBox->setEnabled(isLinearTransform);
-
-  d->TranslateFirstToolButton->setVisible(isLinearTransform);
-  d->MatrixViewGroupBox->setVisible(isLinearTransform);
-  d->TranslationSliders->setVisible(isLinearTransform);
-  d->RotationSliders->setVisible(isLinearTransform);
-
-  d->copySelectionToolButton->setVisible(isLinearTransform);
-  d->pasteSelectionToolButton->setVisible(isLinearTransform);
-
-  d->SplitPushButton->setVisible(isCompositeTransform);
-
-  QStringList nodeTypes;
-  // If no transform node, it would show the entire scene, lets shown none
-  // instead.
-  if (tableNode == 0)
-    {
-    nodeTypes << QString("vtkMRMLNotANode");
-    }
-  d->TransformedTreeView->setNodeTypes(nodeTypes);
-
-  // Filter the current node in the transformed tree view
-  d->TransformedTreeView->setRootNode(tableNode);
-
-  // Hide the current node in the transformable tree view
-  QStringList hiddenNodeIDs;
-  if (tableNode)
-    {
-    hiddenNodeIDs << QString(tableNode->GetID());
-    }
-  d->TransformableTreeView->sortFilterProxyModel()
-    ->setHiddenNodeIDs(hiddenNodeIDs);
-
-    */
-  this->qvtkReconnect(d->MRMLTableNode,
-    tableNode, vtkCommand::ModifiedEvent,
-    this, SLOT(onMRMLTableNodeModified(vtkObject*)));
-
+  this->qvtkReconnect(d->MRMLTableNode, tableNode, vtkCommand::ModifiedEvent, this, SLOT(onMRMLTableNodeModified(vtkObject*)));
   d->MRMLTableNode = tableNode;
 
+  // Update GUI from the newly selected node
+  this->onMRMLTableNodeModified(d->MRMLTableNode);
 }
 
 //-----------------------------------------------------------------------------
@@ -207,51 +163,46 @@ void qSlicerTablesModuleWidget::onMRMLTableNodeModified(vtkObject* caller)
   Q_D(qSlicerTablesModuleWidget);
 
   vtkMRMLTableNode* tableNode = vtkMRMLTableNode::SafeDownCast(caller);
-  if (!tableNode)
-    {
-    return;
-    }
   Q_ASSERT(d->MRMLTableNode == tableNode);
 
-  /*
-  bool isLinearTransform = tableNode->IsLinear();
-  bool isCompositeTransform = tableNode->IsComposite();
+  bool validNode = d->MRMLTableNode != 0;
+  bool editableNode = d->MRMLTableNode != 0 && !d->MRMLTableNode->GetLocked();
 
-  d->TranslateFirstToolButton->setEnabled(isLinearTransform);
-  d->IdentityPushButton->setEnabled(isLinearTransform);
-  d->MatrixViewGroupBox->setEnabled(isLinearTransform);
+  d->DisplayEditCollapsibleWidget->setEnabled(validNode);
+  d->LockTableButton->setEnabled(validNode);  
+  d->CopyButton->setEnabled(validNode); 
+  d->PasteButton->setEnabled(editableNode);
+  d->EditControlsFrame->setEnabled(editableNode);
 
-  // This method may be called very frequently (when transform is changing
-  // in real time). Due to some reason setVisible calls take time,
-  // even if the visibility state does not change.
-  // To save time, only call the set function if the visibility has to be changed.
-  if (isLinearTransform!=d->TranslateFirstToolButton->isVisible())
+  if (!d->MRMLTableNode)
     {
-    d->TranslateFirstToolButton->setVisible(isLinearTransform);
+    return;
+    }  
+
+  if (d->MRMLTableNode->GetLocked())
+    {
+    d->LockTableButton->setIcon(QIcon(":Icons/Medium/SlicerLock.png"));
+    d->LockTableButton->setToolTip(QString("Click to unlock this table so that values can be modified"));
     }
-  if (isLinearTransform!=d->MatrixViewGroupBox->isVisible())
+  else
     {
-    d->MatrixViewGroupBox->setVisible(isLinearTransform);
-    }
-  if (isLinearTransform!=d->TranslationSliders->isVisible())
-    {
-    d->TranslationSliders->setVisible(isLinearTransform);
-    }
-  if (isLinearTransform!=d->RotationSliders->isVisible())
-    {
-    d->RotationSliders->setVisible(isLinearTransform);
-    }
-  if (isLinearTransform!=d->copySelectionToolButton->isVisible())
-    {
-    d->copySelectionToolButton->setVisible(isLinearTransform);
-    }
-  if (isLinearTransform!=d->pasteSelectionToolButton->isVisible())
-    {
-    d->pasteSelectionToolButton->setVisible(isLinearTransform);
+    d->LockTableButton->setIcon(QIcon(":Icons/Medium/SlicerUnlock.png"));
+    d->LockTableButton->setToolTip(QString("Click to lock this table to prevent modification of the values in the user interface"));
     }
 
-  d->SplitPushButton->setVisible(isCompositeTransform);
-*/
+  if (d->MRMLTableNode->GetUseColumnNameAsColumnHeader() != d->LockFirstRowButton->isChecked())
+    {
+    bool wasBlocked = d->LockFirstRowButton->blockSignals(true);
+    d->LockFirstRowButton->setChecked(d->MRMLTableNode->GetUseColumnNameAsColumnHeader());
+    d->LockFirstRowButton->blockSignals(wasBlocked);
+    }
+
+  if (d->MRMLTableNode->GetUseFirstColumnAsRowHeader() != d->LockFirstColumnButton->isChecked())
+    {
+    bool wasBlocked = d->LockFirstColumnButton->blockSignals(true);
+    d->LockFirstColumnButton->setChecked(d->MRMLTableNode->GetUseFirstColumnAsRowHeader());
+    d->LockFirstColumnButton->blockSignals(wasBlocked);
+    }
 }
 
 //-----------------------------------------------------------------------------
@@ -259,4 +210,19 @@ void qSlicerTablesModuleWidget::setMRMLScene(vtkMRMLScene* scene)
 {
   Q_D(qSlicerTablesModuleWidget);
   this->Superclass::setMRMLScene(scene);
+}
+
+//-----------------------------------------------------------------------------
+void qSlicerTablesModuleWidget::onLockTableButtonClicked()
+{
+  Q_D(qSlicerTablesModuleWidget);
+
+  if (!d->MRMLTableNode)
+    {
+    return;
+    }
+
+  // toggle the lock
+  int locked = d->MRMLTableNode->GetLocked();
+  d->MRMLTableNode->SetLocked(!locked);
 }

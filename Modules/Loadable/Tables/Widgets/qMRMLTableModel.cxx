@@ -47,6 +47,9 @@ public:
   virtual ~qMRMLTableModelPrivate();
   void init();
 
+  // Returns Excel-style column names from index (A, B, C, ..., Z, AA, AB, AC, ..., AZ, AAA, AAB, ...)
+  static QString columnNameFromIndex(int index);
+
   vtkSmartPointer<vtkCallbackCommand> CallBack;
   vtkSmartPointer<vtkMRMLTableNode>   MRMLTableNode;
   bool Transposed;
@@ -77,6 +80,20 @@ void qMRMLTableModelPrivate::init()
   this->CallBack->SetCallback(qMRMLTableModel::onMRMLNodeEvent);
   q->setColumnCount(0);
   QObject::connect(q, SIGNAL(itemChanged(QStandardItem*)), q, SLOT(onItemChanged(QStandardItem*)), Qt::UniqueConnection);
+}
+
+
+//------------------------------------------------------------------------------
+QString qMRMLTableModelPrivate::columnNameFromIndex(int index)
+{
+  static const char base26Chars[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  QString returnValue;
+  while (index>=0)
+  {
+    returnValue.prepend(base26Chars[index % 26]);
+    index = index/26 - 1;
+  };
+  return returnValue;
 }
 
 //------------------------------------------------------------------------------
@@ -171,18 +188,14 @@ void qMRMLTableModel::updateModelFromMRML()
     int modelCol = static_cast<int>(tableCol - tableColOffset);
 
     QString columnName(table->GetColumnName(tableCol));
-    // unknown is used to encode columns with no name
-    /*if (columnName == "unknown")
-      {
-      columnName = "";
-      }*/
+
     if (useColumnNameAsColumnHeader)
       {
       setHeaderData(modelCol, d->Transposed ? Qt::Vertical : Qt::Horizontal, columnName);
       }
     else
       {
-      QString autoColumnHeader = QString::number(modelCol+1);
+      QString autoColumnHeader = d->columnNameFromIndex(modelCol);
       setHeaderData(modelCol, d->Transposed ? Qt::Vertical : Qt::Horizontal, autoColumnHeader);
       }
 
@@ -190,17 +203,6 @@ void qMRMLTableModel::updateModelFromMRML()
       {
       int modelRow = static_cast<int>(tableRow - tableRowOffset);
       QStandardItem* item = new QStandardItem();
-      /*
-ttt
-    if (role == Qt::FontRole && index.column() == 0) { // First column items are bold.
-        QFont font;
-        font.setBold(true);
-        return font;
-    } else if (role == Qt::ForegroundRole && index.column() == 0) {
-        return QColor(Qt::red);
-    } else {
-        [..]
-    }*/
 
       if (tableRow>=0)
         {

@@ -73,11 +73,13 @@
        </property>
        <property name="icon">
         <iconset resource="../../../../../Base/QTGUI/Resources/qSlicerBaseQTGUI.qrc">
-         <normaloff>:/Icons/Medium/SlicerUnlock.png</normaloff>
-         <normalon>:/Icons/Medium/SlicerLock.png</normalon>:/Icons/Medium/SlicerUnlock.png</iconset>
+         <normaloff>:/Icons/Medium/SlicerUnlock.png</normaloff>:/Icons/Medium/SlicerUnlock.png</iconset>
        </property>
        <property name="checkable">
-        <bool>true</bool>
+        <bool>false</bool>
+       </property>
+       <property name="flat">
+        <bool>false</bool>
        </property>
       </widget>
      </item>
@@ -401,38 +403,6 @@
     <hint type="destinationlabel">
      <x>204</x>
      <y>758</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>LockTableButton</sender>
-   <signal>toggled(bool)</signal>
-   <receiver>PasteButton</receiver>
-   <slot>setDisabled(bool)</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>257</x>
-     <y>12</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>44</x>
-     <y>75</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>LockTableButton</sender>
-   <signal>toggled(bool)</signal>
-   <receiver>EditControlsFrame</receiver>
-   <slot>setDisabled(bool)</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>257</x>
-     <y>12</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>136</x>
-     <y>75</y>
     </hint>
    </hints>
   </connection>

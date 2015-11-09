@@ -55,6 +55,7 @@ protected slots:
 
   void onMRMLTableNodeModified(vtkObject* caller);
   void onNodeSelected(vtkMRMLNode* node);
+  void onLockTableButtonClicked();
 
 protected:
   ///

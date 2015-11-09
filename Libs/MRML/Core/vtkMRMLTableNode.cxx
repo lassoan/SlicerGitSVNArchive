@@ -40,7 +40,7 @@ vtkMRMLTableNode::vtkMRMLTableNode()
   this->Table = vtkTable::New();
   this->Locked = false;
   this->Sortable = false;
-  this->UseColumnNameAsColumnHeader = true;
+  this->UseColumnNameAsColumnHeader = false;
   this->UseFirstColumnAsRowHeader = false;
   this->HideFromEditorsOff();
 }
