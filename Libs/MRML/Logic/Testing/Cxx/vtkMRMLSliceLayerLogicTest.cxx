@@ -32,6 +32,7 @@
 #include <vtkImageData.h>
 #include <vtkImageInterpolator.h>
 #include <vtkImageReslice.h>
+#include <vtkImageSlabReslice.h>
 #include <vtkNew.h>
 #include <vtkPointData.h>
 #include <vtkTrivialProducer.h>

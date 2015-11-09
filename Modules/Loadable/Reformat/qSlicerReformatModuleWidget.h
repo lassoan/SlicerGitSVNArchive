@@ -97,6 +97,9 @@ protected slots:
   void onSliceOrientationChanged(const QString& orientation);
   void onSliderRotationChanged(double rotationX);
 
+  void onSlabBlendModeIndexChanged(int index);
+  void onSlabThicknessChanged(double thickness);
+
 protected:
   QScopedPointer<qSlicerReformatModuleWidgetPrivate> d_ptr;
 

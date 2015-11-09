@@ -70,6 +70,9 @@ public:
   /// Update orientation selector state
   void updateOrientationGroupBox();
 
+  /// Update thick slab controllers
+  void updateSlabGroupBox();
+
   /// Reset the slider
   void resetSlider(qMRMLLinearTransformSlider*);
 
@@ -122,6 +125,7 @@ void qSlicerReformatModuleWidgetPrivate::updateUi()
   this->updateOffsetSlidersGroupBox();
   this->updateOriginCoordinates();
   this->updateOrientationGroupBox();
+  this->updateSlabGroupBox();
 }
 
 //------------------------------------------------------------------------------
@@ -280,6 +284,21 @@ void qSlicerReformatModuleWidgetPrivate::updateOrientationGroupBox()
 }
 
 //------------------------------------------------------------------------------
+void qSlicerReformatModuleWidgetPrivate::updateSlabGroupBox()
+{
+  if (!this->MRMLSliceNode)
+    {
+    this->SlabBlendModeComboBox->setCurrentIndex(-1);
+    return;
+    }
+
+  int index = this->SlabBlendModeComboBox->findData(QVariant(this->MRMLSliceNode->GetSlabBlendMode()));
+  this->SlabBlendModeComboBox->setCurrentIndex(index);
+
+  this->SlabThicknessSlider->setValue(this->MRMLSliceNode->GetSlabThickness());
+}
+
+//------------------------------------------------------------------------------
 void qSlicerReformatModuleWidgetPrivate::
 resetSlider(qMRMLLinearTransformSlider* slider)
 {
@@ -400,6 +419,16 @@ void qSlicerReformatModuleWidget::setup()
                 this, SLOT(onSliderRotationChanged(double)));
   this->connect(d->ISSlider, SIGNAL(valueChanged(double)),
                 this, SLOT(onSliderRotationChanged(double)));
+
+  // Populate the slab slice modes
+  d->SlabBlendModeComboBox->addItem("Mean", QVariant(VTK_IMAGE_SLAB_MEAN));
+  d->SlabBlendModeComboBox->addItem("Minimum", QVariant(VTK_IMAGE_SLAB_MIN));
+  d->SlabBlendModeComboBox->addItem("Maximum", QVariant(VTK_IMAGE_SLAB_MAX));
+  this->connect(d->SlabBlendModeComboBox, SIGNAL(currentIndexChanged(int)),
+                this, SLOT(onSlabBlendModeIndexChanged(int))/*, Qt::QueuedConnection*/);
+
+  this->connect(d->SlabThicknessSlider, SIGNAL(valueChanged(double)),
+                this, SLOT(onSlabThicknessChanged(double)) /*, Qt::QueuedConnection*/);
 }
 
 //------------------------------------------------------------------------------
@@ -724,4 +753,33 @@ void qSlicerReformatModuleWidget::centerSliceNode()
 
   // Apply the center
   reformatLogic->SetSliceOrigin(d->MRMLSliceNode, center);
+}
+
+//------------------------------------------------------------------------------
+void qSlicerReformatModuleWidget::
+onSlabBlendModeIndexChanged(int index)
+{
+  Q_D(qSlicerReformatModuleWidget);
+
+  if (!d->MRMLSliceNode)
+    {
+    return;
+    }
+
+  int slabBlendMode = d->SlabBlendModeComboBox->itemData(index).toInt();
+  d->MRMLSliceNode->SetSlabBlendMode(slabBlendMode);
+}
+
+//------------------------------------------------------------------------------
+void qSlicerReformatModuleWidget::
+onSlabThicknessChanged(double thickness)
+{
+  Q_D(qSlicerReformatModuleWidget);
+
+  if (!d->MRMLSliceNode)
+    {
+    return;
+    }
+
+  d->MRMLSliceNode->SetSlabThickness(thickness);
 }

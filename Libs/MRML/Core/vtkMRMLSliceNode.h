@@ -312,6 +312,20 @@ class VTK_MRML_EXPORT vtkMRMLSliceNode : public vtkMRMLAbstractViewNode
   vtkGetVector3Macro(PrescribedSliceSpacing, double);
 
   ///
+  /// Set the slab blend mode, for generating thick slices. The default is Mean.
+  vtkSetClampMacro(SlabBlendMode, int, VTK_IMAGE_SLAB_MIN, VTK_IMAGE_SLAB_MEAN);
+  vtkGetMacro(SlabBlendMode, int);
+  void SetSlabBlendModeToMin() { this->SetSlabBlendMode(VTK_IMAGE_SLAB_MIN); };
+  void SetSlabBlendModeToMax() { this->SetSlabBlendMode(VTK_IMAGE_SLAB_MAX); };
+  void SetSlabBlendModeToMean() { this->SetSlabBlendMode(VTK_IMAGE_SLAB_MEAN); };
+
+  ///
+  /// Slice thickness. If larger than zero then image data is blended according to
+  /// SlabBlendMode. Samples are taken along the image at the interval of slice spacing.
+  vtkSetMacro(SlabThickness, double);
+  vtkGetMacro(SlabThickness, double);
+
+  ///
   /// Get/Set the current distance from the origin to the slice plane
   double GetSliceOffset();
   void SetSliceOffset(double offset);
@@ -360,8 +374,10 @@ class VTK_MRML_EXPORT vtkMRMLSliceNode : public vtkMRMLAbstractViewNode
     XYZOriginFlag = 32,
     LabelOutlineFlag = 64,
     SliceVisibleFlag = 128,
-    SliceSpacingFlag = 256
-    // Next one needs to be 512
+    SliceSpacingFlag = 256,
+    SlabBlendModeFlag = 512,
+    SlabThicknessFlag = 1024,
+    // Next one needs to be 2048
   };
 
   /// Get/Set a flag indicating what parameters are being manipulated
@@ -447,6 +463,9 @@ protected:
 
   int SliceSpacingMode;
   double PrescribedSliceSpacing[3];
+
+  int SlabBlendMode;
+  double SlabThickness;
 
   int ActiveSlice;
 

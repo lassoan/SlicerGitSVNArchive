@@ -33,7 +33,7 @@
 #include <vtkFloatArray.h>
 #include <vtkGeneralTransform.h>
 #include <vtkImageData.h>
-#include <vtkImageReslice.h>
+#include <vtkImageSlabReslice.h>
 #include <vtkInformation.h>
 #include <vtkInformationVector.h>
 #include <vtkNew.h>
@@ -139,8 +139,8 @@ vtkMRMLSliceLayerLogic::vtkMRMLSliceLayerLogic()
   this->AssignAttributeScalarsToTensorsUVW->Assign(vtkDataSetAttributes::SCALARS, vtkDataSetAttributes::TENSORS, vtkAssignAttribute::POINT_DATA);
 
   // Create the parts for the scalar layer pipeline
-  this->Reslice = vtkImageReslice::New();
-  this->ResliceUVW = vtkImageReslice::New();
+  this->Reslice = vtkImageSlabReslice::New();
+  this->ResliceUVW = vtkImageSlabReslice::New();
   this->LabelOutline = vtkImageLabelOutline::New();
   this->LabelOutlineUVW = vtkImageLabelOutline::New();
 
@@ -154,6 +154,7 @@ vtkMRMLSliceLayerLogic::vtkMRMLSliceLayerLogic()
   this->Reslice->SetOutputSpacing( 1, 1, 1 );
   this->Reslice->SetOutputDimensionality( 3 );
   this->Reslice->GenerateStencilOutputOn();
+  this->Reslice->BorderOff();
 
   this->ResliceUVW->SetBackgroundColor(0, 0, 0, 0); // only first two are used
   this->ResliceUVW->AutoCropOutputOff();
@@ -162,6 +163,7 @@ vtkMRMLSliceLayerLogic::vtkMRMLSliceLayerLogic()
   this->ResliceUVW->SetOutputSpacing( 1, 1, 1 );
   this->ResliceUVW->SetOutputDimensionality( 3 );
   this->ResliceUVW->GenerateStencilOutputOn();
+  this->ResliceUVW->BorderOff();
 
   this->UpdatingTransforms = 0;
 }
@@ -518,12 +520,17 @@ void vtkMRMLSliceLayerLogic::UpdateTransforms()
   vtkNew<vtkMatrix4x4> uvwToIJK;
   uvwToIJK->Identity();
 
+  vtkNew<vtkGeneralTransform> worldToVolumeTransform;
+
   this->XYToIJKTransform->Identity();
   this->UVWToIJKTransform->Identity();
+  worldToVolumeTransform->Identity();
 
   this->XYToIJKTransform->PostMultiply();
   this->UVWToIJKTransform->PostMultiply();
+  worldToVolumeTransform->PostMultiply();
 
+  vtkNew<vtkMatrix4x4> xyToRAS;
   if (this->SliceNode)
     {
     vtkMatrix4x4::Multiply4x4(this->SliceNode->GetXYToRAS(), xyToIJK.GetPointer(), xyToIJK.GetPointer());
@@ -534,6 +541,7 @@ void vtkMRMLSliceLayerLogic::UpdateTransforms()
 
     this->XYToIJKTransform->Concatenate(xyToIJK.GetPointer());
     this->UVWToIJKTransform->Concatenate(uvwToIJK.GetPointer());
+    xyToRAS->DeepCopy(this->SliceNode->GetXYToRAS());
     }
 
   if (this->VolumeNode && this->VolumeNode->GetImageData())
@@ -545,8 +553,8 @@ void vtkMRMLSliceLayerLogic::UpdateTransforms()
       vtkNew<vtkGeneralTransform> worldTransform;
       worldTransform->Identity();
       transformNode->GetTransformFromWorld(worldTransform.GetPointer());
-      //worldTransform->Inverse();
 
+      worldToVolumeTransform->Concatenate(worldTransform.GetPointer());
       this->XYToIJKTransform->Concatenate(worldTransform.GetPointer());
       this->UVWToIJKTransform->Concatenate(worldTransform.GetPointer());
       }
@@ -556,15 +564,18 @@ void vtkMRMLSliceLayerLogic::UpdateTransforms()
 
     this->XYToIJKTransform->Concatenate(rasToIJK.GetPointer());
     this->UVWToIJKTransform->Concatenate(rasToIJK.GetPointer());
+    worldToVolumeTransform->Concatenate(rasToIJK.GetPointer());
 
     // vtkImageReslice works faster if the input is a linear transform, so try to convert it
     // to a linear transform.
     // Also attempt to make it a permute transform, as it makes reslicing even faster.
-    vtkSmartPointer<vtkTransform> linearXYToIJKTransform = vtkSmartPointer<vtkTransform>::New();
-    if (vtkMRMLTransformNode::IsGeneralTransformLinear(this->XYToIJKTransform, linearXYToIJKTransform))
+    vtkSmartPointer<vtkTransform> linearWorldTransform = vtkSmartPointer<vtkTransform>::New();
+    if (vtkMRMLTransformNode::IsGeneralTransformLinear(worldToVolumeTransform.GetPointer(), linearWorldTransform))
       {
-      SnapToPermuteMatrix(linearXYToIJKTransform);
-      this->Reslice->SetResliceTransform(linearXYToIJKTransform);
+      SnapToPermuteMatrix(linearWorldTransform);
+      this->Reslice->SetResliceTransform(linearWorldTransform);
+      this->Reslice->SetResliceAxes(xyToRAS.GetPointer());
+      // TODO: verify this and set reslice axes the same way in all other cases
       }
     else
       {
@@ -863,6 +874,33 @@ void vtkMRMLSliceLayerLogic::UpdateImageDisplay()
     this->Reslice->SetInputData(volumeNode->GetImageData());
     this->ResliceUVW->SetInputData(volumeNode->GetImageData());
 #endif
+
+    if (this->SliceNode)
+      {
+      int slabBlendMode = this->SliceNode->GetSlabBlendMode();
+      double slabThickness = this->SliceNode->GetSlabThickness();
+      double slabResolution = 0.1;
+
+      // Thick reslicing is not applicable to labelmap volumes
+      // (it would be especially confusing when manually editing the segmentation)
+      if (this->GetIsLabelLayer() || labelMapVolumeDisplayNode)
+        {
+        // TODO: this is only for testing; for the future, slabThickness
+        // should be set to 0 regardless of the blend mode
+        if (this->SliceNode->GetSlabBlendMode()==VTK_IMAGE_SLAB_MEAN)
+          {
+          slabThickness = 0.0;
+          }
+        }
+
+      this->Reslice->SetBlendMode(slabBlendMode);
+      this->ResliceUVW->SetBlendMode(slabBlendMode);
+      this->Reslice->SetSlabThickness(slabThickness);
+      this->ResliceUVW->SetSlabThickness(slabThickness);
+      this->Reslice->SetSlabResolution(slabResolution);
+      this->ResliceUVW->SetSlabResolution(slabResolution);
+      }
+
     // use the label outline if we have a label map volume, this is the label
     // layer (turned on in slice logic when the label layer is instantiated)
     // and the slice node is set to use it.

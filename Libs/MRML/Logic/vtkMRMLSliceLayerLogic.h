@@ -48,7 +48,7 @@
 #include <vtkVersion.h>
 
 class vtkAssignAttribute;
-class vtkImageReslice;
+class vtkImageSlabReslice;
 class vtkGeneralTransform;
 
 // STL includes
@@ -86,8 +86,8 @@ public:
 
   ///
   /// The image reslice or slice being used
-  vtkGetObjectMacro (Reslice, vtkImageReslice);
-  vtkGetObjectMacro (ResliceUVW, vtkImageReslice);
+  vtkGetObjectMacro (Reslice, vtkImageSlabReslice);
+  vtkGetObjectMacro (ResliceUVW, vtkImageSlabReslice);
 
   ///
   /// Select if this is a label layer or not (it currently determines if we use
@@ -175,8 +175,10 @@ protected:
 
   ///
   /// the VTK class instances that implement this Logic's operations
-  vtkImageReslice *Reslice;
-  vtkImageReslice *ResliceUVW;
+  /// vtkImageSlabReslice is the same as vtkImageReslice but with more
+  /// convenient set functions for setting the slab thickness and resolution.
+  vtkImageSlabReslice *Reslice;
+  vtkImageSlabReslice *ResliceUVW;
   vtkImageLabelOutline *LabelOutline;
   vtkImageLabelOutline *LabelOutlineUVW;
 

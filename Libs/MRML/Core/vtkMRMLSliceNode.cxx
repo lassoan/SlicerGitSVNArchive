@@ -100,6 +100,9 @@ vtkMRMLSliceNode::vtkMRMLSliceNode()
   this->PrescribedSliceSpacing[0] = this->PrescribedSliceSpacing[1] = this->PrescribedSliceSpacing[2] = 1;
   this->SliceSpacingMode = AutomaticSliceSpacingMode;
 
+  this->SlabBlendMode = VTK_IMAGE_SLAB_MEAN;
+  this->SlabThickness = 0;
+
   this->ActiveSlice = 0;
 
   this->Interacting = 0;
@@ -777,6 +780,8 @@ void vtkMRMLSliceNode::WriteXML(ostream& of, int nIndent)
      << this->PrescribedSliceSpacing[0] << " "
      << this->PrescribedSliceSpacing[1] << " "
      << this->PrescribedSliceSpacing[2] << "\"";
+  of << indent << " slabBlendMode=\"" << this->SlabBlendMode << "\"";
+  of << indent << " slabThickness=\"" << this->SlabThickness << "\"";
 
   ss.clear();
   for (unsigned int n = 0; n < this->ThreeDViewIDs.size(); ++n)
@@ -909,7 +914,27 @@ void vtkMRMLSliceNode::ReadXMLAttributes(const char** atts)
       this->SliceResolutionMode = val;
       }
 
-    else if (!strcmp(attName, "activeSlice"))
+    else if (!strcmp(attName, "slabBlendMode"))
+      {
+      std::stringstream ss;
+      int val;
+      ss << attValue;
+      ss >> val;
+
+      this->SlabBlendMode = val;
+      }
+
+    else if (!strcmp(attName, "slabThickness"))
+      {
+      std::stringstream ss;
+      int val;
+      ss << attValue;
+      ss >> val;
+
+      this->SlabThickness = val;
+      }
+
+  else if (!strcmp(attName, "activeSlice"))
       {
       std::stringstream ss;
       int val;

@@ -468,6 +468,21 @@ void vtkMRMLSliceLinkLogic::BroadcastSliceNodeEvent(vtkMRMLSliceNode *sliceNode)
             sNode->SetSliceSpacingMode( sliceNode->GetSliceSpacingMode() );
             sNode->SetPrescribedSliceSpacing( sliceNode->GetPrescribedSliceSpacing() );
             }
+
+          // Setting the slab mode
+          if (sliceNode->GetInteractionFlags() & sliceNode->GetInteractionFlagsModifier()
+            & vtkMRMLSliceNode::SlabBlendModeFlag)
+            {
+            sNode->SetSlabBlendMode( sliceNode->GetSlabBlendMode() );
+            }
+
+          // Setting the number of slab slices
+          if (sliceNode->GetInteractionFlags() & sliceNode->GetInteractionFlagsModifier()
+            & vtkMRMLSliceNode::SlabThicknessFlag)
+            {
+            sNode->SetSlabThickness( sliceNode->GetSlabThickness() );
+            }
+
         //
         // End of the block for broadcasting parameters and commands
         // that do not require the orientation to match
