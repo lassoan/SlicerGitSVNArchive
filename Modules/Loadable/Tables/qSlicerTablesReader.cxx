@@ -28,6 +28,7 @@
 #include "vtkSlicerTablesLogic.h"
 
 // MRML includes
+#include <vtkMRMLScene.h>
 #include <vtkMRMLTableNode.h>
 
 // VTK includes
@@ -109,16 +110,19 @@ bool qSlicerTablesReader::load(const IOProperties& properties)
     {
     name = properties["name"].toString();
     }
-  Q_ASSERT(d->Logic);
-  vtkMRMLTableNode* node = d->Logic->AddTable(
-    fileName.toLatin1(),
-    name.toLatin1());
+  std::string uname = this->mrmlScene()->GetUniqueNameByString(name.toLatin1());
+  vtkMRMLTableNode* node = NULL;
+  if (d->Logic!=NULL)
+    {
+    node = d->Logic->AddTable(fileName.toLatin1(),uname.c_str());
+    }
   if (node)
     {
     this->setLoadedNodes(QStringList(QString(node->GetID())));
     }
   else
     {
+    qCritical("Failed to read table from %s", qPrintable(fileName));
     this->setLoadedNodes(QStringList());
     }
   return node != 0;
