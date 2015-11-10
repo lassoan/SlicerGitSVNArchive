@@ -82,15 +82,11 @@ public:
   vtkGetMacro(Locked, bool);
   vtkSetMacro(Locked, bool);
 
-  ///
-  /// Rows are allowed be sorted based on values in a selected column
-  vtkGetMacro(Sortable, bool);
-  vtkSetMacro(Sortable, bool);
-
   /// First column should be treated as row label
   vtkGetMacro(UseFirstColumnAsRowHeader, bool);
   vtkSetMacro(UseFirstColumnAsRowHeader, bool);
 
+  ///
   /// Column name should be treated as column label
   vtkGetMacro(UseColumnNameAsColumnHeader, bool);
   vtkSetMacro(UseColumnNameAsColumnHeader, bool);
@@ -99,6 +95,7 @@ public:
   /// Create default storage node or NULL if does not have one
   virtual vtkMRMLStorageNode* CreateDefaultStorageNode();
 
+  ///
   /// Add an array to the table as a new column.
   /// If no column is provided then an empty column is added.
   /// If a column is provided then the number of rows in the table and tuples in
@@ -108,17 +105,33 @@ public:
   /// automatically that is unique among all table column names.
   vtkAbstractArray* AddColumn(vtkAbstractArray* column = 0);
 
+  ///
   /// Remove array from the table.
   /// Returns with true on success.
   bool RemoveColumn(int columnIndex);
 
+  ///
   /// Add an empty row at the end of the table
   /// Returns the index of the inserted row or -1 on failure.
   int AddEmptyRow();
 
+  ///
   /// Remove row from the table
   /// Returns with true on success.
   bool RemoveRow(int rowIndex);
+
+  ///
+  /// Convenience method for getting a single value in the table.
+  /// Returns empty string if failed to get value. Returns the value on success.
+  std::string GetCellText(int rowIndex, int columnIndex);
+
+  ///
+  /// Convenience method for setting a single value in the table.
+  /// Returns true if the setting was successful.
+  /// This updates the node immediately, therefore it is not efficient when a large number
+  /// of values has to be modified. For bulk operations get the vtkTable object using
+  /// GetTable() method and manipulate that directly.
+  bool SetCellText(int rowIndex, int columnIndex, const char* text);
 
   //----------------------------------------------------------------
   /// Constructor and destroctor
@@ -137,10 +150,8 @@ public:
 
   vtkTable* Table;
   bool Locked;
-  bool Sortable;
   bool UseColumnNameAsColumnHeader;
   bool UseFirstColumnAsRowHeader;
 };
 
 #endif
-

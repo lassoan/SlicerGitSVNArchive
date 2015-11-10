@@ -23,6 +23,7 @@
 #include "vtkMRMLTableStorageNode.h"
 
 // VTK includes
+#include <vtkCommand.h>
 #include <vtkNew.h>
 #include <vtkObjectFactory.h>
 #include <vtkStringArray.h>
@@ -37,12 +38,13 @@ vtkMRMLNodeNewMacro(vtkMRMLTableNode);
 //----------------------------------------------------------------------------
 vtkMRMLTableNode::vtkMRMLTableNode()
 {
-  this->Table = vtkTable::New();
+  this->Table = NULL;
   this->Locked = false;
-  this->Sortable = false;
   this->UseColumnNameAsColumnHeader = false;
   this->UseFirstColumnAsRowHeader = false;
   this->HideFromEditorsOff();
+
+  this->SetAndObserveTable(vtkSmartPointer<vtkTable>::New());
 }
 
 //----------------------------------------------------------------------------
@@ -63,7 +65,6 @@ void vtkMRMLTableNode::WriteXML(ostream& of, int nIndent)
   Superclass::WriteXML(of, nIndent);
   vtkIndent indent(nIndent);
   of << indent << " locked=\"" << (this->GetLocked() ? "true" : "false") << "\"";
-  of << indent << " sortable=\"" << (this->GetSortable() ? "true" : "false") << "\"";
   of << indent << " useFirstColumnAsRowHeader=\"" << (this->GetUseFirstColumnAsRowHeader() ? "true" : "false") << "\"";
   of << indent << " useColumnNameAsColumnHeader=\"" << (this->GetUseColumnNameAsColumnHeader() ? "true" : "false") << "\"";
 }
@@ -85,10 +86,6 @@ void vtkMRMLTableNode::ReadXMLAttributes(const char** atts)
     if (!strcmp(attName, "locked"))
       {
       this->SetLocked(strcmp(attValue,"true")?0:1);
-      }
-    else if (!strcmp(attName, "sortable"))
-      {
-      this->SetSortable(strcmp(attValue,"true")?0:1);
       }
     else if (!strcmp(attName, "useColumnNameAsColumnHeader"))
       {
@@ -114,9 +111,21 @@ void vtkMRMLTableNode::Copy(vtkMRMLNode *anode)
   vtkMRMLTableNode *node = vtkMRMLTableNode::SafeDownCast(anode);
   if (node)
     {
-    this->SetAndObserveTable(node->GetTable());
+    if (this->GetTable()!=NULL && node->GetTable()==NULL)
+      {
+      this->SetAndObserveTable(NULL);
+      }
+    else if (this->GetTable()==NULL && node->GetTable()!=NULL)
+      {
+      vtkNew<vtkTable> newTable;
+      newTable->DeepCopy(node->GetTable());
+      this->SetAndObserveTable(newTable.GetPointer());
+      }
+    else
+      {
+      this->GetTable()->DeepCopy(node->GetTable());
+      }
     this->SetLocked(node->GetLocked());
-    this->SetSortable(node->GetSortable());
     this->SetUseColumnNameAsColumnHeader(node->GetUseColumnNameAsColumnHeader());
     this->SetUseFirstColumnAsRowHeader(node->GetUseFirstColumnAsRowHeader());
     }
@@ -129,21 +138,13 @@ void vtkMRMLTableNode::ProcessMRMLEvents( vtkObject *caller, unsigned long event
 {
   Superclass::ProcessMRMLEvents(caller, event, callData);
 
-  //if (this->TargetPlanList && this->TargetPlanList == vtkMRMLFiducialListNode::SafeDownCast(caller) &&
-  //  event ==  vtkCommand::ModifiedEvent)
-  //  {
-  //  //this->InvokeEvent(vtkMRMLVolumeNode::ImageDataModifiedEvent, NULL);
-  //  //this->UpdateFromMRML();
-  //  return;
-  //  }
-  //
-  //if (this->TargetCompletedList && this->TargetCompletedList == vtkMRMLFiducialListNode::SafeDownCast(caller) &&
-  //  event ==  vtkCommand::ModifiedEvent)
-  //  {
-  //  //this->InvokeEvent(vtkMRMLVolumeNode::ImageDataModifiedEvent, NULL);
-  //  //this->UpdateFromMRML();
-  //  return;
-  //  }
+  if (this->Table && this->Table == vtkTable::SafeDownCast(caller) &&
+    event ==  vtkCommand::ModifiedEvent)
+    {
+    this->StorableModifiedTime.Modified();
+    this->Modified();
+    return;
+    }
 
   return;
 }
@@ -154,7 +155,6 @@ void vtkMRMLTableNode::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os,indent);
   os << indent << "\nLocked: " << this->GetLocked();
-  os << indent << "\nSortable: " << this->GetSortable();
   os << indent << "\nUseColumnNameAsColumnHeader: " << this->GetUseColumnNameAsColumnHeader();
   os << indent << "\nUseFirstColumnAsRowHeader: " << this->GetUseFirstColumnAsRowHeader();
   os << indent << "\nTable Data:";
@@ -183,7 +183,7 @@ void vtkMRMLTableNode::SetAndObserveTable(vtkTable* table)
     return;
     }
   vtkSetAndObserveMRMLObjectMacro(this->Table, table);
-  this->Modified(); // TODO: check if modified event is invoked by vtkSetAndObserveMRMLObjectMacro; if yes then don't invoke it again here
+  this->Modified();
 }
 
 //----------------------------------------------------------------------------
@@ -235,11 +235,6 @@ vtkAbstractArray* vtkMRMLTableNode::AddColumn(vtkAbstractArray* column)
   else
     {
     int numberOfRows = this->Table->GetNumberOfRows();
-    if (numberOfRows==0)
-      {
-      // add at least one element
-      numberOfRows=1;
-      }
     newColumn = vtkSmartPointer<vtkStringArray>::New();
     newColumn->SetNumberOfTuples(numberOfRows);
     vtkVariant emptyCell("");
@@ -326,6 +321,50 @@ bool vtkMRMLTableNode::RemoveRow(int rowIndex)
     return false;
     }
   this->Table->RemoveRow(rowIndex);
+  this->Modified();
+  return true;
+}
+
+//----------------------------------------------------------------------------
+std::string vtkMRMLTableNode::GetCellText(int rowIndex, int columnIndex)
+{
+  if (!this->Table)
+    {
+    vtkErrorMacro("vtkMRMLTableNode::GetCellText failed: invalid table");
+    return "";
+    }
+  if (columnIndex<0 || columnIndex>=this->Table->GetNumberOfColumns())
+    {
+    vtkErrorMacro("vtkMRMLTableNode::GetCellText failed: invalid column index "<<columnIndex);
+    return "";
+    }
+  if (rowIndex<0 || rowIndex>=this->Table->GetNumberOfRows())
+    {
+    vtkErrorMacro("vtkMRMLTableNode::GetCellText failed: invalid row index: "<<rowIndex);
+    return "";
+    }
+  return this->Table->GetValue(rowIndex, columnIndex).ToString();
+}
+
+//----------------------------------------------------------------------------
+bool vtkMRMLTableNode::SetCellText(int rowIndex, int columnIndex, const char* text)
+{
+  if (!this->Table)
+    {
+    vtkErrorMacro("vtkMRMLTableNode::SetCellText failed: invalid table");
+    return "";
+    }
+  if (columnIndex<0 || columnIndex>=this->Table->GetNumberOfColumns())
+    {
+    vtkErrorMacro("vtkMRMLTableNode::SetCellText failed: invalid column index "<<columnIndex);
+    return "";
+    }
+  if (rowIndex<0 || rowIndex>=this->Table->GetNumberOfRows())
+    {
+    vtkErrorMacro("vtkMRMLTableNode::SetCellText failed: invalid row index: "<<rowIndex);
+    return "";
+    }
+  this->Table->SetValue(rowIndex, columnIndex, vtkVariant(text));
   this->Modified();
   return true;
 }
