@@ -42,10 +42,9 @@ public:
   qSlicerTablesModuleWidget(QWidget *parent=0);
   virtual ~qSlicerTablesModuleWidget();
 
-  /// Reimplemented for internal reasons
-  void setMRMLScene(vtkMRMLScene* scene);
-
 public slots:
+  /// Select the specified node as the current node in the user interface
+  void setCurrentTableNode(vtkMRMLNode*);
 
 protected:
 

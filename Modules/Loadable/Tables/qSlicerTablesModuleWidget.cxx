@@ -169,15 +169,15 @@ void qSlicerTablesModuleWidget::onMRMLTableNodeModified(vtkObject* caller)
   bool editableNode = d->MRMLTableNode != 0 && !d->MRMLTableNode->GetLocked();
 
   d->DisplayEditCollapsibleWidget->setEnabled(validNode);
-  d->LockTableButton->setEnabled(validNode);  
-  d->CopyButton->setEnabled(validNode); 
+  d->LockTableButton->setEnabled(validNode);
+  d->CopyButton->setEnabled(validNode);
   d->PasteButton->setEnabled(editableNode);
   d->EditControlsFrame->setEnabled(editableNode);
 
   if (!d->MRMLTableNode)
     {
     return;
-    }  
+    }
 
   if (d->MRMLTableNode->GetLocked())
     {
@@ -206,13 +206,6 @@ void qSlicerTablesModuleWidget::onMRMLTableNodeModified(vtkObject* caller)
 }
 
 //-----------------------------------------------------------------------------
-void qSlicerTablesModuleWidget::setMRMLScene(vtkMRMLScene* scene)
-{
-  Q_D(qSlicerTablesModuleWidget);
-  this->Superclass::setMRMLScene(scene);
-}
-
-//-----------------------------------------------------------------------------
 void qSlicerTablesModuleWidget::onLockTableButtonClicked()
 {
   Q_D(qSlicerTablesModuleWidget);
@@ -225,4 +218,11 @@ void qSlicerTablesModuleWidget::onLockTableButtonClicked()
   // toggle the lock
   int locked = d->MRMLTableNode->GetLocked();
   d->MRMLTableNode->SetLocked(!locked);
+}
+
+//-----------------------------------------------------------------------------
+void qSlicerTablesModuleWidget::setCurrentTableNode(vtkMRMLNode* tableNode)
+{
+  Q_D(qSlicerTablesModuleWidget);
+  d->TableNodeSelector->setCurrentNode(tableNode);
 }

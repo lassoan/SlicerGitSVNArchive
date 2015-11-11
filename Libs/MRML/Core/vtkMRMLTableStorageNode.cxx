@@ -100,33 +100,33 @@ int vtkMRMLTableStorageNode::ReadDataInternal(vtkMRMLNode *refNode)
   reader->SetHaveHeaders(true);
   reader->DetectNumericColumnsOff(); // we preserve all data better if we don't try to detect numeric columns
 
-  int result = 1;
+  if ( extension == std::string(".tsv") || extension == std::string(".txt"))
+    {
+    reader->SetFieldDelimiterCharacters("\t");
+    reader->SetUseStringDelimiter(false); // allows reading in values that contain quotation mark
+    }
+  else if ( extension == std::string(".csv") )
+    {
+    reader->SetFieldDelimiterCharacters(",");
+    reader->SetUseStringDelimiter(true);
+    }
+  else
+    {
+    vtkErrorMacro("Cannot read table file '" << fullName.c_str() << "' with extension = " << extension.c_str() << "");
+    return 0;
+    }
   try
     {
-    if ( extension == std::string(".tsv") || extension == std::string(".txt"))
-      {
-      reader->SetFieldDelimiterCharacters("\t");
-      reader->Update();
-      tableNode->SetAndObserveTable(reader->GetOutput());
-      }
-    else if ( extension == std::string(".csv") )
-      {
-      reader->SetFieldDelimiterCharacters(",");
-      reader->Update();
-      tableNode->SetAndObserveTable(reader->GetOutput());
-      }
-    else
-      {
-      vtkDebugMacro("Cannot read table file '" << fullName.c_str() << "' (extension = " << extension.c_str() << ")");
-      return 0;
-      }
+    reader->Update();
+    tableNode->SetAndObserveTable(reader->GetOutput());
     }
   catch (...)
     {
-    result = 0;
+    vtkErrorMacro("Failed to read table file '" << fullName.c_str());
+    return 0;
     }
 
-  return result;
+  return 1;
 }
 
 //----------------------------------------------------------------------------
@@ -157,34 +157,35 @@ int vtkMRMLTableStorageNode::WriteDataInternal(vtkMRMLNode *refNode)
 
   std::string extension = vtkMRMLStorageNode::GetLowercaseExtensionFromFileName(fullName);
 
-  int result = 1;
-  if (extension == ".tsv" || extension == ".txt" || extension == ".csv")
+  vtkNew<vtkDelimitedTextWriter> writer;
+  writer->SetFileName(fullName.c_str());
+  writer->SetInputData( tableNode->GetTable() );
+  if (extension == ".tsv" || extension == ".txt")
     {
-    vtkNew<vtkDelimitedTextWriter> writer;
-    writer->SetFileName(fullName.c_str());
-    writer->SetInputData( tableNode->GetTable() );
-    writer->SetFieldDelimiter("\t"); // use tab as delimiter for tsv and txt
-    if (extension == ".csv")
-      {
-      writer->SetFieldDelimiter(",");
-      }
-    try
-      {
-      writer->Write();
-      }
-    catch (...)
-      {
-      result = 0;
-      vtkErrorMacro( << "Failed to write file: " << fullName.c_str() );
-      }
+    writer->SetFieldDelimiter("\t");
+    writer->SetUseStringDelimiter(false); // otherwise it would write each value in double-quotes
+    }
+  else if (extension == ".csv")
+    {
+    writer->SetFieldDelimiter(",");
+    writer->SetUseStringDelimiter(true); // it causes writing each value in double-quotes but allows using commas in the string
     }
   else
     {
-    result = 0;
     vtkErrorMacro( << "No file extension recognized: " << fullName.c_str() );
+    return 0;
+    }
+  try
+    {
+    writer->Write();
+    }
+  catch (...)
+    {
+    vtkErrorMacro( << "Failed to write file: " << fullName.c_str() );
+    return 0;
     }
 
-  return result;
+  return 1;
 }
 
 //----------------------------------------------------------------------------

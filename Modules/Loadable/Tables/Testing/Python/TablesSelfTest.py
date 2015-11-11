@@ -79,128 +79,210 @@ class TablesSelfTestTest(ScriptedLoadableModuleTest):
     # Check for Tables module
     self.assertTrue( slicer.modules.tables )
 
-    # TODO: Uncomment when #598 is fixed
-    # slicer.util.selectModule('Tables')
-
     self.section_SetupPathsAndNames()
-    self.section_MarkupRole()
-    self.section_ChartRole()
-    self.section_CloneNode()
-    self.section_PluginAutoSearch()
+    self.section_CreateTable()
+    self.section_section_TableWidgetButtons()
+    self.section_CliTableInputOutput()
+    self.delayDisplay("Test passed",self.delayMs)
 
   # ------------------------------------------------------------------------------
   def section_SetupPathsAndNames(self):
-    # Make sure subject hierarchy auto-creation is on for this test
-    tablesWidget = slicer.modules.tables.widgetRepresentation()
-    self.assertTrue( tablesWidget != None )
-
     # Set constants
     self.sampleTableName = 'SampleTable'
 
   # ------------------------------------------------------------------------------
-  def section_MarkupRole(self):
-    self.delayDisplay("Markup role",self.delayMs)
+  def section_CreateTable(self):
+    self.delayDisplay("Create table",self.delayMs)
 
-    # Create sample markups node
+    # Create sample table node
     tableNode = slicer.vtkMRMLTableNode()
     slicer.mrmlScene.AddNode(tableNode)
     tableNode.SetName(self.sampleTableName)
+
+    # Add a new column
     column = tableNode.AddColumn()
     self.assertTrue( column is not None )
-
     column.InsertNextValue("some")
     column.InsertNextValue("data")
     column.InsertNextValue("in this")
     column.InsertNextValue("column")
+    tableNode.Modified();
 
-    self.assertTrue( markupsShNode != None )
-    self.assertTrue( markupsShNode.GetParentNode() == studyNode )
-    self.assertTrue( markupsShNode.GetOwnerPluginName() == 'Markups' )
-
-  # ------------------------------------------------------------------------------
-  def section_ChartRole(self):
-    self.delayDisplay("Chart role",self.delayMs)
-
-    # Create sample chart node
-    chartNode = slicer.vtkMRMLChartNode()
-    slicer.mrmlScene.AddNode(chartNode)
-    chartNode.SetName(self.sampleChartName)
-
-    # Add markups to subject hierarchy
-    from vtkSlicerTablesModuleMRML import vtkMRMLTablesNode
-
-    studyNode = slicer.util.getNode(self.studyName + slicer.vtkMRMLTablesConstants.GetTablesNodeNamePostfix())
-    self.assertTrue( studyNode != None )
-
-    chartShNode = vtkMRMLTablesNode.CreateTablesNode(slicer.mrmlScene, studyNode, slicer.vtkMRMLTablesConstants.GetDICOMLevelSeries(), self.sampleChartName, chartNode)
-
-    self.assertTrue( chartShNode != None )
-    self.assertTrue( chartShNode.GetParentNode() == studyNode )
-    self.assertTrue( chartShNode.GetOwnerPluginName() == 'Charts' )
+    # Check table
+    table = tableNode.GetTable()
+    self.assertTrue( table is not None )
+    self.assertTrue( table.GetNumberOfRows() == 4 )
+    self.assertTrue( table.GetNumberOfColumns() == 1 )
 
   # ------------------------------------------------------------------------------
-  def section_CloneNode(self):
-    self.delayDisplay("Clone node",self.delayMs)
+  def section_section_TableWidgetButtons(self):
+    self.delayDisplay("Test widget buttons",self.delayMs)
 
-    markupsShNode = slicer.util.getNode(self.sampleTableName + slicer.vtkMRMLTablesConstants.GetTablesNodeNamePostfix())
-    self.assertTrue( markupsShNode != None )
-    tableNode = markupsShNode.GetAssociatedNode()
-    self.assertTrue( tableNode != None )
+    slicer.util.selectModule('Tables')
 
-    # Add storage node for markups node to test cloning those
-    markupsStorageNode = slicer.vtkMRMLMarkupsFiducialStorageNode()
-    slicer.mrmlScene.AddNode(markupsStorageNode)
-    tableNode.SetAndObserveStorageNodeID(markupsStorageNode.GetID())
+    # Make sure subject hierarchy auto-creation is on for this test
+    tablesWidget = slicer.modules.tables.widgetRepresentation()
+    self.assertTrue( tablesWidget is not None )
 
-    # Get clone node plugin
-    import qSlicerTablesModuleWidgetsPythonQt
-    tablesWidget = slicer.modules.subjecthierarchy.widgetRepresentation()
-    self.assertTrue( tablesWidget != None )
-    tablesPluginLogic = tablesWidget.pluginLogic()
-    self.assertTrue( tablesPluginLogic != None )
+    tableNode = slicer.util.getNode(self.sampleTableName)
+    self.assertTrue( tableNode is not None )
 
-    cloneNodePlugin = tablesPluginLogic.tablesPluginByName('CloneNode')
-    self.assertTrue( cloneNodePlugin != None )
+    tablesWidget.setCurrentTableNode(tableNode)
 
-    # Set markup node as current (i.e. selected in the tree) for clone
-    tablesPluginLogic.setCurrentTablesNode(markupsShNode)
+    lockTableButton = slicer.util.findChildren(widget=tablesWidget,name='LockTableButton')[0]
+    copyButton = slicer.util.findChildren(widget=tablesWidget,name='CopyButton')[0]
+    pasteButton = slicer.util.findChildren(widget=tablesWidget,name='PasteButton')[0]
+    addRowButton = slicer.util.findChildren(widget=tablesWidget,name='RowInsertButton')[0]
+    deleteRowButton = slicer.util.findChildren(widget=tablesWidget,name='RowDeleteButton')[0]
+    lockFirstRowButton = slicer.util.findChildren(widget=tablesWidget,name='LockFirstRowButton')[0]
+    addColumnButton = slicer.util.findChildren(widget=tablesWidget,name='ColumnInsertButton')[0]
+    deleteColumnButton = slicer.util.findChildren(widget=tablesWidget,name='ColumnDeleteButton')[0]
+    lockFirstColumnButton = slicer.util.findChildren(widget=tablesWidget,name='LockFirstColumnButton')[0]
+    tableView = slicer.util.findChildren(widget=tablesWidget,name='TableView')[0]
 
-    # Get clone node context menu action and trigger
-    cloneNodePlugin.nodeContextMenuActions()[0].activate(qt.QAction.Trigger)
+    tableModel = tableView.model()
 
-    self.assertTrue( slicer.mrmlScene.GetNumberOfNodesByClass('vtkMRMLMarkupsFiducialNode') == 2 )
-    self.assertTrue( slicer.mrmlScene.GetNumberOfNodesByClass('vtkMRMLMarkupsDisplayNode') == 2 )
-    self.assertTrue( slicer.mrmlScene.GetNumberOfNodesByClass('vtkMRMLMarkupsFiducialStorageNode') == 2 )
+    initialNumberOfColumns = tableNode.GetNumberOfColumns()
+    initialNumberOfRows = tableNode.GetNumberOfRows()
 
-    clonedMarkupShNode = slicer.util.getNode(self.sampleTableName + ' Copy' + slicer.vtkMRMLTablesConstants.GetTablesNodeNamePostfix())
-    self.assertTrue( clonedMarkupShNode != None )
-    clonedMarkupNode = clonedMarkupShNode.GetAssociatedNode()
-    self.assertTrue( clonedMarkupNode != None )
-    self.assertTrue( clonedMarkupNode.GetName != self.sampleTableName + ' Copy' )
-    self.assertTrue( clonedMarkupNode.GetDisplayNode() != None )
-    self.assertTrue( clonedMarkupNode.GetStorageNode() != None )
+    #############
+    self.delayDisplay("Test add rows/columns",self.delayMs)
 
-    from vtkSlicerTablesModuleLogic import vtkSlicerTablesModuleLogic
-    inSameStudy = vtkSlicerTablesModuleLogic.AreNodesInSameBranch(markupsShNode, clonedMarkupShNode, slicer.vtkMRMLTablesConstants.GetDICOMLevelStudy())
-    self.assertTrue( inSameStudy )
+    addRowButton.click()
+    self.assertTrue( tableNode.GetNumberOfRows() == initialNumberOfRows+1 )
+
+    addColumnButton.click()
+    self.assertTrue( tableNode.GetNumberOfColumns() == initialNumberOfColumns+1 )
+
+    #############
+    self.delayDisplay("Test lock first row/column",self.delayMs)
+
+    self.assertTrue( tableModel.data(tableModel.index(0,0)) == 'Column 1' )
+    lockFirstRowButton.click()
+    self.assertTrue( tableModel.data(tableModel.index(0,0)) == 'some' )
+    lockFirstColumnButton.click()
+    self.assertTrue( tableModel.data(tableModel.index(0,0)) == '' )
+    lockFirstRowButton.click()
+    lockFirstColumnButton.click()
+
+    #############
+    self.delayDisplay("Test delete row/column",self.delayMs)
+
+    tableView.selectionModel().select(tableModel.index(1,1),qt.QItemSelectionModel.Select) # Select second item in second column
+    deleteColumnButton.click()
+    self.assertTrue( tableNode.GetNumberOfColumns() == initialNumberOfColumns )
+
+    tableView.selectionModel().select(tableModel.index(4,0),qt.QItemSelectionModel.Select) # Select 5th item in first column
+    deleteRowButton.click()
+    self.assertTrue( tableNode.GetNumberOfRows() == initialNumberOfRows )
+
+    #############
+    self.delayDisplay("Test if buttons are disabled",self.delayMs)
+
+    lockTableButton.click()
+
+    addRowButton.click()
+    self.assertTrue( tableNode.GetNumberOfRows() == initialNumberOfRows )
+
+    addColumnButton.click()
+    self.assertTrue( tableNode.GetNumberOfColumns() == initialNumberOfColumns )
+
+    tableView.selectionModel().select(tableView.model().index(0,0),qt.QItemSelectionModel.Select)
+
+    deleteColumnButton.click()
+    self.assertTrue( tableNode.GetNumberOfColumns() == initialNumberOfColumns )
+
+    deleteRowButton.click()
+    self.assertTrue( tableNode.GetNumberOfRows() == initialNumberOfRows )
+
+    lockFirstRowButton.click()
+    self.assertTrue( tableModel.data(tableModel.index(0,0)) == 'Column 1' )
+
+    lockFirstColumnButton.click()
+    self.assertTrue( tableModel.data(tableModel.index(0,0)) == 'Column 1' )
+
+    lockTableButton.click()
+
+    #############
+    self.delayDisplay("Test copy/paste",self.delayMs)
+
+    tableView.selectColumn(0)
+    copyButton.click()
+    tableView.clearSelection()
+
+    # Paste first column into a newly created second column
+    addColumnButton.click()
+
+    tableView.setCurrentIndex(tableModel.index(0,1))
+    pasteButton.click()
+
+    # Check if first and second column content is the same
+    for rowIndex in range(5):
+      self.assertTrue( tableModel.data(tableModel.index(rowIndex,0)) == tableModel.data(tableModel.index(rowIndex,1)) )
+
 
   # ------------------------------------------------------------------------------
-  def section_PluginAutoSearch(self):
-    self.delayDisplay("Plugin auto search",self.delayMs)
+  def section_CliTableInputOutput(self):
+    self.delayDisplay("Test table writing and reading by CLI module",self.delayMs)
 
-    # Disable subject hierarchy auto-creation to be able to test plugin auto search
-    tablesWidget = slicer.modules.subjecthierarchy.widgetRepresentation()
-    tablesPluginLogic = tablesWidget.pluginLogic()
-    self.assertTrue( tablesWidget != None )
-    self.assertTrue( tablesPluginLogic != None )
-    tablesPluginLogic.autoCreateTables = False
+    # Create input and output nodes
 
-    # Test whether the owner plugin is automatically searched when the associated data node changes
-    chartNode2 = slicer.vtkMRMLChartNode()
-    chartNode2.SetName(self.sampleChartName + '2')
-    slicer.mrmlScene.AddNode(chartNode2)
+    inputTableNode = slicer.vtkMRMLTableNode()
+    slicer.mrmlScene.AddNode(inputTableNode)
+    inputTableNode.AddColumn()
+    inputTableNode.AddColumn()
+    inputTableNode.AddColumn()
+    inputTableNode.AddEmptyRow()
+    inputTableNode.AddEmptyRow()
+    inputTableNode.AddEmptyRow()
+    for row in range(3):
+      for col in range(3):
+        inputTableNode.SetCellText(row,col,str((row+1)*(col+1)))
+    inputTableNode.SetCellText(0,0,"source")
 
-    clonedMarkupShNode = slicer.util.getNode(self.sampleTableName + ' Copy' + slicer.vtkMRMLTablesConstants.GetTablesNodeNamePostfix())
-    clonedMarkupShNode.SetAssociatedNodeID(chartNode2.GetID())
+    outputTableNode = slicer.vtkMRMLTableNode()
+    slicer.mrmlScene.AddNode(outputTableNode)
 
-    self.assertTrue( clonedMarkupShNode.GetOwnerPluginName() == 'Charts' )
+    # Run CLI module
+
+    self.delayDisplay("Run CLI module",self.delayMs)
+    parameters = {}
+    parameters["arg0"] = self.createDummyVolume().GetID()
+    parameters["arg1"] = self.createDummyVolume().GetID()
+    parameters["transform1"] = self.createDummyTransform().GetID()
+    parameters["transform2"] = self.createDummyTransform().GetID()
+    parameters["inputDT"] = inputTableNode.GetID()
+    parameters["outputDT"] = outputTableNode.GetID()
+    slicer.cli.run(slicer.modules.executionmodeltour, None, parameters, wait_for_completion=True)
+
+    # Verify the output table content
+
+    self.delayDisplay("Verify results",self.delayMs)
+    # the ExecutionModelTour module copies the input table to the output exxcept the first two rows
+    # of the first column, which is set to "Computed first" and "Computed second" strings
+    for row in range(3):
+      for col in range(3):
+        if row==0 and col==0:
+          self.assertTrue( outputTableNode.GetCellText(row, col) == "Computed first")
+        elif row==1 and col==0:
+          self.assertTrue( outputTableNode.GetCellText(row, col) == "Computed second")
+        else:
+          self.assertTrue( outputTableNode.GetCellText(row, col) == inputTableNode.GetCellText(row, col) )
+
+  def createDummyTransform(self):
+    transformNode = slicer.vtkMRMLLinearTransformNode()
+    slicer.mrmlScene.AddNode(transformNode)
+    return transformNode
+
+  def createDummyVolume(self):
+    imageData = vtk.vtkImageData()
+    imageData.SetDimensions(10,10,10)
+    imageData.AllocateScalars(vtk.VTK_UNSIGNED_CHAR, 1)
+    volumeNode = slicer.vtkMRMLScalarVolumeNode()
+    volumeNode.SetAndObserveImageData(imageData)
+    displayNode = slicer.vtkMRMLScalarVolumeDisplayNode()
+    slicer.mrmlScene.AddNode(volumeNode)
+    slicer.mrmlScene.AddNode(displayNode)
+    volumeNode.SetAndObserveDisplayNodeID(displayNode.GetID())
+    displayNode.SetAndObserveColorNodeID('vtkMRMLColorTableNodeGrey')
+    return volumeNode

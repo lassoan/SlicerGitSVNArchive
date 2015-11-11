@@ -23,10 +23,19 @@
 
 #include "vtkMRMLStorageNode.h"
 
-/// \brief MRML node for representing a volume storage
+/// \brief MRML node for handling Table node storage
 ///
-/// vtkMRMLTableStorageNode nodes describe the fiducial storage
-/// node that allows to read/write point data from/to file.
+/// vtkMRMLTableStorageNode allows reading/writing of table node from
+/// to comma or tab-separated files.
+///
+/// If the file extension is .tsv or .txt then it is assumed to be tab-separated.
+/// Values in tab-separated files may not contain tabs but may contain any other
+/// characters (including commas and quotaion marks).
+///
+/// If the file extension is .csv then it is assumed to be comma-separated.
+/// Values in comma-separated files may not contain quotation marks but may contain
+/// any other characters (including commas and tabs).
+///
 class VTK_MRML_EXPORT vtkMRMLTableStorageNode : public vtkMRMLStorageNode
 {
 public:
