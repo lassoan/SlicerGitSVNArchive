@@ -121,7 +121,7 @@ void vtkMRMLTableNode::Copy(vtkMRMLNode *anode)
       newTable->DeepCopy(node->GetTable());
       this->SetAndObserveTable(newTable.GetPointer());
       }
-    else
+    else if (this->GetTable()!=node->GetTable())
       {
       this->GetTable()->DeepCopy(node->GetTable());
       }
@@ -199,7 +199,11 @@ vtkAbstractArray* vtkMRMLTableNode::AddColumn(vtkAbstractArray* column)
       return 0;
       }
     }
+
+  // Multiple modifications may be done in the table. Let's ignore modifications
+  // until we are all done.
   int tableWasModified = this->StartModify();
+
   // Create new column (if not provided)
   vtkSmartPointer<vtkAbstractArray> newColumn;
   if (column)
@@ -261,6 +265,7 @@ vtkAbstractArray* vtkMRMLTableNode::AddColumn(vtkAbstractArray* column)
     }
 
   this->Table->AddColumn(newColumn);
+
   this->Modified();
   this->EndModify(tableWasModified);
   return newColumn;
@@ -352,19 +357,39 @@ bool vtkMRMLTableNode::SetCellText(int rowIndex, int columnIndex, const char* te
   if (!this->Table)
     {
     vtkErrorMacro("vtkMRMLTableNode::SetCellText failed: invalid table");
-    return "";
+    return false;
     }
   if (columnIndex<0 || columnIndex>=this->Table->GetNumberOfColumns())
     {
     vtkErrorMacro("vtkMRMLTableNode::SetCellText failed: invalid column index "<<columnIndex);
-    return "";
+    return false;
     }
   if (rowIndex<0 || rowIndex>=this->Table->GetNumberOfRows())
     {
     vtkErrorMacro("vtkMRMLTableNode::SetCellText failed: invalid row index: "<<rowIndex);
-    return "";
+    return false;
     }
   this->Table->SetValue(rowIndex, columnIndex, vtkVariant(text));
   this->Modified();
   return true;
+}
+
+//----------------------------------------------------------------------------
+int vtkMRMLTableNode::GetNumberOfRows()
+{
+  if (!this->Table)
+    {
+    return 0;
+    }
+  return this->Table->GetNumberOfRows();
+}
+
+//----------------------------------------------------------------------------
+int vtkMRMLTableNode::GetNumberOfColumns()
+{
+  if (!this->Table)
+    {
+    return 0;
+    }
+  return this->Table->GetNumberOfColumns();
 }

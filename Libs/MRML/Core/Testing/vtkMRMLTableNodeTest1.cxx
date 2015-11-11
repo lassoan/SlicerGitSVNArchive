@@ -14,6 +14,7 @@
 #include "vtkMRMLTableStorageNode.h"
 
 #include "vtkTable.h"
+#include "vtkTestErrorObserver.h"
 
 #include "vtkMRMLCoreTestingMacros.h"
 
@@ -27,6 +28,11 @@ int vtkMRMLTableNodeTest1(int , char * [] )
 
 
   vtkSmartPointer< vtkMRMLTableNode > node2 = vtkSmartPointer< vtkMRMLTableNode >::New();
+
+  vtkSmartPointer<vtkTest::ErrorObserver> errorWarningObserver = vtkSmartPointer<vtkTest::ErrorObserver>::New();
+  node2->AddObserver(vtkCommand::WarningEvent, errorWarningObserver);
+  node2->AddObserver(vtkCommand::ErrorEvent, errorWarningObserver);
+
   vtkTable* table = node2->GetTable();
 
   // Verify if a proper storage node is created
@@ -162,23 +168,41 @@ int vtkMRMLTableNodeTest1(int , char * [] )
     return EXIT_FAILURE;
     }
 
-  if (node2->GetCellText(2,2)!="Something3")
+  if (node2->GetCellText(2,2)!="something3")
     {
     std::cerr << "GetCellText test 1 failed" << std::endl;
     return EXIT_FAILURE;
     }
   // Test out of range cases:
+  if (errorWarningObserver->GetError() || errorWarningObserver->GetWarning())
+    {
+    std::cerr << "Error cases test failed: unexpected errors" << std::endl;
+    errorWarningObserver->Clear();
+    }
   if (node2->GetCellText(20,2)!="")
     {
-    std::cerr << "GetCellText test 2 failed" << std::endl;
+    std::cerr << "GetCellText test 2a failed" << std::endl;
     return EXIT_FAILURE;
     }
+  // error log is expected
+  if (!errorWarningObserver->GetError())
+    {
+    std::cerr << "GetCellText test 2b failed" << std::endl;
+    return EXIT_FAILURE;
+    }
+  errorWarningObserver->Clear();
   if (node2->GetCellText(2,20)!="")
     {
-    std::cerr << "GetCellText test 3 failed" << std::endl;
+    std::cerr << "GetCellText test 3a failed" << std::endl;
     return EXIT_FAILURE;
     }
-
+  // error log is expected
+  if (!errorWarningObserver->GetError())
+    {
+    std::cerr << "GetCellText test 3b failed" << std::endl;
+    return EXIT_FAILURE;
+    }
+  errorWarningObserver->Clear();
   if (!node2->SetCellText(2,2,"ModifiedText"))
     {
     std::cerr << "SetCellText test 1a failed" << std::endl;
@@ -186,7 +210,7 @@ int vtkMRMLTableNodeTest1(int , char * [] )
     }
   if (node2->GetCellText(2,2)!="ModifiedText")
     {
-    std::cerr << "GetCellText test 1b failed" << std::endl;
+    std::cerr << "SetCellText test 1b failed" << std::endl;
     return EXIT_FAILURE;
     }
   // Test out of range cases:
@@ -201,6 +225,23 @@ int vtkMRMLTableNodeTest1(int , char * [] )
     return EXIT_FAILURE;
     }
 
+  // Verify that Copy method creates a true independent copy
+  vtkSmartPointer< vtkMRMLTableNode > node2copy = vtkSmartPointer< vtkMRMLTableNode >::New();
+  node2copy->Copy(node2);
+  // After copying the contents of the tables should be the same
+  if (node2->GetCellText(0,0) != node2copy->GetCellText(0,0))
+    {
+    std::cerr << "Copy test 1a failed" << std::endl;
+    return EXIT_FAILURE;
+    }
+  // After modifying the copied version, the tables should be different
+  // (if there was a shallow copy only, the original table would have been changed, too)
+  node2copy->SetCellText(0,0,"someModifiedText");
+  if (node2->GetCellText(0,0) == node2copy->GetCellText(0,0))
+    {
+    std::cerr << "Copy test 1b failed" << std::endl;
+    return EXIT_FAILURE;
+    }
 
   std::cout << "vtkMRMLTableNodeTest1 completed successfully" << std::endl;
   return EXIT_SUCCESS;

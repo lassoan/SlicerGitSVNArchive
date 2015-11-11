@@ -133,6 +133,14 @@ public:
   /// GetTable() method and manipulate that directly.
   bool SetCellText(int rowIndex, int columnIndex, const char* text);
 
+  ///
+  /// Convenience method for getting number of rows in the table.
+  int GetNumberOfRows();
+
+  ///
+  /// Convenience method for getting number of columns in the table.
+  int GetNumberOfColumns();
+
   //----------------------------------------------------------------
   /// Constructor and destroctor
   //----------------------------------------------------------------

@@ -136,22 +136,32 @@ int main(int argc, char *argv[])
   outputFiducialStorageNode->WriteData(copiedFiducialNode.GetPointer());
 
   // generic tables
-  vtkNew<vtkDelimitedTextReader> tsvReader;
-  tsvReader->SetFileName(inputDT.c_str());
-  tsvReader->SetFieldDelimiterCharacters("\t");
-  tsvReader->SetHaveHeaders(true);
-  tsvReader->SetDetectNumericColumns(true);
-  tsvReader->Update();
-  vtkTable* table = tsvReader->GetOutput();
-  std::cout << "number of rows:" << table->GetNumberOfRows() << std::endl;
-  std::cout << "number of cols:" << table->GetNumberOfColumns() << std::endl;
 
-  table->SetValue(0,0,vtkVariant("Computed"));
-  vtkNew<vtkDelimitedTextWriter> tsvWriter;
-  tsvWriter->SetFileName(outputDT.c_str());
-  tsvWriter->SetFieldDelimiter("\t");
-  tsvWriter->SetInputData(table);
-  tsvWriter->Update();
+  vtkSmartPointer<vtkTable> table = vtkSmartPointer<vtkTable>::New();
+
+  if (!inputDT.empty())
+    {
+    vtkNew<vtkDelimitedTextReader> tsvReader;
+    tsvReader->SetFileName(inputDT.c_str());
+    tsvReader->SetFieldDelimiterCharacters("\t");
+    tsvReader->SetHaveHeaders(true);
+    tsvReader->SetDetectNumericColumns(true);
+    tsvReader->Update();
+    table = tsvReader->GetOutput();
+    std::cout << "number of rows:" << table->GetNumberOfRows() << std::endl;
+    std::cout << "number of cols:" << table->GetNumberOfColumns() << std::endl;
+    table->SetValue(0,0,vtkVariant("Computed first"));
+    table->SetValue(1,0,vtkVariant("Computed second"));
+    }
+
+  if (!outputDT.empty())
+    {
+    vtkNew<vtkDelimitedTextWriter> tsvWriter;
+    tsvWriter->SetFileName(outputDT.c_str());
+    tsvWriter->SetFieldDelimiter("\t");
+    tsvWriter->SetInputData(table);
+    tsvWriter->Update();
+    }
 
   // Write out the return parameters in "name = value" form
   std::ofstream rts;
