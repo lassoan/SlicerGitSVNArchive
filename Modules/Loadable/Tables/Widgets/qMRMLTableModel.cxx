@@ -303,7 +303,7 @@ void qMRMLTableModel::updateMRMLFromModel(QStandardItem* item)const
       }
     else
       {
-      tableNode->Modified();
+      table->Modified();
       }
     }
   else
@@ -316,7 +316,7 @@ void qMRMLTableModel::updateMRMLFromModel(QStandardItem* item)const
       if (valueBefore!=item->text())
         {
         column->SetName(item->text().toLatin1().constData());
-        tableNode->Modified();
+        table->Modified();
         }
       }
     }

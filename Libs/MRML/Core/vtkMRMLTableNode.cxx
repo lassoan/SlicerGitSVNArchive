@@ -106,32 +106,33 @@ void vtkMRMLTableNode::ReadXMLAttributes(const char** atts)
 //
 void vtkMRMLTableNode::Copy(vtkMRMLNode *anode)
 {
+  vtkMRMLTableNode *node = vtkMRMLTableNode::SafeDownCast(anode);
+  if (!node)
+    {
+    vtkErrorMacro("vtkMRMLTableNode::Copy failed: invalid or incompatible source node");
+    return;
+    }
   int disabledModify = this->StartModify();
   Superclass::Copy(anode);
-  vtkMRMLTableNode *node = vtkMRMLTableNode::SafeDownCast(anode);
-  if (node)
+  if (this->GetTable()!=NULL && node->GetTable()==NULL)
     {
-    if (this->GetTable()!=NULL && node->GetTable()==NULL)
-      {
-      this->SetAndObserveTable(NULL);
-      }
-    else if (this->GetTable()==NULL && node->GetTable()!=NULL)
-      {
-      vtkNew<vtkTable> newTable;
-      newTable->DeepCopy(node->GetTable());
-      this->SetAndObserveTable(newTable.GetPointer());
-      }
-    else
-      {
-      this->GetTable()->DeepCopy(node->GetTable());
-      }
-    this->SetLocked(node->GetLocked());
-    this->SetUseColumnNameAsColumnHeader(node->GetUseColumnNameAsColumnHeader());
-    this->SetUseFirstColumnAsRowHeader(node->GetUseFirstColumnAsRowHeader());
+    this->SetAndObserveTable(NULL);
     }
+  else if (this->GetTable()==NULL && node->GetTable()!=NULL)
+    {
+    vtkNew<vtkTable> newTable;
+    newTable->DeepCopy(node->GetTable());
+    this->SetAndObserveTable(newTable.GetPointer());
+    }
+  else
+    {
+    this->GetTable()->DeepCopy(node->GetTable());
+    }
+  this->SetLocked(node->GetLocked());
+  this->SetUseColumnNameAsColumnHeader(node->GetUseColumnNameAsColumnHeader());
+  this->SetUseFirstColumnAsRowHeader(node->GetUseFirstColumnAsRowHeader());
   this->EndModify(disabledModify);
 }
-
 
 //----------------------------------------------------------------------------
 void vtkMRMLTableNode::ProcessMRMLEvents( vtkObject *caller, unsigned long event, void *callData )
@@ -141,7 +142,11 @@ void vtkMRMLTableNode::ProcessMRMLEvents( vtkObject *caller, unsigned long event
   if (this->Table && this->Table == vtkTable::SafeDownCast(caller) &&
     event ==  vtkCommand::ModifiedEvent)
     {
+    // this indicates that the table model (that is stored in a separate file) is modified
+    // and therefore the object will be marked as changed for file saving
     this->StorableModifiedTime.Modified();
+    // this indicates that data stored in the node is changed (either the table or other
+    // data members are changed)
     this->Modified();
     return;
     }
@@ -261,7 +266,7 @@ vtkAbstractArray* vtkMRMLTableNode::AddColumn(vtkAbstractArray* column)
     }
 
   this->Table->AddColumn(newColumn);
-  this->Modified();
+  this->Table->Modified();
   this->EndModify(tableWasModified);
   return newColumn;
 }
@@ -280,7 +285,7 @@ bool vtkMRMLTableNode::RemoveColumn(int columnIndex)
     return false;
     }
   this->Table->RemoveColumn(columnIndex);
-  this->Modified();
+  this->Table->Modified();
   return true;
 }
 
@@ -298,7 +303,7 @@ int vtkMRMLTableNode::AddEmptyRow()
     return -1;
     }
   vtkIdType rowIndex = this->Table->InsertNextBlankRow();
-  this->Modified();
+  this->Table->Modified();
   return rowIndex;
 }
 
@@ -321,7 +326,7 @@ bool vtkMRMLTableNode::RemoveRow(int rowIndex)
     return false;
     }
   this->Table->RemoveRow(rowIndex);
-  this->Modified();
+  this->Table->Modified();
   return true;
 }
 
@@ -365,6 +370,6 @@ bool vtkMRMLTableNode::SetCellText(int rowIndex, int columnIndex, const char* te
     return "";
     }
   this->Table->SetValue(rowIndex, columnIndex, vtkVariant(text));
-  this->Modified();
+  this->Table->Modified();
   return true;
 }

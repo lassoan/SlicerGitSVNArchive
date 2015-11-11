@@ -34,8 +34,11 @@ class vtkTable;
 
 /// \brief MRML node to represent a table object
 ///
-/// It is meant to be a replacement to the vtkMRMLDoubleArrayNode
-/// to store anything table like.
+/// This class can store a spreadsheet. Data is stored as a vtkTable object.
+/// A few convenience methods are provided for manipulating rows, columns, and cells.
+/// For performance-critical use cases it is recommended to manipulate the vtkTable
+/// object directly. If the vtkTable object content is modified then Modified() method
+/// has to be called on the vtkTable object when modifications are completed.
 class VTK_MRML_EXPORT vtkMRMLTableNode : public vtkMRMLStorableNode
 {
 public:
