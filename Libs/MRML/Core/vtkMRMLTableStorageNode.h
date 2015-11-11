@@ -66,10 +66,10 @@ protected:
   /// Initialize all the supported write file types
   virtual void InitializeSupportedWriteFileTypes();
 
-  /// Read data and set it in the referenced node
+  /// Read data and set it in the referenced node. Returns 0 on failure.
   virtual int ReadDataInternal(vtkMRMLNode *refNode);
 
-  /// Write data from a  referenced node
+  /// Write data from a  referenced node. Returns 0 on failure.
   virtual int WriteDataInternal(vtkMRMLNode *refNode);
 
 };

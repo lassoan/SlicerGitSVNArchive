@@ -31,6 +31,18 @@ int main(int argc, char *argv[])
   std::string            transform1Filename, transform2Filename;
   std::string            transform1ID, transform2ID;
 
+  if( transform1.empty() )
+    {
+    std::cerr << "transform1 parameter is required" << std::endl;
+    return EXIT_FAILURE;
+    }
+
+  if( transform2.empty() )
+    {
+    std::cerr << "transform2 parameter is required" << std::endl;
+    return EXIT_FAILURE;
+    }
+
   loc = transform1.find_last_of("#");
   if( loc != std::string::npos )
     {
@@ -150,7 +162,15 @@ int main(int argc, char *argv[])
     table = tsvReader->GetOutput();
     std::cout << "number of rows:" << table->GetNumberOfRows() << std::endl;
     std::cout << "number of cols:" << table->GetNumberOfColumns() << std::endl;
+    if (table->GetNumberOfRows()<1)
+      {
+      table->InsertNextBlankRow();
+      }
     table->SetValue(0,0,vtkVariant("Computed first"));
+    if (table->GetNumberOfRows()<2)
+      {
+      table->InsertNextBlankRow();
+      }
     table->SetValue(1,0,vtkVariant("Computed second"));
     }
 

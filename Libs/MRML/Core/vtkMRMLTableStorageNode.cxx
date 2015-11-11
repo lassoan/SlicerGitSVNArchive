@@ -64,14 +64,10 @@ int vtkMRMLTableStorageNode::ReadDataInternal(vtkMRMLNode *refNode)
 
   if (fullName == std::string(""))
     {
-    vtkErrorMacro("vtkMRMLTableStorageNode: File name not specified");
+    vtkErrorMacro("ReadData: File name not specified");
     return 0;
     }
-
-  // cast the input node
-  vtkMRMLTableNode *tableNode =
-    vtkMRMLTableNode::SafeDownCast(refNode);
-
+  vtkMRMLTableNode *tableNode = vtkMRMLTableNode::SafeDownCast(refNode);
   if (tableNode == NULL)
     {
     vtkErrorMacro("ReadData: unable to cast input node " << refNode->GetID() << " to a table node");
@@ -79,40 +75,35 @@ int vtkMRMLTableStorageNode::ReadDataInternal(vtkMRMLNode *refNode)
     }
 
   // check that the file exists
-  if (vtksys::SystemTools::FileExists(fullName.c_str()) == false)
+  if (vtksys::SystemTools::FileExists(fullName) == false)
     {
-    vtkErrorMacro("ReadDataInternal: model file '" << fullName.c_str() << "' not found.");
+    vtkErrorMacro("ReadData: table file '" << fullName << "' not found.");
     return 0;
     }
-
-  // compute file prefix
-  std::string extension = vtkMRMLStorageNode::GetLowercaseExtensionFromFileName(fullName);
-  if( extension.empty() )
-    {
-    vtkErrorMacro("ReadData: no file extension specified: " << fullName.c_str());
-    return 0;
-    }
-
-  vtkDebugMacro("ReadDataInternal: extension = " << extension.c_str());
 
   vtkNew<vtkDelimitedTextReader> reader;
   reader->SetFileName(fullName.c_str());
   reader->SetHaveHeaders(true);
-  reader->DetectNumericColumnsOff(); // we preserve all data better if we don't try to detect numeric columns
+  // Make sure string delimiter characters are removed (sombody may have written a tsv with string delimiters)
+  reader->SetUseStringDelimiter(true);
+  // File contents is preserved better if we don't try to detect numeric columns
+  reader->DetectNumericColumnsOff();
 
+  // compute file prefix
+  std::string extension = vtkMRMLStorageNode::GetLowercaseExtensionFromFileName(fullName);
+  vtkDebugMacro("ReadData: extension = " << extension);
   if ( extension == std::string(".tsv") || extension == std::string(".txt"))
     {
     reader->SetFieldDelimiterCharacters("\t");
-    reader->SetUseStringDelimiter(false); // allows reading in values that contain quotation mark
+
     }
   else if ( extension == std::string(".csv") )
     {
     reader->SetFieldDelimiterCharacters(",");
-    reader->SetUseStringDelimiter(true);
     }
   else
     {
-    vtkErrorMacro("Cannot read table file '" << fullName.c_str() << "' with extension = " << extension.c_str() << "");
+    vtkErrorMacro("ReadData: failed to read table file: " << fullName << " - file extension not supported: " << extension );
     return 0;
     }
   try
@@ -122,10 +113,11 @@ int vtkMRMLTableStorageNode::ReadDataInternal(vtkMRMLNode *refNode)
     }
   catch (...)
     {
-    vtkErrorMacro("Failed to read table file '" << fullName.c_str());
+    vtkErrorMacro("ReadData: failed to read table file: " << fullName);
     return 0;
     }
 
+  vtkDebugMacro("ReadData: successfully read table from file: " << fullName);
   return 1;
 }
 
@@ -137,29 +129,25 @@ int vtkMRMLTableStorageNode::WriteDataInternal(vtkMRMLNode *refNode)
     vtkErrorMacro("WriteData: file name is not set");
     return 0;
     }
-
   std::string fullName = this->GetFullNameFromFileName();
   if (fullName.empty())
     {
-    vtkErrorMacro("vtkMRMLTableStorageNode: File name not specified");
+      vtkErrorMacro("WriteData: file name not specified");
     return 0;
     }
 
-  // cast the input node
-  vtkMRMLTableNode *tableNode =
-    vtkMRMLTableNode::SafeDownCast(refNode);
-
+  vtkMRMLTableNode *tableNode = vtkMRMLTableNode::SafeDownCast(refNode);
   if (tableNode == NULL)
     {
-    vtkErrorMacro("WriteData: unable to cast input node " << refNode->GetID() << " to a known table node");
+    vtkErrorMacro("WriteData: unable to cast input node " << refNode->GetID() << " to a valid table node");
     return 0;
     }
-
-  std::string extension = vtkMRMLStorageNode::GetLowercaseExtensionFromFileName(fullName);
 
   vtkNew<vtkDelimitedTextWriter> writer;
   writer->SetFileName(fullName.c_str());
   writer->SetInputData( tableNode->GetTable() );
+
+  std::string extension = vtkMRMLStorageNode::GetLowercaseExtensionFromFileName(fullName);
   if (extension == ".tsv" || extension == ".txt")
     {
     writer->SetFieldDelimiter("\t");
@@ -172,7 +160,7 @@ int vtkMRMLTableStorageNode::WriteDataInternal(vtkMRMLNode *refNode)
     }
   else
     {
-    vtkErrorMacro( << "No file extension recognized: " << fullName.c_str() );
+    vtkErrorMacro("WriteData: failed to write file: " << fullName << " - file extension not supported: " << extension );
     return 0;
     }
   try
@@ -181,10 +169,11 @@ int vtkMRMLTableStorageNode::WriteDataInternal(vtkMRMLNode *refNode)
     }
   catch (...)
     {
-    vtkErrorMacro( << "Failed to write file: " << fullName.c_str() );
+    vtkErrorMacro("WriteData: failed to write file: " << fullName );
     return 0;
     }
 
+  vtkDebugMacro("WriteData: successfully wrote table to file: " << fullName);
   return 1;
 }
 
