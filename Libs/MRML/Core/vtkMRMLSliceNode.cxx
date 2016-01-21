@@ -112,6 +112,10 @@ vtkMRMLSliceNode::vtkMRMLSliceNode()
   this->LayoutColor[1] = vtkMRMLSliceNode::grayColor()[1];
   this->LayoutColor[2] = vtkMRMLSliceNode::grayColor()[2];
 
+  this->OrientationMarkerVisibility = false;
+  this->OrientationMarkerRepresentation = OrientationMarkerCube;
+  this->OrientationMarkerSize = 20;
+
   this->SetOrientationToAxial();
   this->SetLayoutLabel("");
 }
@@ -735,6 +739,9 @@ void vtkMRMLSliceNode::WriteXML(ostream& of, int nIndent)
         this->UVWOrigin[1] << " " <<
         this->UVWOrigin[2] << "\"";
 
+  of << indent << " orientationMarkerVisibility=\"" << (this->OrientationMarkerVisibility ? "true" : "false") << "\"";
+  of << indent << " orientationMarkerRepresentation=\"" << this->GetOrientationMarkerRepresentationAsString(this->OrientationMarkerRepresentation) << "\"";
+  of << indent << " orientationMarkerSize=\"" << this->OrientationMarkerSize << "\"";
 
   of << indent << " activeSlice=\"" << this->ActiveSlice << "\"";
 
@@ -907,6 +914,41 @@ void vtkMRMLSliceNode::ReadXMLAttributes(const char** atts)
       ss >> val;
 
       this->SliceResolutionMode = val;
+      }
+
+    else if (!strcmp(attName, "orientationMarkerVisibility"))
+      {
+      if (!strcmp(attValue,"true"))
+        {
+        this->OrientationMarkerVisibility = true;
+        }
+      else
+        {
+        this->OrientationMarkerVisibility = false;
+        }
+      }
+
+    else if (!strcmp(attName, "orientationMarkerRepresentation"))
+      {
+      int representationId = this->GetOrientationMarkerRepresentationFromString(attValue);
+      if (representationId<0)
+        {
+        vtkWarningMacro("Invalid orientationMarkerRepresentation: "<<(attValue?attValue:"(none)"));
+        }
+      else
+        {
+        this->OrientationMarkerRepresentation = representationId;
+        }
+      }
+
+    else if (!strcmp(attName, "orientationMarkerSize"))
+      {
+      std::stringstream ss;
+      int val;
+      ss << attValue;
+      ss >> val;
+
+      this->OrientationMarkerSize = val;
       }
 
     else if (!strcmp(attName, "activeSlice"))
@@ -1155,6 +1197,10 @@ void vtkMRMLSliceNode::Copy(vtkMRMLNode *anode)
 
   this->SliceResolutionMode = node->SliceResolutionMode;
 
+  this->OrientationMarkerVisibility = node->OrientationMarkerVisibility ;
+  this->OrientationMarkerRepresentation = node->OrientationMarkerRepresentation;
+  this->OrientationMarkerSize = node->OrientationMarkerSize;
+
   int i;
   for(i=0; i<3; i++)
     {
@@ -1184,10 +1230,13 @@ void vtkMRMLSliceNode::Reset()
   double layoutColor[3] = {0.0, 0.0, 0.0};
   this->GetLayoutColor(layoutColor);
   this->Superclass::Reset();
-  this->DisableModifiedEventOn();
+  int wasModified = this->StartModify();
   this->SetOrientation(orientation.c_str());
   this->SetLayoutColor(layoutColor);
-  this->DisableModifiedEventOff();
+  this->OrientationMarkerVisibility = false;
+  this->OrientationMarkerRepresentation = OrientationMarkerCube;
+  this->OrientationMarkerSize = 20;
+  this->EndModify(wasModified);
 }
 
 //----------------------------------------------------------------------------
@@ -1274,6 +1323,11 @@ void vtkMRMLSliceNode::PrintSelf(ostream& os, vtkIndent indent)
     os << indent << "ThreeDViewIDs[" << i << "]: " <<
       this->ThreeDViewIDs[i] << "\n";
     }
+
+  os << indent << " Orientation marker visibility: " << (this->OrientationMarkerVisibility ? "true" : "false") << "\n";
+  os << indent << " Orientation marker representation: " << this->GetOrientationMarkerRepresentationAsString(this->OrientationMarkerRepresentation) << "\n";
+  os << indent << " Orientation marker size: " << this->OrientationMarkerSize << "\n";
+
 }
 
 void vtkMRMLSliceNode::JumpSlice(double r, double a, double s)
@@ -2105,4 +2159,38 @@ void vtkMRMLSliceNode::RotateToVolumePlane(vtkMRMLVolumeNode *volumeNode)
   this->SetOrientationToReformat(); // just sets the string - indicates that this is not patient aligned
 
   this->UpdateMatrices();
+}
+
+//-----------------------------------------------------------
+const char* vtkMRMLSliceNode::GetOrientationMarkerRepresentationAsString(int representationId)
+{
+  switch (representationId)
+    {
+    case OrientationMarkerCube: return "cube";
+    case OrientationMarkerHuman: return "human";
+    case OrientationMarkerAxes: return "axes";
+    default:
+      // unknown id
+      return "";
+    }
+}
+
+//-----------------------------------------------------------
+int vtkMRMLSliceNode::GetOrientationMarkerRepresentationFromString(const char* representationName)
+{
+  if (representationName == NULL)
+  {
+    // invalid representation name
+    return -1;
+  }
+  for (int i=0; i<OrientationMarker_Last; i++)
+    {
+    if (strcmp(representationName, GetOrientationMarkerRepresentationAsString(i))==0)
+      {
+      // found a matching representation name
+      return i;
+      }
+    }
+  // unknown representation name
+  return -1;
 }

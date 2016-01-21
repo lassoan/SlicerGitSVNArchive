@@ -216,6 +216,23 @@
          </widget>
         </item>
         <item>
+         <widget class="QToolButton" name="ShowOrientationMarkerButton">
+          <property name="toolTip">
+           <string>Show orientation marker</string>
+          </property>
+          <property name="icon">
+           <iconset resource="../qMRMLWidgets.qrc">
+            <normaloff>:/Icons/OrientationMarker.png</normaloff>:/Icons/OrientationMarker.png</iconset>
+          </property>
+          <property name="checkable">
+           <bool>true</bool>
+          </property>
+          <property name="autoRaise">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+        <item>
          <widget class="QToolButton" name="SliceMoreOptionButton">
           <property name="toolTip">
            <string>Advanced options</string>
@@ -611,6 +628,42 @@
    </property>
    <property name="text">
     <string>Show reformat widget</string>
+   </property>
+  </action>
+  <action name="actionShowOrientationMarker">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="../qMRMLWidgets.qrc">
+     <normaloff>:/Icons/OrientationMarker.png</normaloff>:/Icons/OrientationMarker.png</iconset>
+   </property>
+   <property name="text">
+    <string>Show orientation marker</string>
+   </property>
+  </action>
+  <action name="actionOrientationMarkerCube">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Cube</string>
+   </property>
+  </action>
+  <action name="actionOrientationMarkerHuman">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Human</string>
+   </property>
+  </action>
+  <action name="actionOrientationMarkerAxes">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Axes</string>
    </property>
   </action>
   <action name="actionCompositingAlpha_blend">
@@ -1289,6 +1342,22 @@
     <hint type="destinationlabel">
      <x>274</x>
      <y>21</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>MoreButton</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>ShowOrientationMarkerButton</receiver>
+   <slot>setVisible(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>6</x>
+     <y>11</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>264</x>
+     <y>11</y>
     </hint>
    </hints>
   </connection>

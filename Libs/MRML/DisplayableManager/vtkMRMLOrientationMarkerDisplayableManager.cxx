@@ -98,12 +98,6 @@ public:
   int RendererObservationId;
   vtkWeakPointer<vtkRenderer> ObservedRenderer;
 
-  double ViewPortStartWidth;
-  double ViewPortFinishHeight;
-  double ZoomValue;
-
-  //vtkActor* CurrentActor;
-
   vtkMRMLOrientationMarkerDisplayableManager* External;
 };
 
@@ -114,10 +108,6 @@ public:
 vtkMRMLOrientationMarkerDisplayableManager::vtkInternal::vtkInternal(vtkMRMLOrientationMarkerDisplayableManager * external)
 {
   this->External = external;
-  //this->CurrentActor = NULL;
-  this->ViewPortStartWidth = 0.8;
-  this->ViewPortFinishHeight = 0.3;
-  this->ZoomValue = 20;
   this->RendererObserver = vtkSmartPointer<vtkRendererUpdateObserver>::New();
   this->RendererObserver->DisplayableManager = this->External;
   this->RendererObservationId = 0;
@@ -206,27 +196,29 @@ void vtkMRMLOrientationMarkerDisplayableManager::vtkInternal::CreateAxesOrientat
 //---------------------------------------------------------------------------
 void vtkMRMLOrientationMarkerDisplayableManager::vtkInternal::UpdateMarkerVisibility()
 {
-  //bool visible = this->External->GetMRMLViewNode()->GetBoxVisible();
-  bool visible = true;
-  // TODO: switch types
-  /*
-  int stereoType = this->External->GetMRMLViewNode()->GetStereoType();
-  if (stereoType == vtkMRMLViewNode::RedBlue)
+  bool visible = false;
+  int representation = -1;
+
+  vtkMRMLSliceNode* sliceNode = vtkMRMLSliceNode::SafeDownCast(this->External->GetMRMLDisplayableNode());
+  if (sliceNode)
     {
-    renderWindow->SetStereoTypeToRedBlue();
+    visible = sliceNode->GetOrientationMarkerVisibility();
+    representation = sliceNode->GetOrientationMarkerRepresentation();
     }
-  */
 
   if (this->CubeActor)
-  {
-    this->CubeActor->SetVisibility(visible);
-  }
-  /*
+    {
+    this->CubeActor->SetVisibility(visible && representation==vtkMRMLSliceNode::OrientationMarkerCube);
+    }
   if (this->HumanActor)
-  {
-    this->HumanActor->SetVisibility(visible);
-  }
-  */
+    {
+    this->HumanActor->SetVisibility(visible && representation==vtkMRMLSliceNode::OrientationMarkerHuman);
+    }
+  if (this->AxesActor)
+    {
+    this->AxesActor->SetVisibility(visible && representation==vtkMRMLSliceNode::OrientationMarkerAxes);
+    }
+
   //this->External->RequestRender();
 }
 
@@ -254,7 +246,7 @@ void vtkMRMLOrientationMarkerDisplayableManager::vtkInternal::UpdateMarkerOrient
         }
       }
     double det = sliceToRasOrientation->Determinant();
-    double cameraPositionMultiplier = 100.0/this->ZoomValue;
+    double cameraPositionMultiplier = 5.0;
     double y[3] = {0,0, det>0 ? -cameraPositionMultiplier : cameraPositionMultiplier};
     // Calculating position
     double position[3] = {0};
@@ -267,6 +259,9 @@ void vtkMRMLOrientationMarkerDisplayableManager::vtkInternal::UpdateMarkerOrient
     vtkCamera* camera = this->MarkerRenderer->GetActiveCamera();
     camera->SetPosition(-position[0],-position[1],-position[2]);
     camera->SetViewUp(viewUp[0],viewUp[1],viewUp[2]);
+
+    this->MarkerRenderer->ResetCamera();
+
     return;
     }
 
@@ -300,10 +295,43 @@ void vtkMRMLOrientationMarkerDisplayableManager::vtkInternal::UpdateMarkerSize()
     vtkErrorWithObjectMacro(this->External, "vtkMRMLOrientationMarkerDisplayableManager::vtkInternal::UpdateMarkerSize() failed: MarkerRenderer is invalid");
     return;
     }
-  double* viewport= this->MarkerRenderer->GetViewport();
-  if (viewport[0]!=this->ViewPortStartWidth || viewport[3]!=this->ViewPortFinishHeight)
+  int sizePercent = -1;
+
+  vtkMRMLSliceNode* sliceNode = vtkMRMLSliceNode::SafeDownCast(this->External->GetMRMLDisplayableNode());
+  if (sliceNode)
     {
-    this->MarkerRenderer->SetViewport(this->ViewPortStartWidth,0,1,this->ViewPortFinishHeight);
+    sizePercent = sliceNode->GetOrientationMarkerSize();
+    }
+
+  if (sizePercent>=0)
+    {
+    // Viewport: xmin, ymin, xmax, ymax; range: 0.0-1.0; origin is bottom left
+    double* viewport= this->MarkerRenderer->GetViewport();
+    // Determine the available renderer size in pixels
+    double minX=0;
+    double minY=0;
+    this->MarkerRenderer->NormalizedDisplayToDisplay(minX,minY);
+    double maxX=1;
+    double maxY=1;
+    this->MarkerRenderer->NormalizedDisplayToDisplay(maxX,maxY);
+    int rendererSizeInPixels[2] = {maxX-minX, maxY-minY};
+    if (rendererSizeInPixels[0]>0 && rendererSizeInPixels[1]>0)
+      {
+      // Compute normalized size for a square-shaped viewport. Square size is defined a percentage of renderer width.
+      double viewPortSizeInPixels = double(rendererSizeInPixels[0])*(0.01*sizePercent);
+      double newViewport[4] = {1.0-viewPortSizeInPixels/double(rendererSizeInPixels[0]), 0.0,
+        1.0, viewPortSizeInPixels/double(rendererSizeInPixels[1])};
+      if (newViewport[0]<0.0) newViewport[0]=0.0;
+      if (newViewport[1]<0.0) newViewport[1]=0.0;
+      if (newViewport[2]>1.0) newViewport[1]=1.0;
+      if (newViewport[3]>1.0) newViewport[3]=1.0;
+      // Update the viewport
+      if (newViewport[0] != viewport[0] || newViewport[1] != viewport[1]
+        || newViewport[2] != viewport[2] || newViewport[3] != viewport[3])
+        {
+        this->MarkerRenderer->SetViewport(newViewport);
+        }
+      }
     }
 }
 
