@@ -162,6 +162,7 @@ void qMRMLSliceViewPrivate::initDisplayableManagers()
   displayableManagers << "vtkMRMLVolumeGlyphSliceDisplayableManager";
   displayableManagers << "vtkMRMLModelSliceDisplayableManager";
   displayableManagers << "vtkMRMLCrosshairDisplayableManager";
+  displayableManagers << "vtkMRMLOrientationMarkerDisplayableManager";
   foreach(const QString& displayableManager, displayableManagers)
     {
     if (!factory->IsDisplayableManagerRegistered(displayableManager.toLatin1()))

@@ -43,12 +43,6 @@ protected:
   vtkMRMLOrientationMarkerDisplayableManager();
   virtual ~vtkMRMLOrientationMarkerDisplayableManager();
 
-  /// Receives events from the view and the camera nodes.
-  virtual void ProcessMRMLNodesEvents(vtkObject *caller, unsigned long event, void *callData);
-  virtual void ProcessWidgetsEvents(vtkObject *caller, unsigned long event, void *callData);
-
-  virtual void AdditionalInitializeStep();
-
   /// Observe the View node and initialize the renderer accordingly.
   virtual void Create();
 
