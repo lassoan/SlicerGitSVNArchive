@@ -64,6 +64,31 @@
 
 // STD includes
 
+
+class vtkRendererUpdateObserver : public vtkCommand
+{
+public:
+  static vtkRendererUpdateObserver *New()
+    {
+    return new vtkRendererUpdateObserver;
+    }
+
+  vtkRendererUpdateObserver()
+    {
+    this->DisplayableManager = 0;
+    }
+
+  virtual void Execute(vtkObject* vtkNotUsed(wdg), unsigned long vtkNotUsed(event), void* vtkNotUsed(calldata))
+    {
+    if (this->DisplayableManager)
+      {
+      this->DisplayableManager->UpdateFromRenderer();
+      }
+  }
+
+  vtkWeakPointer<vtkMRMLOrientationMarkerDisplayableManager> DisplayableManager;
+};
+
 //---------------------------------------------------------------------------
 vtkStandardNewMacro(vtkMRMLOrientationMarkerDisplayableManager );
 
@@ -77,15 +102,23 @@ public:
   void UpdateMarkerVisibility();
   void UpdateMarkerType();
   void UpdateMarkerSize();
+  void UpdateMarkerOrientation();
 
   void CreateCubeOrientationModel();
   void CreateHumanOrientationModel(const char* modelFilename);
   void CreateAxesOrientationModel();
 
+  void AddRendererObserver(vtkRenderer* renderer);
+  void RemoveRendererObserver();
+
   vtkSmartPointer<vtkRenderer> MarkerRenderer;
   vtkSmartPointer<vtkAnnotatedCubeActor> CubeActor;
   vtkSmartPointer<vtkActor> HumanActor;
   vtkSmartPointer<vtkAxesActor> AxesActor;
+
+  vtkSmartPointer<vtkRendererUpdateObserver> RendererObserver;
+  int RendererObservationId;
+  vtkWeakPointer<vtkRenderer> ObservedRenderer;
 
   double ViewPortStartWidth;
   double ViewPortFinishHeight;
@@ -107,11 +140,39 @@ vtkMRMLOrientationMarkerDisplayableManager::vtkInternal::vtkInternal(vtkMRMLOrie
   this->ViewPortStartWidth = 0.8;
   this->ViewPortFinishHeight = 0.3;
   this->ZoomValue = 20;
+  this->RendererObserver = vtkSmartPointer<vtkRendererUpdateObserver>::New();
+  this->RendererObserver->DisplayableManager = this->External;
+  this->RendererObservationId = 0;
 }
 
 //---------------------------------------------------------------------------
 vtkMRMLOrientationMarkerDisplayableManager::vtkInternal::~vtkInternal()
 {
+  RemoveRendererObserver();
+}
+
+//---------------------------------------------------------------------------
+void vtkMRMLOrientationMarkerDisplayableManager::vtkInternal::AddRendererObserver(vtkRenderer* renderer)
+{
+  RemoveRendererObserver();
+  if (renderer)
+    {
+    this->ObservedRenderer = renderer;
+    this->RendererObservationId = renderer->AddObserver(vtkCommand::StartEvent, this->RendererObserver);
+    //this->RendererObservationId = renderer->AddObserver(vtkCommand::StartEvent, this->RendererObserver, 1 );
+    //this->RendererObservationId = renderer->AddObserver(vtkCommand::EndEvent, this->RendererObserver, 10 );
+    }
+}
+
+//---------------------------------------------------------------------------
+void vtkMRMLOrientationMarkerDisplayableManager::vtkInternal::RemoveRendererObserver()
+{
+  if (this->ObservedRenderer)
+    {
+    this->ObservedRenderer->RemoveObserver(this->RendererObservationId);
+    this->RendererObservationId = 0;
+    this->ObservedRenderer = NULL;
+    }
 }
 
 //---------------------------------------------------------------------------
@@ -185,20 +246,18 @@ void vtkMRMLOrientationMarkerDisplayableManager::vtkInternal::UpdateMarkerVisibi
 }
 
 //---------------------------------------------------------------------------
-void vtkMRMLOrientationMarkerDisplayableManager::vtkInternal::UpdateMarkerSize()
+void vtkMRMLOrientationMarkerDisplayableManager::vtkInternal::UpdateMarkerOrientation()
 {
   vtkRenderer* renderer = this->External->GetRenderer();
   if (renderer==NULL)
     {
-    vtkErrorWithObjectMacro(this->External, "vtkMRMLOrientationMarkerDisplayableManager::vtkInternal::UpdateMarkerSize() failed: renderer is invalid");
+    vtkErrorWithObjectMacro(this->External, "vtkMRMLOrientationMarkerDisplayableManager::vtkInternal::UpdateMarkerOrientation() failed: renderer is invalid");
     return;
     }
 
   vtkMRMLSliceNode* sliceNode = vtkMRMLSliceNode::SafeDownCast(this->External->GetMRMLDisplayableNode());
   if (sliceNode && this->MarkerRenderer)
     {
-    this->MarkerRenderer->SetViewport(this->ViewPortStartWidth,0,1,this->ViewPortFinishHeight);
-
     // Calculate the camera position and viewup based on XYToRAS matrix
     vtkMatrix4x4* sliceToRas = sliceNode->GetSliceToRAS();
     vtkNew<vtkMatrix3x3> sliceToRasOrientation;
@@ -231,13 +290,53 @@ void vtkMRMLOrientationMarkerDisplayableManager::vtkInternal::UpdateMarkerSize()
     }
 
   vtkMRMLViewNode* threeDViewNode = vtkMRMLViewNode::SafeDownCast(this->External->GetMRMLDisplayableNode());
-  if (threeDViewNode)
+  if (threeDViewNode && this->ObservedRenderer)
     {
-    // not implemented yet
+/*
+    vtkCamera *cam = this->ObservedRenderer->GetActiveCamera();
+    double viewup[3] = {0};
+    cam->GetViewUp( viewup );
+
+    double vn[3] = {1,0,0};
+    cam->GetViewPlaneNormal(vn);
+    double distance = 4.0;
+
+    cam = this->MarkerRenderer->GetActiveCamera();
+    double pos[3]={distance*vn[0],distance*vn[1],distance*vn[2]};
+    cam->SetPosition(pos);
+
+    cam->SetFocalPoint(0,0,0);
+    cam->SetViewUp( viewup );
+*/
+    vtkCamera *cam = this->ObservedRenderer->GetActiveCamera();
+    double pos[3], fp[3], viewup[3];
+    cam->GetPosition( pos );
+    cam->GetFocalPoint( fp );
+    cam->GetViewUp( viewup );
+
+    cam = this->MarkerRenderer->GetActiveCamera();
+    cam->SetPosition( pos );
+    cam->SetFocalPoint( fp );
+    cam->SetViewUp( viewup );
+    this->MarkerRenderer->ResetCamera();
+
     return;
     }
 
-  vtkErrorWithObjectMacro(this->External, "vtkMRMLOrientationMarkerDisplayableManager::Create() failed: displayable node is invalid");
+  vtkErrorWithObjectMacro(this->External, "vtkMRMLOrientationMarkerDisplayableManager::UpdateMarkerOrientation() failed: displayable node is invalid");
+}
+
+
+//---------------------------------------------------------------------------
+void vtkMRMLOrientationMarkerDisplayableManager::vtkInternal::UpdateMarkerSize()
+{
+  if (this->MarkerRenderer==NULL)
+    {
+    vtkErrorWithObjectMacro(this->External, "vtkMRMLOrientationMarkerDisplayableManager::vtkInternal::UpdateMarkerSize() failed: MarkerRenderer is invalid");
+    return;
+    }
+
+  this->MarkerRenderer->SetViewport(this->ViewPortStartWidth,0,1,this->ViewPortFinishHeight);
 }
 
 //---------------------------------------------------------------------------
@@ -284,7 +383,10 @@ void vtkMRMLOrientationMarkerDisplayableManager::Create()
   this->Internal->MarkerRenderer = vtkSmartPointer<vtkRenderer>::New();
 
   vtkRenderWindow* renderWindow = renderer->GetRenderWindow();
-  // TODO: check
+  if (renderWindow->GetNumberOfLayers() < 2)
+    {
+    renderWindow->SetNumberOfLayers( 2 );
+    }
   this->Internal->MarkerRenderer->SetLayer(1);
   renderWindow->AddRenderer(this->Internal->MarkerRenderer);
 
@@ -297,6 +399,12 @@ void vtkMRMLOrientationMarkerDisplayableManager::Create()
     return;
     }
   */
+
+  vtkMRMLViewNode* threeDViewNode = vtkMRMLViewNode::SafeDownCast(this->GetMRMLDisplayableNode());
+  if (threeDViewNode)
+    {
+    this->Internal->AddRendererObserver(renderer);
+    }
 
   this->Internal->CreateCubeOrientationModel();
   this->Internal->CreateAxesOrientationModel();
@@ -320,4 +428,13 @@ void vtkMRMLOrientationMarkerDisplayableManager::UpdateFromViewNode()
 {
   this->Internal->UpdateMarkerVisibility();
   this->Internal->UpdateMarkerSize();
+  this->Internal->UpdateMarkerOrientation();
+}
+
+//---------------------------------------------------------------------------
+void vtkMRMLOrientationMarkerDisplayableManager::UpdateFromRenderer()
+{
+  //this->Internal->UpdateMarkerVisibility();
+  //this->Internal->UpdateMarkerSize();
+  this->Internal->UpdateMarkerOrientation();
 }

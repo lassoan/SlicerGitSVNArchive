@@ -38,6 +38,8 @@ public:
   vtkTypeMacro(vtkMRMLOrientationMarkerDisplayableManager,vtkMRMLAbstractDisplayableManager);
   void PrintSelf(ostream& os, vtkIndent indent);
 
+  void UpdateFromRenderer();
+
 protected:
 
   vtkMRMLOrientationMarkerDisplayableManager();
