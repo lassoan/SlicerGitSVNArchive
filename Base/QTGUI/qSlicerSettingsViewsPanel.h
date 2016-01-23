@@ -38,6 +38,8 @@ class Q_SLICER_BASE_QTGUI_EXPORT qSlicerSettingsViewsPanel
   /// The current MSAA setting can be accessed using qSlicerApplication
   /// \sa currentMSAA(), setCurrentMSAA()
   Q_PROPERTY(QString currentMSAA READ currentMSAA WRITE setCurrentMSAA NOTIFY currentMSAAChanged)
+  Q_PROPERTY(QString sliceOrientationMarkerRepresentation READ sliceOrientationMarkerRepresentation WRITE setSliceOrientationMarkerRepresentation NOTIFY currentSliceOrientationMarkerRepresentationChanged)
+  Q_PROPERTY(QString threeDOrientationMarkerRepresentation READ threeDOrientationMarkerRepresentation WRITE setThreeDOrientationMarkerRepresentation NOTIFY currentThreeDOrientationMarkerRepresentationChanged)
 public:
   /// Superclass typedef
   typedef ctkSettingsPanel Superclass;
@@ -51,15 +53,27 @@ public:
   /// \sa currentMSAA
   QString currentMSAA() const;
 
+  QString sliceOrientationMarkerRepresentation() const;
+
+  QString threeDOrientationMarkerRepresentation() const;
+
 public slots:
   /// Change the current MSAA based on its name
   /// \sa currentMSAA
   void setCurrentMSAA(const QString&);
 
+  void setSliceOrientationMarkerRepresentation(const QString&);
+
+  void setThreeDOrientationMarkerRepresentation(const QString&);
+
 signals:
   /// Signal emitted when the current MSAA is changed
   /// \sa currentMSAA
   void currentMSAAChanged(const QString&);
+
+  void currentSliceOrientationMarkerRepresentationChanged(const QString&);
+
+  void currentThreeDOrientationMarkerRepresentationChanged(const QString&);
 
 protected slots:
   void onMSAAChanged(const QString&);

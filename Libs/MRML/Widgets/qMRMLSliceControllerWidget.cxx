@@ -887,6 +887,26 @@ void qMRMLSliceControllerWidgetPrivate::updateWidgetFromMRMLSliceNode()
   wasBlocked = this->SliceModelOriginYSpinBox->blockSignals(true);
   this->SliceModelOriginYSpinBox->setValue(UVWOrigin[1]);
   this->SliceModelOriginYSpinBox->blockSignals(wasBlocked);
+
+  // OrientationMarker
+  bool orientationMarkerVisible = this->MRMLSliceNode->GetOrientationMarkerVisibility();
+  this->actionShowOrientationMarker->setChecked(orientationMarkerVisible);
+  this->actionShowOrientationMarker->setText(
+    orientationMarkerVisible ? tr("Hide orientation marker"): tr("Show orientation marker"));
+  switch(this->MRMLSliceNode->GetOrientationMarkerRepresentation())
+    {
+    case vtkMRMLAbstractViewNode::OrientationMarkerCube:
+      this->actionOrientationMarkerCube->setChecked(true);
+      break;
+    case vtkMRMLAbstractViewNode::OrientationMarkerHuman:
+      this->actionOrientationMarkerHuman->setChecked(true);
+      break;
+    case vtkMRMLAbstractViewNode::OrientationMarkerAxes:
+      this->actionOrientationMarkerAxes->setChecked(true);
+      break;
+    }
+  this->OrientationMarkerSizeSpinBox->setValue(this->MRMLSliceNode->GetOrientationMarkerSize());
+
 }
 
 // --------------------------------------------------------------------------

@@ -81,6 +81,33 @@ void qSlicerSettingsViewsPanelPrivate::init()
                       "currentMSAA", SIGNAL(currentMSAAChanged(QString)),
                       "Multisampling (MSAA)",
                       ctkSettingsPanel::OptionRequireRestart);
+
+  q->registerProperty("DefaultSliceView/OrientationMarkerVisibility", this->SliceOrientationMarkerVisibilityCheckBox,
+                      "checked", SIGNAL(toggled(bool)),
+                      "Slice view orientation marker visibility");
+  QObject::connect(this->SliceOrientationMarkerRepresentationComboBox, SIGNAL(currentIndexChanged(QString)),
+                   q, SIGNAL(currentSliceOrientationMarkerRepresentationChanged(QString)));
+  q->registerProperty("DefaultSliceView/OrientationMarkerRepresentation", q,
+                      "sliceOrientationMarkerRepresentation", SIGNAL(currentSliceOrientationMarkerRepresentationChanged(QString)),
+                      "Slice view orientation marker type",
+                      ctkSettingsPanel::OptionRequireRestart);
+  q->registerProperty("DefaultSliceView/OrientationMarkerSize", this->SliceOrientationMarkerSizeSlider,
+                      "value", SIGNAL(valueChanged(int)),
+                      "Slice view orientation marker size");
+
+  q->registerProperty("Default3DView/OrientationMarkerVisibility", this->ThreeDOrientationMarkerVisibilityCheckBox,
+                      "checked", SIGNAL(toggled(bool)),
+                      "3D view orientation marker visibility");
+  QObject::connect(this->ThreeDOrientationMarkerRepresentationComboBox, SIGNAL(currentIndexChanged(QString)),
+                   q, SIGNAL(currentThreeDOrientationMarkerRepresentationChanged(QString)));
+  q->registerProperty("Default3DView/OrientationMarkerRepresentation", q,
+                      "threeDOrientationMarkerRepresentation", SIGNAL(currentThreeDOrientationMarkerRepresentationChanged(QString)),
+                      "3D view orientation marker type",
+                      ctkSettingsPanel::OptionRequireRestart);
+  q->registerProperty("Default3DView/OrientationMarkerSize", this->ThreeDOrientationMarkerSizeSlider,
+                      "value", SIGNAL(valueChanged(int)),
+                      "3D view orientation marker size");
+
 }
 
 // --------------------------------------------------------------------------
@@ -134,4 +161,34 @@ void qSlicerSettingsViewsPanel::setCurrentMSAA(const QString& text)
   Q_D(qSlicerSettingsViewsPanel);
   // default to "Off" (0) if conversion fails
   d->MSAAComboBox->setCurrentIndex(qMax(d->MSAAComboBox->findText(text), 0));
+}
+
+// --------------------------------------------------------------------------
+QString qSlicerSettingsViewsPanel::sliceOrientationMarkerRepresentation() const
+{
+  Q_D(const qSlicerSettingsViewsPanel);
+  return d->SliceOrientationMarkerRepresentationComboBox->currentText();
+}
+
+// --------------------------------------------------------------------------
+void qSlicerSettingsViewsPanel::setSliceOrientationMarkerRepresentation(const QString& text)
+{
+  Q_D(qSlicerSettingsViewsPanel);
+  // default to first item if conversion fails
+  d->SliceOrientationMarkerRepresentationComboBox->setCurrentIndex(qMax(d->SliceOrientationMarkerRepresentationComboBox->findText(text), 0));
+}
+
+// --------------------------------------------------------------------------
+QString qSlicerSettingsViewsPanel::threeDOrientationMarkerRepresentation() const
+{
+  Q_D(const qSlicerSettingsViewsPanel);
+  return d->ThreeDOrientationMarkerRepresentationComboBox->currentText();
+}
+
+// --------------------------------------------------------------------------
+void qSlicerSettingsViewsPanel::setThreeDOrientationMarkerRepresentation(const QString& text)
+{
+  Q_D(qSlicerSettingsViewsPanel);
+  // default to first item if conversion fails
+  d->ThreeDOrientationMarkerRepresentationComboBox->setCurrentIndex(qMax(d->ThreeDOrientationMarkerRepresentationComboBox->findText(text), 0));
 }
