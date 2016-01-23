@@ -21,7 +21,11 @@
 // MRMLDisplayableManager includes
 #include "vtkMRMLOrientationMarkerDisplayableManager.h"
 
+// Slicer
+#include "vtkSlicerConfigure.h" // for Slicer_SHARE_DIR
+
 // MRML includes
+#include <vtkMRMLAbstractViewNode.h>
 #include <vtkMRMLSliceNode.h>
 #include <vtkMRMLViewNode.h>
 
@@ -42,9 +46,9 @@
 #include <vtkRenderWindow.h>
 #include <vtkSmartPointer.h>
 #include <vtkXMLPolyDataReader.h>
+#include <vtksys/SystemTools.hxx>
 
 // STD includes
-
 
 class vtkRendererUpdateObserver : public vtkCommand
 {
@@ -81,6 +85,8 @@ public:
   void UpdateMarkerType();
   void UpdateMarkerSize();
   void UpdateMarkerOrientation();
+
+  std::string GetOrientationMarkerModelPath(const char* modelFileName);
 
   void CreateCubeOrientationModel();
   void CreateHumanOrientationModel(const char* modelFilename);
@@ -160,11 +166,44 @@ void vtkMRMLOrientationMarkerDisplayableManager::vtkInternal::CreateCubeOrientat
   this->CubeActor->SetVisibility(0);
 }
 
+//----------------------------------------------------------------------------
+std::string vtkMRMLOrientationMarkerDisplayableManager::vtkInternal::GetOrientationMarkerModelPath(const char* modelFileName)
+{
+  // get the slicer home dir
+  std::string slicerHome;
+  if (vtksys::SystemTools::GetEnv("SLICER_HOME") != NULL)
+    {
+    slicerHome = std::string(vtksys::SystemTools::GetEnv("SLICER_HOME"));
+    }
+  else
+    {
+    if (vtksys::SystemTools::GetEnv("PWD") != NULL)
+      {
+      slicerHome =  std::string(vtksys::SystemTools::GetEnv("PWD"));
+      }
+    else
+      {
+      slicerHome =  std::string("");
+      }
+    }
+
+  // build up the vector
+  std::vector<std::string> filesVector;
+  filesVector.push_back(""); // for relative path
+  filesVector.push_back(slicerHome);
+  filesVector.push_back(Slicer_SHARE_DIR);
+  filesVector.push_back("OrientationMarkers");
+  filesVector.push_back(modelFileName);
+  std::string fullPath = vtksys::SystemTools::JoinPath(filesVector);
+
+  return fullPath;
+}
+
 //---------------------------------------------------------------------------
 void vtkMRMLOrientationMarkerDisplayableManager::vtkInternal::CreateHumanOrientationModel(const char* modelFilename)
 {
   vtkNew<vtkXMLPolyDataReader> polyDataReader;
-  polyDataReader->SetFileName(modelFilename);
+  polyDataReader->SetFileName(this->GetOrientationMarkerModelPath("Human.vtp").c_str());
   polyDataReader->Update();
   polyDataReader->GetOutput()->GetPointData()->SetActiveScalars("Color");
 
@@ -196,27 +235,26 @@ void vtkMRMLOrientationMarkerDisplayableManager::vtkInternal::CreateAxesOrientat
 //---------------------------------------------------------------------------
 void vtkMRMLOrientationMarkerDisplayableManager::vtkInternal::UpdateMarkerVisibility()
 {
-  bool visible = false;
-  int representation = -1;
-
-  vtkMRMLSliceNode* sliceNode = vtkMRMLSliceNode::SafeDownCast(this->External->GetMRMLDisplayableNode());
-  if (sliceNode)
+  vtkMRMLAbstractViewNode* viewNode = vtkMRMLAbstractViewNode::SafeDownCast(this->External->GetMRMLDisplayableNode());
+  if (!viewNode || !viewNode->GetOrientationMarkerEnabled())
     {
-    visible = sliceNode->GetOrientationMarkerVisibility();
-    representation = sliceNode->GetOrientationMarkerRepresentation();
+    return;
     }
+
+  bool visible = viewNode->GetOrientationMarkerVisibility();
+  int representation = viewNode->GetOrientationMarkerRepresentation();;
 
   if (this->CubeActor)
     {
-    this->CubeActor->SetVisibility(visible && representation==vtkMRMLSliceNode::OrientationMarkerCube);
+    this->CubeActor->SetVisibility(visible && representation==vtkMRMLAbstractViewNode::OrientationMarkerCube);
     }
   if (this->HumanActor)
     {
-    this->HumanActor->SetVisibility(visible && representation==vtkMRMLSliceNode::OrientationMarkerHuman);
+    this->HumanActor->SetVisibility(visible && representation==vtkMRMLAbstractViewNode::OrientationMarkerHuman);
     }
   if (this->AxesActor)
     {
-    this->AxesActor->SetVisibility(visible && representation==vtkMRMLSliceNode::OrientationMarkerAxes);
+    this->AxesActor->SetVisibility(visible && representation==vtkMRMLAbstractViewNode::OrientationMarkerAxes);
     }
 
   //this->External->RequestRender();
@@ -295,42 +333,44 @@ void vtkMRMLOrientationMarkerDisplayableManager::vtkInternal::UpdateMarkerSize()
     vtkErrorWithObjectMacro(this->External, "vtkMRMLOrientationMarkerDisplayableManager::vtkInternal::UpdateMarkerSize() failed: MarkerRenderer is invalid");
     return;
     }
-  int sizePercent = -1;
 
-  vtkMRMLSliceNode* sliceNode = vtkMRMLSliceNode::SafeDownCast(this->External->GetMRMLDisplayableNode());
-  if (sliceNode)
+  vtkMRMLAbstractViewNode* viewNode = vtkMRMLAbstractViewNode::SafeDownCast(this->External->GetMRMLDisplayableNode());
+  if (!viewNode || !viewNode->GetOrientationMarkerEnabled())
     {
-    sizePercent = sliceNode->GetOrientationMarkerSize();
+    return;
     }
 
-  if (sizePercent>=0)
+  int sizePercent = viewNode->GetOrientationMarkerSize();
+  if (sizePercent<=0)
     {
-    // Viewport: xmin, ymin, xmax, ymax; range: 0.0-1.0; origin is bottom left
-    double* viewport= this->MarkerRenderer->GetViewport();
-    // Determine the available renderer size in pixels
-    double minX=0;
-    double minY=0;
-    this->MarkerRenderer->NormalizedDisplayToDisplay(minX,minY);
-    double maxX=1;
-    double maxY=1;
-    this->MarkerRenderer->NormalizedDisplayToDisplay(maxX,maxY);
-    int rendererSizeInPixels[2] = {maxX-minX, maxY-minY};
-    if (rendererSizeInPixels[0]>0 && rendererSizeInPixels[1]>0)
+    return;
+    }
+
+  // Viewport: xmin, ymin, xmax, ymax; range: 0.0-1.0; origin is bottom left
+  double* viewport= this->MarkerRenderer->GetViewport();
+  // Determine the available renderer size in pixels
+  double minX=0;
+  double minY=0;
+  this->MarkerRenderer->NormalizedDisplayToDisplay(minX,minY);
+  double maxX=1;
+  double maxY=1;
+  this->MarkerRenderer->NormalizedDisplayToDisplay(maxX,maxY);
+  int rendererSizeInPixels[2] = {maxX-minX, maxY-minY};
+  if (rendererSizeInPixels[0]>0 && rendererSizeInPixels[1]>0)
+    {
+    // Compute normalized size for a square-shaped viewport. Square size is defined a percentage of renderer width.
+    double viewPortSizeInPixels = double(rendererSizeInPixels[0])*(0.01*sizePercent);
+    double newViewport[4] = {1.0-viewPortSizeInPixels/double(rendererSizeInPixels[0]), 0.0,
+      1.0, viewPortSizeInPixels/double(rendererSizeInPixels[1])};
+    if (newViewport[0]<0.0) newViewport[0]=0.0;
+    if (newViewport[1]<0.0) newViewport[1]=0.0;
+    if (newViewport[2]>1.0) newViewport[1]=1.0;
+    if (newViewport[3]>1.0) newViewport[3]=1.0;
+    // Update the viewport
+    if (newViewport[0] != viewport[0] || newViewport[1] != viewport[1]
+      || newViewport[2] != viewport[2] || newViewport[3] != viewport[3])
       {
-      // Compute normalized size for a square-shaped viewport. Square size is defined a percentage of renderer width.
-      double viewPortSizeInPixels = double(rendererSizeInPixels[0])*(0.01*sizePercent);
-      double newViewport[4] = {1.0-viewPortSizeInPixels/double(rendererSizeInPixels[0]), 0.0,
-        1.0, viewPortSizeInPixels/double(rendererSizeInPixels[1])};
-      if (newViewport[0]<0.0) newViewport[0]=0.0;
-      if (newViewport[1]<0.0) newViewport[1]=0.0;
-      if (newViewport[2]>1.0) newViewport[1]=1.0;
-      if (newViewport[3]>1.0) newViewport[3]=1.0;
-      // Update the viewport
-      if (newViewport[0] != viewport[0] || newViewport[1] != viewport[1]
-        || newViewport[2] != viewport[2] || newViewport[3] != viewport[3])
-        {
-        this->MarkerRenderer->SetViewport(newViewport);
-        }
+      this->MarkerRenderer->SetViewport(newViewport);
       }
     }
 }
@@ -379,6 +419,7 @@ void vtkMRMLOrientationMarkerDisplayableManager::Create()
   this->Internal->MarkerRenderer->SetLayer(1);
   renderWindow->AddRenderer(this->Internal->MarkerRenderer);
 
+  // In 3D viewers we need to follow the renderer and update the orientation marker accordingly
   vtkMRMLViewNode* threeDViewNode = vtkMRMLViewNode::SafeDownCast(this->GetMRMLDisplayableNode());
   if (threeDViewNode)
     {

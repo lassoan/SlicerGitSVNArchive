@@ -27,6 +27,7 @@
 #include "qSlicerViewControllersModuleExport.h"
 
 class qSlicerViewControllersModulePrivate;
+class vtkMRMLAbstractViewNode;
 
 class Q_SLICER_QTMODULES_VIEWCONTROLLERS_EXPORT qSlicerViewControllersModule
   : public qSlicerLoadableModule
@@ -47,6 +48,11 @@ public:
 
   virtual QString acknowledgementText()const;
   virtual QStringList contributors()const;
+
+  static void readDefaultOrientationMarkerSettings(vtkMRMLAbstractViewNode* defaultSliceNode, QString groupName);
+  static void writeDefaultOrientationMarkerSettings(vtkMRMLAbstractViewNode* defaultSliceNode, QString groupName);
+
+  virtual void setMRMLScene(vtkMRMLScene* scene);
 
 protected:
   /// Initialize the module. Register the volumes reader/writer

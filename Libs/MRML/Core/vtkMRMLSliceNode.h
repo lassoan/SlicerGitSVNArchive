@@ -52,7 +52,7 @@ class VTK_MRML_EXPORT vtkMRMLSliceNode : public vtkMRMLAbstractViewNode
   /// \brief Reimplemented to preserve orientation and layout color when reset.
   /// \sa GetOrientationString()
   /// \sa GetLayoutColor()
-  virtual void Reset();
+  virtual void Reset(vtkMRMLNode* defaultNode);
 
   ///
   /// Get node XML tag name (like Volume, Model)
@@ -316,24 +316,6 @@ class VTK_MRML_EXPORT vtkMRMLSliceNode : public vtkMRMLAbstractViewNode
   double GetSliceOffset();
   void SetSliceOffset(double offset);
 
-  ///
-  /// Get/Set orientaion marker visibility in the view
-  vtkSetMacro(OrientationMarkerVisibility, bool);
-  vtkGetMacro(OrientationMarkerVisibility, bool);
-
-  ///
-  /// Get/Set how orientation marker is represented (e.g., cube, human, coordinate system axes)
-  vtkSetMacro(OrientationMarkerRepresentation, int);
-  vtkGetMacro(OrientationMarkerRepresentation, int);
-
-  static const char* GetOrientationMarkerRepresentationAsString(int representationId);
-  static int GetOrientationMarkerRepresentationFromString(const char* representationName);
-
-  ///
-  /// Get/Set orientation marker is size in percentage of the view size (valid value range: 0-100)
-  vtkSetMacro(OrientationMarkerSize, int);
-  vtkGetMacro(OrientationMarkerSize, int);
-
   /// Set/get the active slice in the lightbox. The active slice is
   /// shown in the 3D scene
   vtkSetMacro(ActiveSlice, int);
@@ -420,15 +402,6 @@ class VTK_MRML_EXPORT vtkMRMLSliceNode : public vtkMRMLAbstractViewNode
   virtual void SetSliceResolutionMode(int mode);
   vtkGetMacro(SliceResolutionMode, int);
 
-  /// Enum to specify orientation marker types
-  enum OrientationMarkerRepresentationType
-  {
-    OrientationMarkerCube=0,
-    OrientationMarkerHuman,
-    OrientationMarkerAxes,
-    OrientationMarker_Last // insert valid representations above this line
-  };
-
 protected:
 
 
@@ -473,10 +446,6 @@ protected:
 
   int SliceSpacingMode;
   double PrescribedSliceSpacing[3];
-
-  bool OrientationMarkerVisibility;
-  int OrientationMarkerRepresentation;
-  int OrientationMarkerSize;
 
   int ActiveSlice;
 

@@ -54,6 +54,7 @@ vtkMRMLViewNode::vtkMRMLViewNode()
   this->BackgroundColor2[2] = this->defaultBackgroundColor2()[2];
   this->UseDepthPeeling = 0;
   this->FPSVisible = 0;
+  this->OrientationMarkerEnabled = true;
  }
 
 //----------------------------------------------------------------------------

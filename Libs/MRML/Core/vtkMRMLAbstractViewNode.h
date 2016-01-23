@@ -52,7 +52,7 @@ public:
 
   /// \brief Reimplemented to preserve layout label when reset.
   /// \sa GetLayoutLabel()
-  virtual void Reset();
+  virtual void Reset(vtkMRMLNode* defaultNode);
 
   ///
   /// Name of the layout. Must be unique between all the view nodes of the
@@ -117,6 +117,37 @@ public:
   vtkGetVector3Macro (BackgroundColor2, double);
   vtkSetVector3Macro (BackgroundColor2, double);
 
+  /// Tells if it is meaningful to display orientation marker in this view.
+  /// It is set statically in each specific view node class and cannot be changed dynamically.
+  vtkGetMacro(OrientationMarkerEnabled, bool);
+
+  ///
+  /// Get/Set orientaion marker visibility in the view
+  vtkSetMacro(OrientationMarkerVisibility, bool);
+  vtkGetMacro(OrientationMarkerVisibility, bool);
+
+  ///
+  /// Get/Set how orientation marker is represented (e.g., cube, human, coordinate system axes)
+  vtkSetMacro(OrientationMarkerRepresentation, int);
+  vtkGetMacro(OrientationMarkerRepresentation, int);
+
+  static const char* GetOrientationMarkerRepresentationAsString(int representationId);
+  static int GetOrientationMarkerRepresentationFromString(const char* representationName);
+
+  ///
+  /// Get/Set orientation marker is size in percentage of the view size (valid value range: 0-100)
+  vtkSetMacro(OrientationMarkerSize, int);
+  vtkGetMacro(OrientationMarkerSize, int);
+
+  /// Enum to specify orientation marker types
+  enum OrientationMarkerRepresentationType
+  {
+    OrientationMarkerCube=0,
+    OrientationMarkerHuman,
+    OrientationMarkerAxes,
+    OrientationMarker_Last // insert valid representations above this line
+  };
+
 protected:
   vtkMRMLAbstractViewNode();
   ~vtkMRMLAbstractViewNode();
@@ -146,6 +177,14 @@ protected:
   /// Background colors
   double BackgroundColor[3];
   double BackgroundColor2[3];
+
+  ///
+  /// For views that supports orientation marker display (where OrientationMarkerEnabled=true)
+  /// these parameters define how to display the orientation marker.
+  bool OrientationMarkerEnabled;
+  bool OrientationMarkerVisibility;
+  int OrientationMarkerRepresentation;
+  int OrientationMarkerSize;
 };
 
 //------------------------------------------------------------------------------

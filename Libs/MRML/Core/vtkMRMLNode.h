@@ -235,7 +235,7 @@ public:
   /// \sa SetHideFromEditors()
   /// \sa SetSelectable()
   /// \sa SetSingletonTag()
-  virtual void Reset();
+  virtual void Reset(vtkMRMLNode* defaultNode);
 
   /// \brief Start modifying the node. Disable Modify events.
   ///

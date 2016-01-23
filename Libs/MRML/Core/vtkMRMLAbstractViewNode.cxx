@@ -38,6 +38,11 @@ vtkMRMLAbstractViewNode::vtkMRMLAbstractViewNode()
 
   this->SetLayoutLabel("1");
   this->SetHideFromEditors(0);
+
+  this->OrientationMarkerEnabled = false;
+  this->OrientationMarkerVisibility = false;
+  this->OrientationMarkerRepresentation = OrientationMarkerCube;
+  this->OrientationMarkerSize = 20;
  }
 
 //----------------------------------------------------------------------------
@@ -76,6 +81,14 @@ void vtkMRMLAbstractViewNode::WriteXML(ostream& of, int nIndent)
 
   of << indent << " backgroundColor2=\"" << this->BackgroundColor2[0] << " "
      << this->BackgroundColor2[1] << " " << this->BackgroundColor2[2] << "\"";
+
+  if (this->OrientationMarkerEnabled)
+    {
+    of << indent << " orientationMarkerVisibility=\"" << (this->OrientationMarkerVisibility ? "true" : "false") << "\"";
+    of << indent << " orientationMarkerRepresentation=\"" << this->GetOrientationMarkerRepresentationAsString(this->OrientationMarkerRepresentation) << "\"";
+    of << indent << " orientationMarkerSize=\"" << this->OrientationMarkerSize << "\"";
+    }
+
 }
 
 //----------------------------------------------------------------------------
@@ -139,6 +152,37 @@ void vtkMRMLAbstractViewNode::ReadXMLAttributes(const char** atts)
         {
         this->Active = 0;
         }
+      }
+    else if (!strcmp(attName, "orientationMarkerVisibility") && this->OrientationMarkerEnabled)
+      {
+      if (!strcmp(attValue,"true"))
+        {
+        this->OrientationMarkerVisibility = true;
+        }
+      else
+        {
+        this->OrientationMarkerVisibility = false;
+        }
+      }
+    else if (!strcmp(attName, "orientationMarkerRepresentation") && this->OrientationMarkerEnabled)
+      {
+      int representationId = this->GetOrientationMarkerRepresentationFromString(attValue);
+      if (representationId<0)
+        {
+        vtkWarningMacro("Invalid orientationMarkerRepresentation: "<<(attValue?attValue:"(none)"));
+        }
+      else
+        {
+        this->OrientationMarkerRepresentation = representationId;
+        }
+      }
+    else if (!strcmp(attName, "orientationMarkerSize") && this->OrientationMarkerEnabled)
+      {
+      std::stringstream ss;
+      int val;
+      ss << attValue;
+      ss >> val;
+      this->OrientationMarkerSize = val;
       }
     // XXX Do not read 'visibility' attribute and default to 1 because:
     // (1) commit r21034 (STYLE: Add abstract class for all view nodes)
@@ -207,18 +251,25 @@ void vtkMRMLAbstractViewNode::Copy(vtkMRMLNode *anode)
   this->Active = node->GetActive();
   this->Visibility = node->GetVisibility();
 
+  if (this->OrientationMarkerEnabled)
+    {
+    this->OrientationMarkerVisibility = node->OrientationMarkerVisibility;
+    this->OrientationMarkerRepresentation = node->OrientationMarkerRepresentation;
+    this->OrientationMarkerSize = node->OrientationMarkerSize;
+    }
+
   this->EndModify(disabledModify);
 }
 
 //----------------------------------------------------------------------------
-void vtkMRMLAbstractViewNode::Reset()
+void vtkMRMLAbstractViewNode::Reset(vtkMRMLNode* defaultNode)
 {
   // The LayoutName is preserved by vtkMRMLNode::Reset, however the layout
   // label (typically associated with the layoutName) is not preserved
   // automatically.
   // This require a custom behavior implemented here.
   std::string layoutLabel = this->GetLayoutLabel() ? this->GetLayoutLabel() : "";
-  this->Superclass::Reset();
+  this->Superclass::Reset(defaultNode);
   this->DisableModifiedEventOn();
   this->SetLayoutLabel(layoutLabel.c_str());
   this->DisableModifiedEventOff();
@@ -238,6 +289,13 @@ void vtkMRMLAbstractViewNode::PrintSelf(ostream& os, vtkIndent indent)
   os << indent << "BackgroundColor2:       " << this->BackgroundColor2[0] << " "
      << this->BackgroundColor2[1] << " "
      << this->BackgroundColor2[2] <<"\n";
+
+  if (this->OrientationMarkerEnabled)
+    {
+    os << indent << "Orientation marker visibility: " << (this->OrientationMarkerVisibility ? "true" : "false") << "\n";
+    os << indent << "Orientation marker representation: " << this->GetOrientationMarkerRepresentationAsString(this->OrientationMarkerRepresentation) << "\n";
+    os << indent << "Orientation marker size: " << this->OrientationMarkerSize << "\n";
+    }
 }
 
 //----------------------------------------------------------------------------
@@ -285,4 +343,38 @@ void vtkMRMLAbstractViewNode::SetMappedInLayout(int value)
 bool vtkMRMLAbstractViewNode::IsViewVisibleInLayout()
 {
   return (this->IsMappedInLayout() && this->GetVisibility());
+}
+
+//-----------------------------------------------------------
+const char* vtkMRMLAbstractViewNode::GetOrientationMarkerRepresentationAsString(int representationId)
+{
+  switch (representationId)
+    {
+    case OrientationMarkerCube: return "cube";
+    case OrientationMarkerHuman: return "human";
+    case OrientationMarkerAxes: return "axes";
+    default:
+      // unknown id
+      return "";
+    }
+}
+
+//-----------------------------------------------------------
+int vtkMRMLAbstractViewNode::GetOrientationMarkerRepresentationFromString(const char* representationName)
+{
+  if (representationName == NULL)
+  {
+    // invalid representation name
+    return -1;
+  }
+  for (int i=0; i<OrientationMarker_Last; i++)
+    {
+    if (strcmp(representationName, GetOrientationMarkerRepresentationAsString(i))==0)
+      {
+      // found a matching representation name
+      return i;
+      }
+    }
+  // unknown representation name
+  return -1;
 }

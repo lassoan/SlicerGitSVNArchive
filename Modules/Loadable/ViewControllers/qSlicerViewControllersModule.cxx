@@ -19,13 +19,20 @@
 ==============================================================================*/
 
 // Qt includes
+#include <QDebug>
 #include <QtPlugin>
+#include <QSettings>
 
 // SlicerQt includes
 
 // Slices QTModule includes
 #include "qSlicerViewControllersModule.h"
 #include "qSlicerViewControllersModuleWidget.h"
+
+#include "vtkSlicerViewControllersLogic.h"
+
+#include <vtkMRMLSliceNode.h>
+#include <vtkMRMLViewNode.h>
 
 //-----------------------------------------------------------------------------
 Q_EXPORT_PLUGIN2(qSlicerViewControllersModule, qSlicerViewControllersModule);
@@ -75,6 +82,25 @@ void qSlicerViewControllersModule::setup()
 }
 
 //-----------------------------------------------------------------------------
+void qSlicerViewControllersModule::setMRMLScene(vtkMRMLScene* scene)
+{
+  this->Superclass::setMRMLScene(scene);
+  vtkSlicerViewControllersLogic* logic = vtkSlicerViewControllersLogic::SafeDownCast(this->logic());
+  if (!logic)
+    {
+    qCritical() << Q_FUNC_INFO << " failed: logic is invalid";
+    return;
+    }
+  // Update default view nodes from settints
+  this->readDefaultOrientationMarkerSettings(logic->GetDefaultSliceViewNode(), "DefaultSliceView");
+  this->readDefaultOrientationMarkerSettings(logic->GetDefaultThreeDViewNode(), "Default3DView");
+  this->writeDefaultOrientationMarkerSettings(logic->GetDefaultSliceViewNode(), "DefaultSliceView");
+  this->writeDefaultOrientationMarkerSettings(logic->GetDefaultThreeDViewNode(), "Default3DView");
+  // Update all existing view nodes to default
+  logic->ResetAllViewNodesToDefault();
+}
+
+//-----------------------------------------------------------------------------
 qSlicerAbstractModuleRepresentation * qSlicerViewControllersModule::createWidgetRepresentation()
 {
   return new qSlicerViewControllersModuleWidget;
@@ -83,7 +109,67 @@ qSlicerAbstractModuleRepresentation * qSlicerViewControllersModule::createWidget
 //-----------------------------------------------------------------------------
 vtkMRMLAbstractLogic* qSlicerViewControllersModule::createLogic()
 {
-  return 0;
+  return vtkSlicerViewControllersLogic::New();
+}
+
+//-----------------------------------------------------------------------------
+void qSlicerViewControllersModule::readDefaultOrientationMarkerSettings(vtkMRMLAbstractViewNode* defaultViewNode, QString groupName)
+{
+  if (!defaultViewNode)
+    {
+    qCritical() << Q_FUNC_INFO << " failed: defaultViewNode is invalid";
+    return;
+    }
+  QSettings settings;
+  settings.beginGroup(groupName);
+  if (settings.contains("OrientationMarkerVisibility"))
+    {
+    defaultViewNode->SetOrientationMarkerVisibility(settings.value("OrientationMarkerVisibility").toBool());
+    }
+  if (settings.contains("OrientationMarkerRepresentation"))
+    {
+    defaultViewNode->SetOrientationMarkerRepresentation(
+      vtkMRMLAbstractViewNode::GetOrientationMarkerRepresentationFromString(
+      settings.value("OrientationMarkerRepresentation").toString().toLatin1()));
+    }
+  if (settings.contains("OrientationMarkerSize"))
+    {
+    defaultViewNode->SetOrientationMarkerSize(settings.value("OrientationMarkerSize").toInt());
+    }
+
+  /*
+  QString orientationMarkerHumanModelFile;
+  if (settings.contains("OrientationMarkerHumanModelFile"))
+    {
+    orientationMarkerHumanModelFile = settings.value("OrientationMarkerHumanModelFile").toString();
+    QFileInfo checkFile(orientationMarkerHumanModelFile);
+    // check if file exists and if yes: Is it really a file and no directory?
+    if (!checkFile.exists() || !checkFile.isFile())
+      {
+      orientationMarkerHumanModelFile.clear();
+      }
+    }
+  if (orientationMarkerHumanModelFile.isEmpty())
+    {
+
+    }
+  vtkNew<vtkXMLPolyDataReader> polyDataReader;
+  polyDataReader->SetFileName(modelFilename);
+  polyDataReader->Update();
+  polyDataReader->GetOutput()->GetPointData()->SetActiveScalars("Color");
+  */
+}
+
+//-----------------------------------------------------------------------------
+void qSlicerViewControllersModule::writeDefaultOrientationMarkerSettings(vtkMRMLAbstractViewNode* defaultViewNode, QString groupName)
+{
+  QSettings settings;
+  settings.beginGroup(groupName);
+  settings.setValue("OrientationMarkerVisibility", defaultViewNode->GetOrientationMarkerVisibility());
+  settings.setValue("OrientationMarkerRepresentation",
+    vtkMRMLAbstractViewNode::GetOrientationMarkerRepresentationAsString(
+    defaultViewNode->GetOrientationMarkerRepresentation()));
+  settings.setValue("OrientationMarkerSize", defaultViewNode->GetOrientationMarkerSize());
 }
 
 //-----------------------------------------------------------------------------
