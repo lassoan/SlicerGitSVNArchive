@@ -96,8 +96,6 @@ qMRMLSliceControllerWidgetPrivate::qMRMLSliceControllerWidgetPrivate(qMRMLSliceC
   this->LightBoxRowsSpinBox = 0;
   this->LightBoxColumnsSpinBox = 0;
 
-  this->OrientationMarkerSizeSpinBox = 0;
-
   this->SliceModelFOVXSpinBox = 0;
   this->SliceModelFOVYSpinBox = 0;
 
@@ -200,8 +198,6 @@ void qMRMLSliceControllerWidgetPrivate::setupPopupUi()
                    q, SLOT(setCompositingToSubtract()));
   QObject::connect(this->actionSliceSpacingModeAutomatic, SIGNAL(toggled(bool)),
                    q, SLOT(setSliceSpacingMode(bool)));
-  QObject::connect(this->actionShowOrientationMarker, SIGNAL(triggered(bool)),
-                   q, SLOT(showOrientationMarker(bool)));
 
   QObject::connect(this->actionSliceModelModeVolumes, SIGNAL(triggered()),
                    q, SLOT(setSliceModelModeVolumes()));
@@ -310,7 +306,6 @@ void qMRMLSliceControllerWidgetPrivate::setupPopupUi()
   this->SliceVisibilityButton->setDefaultAction(this->actionShow_in_3D);
   this->LightBoxToolButton->setMenu(this->LightboxMenu);
   this->ShowReformatWidgetToolButton->setDefaultAction(this->actionShow_reformat_widget);
-  this->ShowOrientationMarkerButton->setDefaultAction(this->actionShowOrientationMarker);
 
   this->SliceCompositeButton->setMenu(this->CompositingMenu);
   this->SliceSpacingButton->setMenu(this->SliceSpacingMenu);
@@ -889,24 +884,16 @@ void qMRMLSliceControllerWidgetPrivate::updateWidgetFromMRMLSliceNode()
   this->SliceModelOriginYSpinBox->blockSignals(wasBlocked);
 
   // OrientationMarker
-  bool orientationMarkerVisible = this->MRMLSliceNode->GetOrientationMarkerVisibility();
-  this->actionShowOrientationMarker->setChecked(orientationMarkerVisible);
-  this->actionShowOrientationMarker->setText(
-    orientationMarkerVisible ? tr("Hide orientation marker"): tr("Show orientation marker"));
-  switch(this->MRMLSliceNode->GetOrientationMarkerRepresentation())
+  QAction* action = qobject_cast<QAction*>(this->OrientationMarkerTypesMapper->mapping(this->MRMLSliceNode->GetOrientationMarkerType()));
+  if (action)
     {
-    case vtkMRMLAbstractViewNode::OrientationMarkerCube:
-      this->actionOrientationMarkerCube->setChecked(true);
-      break;
-    case vtkMRMLAbstractViewNode::OrientationMarkerHuman:
-      this->actionOrientationMarkerHuman->setChecked(true);
-      break;
-    case vtkMRMLAbstractViewNode::OrientationMarkerAxes:
-      this->actionOrientationMarkerAxes->setChecked(true);
-      break;
+    action->setChecked(true);
     }
-  this->OrientationMarkerSizeSpinBox->setValue(this->MRMLSliceNode->GetOrientationMarkerSize());
-
+  action = qobject_cast<QAction*>(this->OrientationMarkerSizesMapper->mapping(this->MRMLSliceNode->GetOrientationMarkerSize()));
+  if (action)
+    {
+    action->setChecked(true);
+    }
 }
 
 // --------------------------------------------------------------------------
@@ -2319,51 +2306,44 @@ void qMRMLSliceControllerWidgetPrivate::setupOrientationMarkerMenu()
 {
   Q_Q(qMRMLSliceControllerWidget);
 
-  this->OrientationMarkerMenu = new QMenu(tr("Orientation marker"), this->ShowOrientationMarkerButton);
-  this->CompositingMenu->setObjectName("OrientationMarkerMenu");
-  this->OrientationMarkerMenu->setIcon(QIcon(":/Icons/OrientationMarker.png"));
-
-  // Marker representation
-  this->OrientationMarkerMenu->addAction(this->actionOrientationMarkerCube);
-  this->OrientationMarkerMenu->addAction(this->actionOrientationMarkerHuman);
-  this->OrientationMarkerMenu->addAction(this->actionOrientationMarkerAxes);
-  QActionGroup* compositingGroup = new QActionGroup(this->OrientationMarkerMenu);
-  compositingGroup->addAction(this->actionOrientationMarkerCube);
-  compositingGroup->addAction(this->actionOrientationMarkerHuman);
-  compositingGroup->addAction(this->actionOrientationMarkerAxes);
-
-  // Marker size
-  QMenu* markerSizeMenu = new QMenu(tr("Size"), this->SliceSpacingMenu);
-  markerSizeMenu->setObjectName("OrientationMarkerSizeMenu");
-  //markerSizeMenu->setIcon(QIcon(":/Icon/SlicesFieldOfView.png"));
-  QWidget* markerSizeWidget = new QWidget(this->OrientationMarkerMenu);
-  QHBoxLayout* markerSizeLayout = new QHBoxLayout(markerSizeWidget);
-  markerSizeLayout->setContentsMargins(0,0,0,0);
-  this->OrientationMarkerSizeSpinBox = new QSpinBox(markerSizeWidget);
-  this->OrientationMarkerSizeSpinBox->setRange(5, 100);
-  this->OrientationMarkerSizeSpinBox->setValue(15);
-  this->OrientationMarkerSizeSpinBox->setSingleStep(5);
-  QObject::connect(this->OrientationMarkerSizeSpinBox, SIGNAL(valueChanged(int)),
-                   q, SLOT(setOrientationMarkerSize(int)));
-  markerSizeLayout->addWidget(this->OrientationMarkerSizeSpinBox);
-  markerSizeWidget->setLayout(markerSizeLayout);
-  QWidgetAction* markerSizeAction = new QWidgetAction(markerSizeMenu);
-  markerSizeAction->setDefaultWidget(markerSizeWidget);
-  markerSizeMenu->addAction(markerSizeAction);
-  this->OrientationMarkerMenu->addMenu(markerSizeMenu);
-
-  this->ShowOrientationMarkerButton->setMenu(OrientationMarkerMenu);
-
-  QObject::connect(this->actionOrientationMarkerCube, SIGNAL(triggered()),
-                   q, SLOT(setOrientationMarkerToCube()));
-  QObject::connect(this->actionOrientationMarkerHuman, SIGNAL(triggered()),
-                   q, SLOT(setOrientationMarkerToHuman()));
-  QObject::connect(this->actionOrientationMarkerAxes, SIGNAL(triggered()),
-                   q, SLOT(setOrientationMarkerToAxes()));
+    // OrientationMarker actions
+  // Type
+  this->OrientationMarkerTypesMapper = new ctkSignalMapper(this->PopupWidget);
+  this->OrientationMarkerTypesMapper->setMapping(this->actionOrientationMarkerTypeNone, vtkMRMLAbstractViewNode::OrientationMarkerTypeNone);
+  this->OrientationMarkerTypesMapper->setMapping(this->actionOrientationMarkerTypeCube, vtkMRMLAbstractViewNode::OrientationMarkerTypeCube);
+  this->OrientationMarkerTypesMapper->setMapping(this->actionOrientationMarkerTypeHuman, vtkMRMLAbstractViewNode::OrientationMarkerTypeHuman);
+  this->OrientationMarkerTypesMapper->setMapping(this->actionOrientationMarkerTypeAxes, vtkMRMLAbstractViewNode::OrientationMarkerTypeAxes);
+  QActionGroup* orientationMarkerTypesActions = new QActionGroup(this->PopupWidget);
+  orientationMarkerTypesActions->setExclusive(true);
+  orientationMarkerTypesActions->addAction(this->actionOrientationMarkerTypeNone);
+  orientationMarkerTypesActions->addAction(this->actionOrientationMarkerTypeCube);
+  orientationMarkerTypesActions->addAction(this->actionOrientationMarkerTypeHuman);
+  orientationMarkerTypesActions->addAction(this->actionOrientationMarkerTypeAxes);
+  QObject::connect(this->OrientationMarkerTypesMapper, SIGNAL(mapped(int)),q, SLOT(setOrientationMarkerType(int)));
+  QObject::connect(orientationMarkerTypesActions, SIGNAL(triggered(QAction*)),this->OrientationMarkerTypesMapper, SLOT(map(QAction*)));
+  // Size
+  this->OrientationMarkerSizesMapper = new ctkSignalMapper(this->PopupWidget);
+  this->OrientationMarkerSizesMapper->setMapping(this->actionOrientationMarkerSizeSmall, vtkMRMLAbstractViewNode::OrientationMarkerSizeSmall);
+  this->OrientationMarkerSizesMapper->setMapping(this->actionOrientationMarkerSizeMedium, vtkMRMLAbstractViewNode::OrientationMarkerSizeMedium);
+  this->OrientationMarkerSizesMapper->setMapping(this->actionOrientationMarkerSizeLarge, vtkMRMLAbstractViewNode::OrientationMarkerSizeLarge);
+  QActionGroup* orientationMarkerSizesActions = new QActionGroup(this->PopupWidget);
+  orientationMarkerSizesActions->setExclusive(true);
+  orientationMarkerSizesActions->addAction(this->actionOrientationMarkerSizeSmall);
+  orientationMarkerSizesActions->addAction(this->actionOrientationMarkerSizeMedium);
+  orientationMarkerSizesActions->addAction(this->actionOrientationMarkerSizeLarge);
+  QObject::connect(this->OrientationMarkerSizesMapper, SIGNAL(mapped(int)),q, SLOT(setOrientationMarkerSize(int)));
+  QObject::connect(orientationMarkerSizesActions, SIGNAL(triggered(QAction*)),this->OrientationMarkerSizesMapper, SLOT(map(QAction*)));
+  // Menu
+  QMenu* orientationMarkerMenu = new QMenu(tr("Orientation marker"), this->PopupWidget); // this->ShowOrientationMarkerButton
+  orientationMarkerMenu->setObjectName("orientationMarkerMenu");
+  this->OrientationMarkerButton->setMenu(orientationMarkerMenu);
+  orientationMarkerMenu->addActions(orientationMarkerTypesActions->actions());
+  orientationMarkerMenu->addSeparator();
+  orientationMarkerMenu->addActions(orientationMarkerSizesActions->actions());
 }
 
-//---------------------------------------------------------------------------
-void qMRMLSliceControllerWidget::showOrientationMarker(bool show)
+// --------------------------------------------------------------------------
+void qMRMLSliceControllerWidget::setOrientationMarkerType(int newOrientationMarkerType)
 {
   Q_D(qMRMLSliceControllerWidget);
   vtkSmartPointer<vtkCollection> nodes = d->saveNodesForUndo("vtkMRMLSliceNode");
@@ -2377,51 +2357,13 @@ void qMRMLSliceControllerWidget::showOrientationMarker(bool show)
     {
     if (node == d->MRMLSliceNode || this->isLinked())
       {
-      node->SetOrientationMarkerVisibility(show);
-      }
-    }
-}
-
-//---------------------------------------------------------------------------
-void qMRMLSliceControllerWidget::setOrientationMarkerToCube()
-{
-  this->setOrientationMarkerRepresentation(vtkMRMLSliceNode::OrientationMarkerCube);
-}
-
-//---------------------------------------------------------------------------
-void qMRMLSliceControllerWidget::setOrientationMarkerToHuman()
-{
-  this->setOrientationMarkerRepresentation(vtkMRMLSliceNode::OrientationMarkerHuman);
-}
-
-//---------------------------------------------------------------------------
-void qMRMLSliceControllerWidget::setOrientationMarkerToAxes()
-{
-  this->setOrientationMarkerRepresentation(vtkMRMLSliceNode::OrientationMarkerAxes);
-}
-
-//---------------------------------------------------------------------------
-void qMRMLSliceControllerWidget::setOrientationMarkerRepresentation(int representation)
-{
-  Q_D(qMRMLSliceControllerWidget);
-  vtkSmartPointer<vtkCollection> nodes = d->saveNodesForUndo("vtkMRMLSliceNode");
-  if (!nodes.GetPointer())
-    {
-    return;
-    }
-  vtkMRMLSliceNode* node = 0;
-  vtkCollectionSimpleIterator it;
-  for (nodes->InitTraversal(it);(node = static_cast<vtkMRMLSliceNode*>(nodes->GetNextItemAsObject(it)));)
-    {
-    if (node == d->MRMLSliceNode || this->isLinked())
-      {
-      node->SetOrientationMarkerRepresentation(representation);
+      node->SetOrientationMarkerType(newOrientationMarkerType);
       }
     }
 }
 
 // --------------------------------------------------------------------------
-void qMRMLSliceControllerWidget::setOrientationMarkerSize(int markerSize)
+void qMRMLSliceControllerWidget::setOrientationMarkerSize(int newOrientationMarkerSize)
 {
   Q_D(qMRMLSliceControllerWidget);
   vtkSmartPointer<vtkCollection> nodes = d->saveNodesForUndo("vtkMRMLSliceNode");
@@ -2435,7 +2377,7 @@ void qMRMLSliceControllerWidget::setOrientationMarkerSize(int markerSize)
     {
     if (node == d->MRMLSliceNode || this->isLinked())
       {
-      node->SetOrientationMarkerSize(markerSize);
+      node->SetOrientationMarkerSize(newOrientationMarkerSize);
       }
     }
 }

@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>216</width>
-    <height>80</height>
+    <width>267</width>
+    <height>92</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -41,74 +41,80 @@
      <property name="spacing">
       <number>0</number>
      </property>
-     <item row="0" column="0">
-      <widget class="QToolButton" name="CenterButton">
+     <item row="1" column="3">
+      <widget class="QToolButton" name="RockButton">
        <property name="enabled">
         <bool>false</bool>
        </property>
        <property name="toolTip">
-        <string>Center the 3D view on the scene.</string>
-       </property>
-      </widget>
-     </item>
-     <item row="1" column="0">
-      <widget class="QToolButton" name="OrthoButton">
-       <property name="enabled">
-        <bool>false</bool>
-       </property>
-       <property name="toolTip">
-        <string>Toggle between orthographic and perspective rendering in the 3D view.</string>
+        <string>Rock the 3D view.</string>
        </property>
        <property name="text">
         <string/>
        </property>
        <property name="icon">
         <iconset resource="../qMRMLWidgets.qrc">
-         <normaloff>:/Icons/ViewPerspective.png</normaloff>
-         <normalon>:/Icons/ViewOrtho.png</normalon>:/Icons/ViewPerspective.png</iconset>
+         <normaloff>:/Icons/ViewRock.png</normaloff>:/Icons/ViewRock.png</iconset>
        </property>
        <property name="checkable">
         <bool>true</bool>
        </property>
       </widget>
      </item>
-     <item row="2" column="0">
-      <widget class="QToolButton" name="VisibilityButton">
+     <item row="2" column="2">
+      <widget class="QToolButton" name="PitchButton">
        <property name="enabled">
         <bool>false</bool>
        </property>
        <property name="toolTip">
-        <string>Toggle visibility of elements in the 3D view.</string>
+        <string>Pitch the view of the scene.</string>
        </property>
        <property name="text">
         <string/>
        </property>
        <property name="icon">
         <iconset resource="../qMRMLWidgets.qrc">
-         <normaloff>:/Icons/VisibleOn.png</normaloff>:/Icons/VisibleOn.png</iconset>
+         <normaloff>:/Icons/ViewPitch.png</normaloff>:/Icons/ViewPitch.png</iconset>
+       </property>
+       <property name="autoRepeat">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="3">
+      <widget class="QToolButton" name="MoreToolButton">
+       <property name="enabled">
+        <bool>false</bool>
+       </property>
+       <property name="text">
+        <string/>
+       </property>
+       <property name="icon">
+        <iconset resource="../qMRMLWidgets.qrc">
+         <normaloff>:/Icons/SliceMoreOptions.png</normaloff>:/Icons/SliceMoreOptions.png</iconset>
        </property>
        <property name="popupMode">
         <enum>QToolButton::InstantPopup</enum>
        </property>
       </widget>
      </item>
-     <item row="2" column="1">
-      <widget class="QToolButton" name="StereoButton">
+     <item row="0" column="3">
+      <widget class="QToolButton" name="SpinButton">
        <property name="enabled">
         <bool>false</bool>
        </property>
        <property name="toolTip">
-        <string>Select among stereo viewing options (3DSlicer must be started with stereo enabled to use these features).</string>
+        <string>Spin the 3D view.</string>
        </property>
        <property name="text">
         <string/>
        </property>
        <property name="icon">
         <iconset resource="../qMRMLWidgets.qrc">
-         <normaloff>:/Icons/ViewStereo.png</normaloff>:/Icons/ViewStereo.png</iconset>
+         <normaloff>:/Icons/ViewSpin.png</normaloff>:/Icons/ViewSpin.png</iconset>
        </property>
-       <property name="popupMode">
-        <enum>QToolButton::InstantPopup</enum>
+       <property name="checkable">
+        <bool>true</bool>
        </property>
       </widget>
      </item>
@@ -126,46 +132,6 @@
        <property name="icon">
         <iconset resource="../qMRMLWidgets.qrc">
          <normaloff>:/Icons/ViewZoomOut.png</normaloff>:/Icons/ViewZoomOut.png</iconset>
-       </property>
-       <property name="autoRepeat">
-        <bool>true</bool>
-       </property>
-      </widget>
-     </item>
-     <item row="0" column="1">
-      <widget class="QToolButton" name="ZoomInButton">
-       <property name="enabled">
-        <bool>false</bool>
-       </property>
-       <property name="toolTip">
-        <string>Zoom in on the scene by a small amount.</string>
-       </property>
-       <property name="text">
-        <string/>
-       </property>
-       <property name="icon">
-        <iconset resource="../qMRMLWidgets.qrc">
-         <normaloff>:/Icons/ViewZoomIn.png</normaloff>:/Icons/ViewZoomIn.png</iconset>
-       </property>
-       <property name="autoRepeat">
-        <bool>true</bool>
-       </property>
-      </widget>
-     </item>
-     <item row="0" column="2">
-      <widget class="QToolButton" name="RollButton">
-       <property name="enabled">
-        <bool>false</bool>
-       </property>
-       <property name="toolTip">
-        <string>Roll the view of the scene.</string>
-       </property>
-       <property name="text">
-        <string/>
-       </property>
-       <property name="icon">
-        <iconset resource="../qMRMLWidgets.qrc">
-         <normaloff>:/Icons/ViewRoll.png</normaloff>:/Icons/ViewRoll.png</iconset>
        </property>
        <property name="autoRepeat">
         <bool>true</bool>
@@ -192,80 +158,134 @@
        </property>
       </widget>
      </item>
-     <item row="0" column="3">
-      <widget class="QToolButton" name="SpinButton">
+     <item row="0" column="0">
+      <widget class="QToolButton" name="CenterButton">
        <property name="enabled">
         <bool>false</bool>
        </property>
        <property name="toolTip">
-        <string>Spin the 3D view.</string>
-       </property>
-       <property name="text">
-        <string/>
-       </property>
-       <property name="icon">
-        <iconset resource="../qMRMLWidgets.qrc">
-         <normaloff>:/Icons/ViewSpin.png</normaloff>:/Icons/ViewSpin.png</iconset>
-       </property>
-       <property name="checkable">
-        <bool>true</bool>
+        <string>Center the 3D view on the scene.</string>
        </property>
       </widget>
      </item>
-     <item row="1" column="3">
-      <widget class="QToolButton" name="RockButton">
+     <item row="2" column="1">
+      <widget class="QToolButton" name="StereoButton">
        <property name="enabled">
         <bool>false</bool>
        </property>
        <property name="toolTip">
-        <string>Rock the 3D view.</string>
+        <string>Select among stereo viewing options (3DSlicer must be started with stereo enabled to use these features).</string>
        </property>
        <property name="text">
         <string/>
        </property>
        <property name="icon">
         <iconset resource="../qMRMLWidgets.qrc">
-         <normaloff>:/Icons/ViewRock.png</normaloff>:/Icons/ViewRock.png</iconset>
-       </property>
-       <property name="checkable">
-        <bool>true</bool>
-       </property>
-      </widget>
-     </item>
-     <item row="2" column="3">
-      <widget class="QToolButton" name="MoreToolButton">
-       <property name="enabled">
-        <bool>false</bool>
-       </property>
-       <property name="text">
-        <string/>
-       </property>
-       <property name="icon">
-        <iconset resource="../qMRMLWidgets.qrc">
-         <normaloff>:/Icons/SliceMoreOptions.png</normaloff>:/Icons/SliceMoreOptions.png</iconset>
+         <normaloff>:/Icons/ViewStereo.png</normaloff>:/Icons/ViewStereo.png</iconset>
        </property>
        <property name="popupMode">
         <enum>QToolButton::InstantPopup</enum>
        </property>
       </widget>
      </item>
-     <item row="2" column="2">
-      <widget class="QToolButton" name="PitchButton">
+     <item row="0" column="1">
+      <widget class="QToolButton" name="ZoomInButton">
        <property name="enabled">
         <bool>false</bool>
        </property>
        <property name="toolTip">
-        <string>Pitch the view of the scene.</string>
+        <string>Zoom in on the scene by a small amount.</string>
        </property>
        <property name="text">
         <string/>
        </property>
        <property name="icon">
         <iconset resource="../qMRMLWidgets.qrc">
-         <normaloff>:/Icons/ViewPitch.png</normaloff>:/Icons/ViewPitch.png</iconset>
+         <normaloff>:/Icons/ViewZoomIn.png</normaloff>:/Icons/ViewZoomIn.png</iconset>
        </property>
        <property name="autoRepeat">
         <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="0">
+      <widget class="QToolButton" name="VisibilityButton">
+       <property name="enabled">
+        <bool>false</bool>
+       </property>
+       <property name="toolTip">
+        <string>Toggle visibility of elements in the 3D view.</string>
+       </property>
+       <property name="text">
+        <string/>
+       </property>
+       <property name="icon">
+        <iconset resource="../qMRMLWidgets.qrc">
+         <normaloff>:/Icons/VisibleOn.png</normaloff>:/Icons/VisibleOn.png</iconset>
+       </property>
+       <property name="popupMode">
+        <enum>QToolButton::InstantPopup</enum>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="0">
+      <widget class="QToolButton" name="OrthoButton">
+       <property name="enabled">
+        <bool>false</bool>
+       </property>
+       <property name="toolTip">
+        <string>Toggle between orthographic and perspective rendering in the 3D view.</string>
+       </property>
+       <property name="text">
+        <string/>
+       </property>
+       <property name="icon">
+        <iconset resource="../qMRMLWidgets.qrc">
+         <normaloff>:/Icons/ViewPerspective.png</normaloff>
+         <normalon>:/Icons/ViewOrtho.png</normalon>:/Icons/ViewPerspective.png</iconset>
+       </property>
+       <property name="checkable">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item row="0" column="2">
+      <widget class="QToolButton" name="RollButton">
+       <property name="enabled">
+        <bool>false</bool>
+       </property>
+       <property name="toolTip">
+        <string>Roll the view of the scene.</string>
+       </property>
+       <property name="text">
+        <string/>
+       </property>
+       <property name="icon">
+        <iconset resource="../qMRMLWidgets.qrc">
+         <normaloff>:/Icons/ViewRoll.png</normaloff>:/Icons/ViewRoll.png</iconset>
+       </property>
+       <property name="autoRepeat">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item row="0" column="4">
+      <widget class="QToolButton" name="OrientationMarkerButton">
+       <property name="enabled">
+        <bool>false</bool>
+       </property>
+       <property name="toolTip">
+        <string>Orientation marker</string>
+       </property>
+       <property name="text">
+        <string/>
+       </property>
+       <property name="icon">
+        <iconset resource="../qMRMLWidgets.qrc">
+         <normaloff>:/Icons/OrientationMarker.png</normaloff>:/Icons/OrientationMarker.png</iconset>
+       </property>
+       <property name="popupMode">
+        <enum>QToolButton::InstantPopup</enum>
        </property>
       </widget>
      </item>
@@ -442,6 +462,83 @@
    </property>
    <property name="toolTip">
     <string>Switch to user defined stereo mode 3</string>
+   </property>
+  </action>
+  <action name="actionOrientationMarkerTypeNone">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>No orientation marker</string>
+   </property>
+   <property name="toolTip">
+    <string>Hide orientation marker</string>
+   </property>
+  </action>
+  <action name="actionOrientationMarkerTypeCube">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Cube</string>
+   </property>
+   <property name="toolTip">
+    <string>Show cube orientation marker</string>
+   </property>
+  </action>
+  <action name="actionOrientationMarkerTypeHuman">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Human</string>
+   </property>
+   <property name="toolTip">
+    <string>Show human-shaped orientation marker</string>
+   </property>
+  </action>
+  <action name="actionOrientationMarkerTypeAxes">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Axes</string>
+   </property>
+   <property name="toolTip">
+    <string>Show axes orientation marker</string>
+   </property>
+  </action>
+  <action name="actionOrientationMarkerSizeSmall">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Small</string>
+   </property>
+   <property name="toolTip">
+    <string>Small orientation marker size</string>
+   </property>
+  </action>
+  <action name="actionOrientationMarkerSizeMedium">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Medium</string>
+   </property>
+   <property name="toolTip">
+    <string>Medium orientation marker size</string>
+   </property>
+  </action>
+  <action name="actionOrientationMarkerSizeLarge">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Large</string>
+   </property>
+   <property name="toolTip">
+    <string>Large orientation marker size</string>
    </property>
   </action>
  </widget>

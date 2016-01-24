@@ -169,8 +169,6 @@ public:
   QSpinBox*                           LightBoxRowsSpinBox;
   QSpinBox*                           LightBoxColumnsSpinBox;
 
-  QSpinBox*                           OrientationMarkerSizeSpinBox;
-
   ctkDoubleSpinBox*                   SliceModelFOVXSpinBox;
   ctkDoubleSpinBox*                   SliceModelFOVYSpinBox;
 
@@ -181,6 +179,9 @@ public:
   QSpinBox*                           SliceModelDimensionYSpinBox;
 
   QSize                               ViewSize;
+
+  ctkSignalMapper*                    OrientationMarkerTypesMapper;
+  ctkSignalMapper*                    OrientationMarkerSizesMapper;
 };
 
 #endif

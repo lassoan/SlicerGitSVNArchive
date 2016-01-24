@@ -4,9 +4,9 @@
  <widget class="ctkPopupWidget" name="qMRMLSliceControllerWidget">
   <property name="geometry">
    <rect>
-    <x>505</x>
-    <y>334</y>
-    <width>257</width>
+    <x>0</x>
+    <y>0</y>
+    <width>384</width>
     <height>130</height>
    </rect>
   </property>
@@ -85,11 +85,11 @@
           <property name="checked">
            <bool>false</bool>
           </property>
-          <property name="autoRaise">
-           <bool>true</bool>
-          </property>
           <property name="popupMode">
            <enum>QToolButton::MenuButtonPopup</enum>
+          </property>
+          <property name="autoRaise">
+           <bool>true</bool>
           </property>
          </widget>
         </item>
@@ -186,11 +186,11 @@
         </item>
         <item>
          <widget class="QToolButton" name="SliceSpacingButton">
-          <property name="text">
-           <string/>
-          </property>
           <property name="toolTip">
            <string>Slice spacing may be set automatically or manually by the user or context</string>
+          </property>
+          <property name="text">
+           <string/>
           </property>
           <property name="icon">
            <iconset resource="../qMRMLWidgets.qrc">
@@ -216,7 +216,7 @@
          </widget>
         </item>
         <item>
-         <widget class="QToolButton" name="ShowOrientationMarkerButton">
+         <widget class="QToolButton" name="OrientationMarkerButton">
           <property name="toolTip">
            <string>Show orientation marker</string>
           </property>
@@ -224,8 +224,8 @@
            <iconset resource="../qMRMLWidgets.qrc">
             <normaloff>:/Icons/OrientationMarker.png</normaloff>:/Icons/OrientationMarker.png</iconset>
           </property>
-          <property name="checkable">
-           <bool>true</bool>
+          <property name="popupMode">
+           <enum>QToolButton::InstantPopup</enum>
           </property>
           <property name="autoRaise">
            <bool>true</bool>
@@ -295,11 +295,11 @@
      <property name="enabled">
       <bool>false</bool>
      </property>
-     <property name="autoRaise">
-      <bool>true</bool>
-     </property>
      <property name="popupMode">
       <enum>QToolButton::MenuButtonPopup</enum>
+     </property>
+     <property name="autoRaise">
+      <bool>true</bool>
      </property>
     </widget>
    </item>
@@ -630,19 +630,7 @@
     <string>Show reformat widget</string>
    </property>
   </action>
-  <action name="actionShowOrientationMarker">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="icon">
-    <iconset resource="../qMRMLWidgets.qrc">
-     <normaloff>:/Icons/OrientationMarker.png</normaloff>:/Icons/OrientationMarker.png</iconset>
-   </property>
-   <property name="text">
-    <string>Show orientation marker</string>
-   </property>
-  </action>
-  <action name="actionOrientationMarkerCube">
+  <action name="actionOrientationMarkerTypeCube">
    <property name="checkable">
     <bool>true</bool>
    </property>
@@ -650,7 +638,7 @@
     <string>Cube</string>
    </property>
   </action>
-  <action name="actionOrientationMarkerHuman">
+  <action name="actionOrientationMarkerTypeHuman">
    <property name="checkable">
     <bool>true</bool>
    </property>
@@ -658,7 +646,7 @@
     <string>Human</string>
    </property>
   </action>
-  <action name="actionOrientationMarkerAxes">
+  <action name="actionOrientationMarkerTypeAxes">
    <property name="checkable">
     <bool>true</bool>
    </property>
@@ -705,45 +693,45 @@
    <property name="icon">
     <iconset resource="../qMRMLWidgets.qrc">
      <normaloff>:/Icons/SlicerManualSliceSpacing.png</normaloff>
-     <normalon>:/Icons/SlicerAutomaticSliceSpacing.png</normalon>:/Icons/SlicerAutomaticSliceSpacing.png</iconset>
+     <normalon>:/Icons/SlicerAutomaticSliceSpacing.png</normalon>:/Icons/SlicerManualSliceSpacing.png</iconset>
    </property>
    <property name="text">
     <string>Automatic</string>
    </property>
   </action>
-   <action name="actionSliceModelModeVolumes">
-     <property name="checkable">
-       <bool>true</bool>
-     </property>
-     <property name="text">
-       <string>FOV, Spacing match Volumes</string>
-     </property>
-   </action>
-   <action name="actionSliceModelMode2D">
-     <property name="checkable">
-       <bool>true</bool>
-     </property>
-     <property name="text">
-       <string>FOV, Spacing match 2D</string>
-     </property>
-   </action>
-   <action name="actionSliceModelMode2D_Volumes">
-     <property name="checkable">
-       <bool>true</bool>
-     </property>
-     <property name="text">
-       <string>FOV matches 2D, Spacing matches Volumes</string>
-     </property>
-   </action>
-   <action name="actionSliceModelModeVolumes_2D">
-     <property name="checkable">
-       <bool>true</bool>
-     </property>
-     <property name="text">
-       <string>FOV matches Volumes, Spacing matches 2D View</string>
-     </property>
-   </action>
-   <action name="actionLightbox1x1_view">
+  <action name="actionSliceModelModeVolumes">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>FOV, Spacing match Volumes</string>
+   </property>
+  </action>
+  <action name="actionSliceModelMode2D">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>FOV, Spacing match 2D</string>
+   </property>
+  </action>
+  <action name="actionSliceModelMode2D_Volumes">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>FOV matches 2D, Spacing matches Volumes</string>
+   </property>
+  </action>
+  <action name="actionSliceModelModeVolumes_2D">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>FOV matches Volumes, Spacing matches 2D View</string>
+   </property>
+  </action>
+  <action name="actionLightbox1x1_view">
    <property name="checkable">
     <bool>true</bool>
    </property>
@@ -953,6 +941,50 @@
    </property>
    <property name="toolTip">
     <string>Lock reformat widget's normal to the camera one. </string>
+   </property>
+  </action>
+  <action name="actionOrientationMarkerTypeNone">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>No orientation marker</string>
+   </property>
+   <property name="toolTip">
+    <string>Hide orientation marker</string>
+   </property>
+  </action>
+  <action name="actionOrientationMarkerSizeSmall">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Small</string>
+   </property>
+   <property name="toolTip">
+    <string>Set orientation marker size to small</string>
+   </property>
+  </action>
+  <action name="actionOrientationMarkerSizeMedium">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Medium</string>
+   </property>
+   <property name="toolTip">
+    <string>Set orientation marker size to small to medium</string>
+   </property>
+  </action>
+  <action name="actionOrientationMarkerSizeLarge">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Large</string>
+   </property>
+   <property name="toolTip">
+    <string>Set orientation marker size to large</string>
    </property>
   </action>
  </widget>
@@ -1348,7 +1380,7 @@
   <connection>
    <sender>MoreButton</sender>
    <signal>toggled(bool)</signal>
-   <receiver>ShowOrientationMarkerButton</receiver>
+   <receiver>OrientationMarkerButton</receiver>
    <slot>setVisible(bool)</slot>
    <hints>
     <hint type="sourcelabel">

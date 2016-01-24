@@ -241,20 +241,19 @@ void vtkMRMLOrientationMarkerDisplayableManager::vtkInternal::UpdateMarkerVisibi
     return;
     }
 
-  bool visible = viewNode->GetOrientationMarkerVisibility();
-  int representation = viewNode->GetOrientationMarkerRepresentation();;
+  int type = viewNode->GetOrientationMarkerType();
 
   if (this->CubeActor)
     {
-    this->CubeActor->SetVisibility(visible && representation==vtkMRMLAbstractViewNode::OrientationMarkerCube);
+    this->CubeActor->SetVisibility(type==vtkMRMLAbstractViewNode::OrientationMarkerTypeCube);
     }
   if (this->HumanActor)
     {
-    this->HumanActor->SetVisibility(visible && representation==vtkMRMLAbstractViewNode::OrientationMarkerHuman);
+    this->HumanActor->SetVisibility(type==vtkMRMLAbstractViewNode::OrientationMarkerTypeHuman);
     }
   if (this->AxesActor)
     {
-    this->AxesActor->SetVisibility(visible && representation==vtkMRMLAbstractViewNode::OrientationMarkerAxes);
+    this->AxesActor->SetVisibility(type==vtkMRMLAbstractViewNode::OrientationMarkerTypeAxes);
     }
 
   //this->External->RequestRender();
@@ -340,10 +339,15 @@ void vtkMRMLOrientationMarkerDisplayableManager::vtkInternal::UpdateMarkerSize()
     return;
     }
 
-  int sizePercent = viewNode->GetOrientationMarkerSize();
-  if (sizePercent<=0)
+  int sizePercent = 20;
+  switch (viewNode->GetOrientationMarkerSize())
     {
-    return;
+    case vtkMRMLAbstractViewNode::OrientationMarkerSizeSmall: sizePercent=10; break;
+    case vtkMRMLAbstractViewNode::OrientationMarkerSizeLarge: sizePercent=30; break;
+    case vtkMRMLAbstractViewNode::OrientationMarkerSizeMedium:
+    default:
+      // keep default
+      break;
     }
 
   // Viewport: xmin, ymin, xmax, ymax; range: 0.0-1.0; origin is bottom left

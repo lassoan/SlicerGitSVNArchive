@@ -122,30 +122,64 @@ public:
   vtkGetMacro(OrientationMarkerEnabled, bool);
 
   ///
-  /// Get/Set orientaion marker visibility in the view
-  vtkSetMacro(OrientationMarkerVisibility, bool);
-  vtkGetMacro(OrientationMarkerVisibility, bool);
+  /// Get/Set orientation marker type (e.g., not displayed, cube, human, coordinate system axes)
+  vtkSetMacro(OrientationMarkerType, int);
+  vtkGetMacro(OrientationMarkerType, int);
 
   ///
-  /// Get/Set how orientation marker is represented (e.g., cube, human, coordinate system axes)
-  vtkSetMacro(OrientationMarkerRepresentation, int);
-  vtkGetMacro(OrientationMarkerRepresentation, int);
-
-  static const char* GetOrientationMarkerRepresentationAsString(int representationId);
-  static int GetOrientationMarkerRepresentationFromString(const char* representationName);
+  /// Convert between orientation marker type ID and name
+  static const char* GetOrientationMarkerTypeAsString(int id);
+  static int GetOrientationMarkerTypeFromString(const char* name);
 
   ///
-  /// Get/Set orientation marker is size in percentage of the view size (valid value range: 0-100)
+  /// Get/Set orientation marker is size. There are a few predefined marker sizes, defined by an enumerated value (e.g., small, medium, large).
   vtkSetMacro(OrientationMarkerSize, int);
   vtkGetMacro(OrientationMarkerSize, int);
 
+  ///
+  /// Convert between orientation marker type ID and name
+  static const char* GetOrientationMarkerSizeAsString(int id);
+  static int GetOrientationMarkerSizeFromString(const char* name);
+
   /// Enum to specify orientation marker types
-  enum OrientationMarkerRepresentationType
+  enum OrientationMarkerTypeType
   {
-    OrientationMarkerCube=0,
-    OrientationMarkerHuman,
-    OrientationMarkerAxes,
-    OrientationMarker_Last // insert valid representations above this line
+    OrientationMarkerTypeNone=0,
+    OrientationMarkerTypeCube,
+    OrientationMarkerTypeHuman,
+    OrientationMarkerTypeAxes,
+    OrientationMarkerType_Last // insert valid types above this line
+  };
+
+  enum OrientationMarkerSizeType
+  {
+    OrientationMarkerSizeSmall=0,
+    OrientationMarkerSizeMedium,
+    OrientationMarkerSizeLarge,
+    OrientationMarkerSize_Last // insert valid types above this line
+  };
+
+  /// Tells if it is meaningful to display ruler in this view.
+  /// It is set statically in each specific view node class and cannot be changed dynamically.
+  vtkGetMacro(RulerEnabled, bool);
+
+  ///
+  /// Get/Set ruler type (e.g., not displayed, thin, thick)
+  vtkSetMacro(RulerType, int);
+  vtkGetMacro(RulerType, int);
+
+  ///
+  /// Convert between ruler type ID and name
+  static const char* GetRulerTypeAsString(int id);
+  static int GetRulerTypeFromString(const char* name);
+
+  /// Enum to specify orientation marker types
+  enum RulerTypeType
+  {
+    RulerTypeNone=0,
+    RulerTypeThin,
+    RulerTypeThick,
+    RulerType_Last // insert valid types above this line
   };
 
 protected:
@@ -182,9 +216,14 @@ protected:
   /// For views that supports orientation marker display (where OrientationMarkerEnabled=true)
   /// these parameters define how to display the orientation marker.
   bool OrientationMarkerEnabled;
-  bool OrientationMarkerVisibility;
-  int OrientationMarkerRepresentation;
+  int OrientationMarkerType;
   int OrientationMarkerSize;
+
+  ///
+  /// For views that supports ruler display (where RulerEnabled=true)
+  /// these parameters define how to display the ruler.
+  bool RulerEnabled;
+  int RulerType;
 };
 
 //------------------------------------------------------------------------------

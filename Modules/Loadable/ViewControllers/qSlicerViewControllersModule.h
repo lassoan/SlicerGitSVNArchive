@@ -26,8 +26,12 @@
 
 #include "qSlicerViewControllersModuleExport.h"
 
+class QSettings;
+
 class qSlicerViewControllersModulePrivate;
 class vtkMRMLAbstractViewNode;
+class vtkMRMLSliceNode;
+class vtkMRMLViewNode;
 
 class Q_SLICER_QTMODULES_VIEWCONTROLLERS_EXPORT qSlicerViewControllersModule
   : public qSlicerLoadableModule
@@ -49,8 +53,11 @@ public:
   virtual QString acknowledgementText()const;
   virtual QStringList contributors()const;
 
-  static void readDefaultOrientationMarkerSettings(vtkMRMLAbstractViewNode* defaultSliceNode, QString groupName);
-  static void writeDefaultOrientationMarkerSettings(vtkMRMLAbstractViewNode* defaultSliceNode, QString groupName);
+  static void readDefaultSliceViewSettings(vtkMRMLSliceNode* defaultViewNode);
+  static void writeDefaultSliceViewSettings(vtkMRMLSliceNode* defaultViewNode);
+
+  static void readDefaultThreeDViewSettings(vtkMRMLViewNode* defaultViewNode);
+  static void writeDefaultThreeDViewSettings(vtkMRMLViewNode* defaultViewNode);
 
   virtual void setMRMLScene(vtkMRMLScene* scene);
 
@@ -63,6 +70,10 @@ protected:
 
   /// Create and return the logic associated to this module
   virtual vtkMRMLAbstractLogic* createLogic();
+
+  /// Helper functions to read/write common view settings
+  static void readCommonViewSettings(vtkMRMLAbstractViewNode* defaultViewNode, QSettings& settings);
+  static void writeCommonViewSettings(vtkMRMLAbstractViewNode* defaultViewNode, QSettings& settings);
 
 protected:
   QScopedPointer<qSlicerViewControllersModulePrivate> d_ptr;

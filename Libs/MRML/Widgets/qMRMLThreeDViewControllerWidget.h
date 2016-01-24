@@ -96,6 +96,8 @@ public slots:
                           QColor color2 = QColor());
 
   void setStereoType(int newStereoType);
+  void setOrientationMarkerType(int type);
+  void setOrientationMarkerSize(int size);
 
 protected slots:
   void updateWidgetFromMRML();
