@@ -109,7 +109,8 @@ void qMRMLThreeDViewPrivate::initDisplayableManagers()
                       << "vtkMRMLViewDisplayableManager"
                       << "vtkMRMLModelDisplayableManager"
                       << "vtkMRMLThreeDReformatDisplayableManager"
-                      << "vtkMRMLOrientationMarkerDisplayableManager";
+                      << "vtkMRMLOrientationMarkerDisplayableManager"
+                      << "vtkMRMLRulerDisplayableManager";
   foreach(const QString& displayableManager, displayableManagers)
     {
     if(!factory->IsDisplayableManagerRegistered(displayableManager.toLatin1()))

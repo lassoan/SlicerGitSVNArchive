@@ -55,6 +55,7 @@ vtkMRMLViewNode::vtkMRMLViewNode()
   this->UseDepthPeeling = 0;
   this->FPSVisible = 0;
   this->OrientationMarkerEnabled = true;
+  this->RulerEnabled = true;
  }
 
 //----------------------------------------------------------------------------

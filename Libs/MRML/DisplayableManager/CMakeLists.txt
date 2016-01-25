@@ -83,6 +83,7 @@ set(DisplayableManager_SRCS
 
   # DisplayableManager common between ThreeDView and SliceView
   vtkMRMLOrientationMarkerDisplayableManager.cxx
+  vtkMRMLRulerDisplayableManager.cxx
   )
 
 set(KIT_SRCS

@@ -185,6 +185,25 @@ void qMRMLThreeDViewControllerWidgetPrivate::setupPopupUi()
   orientationMarkerMenu->addSeparator();
   orientationMarkerMenu->addActions(orientationMarkerSizesActions->actions());
 
+  // Ruler actions
+  // Type
+  this->RulerTypesMapper = new ctkSignalMapper(this->PopupWidget);
+  this->RulerTypesMapper->setMapping(this->actionRulerTypeNone, vtkMRMLAbstractViewNode::RulerTypeNone);
+  this->RulerTypesMapper->setMapping(this->actionRulerTypeThin, vtkMRMLAbstractViewNode::RulerTypeThin);
+  this->RulerTypesMapper->setMapping(this->actionRulerTypeThick, vtkMRMLAbstractViewNode::RulerTypeThick);
+  QActionGroup* rulerTypesActions = new QActionGroup(this->PopupWidget);
+  rulerTypesActions->setExclusive(true);
+  rulerTypesActions->addAction(this->actionRulerTypeNone);
+  rulerTypesActions->addAction(this->actionRulerTypeThin);
+  rulerTypesActions->addAction(this->actionRulerTypeThick);
+  QObject::connect(this->RulerTypesMapper, SIGNAL(mapped(int)),q, SLOT(setRulerType(int)));
+  QObject::connect(rulerTypesActions, SIGNAL(triggered(QAction*)),this->RulerTypesMapper, SLOT(map(QAction*)));
+  // Menu
+  QMenu* rulerMenu = new QMenu(tr("Ruler"), this->PopupWidget);
+  rulerMenu->setObjectName("rulerMenu");
+  this->RulerButton->setMenu(rulerMenu);
+  rulerMenu->addActions(rulerTypesActions->actions());
+
   // More controls
   QMenu* moreMenu = new QMenu("More", this->PopupWidget);
   moreMenu->addAction(this->actionUseDepthPeeling);
@@ -313,7 +332,8 @@ void qMRMLThreeDViewControllerWidget::updateWidgetFromMRML()
     << d->PitchButton << d->RollButton << d->YawButton
     << d->CenterButton << d->OrthoButton << d->VisibilityButton
     << d->ZoomInButton << d->ZoomOutButton << d->StereoButton
-    << d->RockButton << d->SpinButton << d->MoreToolButton << d->OrientationMarkerButton;
+    << d->RockButton << d->SpinButton << d->MoreToolButton
+    << d->OrientationMarkerButton << d->RulerButton;
   foreach(QWidget* w, widgets)
     {
     w->setEnabled(d->ViewNode != 0);
@@ -352,6 +372,11 @@ void qMRMLThreeDViewControllerWidget::updateWidgetFromMRML()
     action->setChecked(true);
     }
   action = qobject_cast<QAction*>(d->OrientationMarkerSizesMapper->mapping(d->ViewNode->GetOrientationMarkerSize()));
+  if (action)
+    {
+    action->setChecked(true);
+    }
+  action = qobject_cast<QAction*>(d->RulerTypesMapper->mapping(d->ViewNode->GetRulerType()));
   if (action)
     {
     action->setChecked(true);
@@ -597,4 +622,15 @@ void qMRMLThreeDViewControllerWidget::setOrientationMarkerSize(int newOrientatio
     return;
     }
   d->ViewNode->SetOrientationMarkerSize(newOrientationMarkerSize);
+}
+
+// --------------------------------------------------------------------------
+void qMRMLThreeDViewControllerWidget::setRulerType(int newRulerType)
+{
+  Q_D(qMRMLThreeDViewControllerWidget);
+  if (!d->ViewNode)
+    {
+    return;
+    }
+  d->ViewNode->SetRulerType(newRulerType);
 }

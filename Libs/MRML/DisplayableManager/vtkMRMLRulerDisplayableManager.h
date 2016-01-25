@@ -17,8 +17,8 @@
 
 ==============================================================================*/
 
-#ifndef __vtkMRMLOrientationMarkerDisplayableManager_h
-#define __vtkMRMLOrientationMarkerDisplayableManager_h
+#ifndef __vtkMRMLRulerDisplayableManager_h
+#define __vtkMRMLRulerDisplayableManager_h
 
 // MRMLDisplayableManager includes
 #include "vtkMRMLAbstractDisplayableManager.h"
@@ -28,20 +28,20 @@
 class vtkMRMLCameraNode;
 
 /// \brief Displayable manager that displays orienatation marker in a slice or 3D view
-class VTK_MRML_DISPLAYABLEMANAGER_EXPORT vtkMRMLOrientationMarkerDisplayableManager
+class VTK_MRML_DISPLAYABLEMANAGER_EXPORT vtkMRMLRulerDisplayableManager
   : public vtkMRMLAbstractDisplayableManager
 {
-  friend class vtkRendererUpdateObserver;
+  friend class vtkRulerRendererUpdateObserver;
 
 public:
-  static vtkMRMLOrientationMarkerDisplayableManager* New();
-  vtkTypeMacro(vtkMRMLOrientationMarkerDisplayableManager,vtkMRMLAbstractDisplayableManager);
+  static vtkMRMLRulerDisplayableManager* New();
+  vtkTypeMacro(vtkMRMLRulerDisplayableManager,vtkMRMLAbstractDisplayableManager);
   void PrintSelf(ostream& os, vtkIndent indent);
 
 protected:
 
-  vtkMRMLOrientationMarkerDisplayableManager();
-  virtual ~vtkMRMLOrientationMarkerDisplayableManager();
+  vtkMRMLRulerDisplayableManager();
+  virtual ~vtkMRMLRulerDisplayableManager();
 
   /// Observe the View node and initialize the renderer accordingly.
   virtual void Create();
@@ -59,8 +59,8 @@ protected:
 
 private:
 
-  vtkMRMLOrientationMarkerDisplayableManager(const vtkMRMLOrientationMarkerDisplayableManager&);// Not implemented
-  void operator=(const vtkMRMLOrientationMarkerDisplayableManager&); // Not Implemented
+  vtkMRMLRulerDisplayableManager(const vtkMRMLRulerDisplayableManager&);// Not implemented
+  void operator=(const vtkMRMLRulerDisplayableManager&); // Not Implemented
 
   class vtkInternal;
   vtkInternal * Internal;

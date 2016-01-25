@@ -90,6 +90,7 @@ qMRMLSliceControllerWidgetPrivate::qMRMLSliceControllerWidgetPrivate(qMRMLSliceC
   this->SliceModelMenu = 0;
   this->LabelMapMenu = 0;
   this->OrientationMarkerMenu = 0;
+  this->RulerMenu = 0;
 
   this->SliceSpacingSpinBox = 0;
   this->SliceFOVSpinBox = 0;
@@ -234,6 +235,7 @@ void qMRMLSliceControllerWidgetPrivate::setupPopupUi()
   this->setupSliceModelMenu();
   this->setupLabelMapMenu();
   this->setupOrientationMarkerMenu();
+  this->setupRulerMenu();
 
   // Visibility column
   this->connect(this->actionLabelMapVisibility, SIGNAL(triggered(bool)),
@@ -883,13 +885,20 @@ void qMRMLSliceControllerWidgetPrivate::updateWidgetFromMRMLSliceNode()
   this->SliceModelOriginYSpinBox->setValue(UVWOrigin[1]);
   this->SliceModelOriginYSpinBox->blockSignals(wasBlocked);
 
-  // OrientationMarker
+  // OrientationMarker (check the selected option)
   QAction* action = qobject_cast<QAction*>(this->OrientationMarkerTypesMapper->mapping(this->MRMLSliceNode->GetOrientationMarkerType()));
   if (action)
     {
     action->setChecked(true);
     }
   action = qobject_cast<QAction*>(this->OrientationMarkerSizesMapper->mapping(this->MRMLSliceNode->GetOrientationMarkerSize()));
+  if (action)
+    {
+    action->setChecked(true);
+    }
+
+  // Ruler (check the selected option)
+  action = qobject_cast<QAction*>(this->RulerTypesMapper->mapping(this->MRMLSliceNode->GetRulerType()));
   if (action)
     {
     action->setChecked(true);
@@ -2306,7 +2315,7 @@ void qMRMLSliceControllerWidgetPrivate::setupOrientationMarkerMenu()
 {
   Q_Q(qMRMLSliceControllerWidget);
 
-    // OrientationMarker actions
+  // OrientationMarker actions
   // Type
   this->OrientationMarkerTypesMapper = new ctkSignalMapper(this->PopupWidget);
   this->OrientationMarkerTypesMapper->setMapping(this->actionOrientationMarkerTypeNone, vtkMRMLAbstractViewNode::OrientationMarkerTypeNone);
@@ -2334,7 +2343,7 @@ void qMRMLSliceControllerWidgetPrivate::setupOrientationMarkerMenu()
   QObject::connect(this->OrientationMarkerSizesMapper, SIGNAL(mapped(int)),q, SLOT(setOrientationMarkerSize(int)));
   QObject::connect(orientationMarkerSizesActions, SIGNAL(triggered(QAction*)),this->OrientationMarkerSizesMapper, SLOT(map(QAction*)));
   // Menu
-  QMenu* orientationMarkerMenu = new QMenu(tr("Orientation marker"), this->PopupWidget); // this->ShowOrientationMarkerButton
+  QMenu* orientationMarkerMenu = new QMenu(tr("Orientation marker"), this->PopupWidget);
   orientationMarkerMenu->setObjectName("orientationMarkerMenu");
   this->OrientationMarkerButton->setMenu(orientationMarkerMenu);
   orientationMarkerMenu->addActions(orientationMarkerTypesActions->actions());
@@ -2378,6 +2387,50 @@ void qMRMLSliceControllerWidget::setOrientationMarkerSize(int newOrientationMark
     if (node == d->MRMLSliceNode || this->isLinked())
       {
       node->SetOrientationMarkerSize(newOrientationMarkerSize);
+      }
+    }
+}
+
+// --------------------------------------------------------------------------
+void qMRMLSliceControllerWidgetPrivate::setupRulerMenu()
+{
+  Q_Q(qMRMLSliceControllerWidget);
+  // Ruler actions
+  // Type
+  this->RulerTypesMapper = new ctkSignalMapper(this->PopupWidget);
+  this->RulerTypesMapper->setMapping(this->actionRulerTypeNone, vtkMRMLAbstractViewNode::RulerTypeNone);
+  this->RulerTypesMapper->setMapping(this->actionRulerTypeThin, vtkMRMLAbstractViewNode::RulerTypeThin);
+  this->RulerTypesMapper->setMapping(this->actionRulerTypeThick, vtkMRMLAbstractViewNode::RulerTypeThick);
+  QActionGroup* rulerTypesActions = new QActionGroup(this->PopupWidget);
+  rulerTypesActions->setExclusive(true);
+  rulerTypesActions->addAction(this->actionRulerTypeNone);
+  rulerTypesActions->addAction(this->actionRulerTypeThin);
+  rulerTypesActions->addAction(this->actionRulerTypeThick);
+  QObject::connect(this->RulerTypesMapper, SIGNAL(mapped(int)),q, SLOT(setRulerType(int)));
+  QObject::connect(rulerTypesActions, SIGNAL(triggered(QAction*)),this->RulerTypesMapper, SLOT(map(QAction*)));
+  // Menu
+  QMenu* rulerMenu = new QMenu(tr("Ruler"), this->PopupWidget);
+  rulerMenu->setObjectName("rulerMenu");
+  this->RulerButton->setMenu(rulerMenu);
+  rulerMenu->addActions(rulerTypesActions->actions());
+}
+
+// --------------------------------------------------------------------------
+void qMRMLSliceControllerWidget::setRulerType(int newRulerType)
+{
+  Q_D(qMRMLSliceControllerWidget);
+  vtkSmartPointer<vtkCollection> nodes = d->saveNodesForUndo("vtkMRMLSliceNode");
+  if (!nodes.GetPointer())
+    {
+    return;
+    }
+  vtkMRMLSliceNode* node = 0;
+  vtkCollectionSimpleIterator it;
+  for (nodes->InitTraversal(it);(node = static_cast<vtkMRMLSliceNode*>(nodes->GetNextItemAsObject(it)));)
+    {
+    if (node == d->MRMLSliceNode || this->isLinked())
+      {
+      node->SetRulerType(newRulerType);
       }
     }
 }

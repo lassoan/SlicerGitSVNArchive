@@ -98,6 +98,7 @@ public slots:
   void setStereoType(int newStereoType);
   void setOrientationMarkerType(int type);
   void setOrientationMarkerSize(int size);
+  void setRulerType(int type);
 
 protected slots:
   void updateWidgetFromMRML();

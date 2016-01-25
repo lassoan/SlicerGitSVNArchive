@@ -92,6 +92,7 @@ public:
   void setupLabelMapMenu();
   void setupMoreOptionsMenu();
   void setupOrientationMarkerMenu();
+  void setupRulerMenu();
 
   vtkSmartPointer<vtkCollection> saveNodesForUndo(const QString& nodeTypes);
 
@@ -163,6 +164,7 @@ public:
   QMenu*                              SliceModelMenu;
   QMenu*                              LabelMapMenu;
   QMenu*                              OrientationMarkerMenu;
+  QMenu*                              RulerMenu;
 
   ctkDoubleSpinBox*                   SliceSpacingSpinBox;
   ctkDoubleSpinBox*                   SliceFOVSpinBox;
@@ -182,6 +184,8 @@ public:
 
   ctkSignalMapper*                    OrientationMarkerTypesMapper;
   ctkSignalMapper*                    OrientationMarkerSizesMapper;
+
+  ctkSignalMapper*                    RulerTypesMapper;
 };
 
 #endif

@@ -240,6 +240,9 @@ public slots:
   void setOrientationMarkerType(int type);
   void setOrientationMarkerSize(int size);
 
+  // Ruler
+  void setRulerType(int type);
+
   // Lightbox
   void setLightbox(int rows, int columns);
   void setLightboxTo1x1();

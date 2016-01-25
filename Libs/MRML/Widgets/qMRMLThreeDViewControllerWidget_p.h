@@ -67,6 +67,7 @@ public:
   ctkButtonGroup*                  AnimateViewButtonGroup;
   ctkSignalMapper*                 OrientationMarkerTypesMapper;
   ctkSignalMapper*                 OrientationMarkerSizesMapper;
+  ctkSignalMapper*                 RulerTypesMapper;
 
   QString                          ThreeDViewLabel;
   QToolButton*                     CenterToolButton;
