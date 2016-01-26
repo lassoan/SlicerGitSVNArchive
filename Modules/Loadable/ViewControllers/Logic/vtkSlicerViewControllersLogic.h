@@ -49,22 +49,12 @@ public:
   vtkMRMLViewNode* GetDefaultThreeDViewNode();
   void ResetAllViewNodesToDefault();
 
-  /*
-  vtkGetMacro( DefaultSliceViewNode, vtkMRMLSliceNode* );
-  vtkGetMacro( DefaultThreeDViewNode, vtkMRMLViewNode* );
-  */
-
 protected:
   vtkSlicerViewControllersLogic();
   virtual ~vtkSlicerViewControllersLogic();
 
   /// Register MRML Node classes to Scene. Gets called automatically when the MRMLScene is attached to this logic class.
   virtual void RegisterNodes();
-
-  /*
-  vtkMRMLSliceNode* DefaultSliceViewNode;
-  vtkMRMLViewNode* DefaultThreeDViewNode;
-  */
 
 private:
   vtkSlicerViewControllersLogic(const vtkSlicerViewControllersLogic&); // Not implemented

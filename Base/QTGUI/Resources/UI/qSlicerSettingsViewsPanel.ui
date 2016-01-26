@@ -24,8 +24,8 @@
        <rect>
         <x>0</x>
         <y>0</y>
-        <width>464</width>
-        <height>539</height>
+        <width>449</width>
+        <height>573</height>
        </rect>
       </property>
       <property name="sizePolicy">
@@ -233,6 +233,9 @@
           </item>
           <item row="4" column="1">
            <widget class="ctkComboBox" name="ThreeDRulerTypeComboBox">
+            <property name="enabled">
+             <bool>false</bool>
+            </property>
             <property name="toolTip">
              <string>Ruler is only displayed if orthographic projection mode is used.</string>
             </property>

@@ -53,9 +53,9 @@
 static const int RENDERER_LAYER = 1; // layer ID where the orientation marker will be displayed
 static const int MINIMUM_RULER_LENGTH_PIXEL = 50;
 static const int RULER_BASE_FONT_SIZE = 14; // thin: font size = base; thick: font size is 2x
-static const int RULER_LINE_MARGIN_PIXEL = 10; // vertical distance of line from edge of view
-static const int RULER_TICK_BASE_LENGTH_PIXEL = 10; // thin: major tick size = base, minor tick size = base/2; thick: length is 2x
-static const int RULER_TEXT_MARGIN_PIXEL = 10; // horizontal distaace of ruler text from ruler line
+static const double RULER_LINE_MARGIN = 0.015; // vertical distance of line from edge of view (as percentage of window height)
+static const double RULER_TICK_BASE_LENGTH = 0.015; // thin: major tick size = base, minor tick size = base/2; thick: length is 2x (as percentage of window height)
+static const double RULER_TEXT_MARGIN = 0.015; // horizontal distaace of ruler text from ruler line (as percentage of window height)
 
 //static const int rulerAllowedLengthsMm[] = {1, 5, 10, 50, 100};
   // RulerMinorTickCounts define how many minor ticks appear between each two major ticks.
@@ -312,6 +312,7 @@ void vtkMRMLRulerDisplayableManager::vtkInternal::UpdateRuler()
     }
 
   int viewWidthPixel = 0;
+  int viewHeightPixel = 0;
   double scalingFactorPixelPerMm = 0;
 
   vtkMRMLSliceNode* sliceNode = vtkMRMLSliceNode::SafeDownCast(viewNode);
@@ -319,6 +320,7 @@ void vtkMRMLRulerDisplayableManager::vtkInternal::UpdateRuler()
   if (sliceNode)
     {
     viewWidthPixel = sliceNode->GetDimensions()[0];
+    viewHeightPixel = sliceNode->GetDimensions()[1];
 
     vtkNew<vtkMatrix4x4> rasToXY;
     vtkMatrix4x4::Invert(sliceNode->GetXYToRAS(), rasToXY.GetPointer());
@@ -348,6 +350,7 @@ void vtkMRMLRulerDisplayableManager::vtkInternal::UpdateRuler()
       int rendererSizeInPixels[2] = {maxX-minX, maxY-minY};
 
       viewWidthPixel = rendererSizeInPixels[0];
+      viewHeightPixel = rendererSizeInPixels[1];
 
       // Parallel scale: height of the viewport in world-coordinate distances.
       // Larger numbers produce smaller images.
@@ -388,10 +391,14 @@ void vtkMRMLRulerDisplayableManager::vtkInternal::UpdateRuler()
     return;
     }
 
+  int rulerLineMarginPixel = int(RULER_LINE_MARGIN*viewHeightPixel);
+  int rulerTickBaseLengthPixel = int(RULER_TICK_BASE_LENGTH*viewHeightPixel);
+  int rulerTextMarginPixel = int(RULER_TEXT_MARGIN*viewHeightPixel);
+
   // Ruler line
-  double pointOrigin[3] = {double(viewWidthPixel)/2.0, RULER_LINE_MARGIN_PIXEL, 0};
-  this->RulerLineActor->SetPoint2(pointOrigin[0]-double(bestMatchScalePreset->Length)*scalingFactorPixelPerMm/2.0, RULER_LINE_MARGIN_PIXEL);
-  this->RulerLineActor->SetPoint1(pointOrigin[0]+double(bestMatchScalePreset->Length)*scalingFactorPixelPerMm/2.0, RULER_LINE_MARGIN_PIXEL);
+  double pointOrigin[3] = {double(viewWidthPixel)/2.0, rulerLineMarginPixel, 0};
+  this->RulerLineActor->SetPoint2(pointOrigin[0]-double(bestMatchScalePreset->Length)*scalingFactorPixelPerMm/2.0, rulerLineMarginPixel);
+  this->RulerLineActor->SetPoint1(pointOrigin[0]+double(bestMatchScalePreset->Length)*scalingFactorPixelPerMm/2.0, rulerLineMarginPixel);
   this->RulerLineActor->SetNumberOfLabels(bestMatchScalePreset->NumberOfMajorTicks);
   this->RulerLineActor->SetNumberOfMinorTicks(bestMatchScalePreset->NumberOfMinorTicks);
 
@@ -399,23 +406,25 @@ void vtkMRMLRulerDisplayableManager::vtkInternal::UpdateRuler()
   std::stringstream labelStr;
   labelStr << bestMatchScalePreset->DisplayedScale*bestMatchScalePreset->Length << " " << bestMatchScalePreset->DisplayedUnitName;
   this->RulerTextActor->SetInput(labelStr.str().c_str());
-  this->RulerTextActor->SetDisplayPosition(int((viewWidthPixel+bestMatchScalePreset->Length*scalingFactorPixelPerMm)/2)+RULER_TEXT_MARGIN_PIXEL,RULER_LINE_MARGIN_PIXEL);
+  this->RulerTextActor->SetDisplayPosition(int((viewWidthPixel+bestMatchScalePreset->Length*scalingFactorPixelPerMm)/2)+rulerTextMarginPixel,rulerLineMarginPixel);
 
   vtkProperty2D* lineProperty = this->RulerLineActor->GetProperty();
   vtkTextProperty* textProperty = this->RulerTextActor->GetTextProperty();
   switch (type)
   {
   case vtkMRMLAbstractViewNode::RulerTypeThin:
-    this->RulerLineActor->SetTickLength(RULER_TICK_BASE_LENGTH_PIXEL);
-    this->RulerLineActor->SetMinorTickLength(RULER_TICK_BASE_LENGTH_PIXEL/2.0);
+    this->RulerLineActor->SetTickLength(rulerTickBaseLengthPixel);
+    this->RulerLineActor->SetMinorTickLength(rulerTickBaseLengthPixel/2.0);
     lineProperty->SetLineWidth(1);
     textProperty->SetFontSize(RULER_BASE_FONT_SIZE);
+    textProperty->SetBold(false);
     break;
   case vtkMRMLAbstractViewNode::RulerTypeThick:
-    this->RulerLineActor->SetTickLength(RULER_TICK_BASE_LENGTH_PIXEL*2);
-    this->RulerLineActor->SetMinorTickLength(RULER_TICK_BASE_LENGTH_PIXEL);
+    this->RulerLineActor->SetTickLength(rulerTickBaseLengthPixel*2);
+    this->RulerLineActor->SetMinorTickLength(rulerTickBaseLengthPixel);
     lineProperty->SetLineWidth(3);
     textProperty->SetFontSize(RULER_BASE_FONT_SIZE*2);
+    textProperty->SetBold(true);
     break;
   default:
     break;

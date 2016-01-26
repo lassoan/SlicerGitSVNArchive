@@ -24,6 +24,8 @@
 // MRML includes
 #include "vtkMRMLNode.h"
 
+class vtkMRMLModelNode;
+
 /// \brief Abstract MRML node to represent a view.
 /// The class holds the properties common to any view type (3D, slice, chart..)
 /// Views are not hidden from editors by default (HideFromEditor is 0)
@@ -127,6 +129,16 @@ public:
   vtkGetMacro(OrientationMarkerType, int);
 
   ///
+  /// Get/Set a custom human orientation marker model.
+  /// If NULL or invalid node ID is specified then the default human model will be used.
+  /// If the node has point data array with the name "Color" and 3 scalar components then
+  /// it will be used to specify RGB color for the model. If no color point data is specified
+  /// then the solid color specified in the model node's first display node will be used as color.
+  void SetOrientationMarkerHumanModelNodeID(const char* modelNodeId);
+  const char* GetOrientationMarkerHumanModelNodeID();
+  vtkMRMLModelNode* GetOrientationMarkerHumanModelNode();
+
+  ///
   /// Convert between orientation marker type ID and name
   static const char* GetOrientationMarkerTypeAsString(int id);
   static int GetOrientationMarkerTypeFromString(const char* name);
@@ -218,6 +230,9 @@ protected:
   bool OrientationMarkerEnabled;
   int OrientationMarkerType;
   int OrientationMarkerSize;
+
+  static const char* OrientationMarkerHumanModelReferenceRole;
+  static const char* OrientationMarkerHumanModelMRMLAttributeName;
 
   ///
   /// For views that supports ruler display (where RulerEnabled=true)

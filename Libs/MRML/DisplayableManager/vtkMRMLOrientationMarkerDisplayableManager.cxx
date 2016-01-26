@@ -23,6 +23,8 @@
 // MRML includes
 #include <vtkMRMLAbstractViewNode.h>
 #include <vtkMRMLLogic.h>
+#include <vtkMRMLModelDisplayNode.h>
+#include <vtkMRMLModelNode.h>
 #include <vtkMRMLSliceNode.h>
 #include <vtkMRMLViewNode.h>
 
@@ -93,17 +95,23 @@ public:
 
   void CreateMarkerRenderer();
 
-  void CreateCubeModel();
-  void CreateHumanModel();
-  void CreateAxesModel();
+  vtkProp3D* GetCubeActor();
+  vtkProp3D* GetHumanActor();
+  vtkProp3D* GetAxesActor();
 
   void AddRendererUpdateObserver(vtkRenderer* renderer);
   void RemoveRendererUpdateObserver();
 
   vtkSmartPointer<vtkRenderer> MarkerRenderer;
+
   vtkSmartPointer<vtkAnnotatedCubeActor> CubeActor;
   vtkSmartPointer<vtkActor> HumanActor;
   vtkSmartPointer<vtkAxesActor> AxesActor;
+  vtkProp3D* DisplayedActor;
+
+  // Keep a reference to it to allow modifying polydata input
+  vtkSmartPointer<vtkPolyData> HumanPolyData;
+  vtkSmartPointer<vtkPolyDataMapper> HumanPolyDataMapper;
 
   vtkSmartPointer<vtkRendererUpdateObserver> RendererUpdateObserver;
   int RendererUpdateObservationId;
@@ -122,6 +130,7 @@ vtkMRMLOrientationMarkerDisplayableManager::vtkInternal::vtkInternal(vtkMRMLOrie
   this->RendererUpdateObserver = vtkSmartPointer<vtkRendererUpdateObserver>::New();
   this->RendererUpdateObserver->DisplayableManager = this->External;
   this->RendererUpdateObservationId = 0;
+  this->DisplayedActor = NULL;
 }
 
 //---------------------------------------------------------------------------
@@ -179,34 +188,29 @@ void vtkMRMLOrientationMarkerDisplayableManager::vtkInternal::CreateMarkerRender
     {
     this->AddRendererUpdateObserver(renderer);
     }
-
-  this->CreateCubeModel();
-  this->CreateAxesModel();
-  this->CreateHumanModel();
-
-  this->MarkerRenderer->AddViewProp(this->CubeActor);
-  this->MarkerRenderer->AddViewProp(this->HumanActor);
-  this->MarkerRenderer->AddViewProp(this->AxesActor);
 }
 
 
 //---------------------------------------------------------------------------
-void vtkMRMLOrientationMarkerDisplayableManager::vtkInternal::CreateCubeModel()
+vtkProp3D* vtkMRMLOrientationMarkerDisplayableManager::vtkInternal::GetCubeActor()
 {
-  this->CubeActor = vtkSmartPointer<vtkAnnotatedCubeActor>::New();
-  this->CubeActor->SetXMinusFaceText(AXES_LABELS[0]);
-  this->CubeActor->SetXPlusFaceText(AXES_LABELS[1]);
-  this->CubeActor->SetYMinusFaceText(AXES_LABELS[2]);
-  this->CubeActor->SetYPlusFaceText(AXES_LABELS[3]);
-  this->CubeActor->SetZMinusFaceText(AXES_LABELS[4]);
-  this->CubeActor->SetZPlusFaceText(AXES_LABELS[5]);
-  this->CubeActor->SetZFaceTextRotation(90);
-  this->CubeActor->GetTextEdgesProperty()->SetColor(0.95,0.95,0.95);
-  this->CubeActor->GetTextEdgesProperty()->SetLineWidth(2);
-  this->CubeActor->GetCubeProperty()->SetColor(0.15,0.15,0.15);
-  this->CubeActor->PickableOff();
-  this->CubeActor->DragableOff();
-  this->CubeActor->VisibilityOff();
+  if (!this->CubeActor)
+    {
+    this->CubeActor = vtkSmartPointer<vtkAnnotatedCubeActor>::New();
+    this->CubeActor->SetXMinusFaceText(AXES_LABELS[0]);
+    this->CubeActor->SetXPlusFaceText(AXES_LABELS[1]);
+    this->CubeActor->SetYMinusFaceText(AXES_LABELS[2]);
+    this->CubeActor->SetYPlusFaceText(AXES_LABELS[3]);
+    this->CubeActor->SetZMinusFaceText(AXES_LABELS[4]);
+    this->CubeActor->SetZPlusFaceText(AXES_LABELS[5]);
+    this->CubeActor->SetZFaceTextRotation(90);
+    this->CubeActor->GetTextEdgesProperty()->SetColor(0.95,0.95,0.95);
+    this->CubeActor->GetTextEdgesProperty()->SetLineWidth(2);
+    this->CubeActor->GetCubeProperty()->SetColor(0.15,0.15,0.15);
+    this->CubeActor->PickableOff();
+    this->CubeActor->DragableOff();
+    }
+  return this->CubeActor;
 }
 
 //----------------------------------------------------------------------------
@@ -222,63 +226,119 @@ std::string vtkMRMLOrientationMarkerDisplayableManager::vtkInternal::GetOrientat
 }
 
 //---------------------------------------------------------------------------
-void vtkMRMLOrientationMarkerDisplayableManager::vtkInternal::CreateHumanModel()
+vtkProp3D* vtkMRMLOrientationMarkerDisplayableManager::vtkInternal::GetHumanActor()
 {
-  vtkNew<vtkXMLPolyDataReader> polyDataReader;
-  polyDataReader->SetFileName(this->GetOrientationMarkerModelPath(HUMAN_MODEL_VTP_FILENAME).c_str());
-  polyDataReader->Update();
-  polyDataReader->GetOutput()->GetPointData()->SetActiveScalars("Color");
+  if (!this->HumanActor)
+    {
+    vtkNew<vtkXMLPolyDataReader> polyDataReader;
+    polyDataReader->SetFileName(this->GetOrientationMarkerModelPath(HUMAN_MODEL_VTP_FILENAME).c_str());
+    polyDataReader->Update();
+    this->HumanPolyData = vtkSmartPointer<vtkPolyData>::New();
+    this->HumanPolyData->ShallowCopy(polyDataReader->GetOutput());
+    this->HumanPolyData->GetPointData()->SetActiveScalars("Color");
 
-  vtkNew<vtkPolyDataMapper> mapper;
-  mapper->SetInputConnection(polyDataReader->GetOutputPort());
-  mapper->SetColorModeToDirectScalars();
+    this->HumanPolyDataMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+    this->HumanPolyDataMapper->SetInputData(this->HumanPolyData);
+    this->HumanPolyDataMapper->SetColorModeToDirectScalars();
 
-  this->HumanActor = vtkSmartPointer<vtkActor>::New();
-  this->HumanActor->SetMapper(mapper.GetPointer());
-  const double scale = 0.01;
-  this->HumanActor->SetScale(scale,scale,scale);
-  this->HumanActor->PickableOff();
-  this->HumanActor->DragableOff();
-  this->HumanActor->VisibilityOff();
+    this->HumanActor = vtkSmartPointer<vtkActor>::New();
+    this->HumanActor->SetMapper(this->HumanPolyDataMapper);
+    const double scale = 0.01;
+    this->HumanActor->SetScale(scale,scale,scale);
+    this->HumanActor->PickableOff();
+    this->HumanActor->DragableOff();
+    }
+  return this->HumanActor;
 }
 
 //---------------------------------------------------------------------------
-void vtkMRMLOrientationMarkerDisplayableManager::vtkInternal::CreateAxesModel()
+vtkProp3D* vtkMRMLOrientationMarkerDisplayableManager::vtkInternal::GetAxesActor()
 {
-  this->AxesActor = vtkSmartPointer<vtkAxesActor>::New();
-  this->AxesActor->SetXAxisLabelText(AXES_LABELS[1]);
-  this->AxesActor->SetYAxisLabelText(AXES_LABELS[3]);
-  this->AxesActor->SetZAxisLabelText(AXES_LABELS[5]);
-  this->AxesActor->PickableOff();
-  this->AxesActor->DragableOff();
-  this->AxesActor->VisibilityOff();
+  if (!this->AxesActor)
+    {
+    this->AxesActor = vtkSmartPointer<vtkAxesActor>::New();
+    this->AxesActor->SetXAxisLabelText(AXES_LABELS[1]);
+    this->AxesActor->SetYAxisLabelText(AXES_LABELS[3]);
+    this->AxesActor->SetZAxisLabelText(AXES_LABELS[5]);
+    this->AxesActor->PickableOff();
+    this->AxesActor->DragableOff();
+    }
+  return this->AxesActor;
 }
 
 //---------------------------------------------------------------------------
 void vtkMRMLOrientationMarkerDisplayableManager::vtkInternal::UpdateMarkerType()
 {
   vtkMRMLAbstractViewNode* viewNode = vtkMRMLAbstractViewNode::SafeDownCast(this->External->GetMRMLDisplayableNode());
-  if (!viewNode || !viewNode->GetOrientationMarkerEnabled())
+  if (!viewNode || !viewNode->GetOrientationMarkerEnabled() || !this->MarkerRenderer)
     {
     return;
     }
 
-  int type = viewNode->GetOrientationMarkerType();
+  // Determine what actor to display
+  vtkProp3D* actorToDisplay = NULL;
+  switch (viewNode->GetOrientationMarkerType())
+    {
+    case vtkMRMLAbstractViewNode::OrientationMarkerTypeCube:
+      actorToDisplay = this->GetCubeActor();
+      break;
+    case vtkMRMLAbstractViewNode::OrientationMarkerTypeHuman:
+      actorToDisplay = this->GetHumanActor();
+      break;
+    case vtkMRMLAbstractViewNode::OrientationMarkerTypeAxes:
+      actorToDisplay = this->GetAxesActor();
+      break;
+    case vtkMRMLAbstractViewNode::OrientationMarkerTypeNone:
+    default:
+      break;
+    }
 
-  if (this->CubeActor)
+  // Display that actor
+  if (this->DisplayedActor != actorToDisplay)
     {
-    this->CubeActor->SetVisibility(type==vtkMRMLAbstractViewNode::OrientationMarkerTypeCube);
-    }
-  if (this->HumanActor)
-    {
-    this->HumanActor->SetVisibility(type==vtkMRMLAbstractViewNode::OrientationMarkerTypeHuman);
-    }
-  if (this->AxesActor)
-    {
-    this->AxesActor->SetVisibility(type==vtkMRMLAbstractViewNode::OrientationMarkerTypeAxes);
+    if (this->DisplayedActor != NULL)
+      {
+      this->MarkerRenderer->RemoveViewProp(this->DisplayedActor);
+      }
+    if (actorToDisplay != NULL)
+      {
+      this->MarkerRenderer->AddViewProp(actorToDisplay);
+      }
+    this->DisplayedActor = actorToDisplay;
     }
 
-  //this->External->RequestRender();
+  if (vtkMRMLAbstractViewNode::OrientationMarkerTypeHuman)
+    {
+    vtkMRMLModelNode* humanModelNode = viewNode->GetOrientationMarkerHumanModelNode();
+    if (humanModelNode && humanModelNode->GetPolyData())
+      {
+      vtkPolyData* polyData = humanModelNode->GetPolyData();
+      this->HumanPolyDataMapper->SetInputData(polyData);
+      if (polyData->GetPointData() && polyData->GetPointData()->HasArray("Color"))
+        {
+        polyData->GetPointData()->SetActiveScalars("Color");
+        this->HumanPolyDataMapper->SetColorModeToDirectScalars();
+        }
+      else
+        {
+        this->HumanPolyDataMapper->SetScalarModeToDefault();
+        vtkMRMLModelDisplayNode* displayNode = vtkMRMLModelDisplayNode::SafeDownCast(humanModelNode->GetDisplayNode());
+        if (displayNode)
+          {
+          this->HumanActor->GetProperty()->SetColor(displayNode->GetColor());
+          }
+        else
+          {
+          this->HumanActor->GetProperty()->SetColor(1,1,1);
+          }
+        }
+      }
+    else
+      {
+      this->HumanPolyDataMapper->SetInputData(this->HumanPolyData);
+      this->HumanPolyDataMapper->SetColorModeToDirectScalars();
+      }
+    }
 }
 
 //---------------------------------------------------------------------------
@@ -449,7 +509,6 @@ void vtkMRMLOrientationMarkerDisplayableManager::Create()
 {
   this->Internal->CreateMarkerRenderer();
   this->Superclass::Create();
-//  this->UpdateFromViewNode();
 }
 
 //---------------------------------------------------------------------------

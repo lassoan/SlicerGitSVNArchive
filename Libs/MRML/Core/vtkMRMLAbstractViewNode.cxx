@@ -20,10 +20,14 @@
 
 // MRML includes
 #include "vtkMRMLAbstractViewNode.h"
+#include "vtkMRMLModelNode.h"
 #include "vtkMRMLScene.h"
 
 // STD includes
 #include <sstream>
+
+const char* vtkMRMLAbstractViewNode::OrientationMarkerHumanModelReferenceRole = "OrientationMarkerHumanModel";
+const char* vtkMRMLAbstractViewNode::OrientationMarkerHumanModelMRMLAttributeName = "orientationMarkerHumanModelNodeRef";
 
 //----------------------------------------------------------------------------
 vtkMRMLAbstractViewNode::vtkMRMLAbstractViewNode()
@@ -464,4 +468,37 @@ int vtkMRMLAbstractViewNode::GetRulerTypeFromString(const char* name)
     }
   // unknown name
   return -1;
+}
+
+//-----------------------------------------------------------
+void vtkMRMLAbstractViewNode::SetOrientationMarkerHumanModelNodeID(const char* modelNodeId)
+{
+  if (!this->OrientationMarkerEnabled)
+    {
+    vtkErrorMacro("vtkMRMLAbstractViewNode::SetOrientationMarkerHumanModelID failed: orientation marker is disabled");
+    return;
+    }
+  this->SetNodeReferenceID(OrientationMarkerHumanModelReferenceRole, modelNodeId);
+}
+
+//-----------------------------------------------------------
+const char* vtkMRMLAbstractViewNode::GetOrientationMarkerHumanModelNodeID()
+{
+  if (!this->OrientationMarkerEnabled)
+    {
+    vtkErrorMacro("vtkMRMLAbstractViewNode::GetOrientationMarkerHumanModelID failed: orientation marker is disabled");
+    return NULL;
+    }
+  return this->GetNodeReferenceID(OrientationMarkerHumanModelReferenceRole);
+}
+
+//-----------------------------------------------------------
+vtkMRMLModelNode* vtkMRMLAbstractViewNode::GetOrientationMarkerHumanModelNode()
+{
+  if (!this->OrientationMarkerEnabled)
+    {
+    vtkErrorMacro("vtkMRMLAbstractViewNode::GetOrientationMarkerHumanModel failed: orientation marker is disabled");
+    return NULL;
+    }
+  return vtkMRMLModelNode::SafeDownCast(this->GetNodeReference(OrientationMarkerHumanModelReferenceRole));
 }

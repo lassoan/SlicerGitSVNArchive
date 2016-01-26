@@ -77,14 +77,6 @@ void qMRMLThreeDViewControllerWidgetPrivate::setupPopupUi()
                    SIGNAL(currentAxisChanged(ctkAxesWidget::Axis)),
                    q, SLOT(lookFromAxis(ctkAxesWidget::Axis)));
 
-  // Pitch, Roll, Yaw buttons
-  QObject::connect(this->PitchButton, SIGNAL(clicked()),
-                   q, SLOT(pitchView()));
-  QObject::connect(this->RollButton, SIGNAL(clicked()),
-                   q, SLOT(rollView()));
-  QObject::connect(this->YawButton, SIGNAL(clicked()),
-                   q, SLOT(yawView()));
-
   // Orthographic/perspective button
   QObject::connect(this->OrthoButton, SIGNAL(toggled(bool)),
                    q, SLOT(setOrthographicModeEnabled(bool)));
@@ -221,6 +213,7 @@ void qMRMLThreeDViewControllerWidgetPrivate::setupPopupUi()
   // Background color
   QActionGroup* backgroundColorActions = new QActionGroup(this->PopupWidget);
   backgroundColorActions->setExclusive(true);
+  visibilityMenu->addSeparator();
   visibilityMenu->addAction(this->actionSetLightBlueBackground);
   visibilityMenu->addAction(this->actionSetBlackBackground);
   visibilityMenu->addAction(this->actionSetWhiteBackground);
@@ -329,7 +322,6 @@ void qMRMLThreeDViewControllerWidget::updateWidgetFromMRML()
   // Enable buttons
   QList<QWidget*> widgets;
   widgets << d->AxesWidget
-    << d->PitchButton << d->RollButton << d->YawButton
     << d->CenterButton << d->OrthoButton << d->VisibilityButton
     << d->ZoomInButton << d->ZoomOutButton << d->StereoButton
     << d->RockButton << d->SpinButton << d->MoreToolButton

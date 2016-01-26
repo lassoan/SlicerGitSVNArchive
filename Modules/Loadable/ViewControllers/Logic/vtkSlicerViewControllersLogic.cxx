@@ -54,24 +54,12 @@ vtkSlicerViewControllersLogic::vtkSlicerViewControllersLogic()
 //----------------------------------------------------------------------------
 vtkSlicerViewControllersLogic::~vtkSlicerViewControllersLogic()
 {
-  /*
-  this->DefaultSliceViewNode->Delete();
-  this->DefaultSliceViewNode = NULL;
-  this->DefaultThreeDViewNode->Delete();
-  this->DefaultThreeDViewNode = NULL;
-  */
 }
 
 //----------------------------------------------------------------------------
 void vtkSlicerViewControllersLogic::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
-  /*
-  os << indent << "Default SliceViewNode:\n";
-  this->DefaultSliceViewNode->PrintSelf(os, indent.GetNextIndent());
-  os << indent << "Default ThreeDViewNode:\n";
-  this->DefaultThreeDViewNode->PrintSelf(os, indent.GetNextIndent());
-  */
  }
 
 //-----------------------------------------------------------------------------
