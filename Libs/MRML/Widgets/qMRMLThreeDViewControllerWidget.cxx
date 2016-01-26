@@ -333,7 +333,7 @@ void qMRMLThreeDViewControllerWidget::updateWidgetFromMRML()
     << d->CenterButton << d->OrthoButton << d->VisibilityButton
     << d->ZoomInButton << d->ZoomOutButton << d->StereoButton
     << d->RockButton << d->SpinButton << d->MoreToolButton
-    << d->OrientationMarkerButton << d->RulerButton;
+    << d->OrientationMarkerButton;
   foreach(QWidget* w, widgets)
     {
     w->setEnabled(d->ViewNode != 0);
@@ -381,6 +381,7 @@ void qMRMLThreeDViewControllerWidget::updateWidgetFromMRML()
     {
     action->setChecked(true);
     }
+  d->RulerButton->setEnabled(d->ViewNode->GetRenderMode()==vtkMRMLViewNode::Orthographic);
 
   d->SpinButton->setChecked(d->ViewNode->GetAnimationMode() == vtkMRMLViewNode::Spin);
   d->RockButton->setChecked(d->ViewNode->GetAnimationMode() == vtkMRMLViewNode::Rock);
@@ -633,4 +634,9 @@ void qMRMLThreeDViewControllerWidget::setRulerType(int newRulerType)
     return;
     }
   d->ViewNode->SetRulerType(newRulerType);
+  // Switch to orthographic render mode automatically if ruler is enabled
+  if (newRulerType!=vtkMRMLViewNode::RulerTypeNone && d->ViewNode->GetRenderMode()!=vtkMRMLViewNode::Orthographic)
+    {
+    d->ViewNode->SetRenderMode(vtkMRMLViewNode::Orthographic);
+    }
 }

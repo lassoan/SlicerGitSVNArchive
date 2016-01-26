@@ -27,6 +27,9 @@
 // MRML includes
 class vtkMRMLCameraNode;
 
+// STL includes
+#include <vector>
+
 /// \brief Displayable manager that displays orienatation marker in a slice or 3D view
 class VTK_MRML_DISPLAYABLEMANAGER_EXPORT vtkMRMLRulerDisplayableManager
   : public vtkMRMLAbstractDisplayableManager
@@ -37,6 +40,17 @@ public:
   static vtkMRMLRulerDisplayableManager* New();
   vtkTypeMacro(vtkMRMLRulerDisplayableManager,vtkMRMLAbstractDisplayableManager);
   void PrintSelf(ostream& os, vtkIndent indent);
+
+  /// Adds a scale preset to the list of possible scales.
+  /// The preset with Length closest to the actual length of the ruler will be used.
+  /// If a preset exists with the same length then it will be updated with the new parameters.
+  /// Example: (world coordinate is mm)
+  /// 1.0 length, 5 major, 1 minor, mm, 1.0 scale
+  /// 5.0         5        0        mm  1.0
+  /// 10.0        5        1        cm  0.1
+  void AddRulerScalePreset(double length, int numberOfMajorTicks, int numberOfMinorTicks, const std::string& displayedUnitName, double displayedScale);
+  /// Remove all scale presets.
+  void RemoveAllRulerScalePresets();
 
 protected:
 
@@ -56,6 +70,18 @@ protected:
 
   /// Update the renderer based on the master renderer (the one that the orientation marker follows)
   void UpdateFromRenderer();
+
+  struct RulerScalePreset
+  {
+    double Length; // actual length of the ruler (in world coordinates)
+    int NumberOfMajorTicks;
+    int NumberOfMinorTicks; // number of minor ticks between each pair of major ticks
+    std::string DisplayedUnitName; // label that will be shown after the scaled length
+    double DisplayedScale; // displayed length is Length*Scale
+  };
+
+  // List of ruler presets, ordered based on length.
+  std::vector<RulerScalePreset> RulerScalePresets;
 
 private:
 

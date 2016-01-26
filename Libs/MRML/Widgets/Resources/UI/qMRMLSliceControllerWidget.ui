@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>384</width>
+    <width>415</width>
     <height>130</height>
    </rect>
   </property>
@@ -243,6 +243,9 @@
           </property>
           <property name="popupMode">
            <enum>QToolButton::InstantPopup</enum>
+          </property>
+          <property name="autoRaise">
+           <bool>true</bool>
           </property>
          </widget>
         </item>
@@ -1437,6 +1440,22 @@
     <hint type="destinationlabel">
      <x>264</x>
      <y>11</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>MoreButton</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>RulerButton</receiver>
+   <slot>setVisible(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>9</x>
+     <y>15</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>367</x>
+     <y>15</y>
     </hint>
    </hints>
   </connection>

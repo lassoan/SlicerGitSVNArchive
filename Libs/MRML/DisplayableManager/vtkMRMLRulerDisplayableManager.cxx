@@ -40,6 +40,7 @@
 #include <vtkPolyData.h>
 #include <vtkPolyDataMapper.h>
 #include <vtkProperty.h>
+#include <vtkProperty2D.h>
 #include <vtkRenderer.h>
 #include <vtkRenderWindow.h>
 #include <vtkSmartPointer.h>
@@ -50,13 +51,16 @@
 
 // Constants
 static const int RENDERER_LAYER = 1; // layer ID where the orientation marker will be displayed
-static const char* AXES_LABELS[] = {"L", "R", "P", "A", "I", "S"};
-static const int MINIMUM_RULER_LENGTH_PIXEL = 200;
-static const int RULER_FONT_SIZE = 14;
-static const int RULER_LINE_MARGIN = 10; // vertical distance of line from edge of view
-static const int RULER_THICKNESS = 10;
-static const int RULER_TEXT_MARGIN = 10; // horizontal distaace of ruler text from ruler line
+static const int MINIMUM_RULER_LENGTH_PIXEL = 50;
+static const int RULER_BASE_FONT_SIZE = 14; // thin: font size = base; thick: font size is 2x
+static const int RULER_LINE_MARGIN_PIXEL = 10; // vertical distance of line from edge of view
+static const int RULER_TICK_BASE_LENGTH_PIXEL = 10; // thin: major tick size = base, minor tick size = base/2; thick: length is 2x
+static const int RULER_TEXT_MARGIN_PIXEL = 10; // horizontal distaace of ruler text from ruler line
 
+//static const int rulerAllowedLengthsMm[] = {1, 5, 10, 50, 100};
+  // RulerMinorTickCounts define how many minor ticks appear between each two major ticks.
+  // Number of major ticks is 5, therefore total number of ticks is 5*minorTickCounts.
+//static const int rulerMinorTickCounts[]  = {1, 0,  1,  0,   1};
 
 //---------------------------------------------------------------------------
 class vtkRulerRendererUpdateObserver : public vtkCommand
@@ -99,9 +103,10 @@ public:
   void AddRendererUpdateObserver(vtkRenderer* renderer);
   void RemoveRendererUpdateObserver();
 
+  void ShowActors(bool show);
+
   vtkSmartPointer<vtkRenderer> MarkerRenderer;
   vtkSmartPointer<vtkTextActor> RulerTextActor;
-  //vtkSmartPointer<vtkActor2D> RulerLineActor;
   vtkSmartPointer<vtkAxisActor2D> RulerLineActor;
 
   // Ruler points are in normalized coordinates (ruler will set to the correct size by adjusting actor scaling):
@@ -113,6 +118,8 @@ public:
   vtkSmartPointer<vtkRulerRendererUpdateObserver> RendererUpdateObserver;
   int RendererUpdateObservationId;
   vtkWeakPointer<vtkRenderer> ObservedRenderer;
+
+  bool ActorsAddedToRenderer;
 
   vtkMRMLRulerDisplayableManager* External;
 };
@@ -127,12 +134,34 @@ vtkMRMLRulerDisplayableManager::vtkInternal::vtkInternal(vtkMRMLRulerDisplayable
   this->RendererUpdateObserver = vtkSmartPointer<vtkRulerRendererUpdateObserver>::New();
   this->RendererUpdateObserver->DisplayableManager = this->External;
   this->RendererUpdateObservationId = 0;
+  this->ActorsAddedToRenderer = false;
 }
 
 //---------------------------------------------------------------------------
 vtkMRMLRulerDisplayableManager::vtkInternal::~vtkInternal()
 {
   RemoveRendererUpdateObserver();
+}
+
+//---------------------------------------------------------------------------
+void vtkMRMLRulerDisplayableManager::vtkInternal::ShowActors(bool show)
+{
+  if (this->ActorsAddedToRenderer == show)
+    {
+    // no change
+    return;
+    }
+  if (show)
+    {
+    this->MarkerRenderer->AddViewProp(this->RulerTextActor);
+    this->MarkerRenderer->AddViewProp(this->RulerLineActor);
+    }
+  else
+    {
+    this->MarkerRenderer->RemoveViewProp(this->RulerTextActor);
+    this->MarkerRenderer->RemoveViewProp(this->RulerLineActor);
+    }
+  this->ActorsAddedToRenderer = show;
 }
 
 //---------------------------------------------------------------------------
@@ -188,9 +217,6 @@ void vtkMRMLRulerDisplayableManager::vtkInternal::CreateMarkerRenderer()
     }
 
   this->CreateRuler();
-
-  this->MarkerRenderer->AddViewProp(this->RulerTextActor);
-  this->MarkerRenderer->AddViewProp(this->RulerLineActor);
 }
 
 
@@ -243,16 +269,18 @@ void vtkMRMLRulerDisplayableManager::vtkInternal::CreateRuler()
   this->RulerLineActor = vtkSmartPointer<vtkAxisActor2D>::New();
   this->RulerLineActor->GetPoint1Coordinate()->SetCoordinateSystemToDisplay();
   this->RulerLineActor->GetPoint2Coordinate()->SetCoordinateSystemToDisplay();
+  this->RulerLineActor->LabelVisibilityOff();
+  this->RulerLineActor->RulerModeOff(); // allow specifying the number of labels (instead of distance between labels)
 
   this->RulerLineActor->PickableOff();
   this->RulerLineActor->DragableOff();
-  this->RulerLineActor->VisibilityOff();
+  //this->RulerLineActor->VisibilityOff();
   //this->RulerLineActor->GetProperty()->SetLineWidth(1);
   //this->RulerLineActor->GetProperty()->SetColor(1,1,1);
 
   this->RulerTextActor = vtkSmartPointer<vtkTextActor>::New();
   vtkTextProperty* textProperty = this->RulerTextActor->GetTextProperty();
-  textProperty->SetFontSize(RULER_FONT_SIZE);
+  textProperty->SetFontSize(RULER_BASE_FONT_SIZE);
   textProperty->SetFontFamilyToArial();
 }
 
@@ -269,13 +297,17 @@ void vtkMRMLRulerDisplayableManager::vtkInternal::UpdateRuler()
     {
     return;
     }
+  if (this->External->RulerScalePresets.empty())
+    {
+    vtkErrorWithObjectMacro(this->External, "vtkMRMLRulerDisplayableManager::UpdateMarkerOrientation() failed: no ruler scale presets are defined");
+    return;
+    }
 
   int type = viewNode->GetRulerType();
   if (type==vtkMRMLAbstractViewNode::RulerTypeNone)
     {
     // ruler not visible, no updates are needed
-    this->RulerTextActor->SetVisibility(false);
-    this->RulerLineActor->SetVisibility(false);
+    this->ShowActors(false);
     return;
     }
 
@@ -295,7 +327,8 @@ void vtkMRMLRulerDisplayableManager::vtkInternal::UpdateRuler()
     // add support for other ranges.
     scalingFactorPixelPerMm = sqrt(
       rasToXY->GetElement(0,0)*rasToXY->GetElement(0,0) +
-      rasToXY->GetElement(0,1)*rasToXY->GetElement(0,1));
+      rasToXY->GetElement(0,1)*rasToXY->GetElement(0,1) +
+      rasToXY->GetElement(0,2)*rasToXY->GetElement(0,2));
 
     }
   else if (threeDViewNode && this->ObservedRenderer)
@@ -318,41 +351,26 @@ void vtkMRMLRulerDisplayableManager::vtkInternal::UpdateRuler()
 
       // Parallel scale: height of the viewport in world-coordinate distances.
       // Larger numbers produce smaller images.
-      static double adjust=1.0;
-      scalingFactorPixelPerMm = double(rendererSizeInPixels[1])/cam->GetParallelScale()/adjust;
+      scalingFactorPixelPerMm = double(rendererSizeInPixels[1])/cam->GetParallelScale()/2.0;
       }
     }
   else
     {
     vtkErrorWithObjectMacro(this->External, "vtkMRMLRulerDisplayableManager::UpdateMarkerOrientation() failed: displayable node is invalid");
-    }
-
-  double rulerMaxLengthMm = 0;
-    if (scalingFactorPixelPerMm != 0)
-      {
-      rulerMaxLengthMm = viewWidthPixel/scalingFactorPixelPerMm/4; // TODO: rename
-      }
-
-  const int rulerAllowedLengthsMm[] = {1,5,10,50,100};
-  int rulerSizesArraySize = sizeof(rulerAllowedLengthsMm)/sizeof(rulerAllowedLengthsMm[0]);
-  if (viewWidthPixel < MINIMUM_RULER_LENGTH_PIXEL
-    || rulerMaxLengthMm < rulerAllowedLengthsMm[0]*0.5 || rulerMaxLengthMm > rulerAllowedLengthsMm[rulerSizesArraySize-1]*5)
-    {
-    // ruler is too small or too big to display
-    this->RulerTextActor->SetVisibility(false);
-    this->RulerLineActor->SetVisibility(false);
+    this->ShowActors(false);
     return;
     }
 
-  // Find the value in rulerAllowedLengthsMm that is closest to rulerMaxLengthMm
-  int bestMatchingRulerLengthIndex = 0;
-  double bestMatchingRulerLengthDifferenceMm = fabs(rulerAllowedLengthsMm[0]-rulerMaxLengthMm);
-  for (int i=1; i<rulerSizesArraySize; i++)
+  double rulerPreferredLengthPixel = double(viewWidthPixel)/4.0;
+
+  // Find the value in rulerAllowedLengthsMm that is closest to rulerPreferredLength
+  double rulerPreferredLength = rulerPreferredLengthPixel / scalingFactorPixelPerMm;
+  std::vector<RulerScalePreset>::iterator bestMatchScalePreset = this->External->RulerScalePresets.begin();
+  for (std::vector<RulerScalePreset>::iterator it = bestMatchScalePreset+1; it != this->External->RulerScalePresets.end(); ++it)
     {
-    if (fabs(rulerAllowedLengthsMm[i]-rulerMaxLengthMm)<bestMatchingRulerLengthDifferenceMm)
+    if (fabs(it->Length-rulerPreferredLength)<fabs(bestMatchScalePreset->Length-rulerPreferredLength))
       {
-      bestMatchingRulerLengthIndex = i;
-      bestMatchingRulerLengthDifferenceMm = fabs(rulerAllowedLengthsMm[i]-rulerMaxLengthMm);
+      bestMatchScalePreset = it;
       }
     else
       {
@@ -362,33 +380,48 @@ void vtkMRMLRulerDisplayableManager::vtkInternal::UpdateRuler()
       }
     }
 
-  std::stringstream scalingFactorString;
-  int rulerLengthMm = rulerAllowedLengthsMm[bestMatchingRulerLengthIndex];
-  if (rulerLengthMm>10)
+  double actualRulerLengthPixel = double(bestMatchScalePreset->Length)*scalingFactorPixelPerMm;
+  if (actualRulerLengthPixel < MINIMUM_RULER_LENGTH_PIXEL || actualRulerLengthPixel > 0.6*viewWidthPixel)
     {
-    scalingFactorString << int(rulerLengthMm/10) << " cm";
-    }
-  else
-    {
-    scalingFactorString << rulerLengthMm << " mm";
+    // ruler is too small or too big to display
+    this->ShowActors(false);
+    return;
     }
 
-  double pointScale[3] = {scalingFactorPixelPerMm, RULER_THICKNESS, 1};
-  double pointOrigin[3] = {double(viewWidthPixel)/2.0, RULER_LINE_MARGIN, 0};
+  // Ruler line
+  double pointOrigin[3] = {double(viewWidthPixel)/2.0, RULER_LINE_MARGIN_PIXEL, 0};
+  this->RulerLineActor->SetPoint2(pointOrigin[0]-double(bestMatchScalePreset->Length)*scalingFactorPixelPerMm/2.0, RULER_LINE_MARGIN_PIXEL);
+  this->RulerLineActor->SetPoint1(pointOrigin[0]+double(bestMatchScalePreset->Length)*scalingFactorPixelPerMm/2.0, RULER_LINE_MARGIN_PIXEL);
+  this->RulerLineActor->SetNumberOfLabels(bestMatchScalePreset->NumberOfMajorTicks);
+  this->RulerLineActor->SetNumberOfMinorTicks(bestMatchScalePreset->NumberOfMinorTicks);
 
-  this->RulerLineActor->SetPoint2(pointOrigin[0]-double(rulerLengthMm)*scalingFactorPixelPerMm/2.0, RULER_LINE_MARGIN);
-  this->RulerLineActor->SetPoint1(pointOrigin[0]+double(rulerLengthMm)*scalingFactorPixelPerMm/2.0, RULER_LINE_MARGIN);
+  // Ruler text
+  std::stringstream labelStr;
+  labelStr << bestMatchScalePreset->DisplayedScale*bestMatchScalePreset->Length << " " << bestMatchScalePreset->DisplayedUnitName;
+  this->RulerTextActor->SetInput(labelStr.str().c_str());
+  this->RulerTextActor->SetDisplayPosition(int((viewWidthPixel+bestMatchScalePreset->Length*scalingFactorPixelPerMm)/2)+RULER_TEXT_MARGIN_PIXEL,RULER_LINE_MARGIN_PIXEL);
 
+  vtkProperty2D* lineProperty = this->RulerLineActor->GetProperty();
+  vtkTextProperty* textProperty = this->RulerTextActor->GetTextProperty();
+  switch (type)
+  {
+  case vtkMRMLAbstractViewNode::RulerTypeThin:
+    this->RulerLineActor->SetTickLength(RULER_TICK_BASE_LENGTH_PIXEL);
+    this->RulerLineActor->SetMinorTickLength(RULER_TICK_BASE_LENGTH_PIXEL/2.0);
+    lineProperty->SetLineWidth(1);
+    textProperty->SetFontSize(RULER_BASE_FONT_SIZE);
+    break;
+  case vtkMRMLAbstractViewNode::RulerTypeThick:
+    this->RulerLineActor->SetTickLength(RULER_TICK_BASE_LENGTH_PIXEL*2);
+    this->RulerLineActor->SetMinorTickLength(RULER_TICK_BASE_LENGTH_PIXEL);
+    lineProperty->SetLineWidth(3);
+    textProperty->SetFontSize(RULER_BASE_FONT_SIZE*2);
+    break;
+  default:
+    break;
+  }
 
-  this->RulerTextActor->SetInput(scalingFactorString.str().c_str());
-  //# set ruler text actor position
-  this->RulerTextActor->SetDisplayPosition(int((viewWidthPixel+rulerLengthMm*scalingFactorPixelPerMm)/2)+RULER_TEXT_MARGIN,RULER_LINE_MARGIN);
-
-  this->RulerTextActor->SetVisibility(type!=vtkMRMLAbstractViewNode::RulerTypeNone);
-  this->RulerLineActor->SetVisibility(type!=vtkMRMLAbstractViewNode::RulerTypeNone);
-
-  //this->External->RequestRender();
-
+  this->ShowActors(true);
 }
 
 //---------------------------------------------------------------------------
@@ -398,6 +431,13 @@ void vtkMRMLRulerDisplayableManager::vtkInternal::UpdateRuler()
 vtkMRMLRulerDisplayableManager::vtkMRMLRulerDisplayableManager()
 {
   this->Internal = new vtkInternal(this);
+
+  //                         length, major, minor, unit, scale
+  this->AddRulerScalePreset(    1.0,     5,     1, "mm",  1.0 );
+  this->AddRulerScalePreset(    5.0,     5,     0, "mm",  1.0 );
+  this->AddRulerScalePreset(   10.0,     5,     1, "mm",  1.0 );
+  this->AddRulerScalePreset(   50.0,     5,     0, "cm",  0.1 );
+  this->AddRulerScalePreset(  100.0,     5,     1, "cm",  0.1 );
 }
 
 //---------------------------------------------------------------------------
@@ -439,4 +479,44 @@ void vtkMRMLRulerDisplayableManager::UpdateFromRenderer()
 {
   // Rendering is performed, so let's re-render the marker with up-to-date orientation
   this->Internal->UpdateRuler();
+}
+
+//---------------------------------------------------------------------------
+void vtkMRMLRulerDisplayableManager::AddRulerScalePreset(double length, int numberOfMajorTicks, int numberOfMinorTicks,
+  const std::string& displayedUnitName, double displayedScale)
+{
+  // insert into this->RulerScalePresets list, ordered by Length
+  std::vector<RulerScalePreset>::iterator it = this->RulerScalePresets.begin();
+  for (; it != this->RulerScalePresets.end(); ++it)
+    {
+    if (it->Length == length)
+      {
+      // found an exact match, update it
+      it->NumberOfMajorTicks = numberOfMajorTicks;
+      it->NumberOfMinorTicks = numberOfMinorTicks;
+      it->DisplayedUnitName = displayedUnitName;
+      it->DisplayedScale = displayedScale;
+      return;
+      }
+    if (it->Length>length)
+      {
+      // this element's Length is larger, insert the new element before this
+      break;
+      }
+    }
+  RulerScalePreset preset;
+  preset.Length = length;
+  preset.NumberOfMajorTicks = numberOfMajorTicks;
+  preset.NumberOfMinorTicks = numberOfMinorTicks;
+  preset.DisplayedUnitName = displayedUnitName;
+  preset.DisplayedScale = displayedScale;
+  this->RulerScalePresets.insert(it, preset);
+}
+
+
+//---------------------------------------------------------------------------
+void vtkMRMLRulerDisplayableManager::RemoveAllRulerScalePresets()
+{
+  // Rendering is performed, so let's re-render the marker with up-to-date orientation
+  this->RulerScalePresets.clear();
 }

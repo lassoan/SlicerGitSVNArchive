@@ -377,11 +377,11 @@ void vtkMRMLOrientationMarkerDisplayableManager::vtkInternal::UpdateMarkerSize()
     return;
     }
 
-  int sizePercent = 20;
+  int sizePercent = 25;
   switch (viewNode->GetOrientationMarkerSize())
     {
-    case vtkMRMLAbstractViewNode::OrientationMarkerSizeSmall: sizePercent=10; break;
-    case vtkMRMLAbstractViewNode::OrientationMarkerSizeLarge: sizePercent=30; break;
+    case vtkMRMLAbstractViewNode::OrientationMarkerSizeSmall: sizePercent=15; break;
+    case vtkMRMLAbstractViewNode::OrientationMarkerSizeLarge: sizePercent=40; break;
     case vtkMRMLAbstractViewNode::OrientationMarkerSizeMedium:
     default:
       // keep default
@@ -400,8 +400,8 @@ void vtkMRMLOrientationMarkerDisplayableManager::vtkInternal::UpdateMarkerSize()
   int rendererSizeInPixels[2] = {maxX-minX, maxY-minY};
   if (rendererSizeInPixels[0]>0 && rendererSizeInPixels[1]>0)
     {
-    // Compute normalized size for a square-shaped viewport. Square size is defined a percentage of renderer width.
-    double viewPortSizeInPixels = double(rendererSizeInPixels[0])*(0.01*sizePercent);
+    // Compute normalized size for a square-shaped viewport. Square size is defined a percentage of renderer height.
+    double viewPortSizeInPixels = double(rendererSizeInPixels[1])*(0.01*sizePercent);
     double newViewport[4] =
       {
       1.0-viewPortSizeInPixels/double(rendererSizeInPixels[0]), 0.0,

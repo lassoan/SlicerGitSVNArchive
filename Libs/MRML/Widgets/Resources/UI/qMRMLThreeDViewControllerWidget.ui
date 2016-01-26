@@ -294,6 +294,9 @@
        <property name="enabled">
         <bool>false</bool>
        </property>
+       <property name="toolTip">
+        <string>Show ruler. Only available in orthographic projection mode.</string>
+       </property>
        <property name="text">
         <string>...</string>
        </property>

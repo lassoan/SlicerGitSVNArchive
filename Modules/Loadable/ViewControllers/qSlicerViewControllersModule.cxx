@@ -155,6 +155,10 @@ void qSlicerViewControllersModule::readDefaultThreeDViewSettings(vtkMRMLViewNode
     {
     defaultViewNode->SetAxisLabelsVisible(settings.value("AxisLabelsVisibility").toBool());
     }
+  if (settings.contains("UseOrthographicProjection"))
+    {
+    defaultViewNode->SetRenderMode(settings.value("UseOrthographicProjection").toBool() ? vtkMRMLViewNode::Orthographic : vtkMRMLViewNode::Perspective);
+    }
   if (settings.contains("UseDepthPeeling"))
     {
     defaultViewNode->SetUseDepthPeeling(settings.value("UseDepthPeeling").toBool());
@@ -174,6 +178,7 @@ void qSlicerViewControllersModule::writeDefaultThreeDViewSettings(vtkMRMLViewNod
   settings.beginGroup("Default3DView");
   settings.setValue("BoxVisibility", bool(defaultViewNode->GetBoxVisible()));
   settings.setValue("AxisLabelsVisibility", bool(defaultViewNode->GetAxisLabelsVisible()));
+  settings.setValue("UseOrthographicProjection", defaultViewNode->GetRenderMode()==vtkMRMLViewNode::Orthographic);
   settings.setValue("UseDepthPeeling", bool(defaultViewNode->GetUseDepthPeeling()));
   writeCommonViewSettings(defaultViewNode, settings);
 }
