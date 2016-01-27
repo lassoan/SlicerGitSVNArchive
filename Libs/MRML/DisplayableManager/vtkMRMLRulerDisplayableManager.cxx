@@ -270,7 +270,8 @@ void vtkMRMLRulerDisplayableManager::vtkInternal::CreateRuler()
   this->RulerLineActor->GetPoint1Coordinate()->SetCoordinateSystemToDisplay();
   this->RulerLineActor->GetPoint2Coordinate()->SetCoordinateSystemToDisplay();
   this->RulerLineActor->LabelVisibilityOff();
-  this->RulerLineActor->RulerModeOff(); // allow specifying the number of labels (instead of distance between labels)
+  this->RulerLineActor->RulerModeOff(); // to allow specifying the number of labels (instead of distance between labels)
+  this->RulerLineActor->AdjustLabelsOff(); // to allow specifying exact number of labels
 
   this->RulerLineActor->PickableOff();
   this->RulerLineActor->DragableOff();
@@ -442,11 +443,11 @@ vtkMRMLRulerDisplayableManager::vtkMRMLRulerDisplayableManager()
   this->Internal = new vtkInternal(this);
 
   //                         length, major, minor, unit, scale
-  this->AddRulerScalePreset(    1.0,     5,     1, "mm",  1.0 );
+  this->AddRulerScalePreset(    1.0,     3,     4, "mm",  1.0 );
   this->AddRulerScalePreset(    5.0,     5,     0, "mm",  1.0 );
-  this->AddRulerScalePreset(   10.0,     5,     1, "mm",  1.0 );
+  this->AddRulerScalePreset(   10.0,     3,     4, "mm",  1.0 );
   this->AddRulerScalePreset(   50.0,     5,     0, "cm",  0.1 );
-  this->AddRulerScalePreset(  100.0,     5,     1, "cm",  0.1 );
+  this->AddRulerScalePreset(  100.0,     3,     4, "cm",  0.1 );
 }
 
 //---------------------------------------------------------------------------
