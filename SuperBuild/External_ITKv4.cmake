@@ -6,7 +6,7 @@ set(${proj}_DEPENDENCIES "zlib")
 if(Slicer_BUILD_DICOM_SUPPORT)
   list(APPEND ${proj}_DEPENDENCIES DCMTK)
 endif()
-if(Slicer_USE_ITKPython)
+if(Slicer_BUILD_ITKPython)
   list(APPEND ${proj}_DEPENDENCIES Swig python)
 endif()
 
@@ -38,7 +38,7 @@ if(NOT DEFINED ITK_DIR AND NOT ${CMAKE_PROJECT_NAME}_USE_SYSTEM_${proj})
 
   set(EXTERNAL_PROJECT_OPTIONAL_CMAKE_CACHE_ARGS)
 
-  if(Slicer_USE_PYTHONQT OR Slicer_USE_ITKPython)
+  if(Slicer_USE_PYTHONQT OR Slicer_BUILD_ITKPython)
     # XXX Ensure python executable used for ITKModuleHeaderTest
     #     is the same as Slicer.
     #     This will keep the sanity check implemented in SlicerConfig.cmake
@@ -47,7 +47,18 @@ if(NOT DEFINED ITK_DIR AND NOT ${CMAKE_PROJECT_NAME}_USE_SYSTEM_${proj})
       -DPYTHON_EXECUTABLE:PATH=${PYTHON_EXECUTABLE}
       )
   endif()
-  if(Slicer_USE_ITKPython)
+
+  if(Slicer_BUILD_ITKPython)
+
+    # Custom name for the components associated with ITK
+    # wrapping install rules enabling Slicer to optionally
+    # package ITK Wrapping in Slicer installer by simply
+    # toggling the Slicer_INSTALL_ITKPython option.
+    set(Slicer_WRAP_ITK_INSTALL_COMPONENT_IDENTIFIER "Wrapping")
+    mark_as_superbuild(Slicer_WRAP_ITK_INSTALL_COMPONENT_IDENTIFIER:STRING)
+
+    set(PY_SITE_PACKAGES_PATH ${pythonpath_subdir}/site-packages)
+
     list(APPEND EXTERNAL_PROJECT_OPTIONAL_CMAKE_CACHE_ARGS
       -DPYTHON_LIBRARY:FILEPATH=${PYTHON_LIBRARY}
       -DPYTHON_INCLUDE_DIR:PATH=${PYTHON_INCLUDE_DIR}
@@ -55,22 +66,9 @@ if(NOT DEFINED ITK_DIR AND NOT ${CMAKE_PROJECT_NAME}_USE_SYSTEM_${proj})
       -DSWIG_EXECUTABLE:PATH=${SWIG_EXECUTABLE}
       -DITK_USE_SYSTEM_SWIG:BOOL=ON
       -DITK_LEGACY_SILENT:BOOL=ON
+      -DWRAP_ITK_INSTALL_COMPONENT_IDENTIFIER:STRING=${Slicer_WRAP_ITK_INSTALL_COMPONENT_IDENTIFIER}
+      -DPY_SITE_PACKAGES_PATH:STRING=${PY_SITE_PACKAGES_PATH}
       )
-    # Install WrapITK.pth for use in the build tree
-    set(python_check "from __future__ import print_function\ntry:\n    import distutils.sysconfig\n    print(distutils.sysconfig.get_python_lib(plat_specific=1))\nexcept:\n    pass")
-    file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/det_spp.py ${python_check})
-    execute_process(COMMAND "${PYTHON_EXECUTABLE}" "${CMAKE_CURRENT_BINARY_DIR}/det_spp.py"
-      OUTPUT_VARIABLE py_spp
-      ERROR_VARIABLE py_spp
-      )
-    string(REGEX REPLACE "\n" "" py_spp_no_newline "${py_spp}")
-    string(REGEX REPLACE "\\\\" "/" py_spp_nobackslashes "${py_spp_no_newline}")
-    set(ITKv4_INSTALL_COMMAND ${CMAKE_COMMAND} -E copy
-          "${CMAKE_BINARY_DIR}/${proj}-build/Wrapping/Generators/Python/${CMAKE_CFG_INTDIR}/WrapITK.pth"
-          "${py_spp_nobackslashes}"
-          )
-  else()
-    set(ITKv4_INSTALL_COMMAND ${CMAKE_COMMAND} -E echo "Skip install step.")
   endif()
 
   ExternalProject_Add(${proj}
@@ -107,7 +105,7 @@ if(NOT DEFINED ITK_DIR AND NOT ${CMAKE_PROJECT_NAME}_USE_SYSTEM_${proj})
       -DZLIB_INCLUDE_DIR:PATH=${ZLIB_INCLUDE_DIR}
       -DZLIB_LIBRARY:FILEPATH=${ZLIB_LIBRARY}
       ${EXTERNAL_PROJECT_OPTIONAL_CMAKE_CACHE_ARGS}
-    INSTALL_COMMAND ${ITKv4_INSTALL_COMMAND}
+    INSTALL_COMMAND ""
     DEPENDS
       ${${proj}_DEPENDENCIES}
     )
@@ -121,11 +119,32 @@ if(NOT DEFINED ITK_DIR AND NOT ${CMAKE_PROJECT_NAME}_USE_SYSTEM_${proj})
     set(_lib_subdir bin)
   endif()
 
+  # library paths
   set(${proj}_LIBRARY_PATHS_LAUNCHER_BUILD ${ITK_DIR}/${_lib_subdir}/<CMAKE_CFG_INTDIR>)
   mark_as_superbuild(
     VARS ${proj}_LIBRARY_PATHS_LAUNCHER_BUILD
     LABELS "LIBRARY_PATHS_LAUNCHER_BUILD"
     )
+
+  if(Slicer_BUILD_ITKPython)
+    # pythonpath
+    set(${proj}_PYTHONPATH_LAUNCHER_BUILD
+      ${ITK_DIR}/Wrapping/Generators/Python/<CMAKE_CFG_INTDIR>
+      ${ITK_DIR}/lib/<CMAKE_CFG_INTDIR>
+      ${ITK_DIR}/lib
+      )
+    mark_as_superbuild(
+      VARS ${proj}_PYTHONPATH_LAUNCHER_BUILD
+      LABELS "PYTHONPATH_LAUNCHER_BUILD"
+      )
+  endif()
+
+  #-----------------------------------------------------------------------------
+  # Launcher setting specific to install tree
+
+  # Since ITK Wrapping is installed in the Slicer standard site-packages
+  # location, there is no need to specify custom setting for the install
+  # case.
 
 else()
   ExternalProject_Add_Empty(${proj} DEPENDS ${${proj}_DEPENDENCIES})
