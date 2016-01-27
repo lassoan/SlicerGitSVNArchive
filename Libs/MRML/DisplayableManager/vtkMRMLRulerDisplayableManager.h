@@ -42,13 +42,17 @@ public:
   void PrintSelf(ostream& os, vtkIndent indent);
 
   /// Adds a scale preset to the list of possible scales.
-  /// The preset with Length closest to the actual length of the ruler will be used.
+  /// Length: The preset with Length closest to the actual length of the ruler will be used.
   /// If a preset exists with the same length then it will be updated with the new parameters.
+  /// Number of major divisons: how many parts the ruler will be divided to by major ticks.
+  /// Number of minor divisons: how many parts one division will be divided to by minor ticks.
+  /// Displayed unit name: unit name displayed in the label.
+  /// Displayed scale: 1 [actual unit] = displayedScale [displayed unit] (e.g., 1 mm = 0.1 cm)
   /// Example: (world coordinate is mm)
-  /// 1.0 length, 5 major, 1 minor, mm, 1.0 scale
-  /// 5.0         5        0        mm  1.0
-  /// 10.0        5        1        cm  0.1
-  void AddRulerScalePreset(double length, int numberOfMajorTicks, int numberOfMinorTicks, const std::string& displayedUnitName, double displayedScale);
+  /// 1.0 length, 5 major, 2 minor, mm, 1.0 scale
+  /// 5.0         5        1        mm  1.0
+  /// 10.0        5        2        cm  0.1
+  void AddRulerScalePreset(double length, int numberOfMajorDivisons, int numberOfMinorDivisions, const std::string& displayedUnitName, double displayedScale);
   /// Remove all scale presets.
   void RemoveAllRulerScalePresets();
 
@@ -74,8 +78,8 @@ protected:
   struct RulerScalePreset
   {
     double Length; // actual length of the ruler (in world coordinates)
-    int NumberOfMajorTicks;
-    int NumberOfMinorTicks; // number of minor ticks between each pair of major ticks
+    int NumberOfMajorDivisions; // number of major divisions of the ruler
+    int NumberOfMinorDivisions; // number of divisions of each major division
     std::string DisplayedUnitName; // label that will be shown after the scaled length
     double DisplayedScale; // displayed length is Length*Scale
   };

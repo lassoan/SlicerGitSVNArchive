@@ -57,11 +57,6 @@ static const double RULER_LINE_MARGIN = 0.015; // vertical distance of line from
 static const double RULER_TICK_BASE_LENGTH = 0.015; // thin: major tick size = base, minor tick size = base/2; thick: length is 2x (as percentage of window height)
 static const double RULER_TEXT_MARGIN = 0.015; // horizontal distaace of ruler text from ruler line (as percentage of window height)
 
-//static const int rulerAllowedLengthsMm[] = {1, 5, 10, 50, 100};
-  // RulerMinorTickCounts define how many minor ticks appear between each two major ticks.
-  // Number of major ticks is 5, therefore total number of ticks is 5*minorTickCounts.
-//static const int rulerMinorTickCounts[]  = {1, 0,  1,  0,   1};
-
 //---------------------------------------------------------------------------
 class vtkRulerRendererUpdateObserver : public vtkCommand
 {
@@ -106,8 +101,11 @@ public:
   void ShowActors(bool show);
 
   vtkSmartPointer<vtkRenderer> MarkerRenderer;
-  vtkSmartPointer<vtkTextActor> RulerTextActor;
   vtkSmartPointer<vtkAxisActor2D> RulerLineActor;
+  // Ruler line actor includes text labels, but the total length cannot be consistently positioned
+  // to the right side of the line (the Title is almost usable, but the distance from the line is varying
+  // and vertical alignment is not perfect)
+  vtkSmartPointer<vtkTextActor> RulerTextActor;
 
   // Ruler points are in normalized coordinates (ruler will set to the correct size by adjusting actor scaling):
   // X: -0.5 .. 0.5
@@ -196,8 +194,6 @@ void vtkMRMLRulerDisplayableManager::vtkInternal::CreateMarkerRenderer()
     return;
     }
 
-  //this->MarkerRenderer = renderer;
-
   this->MarkerRenderer = vtkSmartPointer<vtkRenderer>::New();
   this->MarkerRenderer->InteractiveOff();
 
@@ -224,59 +220,16 @@ void vtkMRMLRulerDisplayableManager::vtkInternal::CreateMarkerRenderer()
 void vtkMRMLRulerDisplayableManager::vtkInternal::CreateRuler()
 {
   const int numberOfTickLines = 11;
-/*
-  // Points
-  this->RulerLinePoints = vtkSmartPointer<vtkPoints>::New();
-  this->RulerLinePoints->SetNumberOfPoints(numberOfTickLines*2);
-  double normalizedTickLineDistance = 1.0/double(numberOfTickLines-1);
-  for (int lineIndex=0; lineIndex<numberOfTickLines; lineIndex++)
-    {
-    double tickLinePosition = -0.5+lineIndex*normalizedTickLineDistance;
-    this->RulerLinePoints.SetPoint(0, tickLinePosition, 0, 0);
-    this->RulerLinePoints.SetPoint(1, tickLinePosition, 1, 0);
-    }
-
-  // Lines
-  vtkNew<vtkCellArray> linesArray;
-  // Vertical tick lines
-  for (int lineIndex=0; lineIndex<numberOfTickLines; lineIndex++)
-    {
-    vtkNew<vtkLine> tickLine;
-    tickLine->GetPointIds().SetId(0,lineIndex*2)
-    tickLine->GetPointIds().SetId(1,lineIndex*2+1)
-    linesArray->InsertNextCell(tickLine.GetPointer())
-    }
-  // Long horizontal line
-  vtkNew<vtkLine> horizontalLine;
-  horizontalLine->GetPointIds().SetId(0,0)
-  horizontalLine->GetPointIds().SetId(1,numberOfTickLines*2)
-  linesArray->InsertNextCell(horizontalLine.GetPointer())
-
-  // PolyData
-  vtkNew<vtkPolyData> rulerLinePolyData;
-  rulerLinePolyData->SetPoints(this->RulerLinePoints.GetPointer())
-  rulerLinePolyData.SetLines(linesArray.GetPointer())
-
-  vtkNew<vtkPolyDataMapper2D> mapper;
-  mapper->SetInputData(rulerLinePolyData.GetPointer());
-
-  this->RulerLineActor = vtkSmartPointer<vtkActor2D>::New();
-  this->RulerLineActor->SetMapper(mapper.GetPointer());
-  //const double scale = 0.01;
-  //this->RulerLineActor->SetScale(scale,scale,scale);
-  */
 
   this->RulerLineActor = vtkSmartPointer<vtkAxisActor2D>::New();
   this->RulerLineActor->GetPoint1Coordinate()->SetCoordinateSystemToDisplay();
   this->RulerLineActor->GetPoint2Coordinate()->SetCoordinateSystemToDisplay();
   this->RulerLineActor->LabelVisibilityOff();
-  this->RulerLineActor->RulerModeOff(); // allow specifying the number of labels (instead of distance between labels)
+  this->RulerLineActor->RulerModeOff(); // to allow specifying the number of labels (instead of distance between labels)
+  this->RulerLineActor->AdjustLabelsOff(); // to allow specifying exact number of labels
 
   this->RulerLineActor->PickableOff();
   this->RulerLineActor->DragableOff();
-  //this->RulerLineActor->VisibilityOff();
-  //this->RulerLineActor->GetProperty()->SetLineWidth(1);
-  //this->RulerLineActor->GetProperty()->SetColor(1,1,1);
 
   this->RulerTextActor = vtkSmartPointer<vtkTextActor>::New();
   vtkTextProperty* textProperty = this->RulerTextActor->GetTextProperty();
@@ -325,8 +278,6 @@ void vtkMRMLRulerDisplayableManager::vtkInternal::UpdateRuler()
     vtkNew<vtkMatrix4x4> rasToXY;
     vtkMatrix4x4::Invert(sliceNode->GetXYToRAS(), rasToXY.GetPointer());
 
-    // TODO: The current logic only supports rulers from 1mm to 10cm
-    // add support for other ranges.
     scalingFactorPixelPerMm = sqrt(
       rasToXY->GetElement(0,0)*rasToXY->GetElement(0,0) +
       rasToXY->GetElement(0,1)*rasToXY->GetElement(0,1) +
@@ -399,8 +350,8 @@ void vtkMRMLRulerDisplayableManager::vtkInternal::UpdateRuler()
   double pointOrigin[3] = {double(viewWidthPixel)/2.0, rulerLineMarginPixel, 0};
   this->RulerLineActor->SetPoint2(pointOrigin[0]-double(bestMatchScalePreset->Length)*scalingFactorPixelPerMm/2.0, rulerLineMarginPixel);
   this->RulerLineActor->SetPoint1(pointOrigin[0]+double(bestMatchScalePreset->Length)*scalingFactorPixelPerMm/2.0, rulerLineMarginPixel);
-  this->RulerLineActor->SetNumberOfLabels(bestMatchScalePreset->NumberOfMajorTicks);
-  this->RulerLineActor->SetNumberOfMinorTicks(bestMatchScalePreset->NumberOfMinorTicks);
+  this->RulerLineActor->SetNumberOfLabels(bestMatchScalePreset->NumberOfMajorDivisions+1);
+  this->RulerLineActor->SetNumberOfMinorTicks(bestMatchScalePreset->NumberOfMinorDivisions-1);
 
   // Ruler text
   std::stringstream labelStr;
@@ -441,12 +392,27 @@ vtkMRMLRulerDisplayableManager::vtkMRMLRulerDisplayableManager()
 {
   this->Internal = new vtkInternal(this);
 
-  //                         length, major, minor, unit, scale
-  this->AddRulerScalePreset(    1.0,     5,     1, "mm",  1.0 );
-  this->AddRulerScalePreset(    5.0,     5,     0, "mm",  1.0 );
-  this->AddRulerScalePreset(   10.0,     5,     1, "mm",  1.0 );
-  this->AddRulerScalePreset(   50.0,     5,     0, "cm",  0.1 );
-  this->AddRulerScalePreset(  100.0,     5,     1, "cm",  0.1 );
+  // Presets can be modified using AddRulerScalePreset(), so any application
+  // that requires a different behavior can customize it by accessing the
+  // displayable manager. It might be better to store this preset information
+  // in the scene (add members to the view node or unit node, or add a new
+  // ruler display node).
+
+  //                        length, major, minor, unit, scale
+  this->AddRulerScalePreset( 1e-2,   2,     5,    "um", 1e3 );
+  this->AddRulerScalePreset( 5e-2,   5,     0,    "um", 1e3 );
+  this->AddRulerScalePreset( 1e-1,   2,     5,    "um", 1e3 );
+  this->AddRulerScalePreset( 5e-1,   5,     0,    "mm", 1e0 );
+  this->AddRulerScalePreset( 1e0,    2,     5,    "mm", 1e0 );
+  this->AddRulerScalePreset( 5e0,    5,     0,    "mm", 1e0 );
+  this->AddRulerScalePreset( 1e1,    2,     5,    "mm", 1e0 );
+  this->AddRulerScalePreset( 5e1,    5,     0,    "cm", 1e-1 );
+  this->AddRulerScalePreset( 1e2,    2,     5,    "cm", 1e-1 );
+  this->AddRulerScalePreset( 5e2,    5,     0,    "cm", 1e-1 );
+  this->AddRulerScalePreset( 1e3,    2,     5,     "m", 1e-3 );
+  this->AddRulerScalePreset( 5e3,    5,     0,     "m", 1e-3 );
+  this->AddRulerScalePreset( 1e4,    2,     5,     "m", 1e-3 );
+  this->AddRulerScalePreset( 5e4,    5,     0,     "m", 1e-3 );
 }
 
 //---------------------------------------------------------------------------
@@ -491,7 +457,7 @@ void vtkMRMLRulerDisplayableManager::UpdateFromRenderer()
 }
 
 //---------------------------------------------------------------------------
-void vtkMRMLRulerDisplayableManager::AddRulerScalePreset(double length, int numberOfMajorTicks, int numberOfMinorTicks,
+void vtkMRMLRulerDisplayableManager::AddRulerScalePreset(double length, int numberOfMajorDivisions, int numberOfMinorDivisions,
   const std::string& displayedUnitName, double displayedScale)
 {
   // insert into this->RulerScalePresets list, ordered by Length
@@ -501,8 +467,8 @@ void vtkMRMLRulerDisplayableManager::AddRulerScalePreset(double length, int numb
     if (it->Length == length)
       {
       // found an exact match, update it
-      it->NumberOfMajorTicks = numberOfMajorTicks;
-      it->NumberOfMinorTicks = numberOfMinorTicks;
+      it->NumberOfMajorDivisions = numberOfMajorDivisions;
+      it->NumberOfMinorDivisions = numberOfMinorDivisions;
       it->DisplayedUnitName = displayedUnitName;
       it->DisplayedScale = displayedScale;
       return;
@@ -515,8 +481,8 @@ void vtkMRMLRulerDisplayableManager::AddRulerScalePreset(double length, int numb
     }
   RulerScalePreset preset;
   preset.Length = length;
-  preset.NumberOfMajorTicks = numberOfMajorTicks;
-  preset.NumberOfMinorTicks = numberOfMinorTicks;
+  preset.NumberOfMajorDivisions = numberOfMajorDivisions;
+  preset.NumberOfMinorDivisions = numberOfMinorDivisions;
   preset.DisplayedUnitName = displayedUnitName;
   preset.DisplayedScale = displayedScale;
   this->RulerScalePresets.insert(it, preset);
