@@ -51,11 +51,12 @@
 
 // Constants
 static const int RENDERER_LAYER = 1; // layer ID where the orientation marker will be displayed
-static const int MINIMUM_RULER_LENGTH_PIXEL = 50;
 static const int RULER_BASE_FONT_SIZE = 14; // thin: font size = base; thick: font size is 2x
-static const double RULER_LINE_MARGIN = 0.015; // vertical distance of line from edge of view (as percentage of window height)
-static const double RULER_TICK_BASE_LENGTH = 0.015; // thin: major tick size = base, minor tick size = base/2; thick: length is 2x (as percentage of window height)
-static const double RULER_TEXT_MARGIN = 0.015; // horizontal distaace of ruler text from ruler line (as percentage of window height)
+static const double RULER_MINIMUM_LENGTH = 0.05; // minimum ruler length (as ratio of window width)
+static const double RULER_MAXIMUM_LENGTH = 0.7; // maximum ruler length (as ratio of window width)
+static const double RULER_LINE_MARGIN = 0.015; // vertical distance of line from edge of view (as ratio of window height)
+static const double RULER_TICK_BASE_LENGTH = 0.015; // thin: major tick size = base, minor tick size = base/2; thick: length is 2x (as ratio of window height)
+static const double RULER_TEXT_MARGIN = 0.015; // horizontal distaace of ruler text from ruler line (as ratio of window height)
 
 //---------------------------------------------------------------------------
 class vtkRulerRendererUpdateObserver : public vtkCommand
@@ -335,7 +336,7 @@ void vtkMRMLRulerDisplayableManager::vtkInternal::UpdateRuler()
     }
 
   double actualRulerLengthPixel = double(bestMatchScalePreset->Length)*scalingFactorPixelPerMm;
-  if (actualRulerLengthPixel < MINIMUM_RULER_LENGTH_PIXEL || actualRulerLengthPixel > 0.6*viewWidthPixel)
+  if (actualRulerLengthPixel < RULER_MINIMUM_LENGTH*viewWidthPixel || actualRulerLengthPixel > RULER_MAXIMUM_LENGTH*viewWidthPixel)
     {
     // ruler is too small or too big to display
     this->ShowActors(false);
@@ -399,20 +400,27 @@ vtkMRMLRulerDisplayableManager::vtkMRMLRulerDisplayableManager()
   // ruler display node).
 
   //                        length, major, minor, unit, scale
-  this->AddRulerScalePreset( 1e-2,   2,     5,    "um", 1e3 );
-  this->AddRulerScalePreset( 5e-2,   5,     0,    "um", 1e3 );
-  this->AddRulerScalePreset( 1e-1,   2,     5,    "um", 1e3 );
-  this->AddRulerScalePreset( 5e-1,   5,     0,    "mm", 1e0 );
-  this->AddRulerScalePreset( 1e0,    2,     5,    "mm", 1e0 );
-  this->AddRulerScalePreset( 5e0,    5,     0,    "mm", 1e0 );
-  this->AddRulerScalePreset( 1e1,    2,     5,    "mm", 1e0 );
-  this->AddRulerScalePreset( 5e1,    5,     0,    "cm", 1e-1 );
-  this->AddRulerScalePreset( 1e2,    2,     5,    "cm", 1e-1 );
-  this->AddRulerScalePreset( 5e2,    5,     0,    "cm", 1e-1 );
-  this->AddRulerScalePreset( 1e3,    2,     5,     "m", 1e-3 );
-  this->AddRulerScalePreset( 5e3,    5,     0,     "m", 1e-3 );
-  this->AddRulerScalePreset( 1e4,    2,     5,     "m", 1e-3 );
-  this->AddRulerScalePreset( 5e4,    5,     0,     "m", 1e-3 );
+  this->AddRulerScalePreset(  1e-2,   2,     5,    "um", 1e3 );
+  this->AddRulerScalePreset(2.5e-2,   5,     5,    "um", 1e3 );
+  this->AddRulerScalePreset(  5e-2,   5,     0,    "um", 1e3 );
+  this->AddRulerScalePreset(  1e-1,   2,     5,    "um", 1e3 );
+  this->AddRulerScalePreset(2.5e-1,   5,     5,    "um", 1e3 );
+  this->AddRulerScalePreset(  5e-1,   5,     0,    "mm", 1e0 );
+  this->AddRulerScalePreset(  1e0,    2,     5,    "mm", 1e0 );
+  this->AddRulerScalePreset(2.5e0,    5,     5,    "mm", 1e0 );
+  this->AddRulerScalePreset(  5e0,    5,     0,    "mm", 1e0 );
+  this->AddRulerScalePreset(  1e1,    2,     5,    "mm", 1e0 );
+  this->AddRulerScalePreset(2.5e1,    5,     5,    "mm", 1e0 );
+  this->AddRulerScalePreset(  5e1,    5,     0,    "cm", 1e-1 );
+  this->AddRulerScalePreset(  1e2,    2,     5,    "cm", 1e-1 );
+  this->AddRulerScalePreset(2.5e2,    5,     5,    "cm", 1e-1 );
+  this->AddRulerScalePreset(  5e2,    5,     0,    "cm", 1e-1 );
+  this->AddRulerScalePreset(  1e3,    2,     5,     "m", 1e-3 );
+  this->AddRulerScalePreset(2.5e3,    5,     5,     "m", 1e-3 );
+  this->AddRulerScalePreset(  5e3,    5,     0,     "m", 1e-3 );
+  this->AddRulerScalePreset(  1e4,    2,     5,     "m", 1e-3 );
+  this->AddRulerScalePreset(2.5e4,    5,     5,     "m", 1e-3 );
+  this->AddRulerScalePreset(  5e4,    5,     0,     "m", 1e-3 );
 }
 
 //---------------------------------------------------------------------------
