@@ -43,7 +43,7 @@ vtkMRMLAbstractViewNode::vtkMRMLAbstractViewNode()
   this->SetHideFromEditors(0);
 
   this->OrientationMarkerEnabled = false;
-  this->OrientationMarkerType = OrientationMarkerTypeHuman;
+  this->OrientationMarkerType = OrientationMarkerTypeNone;
   this->OrientationMarkerSize = OrientationMarkerSizeMedium;
 
   this->RulerEnabled = false;
