@@ -57,6 +57,9 @@ public:
   /// Get the markups table widget
   Q_INVOKABLE QTableWidget* tableWidget() const;
 
+  /// Get the markups placement widget (containing place and delete button)
+  Q_INVOKABLE qSlicerMarkupsPlaceWidget* markupsPlaceWidget() const;
+
   /// Accessors to control place mode behavior
   void setEnterPlaceModeOnNodeChange(bool);
   bool enterPlaceModeOnNodeChange() const;
@@ -105,13 +108,9 @@ protected slots:
   /// Toggle the visibility of the markups in the viewers.
   void onVisibilityButtonClicked();
   /// Toggle whether the current markups node is locked.
-  void onLockButtonClicked();
+  void onLockedButtonClicked();
   /// Delete a fiducial from the list.
   void onDeleteButtonClicked();
-  /// Set the current node to be the active node in the scene and start place mode.
-  void onPlaceButtonClicked();
-  /// Make the currently selected markups node the active markups node in the scene.
-  void onActiveButtonClicked();
 
   /// Update the widget when a different markups node is selected by the combo box.
   void onMarkupsFiducialNodeChanged();
@@ -138,16 +137,10 @@ signals:
   /// The argument \a markupIndex is the index of the selected markup.
   void currentMarkupsFiducialSelectionChanged(int markupIndex);
 
-  /// The signal is emitted when currently selected markups node has been activated. If place mode is activated then clicking on a view adds a fiducial to the active markup node.
-  void markupsFiducialActivated();
-
-  /// This signal is emitted when place mode has changed. This is independent of whether the currently selected markups node is active.
-  void markupsFiducialPlaceModeChanged();
-
-  /// This signal is emitted when place mode for the active markup is activated or deactivated.
-  /// The argument \a placeActive is true if the currently selected markups node is active and in place mode.
-  /// The argument \a placeActive is false if the currently selected markups node is not active or not in place mode. 
-  void activeMarkupsFiducialPlaceModeChanged(bool placeActive);
+  /// This signal is emitted when place mode for the active markup is changed to enabled or disabled.
+  /// The argument \a enabled is true if the currently selected markups node is active and in place mode.
+  /// The argument \a enabled is false if the currently selected markups node is not active or not in place mode.
+  void activeMarkupsFiducialPlaceModeChanged(bool enabled);
 
   /// This signal is emitted if updates to the widget have finished.
   /// It is called after fiducials are changed (added, position modified, etc).
