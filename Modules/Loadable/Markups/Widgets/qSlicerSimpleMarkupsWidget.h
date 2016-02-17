@@ -34,7 +34,7 @@
 class qSlicerSimpleMarkupsWidgetPrivate;
 
 /// \ingroup Slicer_QtModules_CreateModels
-class Q_SLICER_MODULE_MARKUPS_WIDGETS_EXPORT 
+class Q_SLICER_MODULE_MARKUPS_WIDGETS_EXPORT
 qSlicerSimpleMarkupsWidget : public qSlicerWidget
 {
   Q_OBJECT
@@ -42,6 +42,8 @@ qSlicerSimpleMarkupsWidget : public qSlicerWidget
   Q_PROPERTY(bool jumpToSliceEnabled READ jumpToSliceEnabled WRITE setJumpToSliceEnabled)
   Q_PROPERTY(bool nodeSelectorVisible READ nodeSelectorVisible WRITE setNodeSelectorVisible)
   Q_PROPERTY(bool optionsVisible READ optionsVisible WRITE setOptionsVisible)
+  Q_PROPERTY(QColor nodeColor READ nodeColor WRITE setNodeColor)
+  Q_PROPERTY(QColor defaultNodeColor READ defaultNodeColor WRITE setDefaultNodeColor)
 
 public:
   typedef qSlicerWidget Superclass;
@@ -61,35 +63,48 @@ public:
   Q_INVOKABLE qSlicerMarkupsPlaceWidget* markupsPlaceWidget() const;
 
   /// Accessors to control place mode behavior
-  void setEnterPlaceModeOnNodeChange(bool);
   bool enterPlaceModeOnNodeChange() const;
-  
+
   /// If enabled then the fiducial will be shown in all slice views when a fiducial is selected
-  void setJumpToSliceEnabled(bool);
   bool jumpToSliceEnabled() const;
 
   /// Show/hide the markup node selector widget.
-  void setNodeSelectorVisible(bool);
   bool nodeSelectorVisible() const;
 
-  /// Show/hide options (place, activate, color, etc).
-  void setOptionsVisible(bool);
+  /// Show/hide options (place, activate, color, etc buttons).
   bool optionsVisible() const;
 
+  /// Get the selected color of the currently selected markups node.
+  QColor nodeColor() const;
+
+  /// Get the default node color that is applied to newly created nodes.
+  QColor defaultNodeColor() const;
+
 public slots:
+
+  void setMRMLScene(vtkMRMLScene* scene);
 
   /// Set the currently selected markups node.
   void setCurrentNode(vtkMRMLNode* currentNode);
 
-  void setMRMLScene(vtkMRMLScene* scene);
-
   /// Set the default name of the markups node created in the combo box.
   void setNodeBaseName(QString newNodeBaseName);
 
-  /// Get the selected color of the currently selected markups node.
-  void getNodeColor(QColor color);
+  /// Accessors to control place mode behavior
+  void setEnterPlaceModeOnNodeChange(bool);
+
+  /// If enabled then the fiducial will be shown in all slice views when a fiducial is selected
+  void setJumpToSliceEnabled(bool);
+
+  /// Show/hide the markup node selector widget.
+  void setNodeSelectorVisible(bool);
+
+  /// Show/hide options (place, activate, color, etc buttons).
+  void setOptionsVisible(bool);
+
   /// Set the selected color of the currently selected markups node.
   void setNodeColor(QColor color);
+
   /// Set the default color that is assigned to newly created markups nodes in the combo box.
   void setDefaultNodeColor(QColor color);
 
@@ -103,14 +118,6 @@ public slots:
   void placeActive(bool place);
 
 protected slots:
-  /// Update the currently selected markups node to have its selected color changed.
-  void onColorButtonChanged(QColor);
-  /// Toggle the visibility of the markups in the viewers.
-  void onVisibilityButtonClicked();
-  /// Toggle whether the current markups node is locked.
-  void onLockedButtonClicked();
-  /// Delete a fiducial from the list.
-  void onDeleteButtonClicked();
 
   /// Update the widget when a different markups node is selected by the combo box.
   void onMarkupsFiducialNodeChanged();
@@ -145,13 +152,11 @@ signals:
   /// This signal is emitted if updates to the widget have finished.
   /// It is called after fiducials are changed (added, position modified, etc).
   void updateFinished();
+
 protected:
   QScopedPointer<qSlicerSimpleMarkupsWidgetPrivate> d_ptr;
 
   virtual void setup();
-
-  /// Monitor for changes in the interaction and selection nodes.
-  void connectInteractionAndSelectionNodes();
 
 private:
   Q_DECLARE_PRIVATE(qSlicerSimpleMarkupsWidget);

@@ -29,7 +29,7 @@
       <enum>QLayout::SetDefaultConstraint</enum>
      </property>
      <item>
-      <widget class="qMRMLNodeComboBox" name="MarkupsFiducialNodeComboBox" native="true">
+      <widget class="qMRMLNodeComboBox" name="MarkupsFiducialNodeComboBox">
        <property name="enabled">
         <bool>true</bool>
        </property>
@@ -39,122 +39,47 @@
          <verstretch>0</verstretch>
         </sizepolicy>
        </property>
-       <property name="nodeTypes" stdset="0">
+       <property name="nodeTypes">
         <stringlist>
          <string>vtkMRMLMarkupsFiducialNode</string>
         </stringlist>
        </property>
-       <property name="showHidden" stdset="0">
+       <property name="showHidden">
         <bool>true</bool>
        </property>
-       <property name="noneEnabled" stdset="0">
+       <property name="noneEnabled">
         <bool>true</bool>
        </property>
-       <property name="addEnabled" stdset="0">
+       <property name="addEnabled">
         <bool>true</bool>
        </property>
-       <property name="removeEnabled" stdset="0">
+       <property name="removeEnabled">
         <bool>true</bool>
        </property>
-       <property name="editEnabled" stdset="0">
+       <property name="editEnabled">
         <bool>false</bool>
        </property>
-       <property name="renameEnabled" stdset="0">
+       <property name="renameEnabled">
         <bool>true</bool>
        </property>
       </widget>
      </item>
      <item>
-      <widget class="ctkColorPickerButton" name="ColorButton">
+      <widget class="qSlicerMarkupsPlaceWidget" name="MarkupsPlaceWidget">
        <property name="sizePolicy">
-        <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+        <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
          <horstretch>0</horstretch>
          <verstretch>0</verstretch>
         </sizepolicy>
-       </property>
-       <property name="toolTip">
-        <string>Select the display color.</string>
-       </property>
-       <property name="checkable">
-        <bool>true</bool>
-       </property>
-       <property name="displayColorName" stdset="0">
-        <bool>false</bool>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="qSlicerMarkupsPlaceWidget" name="MarkupsPlaceWidget" native="true">
-       <property name="sizePolicy">
-        <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-         <horstretch>0</horstretch>
-         <verstretch>0</verstretch>
-        </sizepolicy>
-       </property>
-       <property name="minimumSize">
-        <size>
-         <width>0</width>
-         <height>0</height>
-        </size>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QToolButton" name="MoreButton">
-       <property name="text">
-        <string>...</string>
-       </property>
-       <property name="icon">
-        <iconset resource="../../../../../../Libs/MRML/Widgets/Resources/qMRMLWidgets.qrc">
-         <normaloff>:/Icons/SliceMoreOptions.png</normaloff>:/Icons/SliceMoreOptions.png</iconset>
-       </property>
-       <property name="popupMode">
-        <enum>QToolButton::InstantPopup</enum>
        </property>
       </widget>
      </item>
     </layout>
    </item>
    <item>
-    <layout class="QHBoxLayout" name="horizontalLayout_2">
-     <property name="sizeConstraint">
-      <enum>QLayout::SetDefaultConstraint</enum>
-     </property>
-     <property name="topMargin">
-      <number>0</number>
-     </property>
-     <item>
-      <widget class="QTableWidget" name="MarkupsFiducialTableWidget"/>
-     </item>
-    </layout>
+    <widget class="QTableWidget" name="MarkupsFiducialTableWidget"/>
    </item>
   </layout>
-  <action name="ActionVisibility">
-   <property name="icon">
-    <iconset resource="../../../../../../Base/QTGUI/Resources/qSlicerBaseQTGUI.qrc">
-     <normaloff>:/Icons/Small/SlicerInvisible.png</normaloff>
-     <normalon>:/Icons/Small/SlicerVisible.png</normalon>:/Icons/Small/SlicerInvisible.png</iconset>
-   </property>
-   <property name="text">
-    <string>Visibility</string>
-   </property>
-   <property name="toolTip">
-    <string>Toggle markups visibility</string>
-   </property>
-  </action>
-  <action name="ActionLocked">
-   <property name="icon">
-    <iconset resource="../../../../../../Base/QTGUI/Resources/qSlicerBaseQTGUI.qrc">
-     <normaloff>:/Icons/Small/SlicerUnlock.png</normaloff>
-     <normalon>:/Icons/Small/SlicerLock.png</normalon>:/Icons/Small/SlicerUnlock.png</iconset>
-   </property>
-   <property name="text">
-    <string>Locked</string>
-   </property>
-   <property name="toolTip">
-    <string>Toggle markup point positions lock</string>
-   </property>
-  </action>
  </widget>
  <customwidgets>
   <customwidget>
@@ -168,11 +93,6 @@
    <extends>QWidget</extends>
    <header>qSlicerWidget.h</header>
    <container>1</container>
-  </customwidget>
-  <customwidget>
-   <class>ctkColorPickerButton</class>
-   <extends>QPushButton</extends>
-   <header>ctkColorPickerButton.h</header>
   </customwidget>
   <customwidget>
    <class>qSlicerMarkupsPlaceWidget</class>

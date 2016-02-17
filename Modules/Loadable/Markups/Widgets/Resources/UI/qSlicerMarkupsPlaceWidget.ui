@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>140</width>
+    <width>151</width>
     <height>30</height>
    </rect>
   </property>
@@ -24,7 +24,32 @@
     <number>0</number>
    </property>
    <item>
+    <widget class="ctkColorPickerButton" name="ColorButton">
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+       <horstretch>0</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
+     </property>
+     <property name="toolTip">
+      <string>Select the display color.</string>
+     </property>
+     <property name="checkable">
+      <bool>true</bool>
+     </property>
+     <property name="displayColorName">
+      <bool>false</bool>
+     </property>
+    </widget>
+   </item>
+   <item>
     <widget class="QToolButton" name="PlaceButton">
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+       <horstretch>0</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
+     </property>
      <property name="toolTip">
       <string>Place a markup point</string>
      </property>
@@ -41,7 +66,13 @@
     </widget>
    </item>
    <item>
-    <widget class="QToolButton" name="DeleteLastButton">
+    <widget class="QToolButton" name="DeleteButton">
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+       <horstretch>0</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
+     </property>
      <property name="toolTip">
       <string>Delete last added markup point</string>
      </property>
@@ -51,6 +82,26 @@
      <property name="icon">
       <iconset resource="../../../Resources/qSlicerMarkupsModule.qrc">
        <normaloff>:/Icons/MarkupsDelete.png</normaloff>:/Icons/MarkupsDelete.png</iconset>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QToolButton" name="MoreButton">
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+       <horstretch>0</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
+     </property>
+     <property name="text">
+      <string>...</string>
+     </property>
+     <property name="icon">
+      <iconset resource="../../../../../../Libs/MRML/Widgets/Resources/qMRMLWidgets.qrc">
+       <normaloff>:/Icons/SliceMoreOptions.png</normaloff>:/Icons/SliceMoreOptions.png</iconset>
+     </property>
+     <property name="popupMode">
+      <enum>QToolButton::InstantPopup</enum>
      </property>
     </widget>
    </item>
@@ -78,6 +129,32 @@
     <string>Delete all markups in the list</string>
    </property>
   </action>
+  <action name="ActionVisibility">
+   <property name="icon">
+    <iconset resource="../../../../../../Base/QTGUI/Resources/qSlicerBaseQTGUI.qrc">
+     <normaloff>:/Icons/Small/SlicerInvisible.png</normaloff>
+     <normalon>:/Icons/Small/SlicerVisible.png</normalon>:/Icons/Small/SlicerInvisible.png</iconset>
+   </property>
+   <property name="text">
+    <string>Visibility</string>
+   </property>
+   <property name="toolTip">
+    <string>Toggle markups visibility</string>
+   </property>
+  </action>
+  <action name="ActionLocked">
+   <property name="icon">
+    <iconset resource="../../../../../../Base/QTGUI/Resources/qSlicerBaseQTGUI.qrc">
+     <normaloff>:/Icons/Small/SlicerUnlock.png</normaloff>
+     <normalon>:/Icons/Small/SlicerLock.png</normalon>:/Icons/Small/SlicerUnlock.png</iconset>
+   </property>
+   <property name="text">
+    <string>Locked</string>
+   </property>
+   <property name="toolTip">
+    <string>Toggle markup point positions lock</string>
+   </property>
+  </action>
  </widget>
  <customwidgets>
   <customwidget>
@@ -86,10 +163,16 @@
    <header>qSlicerWidget.h</header>
    <container>1</container>
   </customwidget>
+  <customwidget>
+   <class>ctkColorPickerButton</class>
+   <extends>QPushButton</extends>
+   <header>ctkColorPickerButton.h</header>
+  </customwidget>
  </customwidgets>
  <resources>
   <include location="../../../../../../Libs/MRML/Widgets/Resources/qMRMLWidgets.qrc"/>
   <include location="../../../Resources/qSlicerMarkupsModule.qrc"/>
+  <include location="../../../../../../Base/QTGUI/Resources/qSlicerBaseQTGUI.qrc"/>
  </resources>
  <connections/>
 </ui>

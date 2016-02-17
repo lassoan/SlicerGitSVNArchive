@@ -60,6 +60,8 @@ public:
   QMenu* PlaceMenu;
   QMenu* DeleteMenu;
   qSlicerMarkupsPlaceWidget::PlaceMultipleMarkupsType PlaceMultipleMarkups;
+  QList < QWidget* > OptionsWidgets;
+  QColor DefaultNodeColor;
   bool DeleteMarkupsButtonVisible;
   bool DeleteAllMarkupsOptionVisible;
   bool LastSignaledPlaceModeEnabled; // if placeModeEnabled changes compared to this value then a activeMarkupsFiducialPlaceModeChanged signal will be emitted
@@ -123,6 +125,12 @@ void qSlicerMarkupsPlaceWidget::setup()
     }
   d->setupUi(this);
 
+  d->OptionsWidgets << d->ColorButton << d->PlaceButton << d->DeleteButton << d->MoreButton;
+
+  d->DefaultNodeColor.setRgb(0.0,1.0,0.0); // displayed when no node is selected
+  // Use the pressed signal (otherwise we can unpress buttons without clicking them)
+  connect( d->ColorButton, SIGNAL( colorChanged( QColor ) ), this, SLOT( onColorButtonChanged( QColor ) ) );
+
   d->PlaceMenu = new QMenu(tr("Place options"), d->PlaceButton);
   d->PlaceMenu->setObjectName("MoreMenu");
   d->PlaceMenu->addAction(d->ActionPersistent);
@@ -131,22 +139,27 @@ void qSlicerMarkupsPlaceWidget::setup()
     {
     d->PlaceButton->setMenu(d->PlaceMenu);
     }
+  connect( d->PlaceButton, SIGNAL(toggled(bool)), this, SLOT(setPlaceModeEnabled(bool)) );
+  d->LastSignaledPlaceModeEnabled = false;
 
-  d->DeleteMenu = new QMenu(tr("Delete options"), d->DeleteLastButton);
+  d->DeleteMenu = new QMenu(tr("Delete options"), d->DeleteButton);
   d->DeleteMenu->setObjectName("DeleteMenu");
   d->DeleteMenu->addAction(d->ActionDeleteAll);
   QObject::connect(d->ActionDeleteAll, SIGNAL(triggered()), this, SLOT(deleteAllMarkups()));
   if (d->DeleteAllMarkupsOptionVisible)
     {
-    d->DeleteLastButton->setMenu(d->DeleteMenu);
+    d->DeleteButton->setMenu(d->DeleteMenu);
     }
+  d->DeleteButton->setVisible(d->DeleteMarkupsButtonVisible);
+  connect( d->DeleteButton, SIGNAL(clicked()), this, SLOT(deleteLastMarkup()) );
 
-  d->DeleteLastButton->setVisible(d->DeleteMarkupsButtonVisible);
-
-  connect( d->PlaceButton, SIGNAL(toggled(bool)), this, SLOT(setPlaceModeEnabled(bool)) );
-  connect( d->DeleteLastButton, SIGNAL(clicked()), this, SLOT(deleteLastMarkup()) );
-
-  d->LastSignaledPlaceModeEnabled = false;
+  QMenu* moreMenu = new QMenu(tr("More options"), d->MoreButton);
+  moreMenu->setObjectName("moreMenu");
+  moreMenu->addAction(d->ActionVisibility);
+  moreMenu->addAction(d->ActionLocked);
+  QObject::connect(d->ActionVisibility, SIGNAL(triggered()), this, SLOT(onVisibilityButtonClicked()));
+  QObject::connect(d->ActionLocked, SIGNAL(triggered()), this, SLOT(onLockedButtonClicked()));
+  d->MoreButton->setMenu(moreMenu);
 
   updateWidget();
 }
@@ -180,6 +193,7 @@ void qSlicerMarkupsPlaceWidget::setCurrentNode(vtkMRMLNode* currentNode)
 
   // Reconnect the appropriate nodes
   this->qvtkReconnect(d->CurrentMarkupsNode, currentMarkupsNode, vtkCommand::ModifiedEvent, this, SLOT(updateWidget()));
+  this->qvtkReconnect(d->CurrentMarkupsNode, currentMarkupsNode, vtkMRMLDisplayableNode::DisplayModifiedEvent, this, SLOT(updateWidget()));
   d->CurrentMarkupsNode = currentMarkupsNode;
 
   this->updateWidget();
@@ -341,8 +355,13 @@ void qSlicerMarkupsPlaceWidget::updateWidget()
   vtkMRMLMarkupsFiducialNode* currentMarkupsNode = currentMarkupsFiducialNode();
   if (d->MarkupsLogic == NULL || this->mrmlScene() == NULL || d->InteractionNode == NULL || currentMarkupsNode == NULL)
     {
+    d->ColorButton->setEnabled(false);
     d->PlaceButton->setEnabled(false);
-    d->DeleteLastButton->setEnabled(false);
+    d->DeleteButton->setEnabled(false);
+    d->MoreButton->setEnabled(false);
+    bool wasBlockedColorButton = d->ColorButton->blockSignals(true);
+    d->ColorButton->setColor(d->DefaultNodeColor);
+    d->ColorButton->blockSignals(wasBlockedColorButton);
     if (d->LastSignaledPlaceModeEnabled)
       {
       emit activeMarkupsFiducialPlaceModeChanged(false);
@@ -351,8 +370,49 @@ void qSlicerMarkupsPlaceWidget::updateWidget()
     return;
     }
 
+  d->ColorButton->setEnabled(true);
   d->PlaceButton->setEnabled(true);
-  d->DeleteLastButton->setEnabled(currentMarkupsNode->GetNumberOfMarkups()>0);
+  d->DeleteButton->setEnabled(currentMarkupsNode->GetNumberOfMarkups()>0);
+  d->MoreButton->setEnabled(true);
+
+    // Set the button indicating if this list is active
+  bool wasBlockedColorButton = d->ColorButton->blockSignals( true );
+  bool wasBlockedVisibilityButton = d->ActionVisibility->blockSignals( true );
+  bool wasBlockedLockButton = d->ActionLocked->blockSignals( true );
+
+  if ( currentMarkupsNode->GetDisplayNode() != NULL  )
+    {
+    double* color = currentMarkupsNode->GetDisplayNode()->GetSelectedColor();
+    QColor qColor;
+    qMRMLUtils::colorToQColor( color, qColor );
+    d->ColorButton->setColor( qColor );
+    }
+
+  if ( currentMarkupsNode->GetLocked() )
+    {
+    d->ActionLocked->setIcon( QIcon( ":/Icons/Small/SlicerLock.png" ) );
+    }
+  else
+    {
+    d->ActionLocked->setIcon( QIcon( ":/Icons/Small/SlicerUnlock.png" ) );
+    }
+
+  d->ActionVisibility->setEnabled(currentMarkupsNode->GetDisplayNode() != NULL);
+  if (currentMarkupsNode->GetDisplayNode() != NULL)
+    {
+    if (currentMarkupsNode->GetDisplayNode()->GetVisibility() )
+      {
+      d->ActionVisibility->setIcon( QIcon( ":/Icons/Small/SlicerVisible.png" ) );
+      }
+    else
+      {
+      d->ActionVisibility->setIcon( QIcon( ":/Icons/Small/SlicerInvisible.png" ) );
+      }
+    }
+
+  d->ColorButton->blockSignals( wasBlockedColorButton );
+  d->ActionVisibility->blockSignals( wasBlockedVisibilityButton);
+  d->ActionLocked->blockSignals( wasBlockedLockButton );
 
   bool wasBlockedPlaceButton = d->PlaceButton->blockSignals( true );
   d->PlaceButton->setChecked(placeModeEnabled());
@@ -442,9 +502,9 @@ void qSlicerMarkupsPlaceWidget::setDeleteAllMarkupsOptionVisible(bool visible)
 {
   Q_D(qSlicerMarkupsPlaceWidget);
   d->DeleteAllMarkupsOptionVisible = visible;
-  if (d->DeleteLastButton)
+  if (d->DeleteButton)
     {
-    d->DeleteLastButton->setMenu(visible ? d->DeleteMenu : NULL);
+    d->DeleteButton->setMenu(visible ? d->DeleteMenu : NULL);
     }
 }
 
@@ -459,5 +519,127 @@ QToolButton* qSlicerMarkupsPlaceWidget::placeButton() const
 QToolButton* qSlicerMarkupsPlaceWidget::deleteButton() const
 {
   Q_D(const qSlicerMarkupsPlaceWidget);
-  return d->DeleteLastButton;
+  return d->DeleteButton;
+}
+
+//-----------------------------------------------------------------------------
+bool qSlicerMarkupsPlaceWidget::buttonsVisible() const
+{
+  Q_D(const qSlicerMarkupsPlaceWidget);
+  foreach( QWidget *w, d->OptionsWidgets )
+    {
+    if (!w->isVisible())
+      {
+      return false;
+      }
+    }
+  return true;
+}
+
+//-----------------------------------------------------------------------------
+void qSlicerMarkupsPlaceWidget::setButtonsVisible(bool visible)
+{
+  Q_D(qSlicerMarkupsPlaceWidget);
+  foreach( QWidget *w, d->OptionsWidgets )
+    {
+    w->setVisible(visible);
+    }
+}
+
+//-----------------------------------------------------------------------------
+void qSlicerMarkupsPlaceWidget::setNodeColor(QColor color)
+{
+  Q_D(qSlicerMarkupsPlaceWidget);
+
+  vtkMRMLMarkupsFiducialNode* currentMarkupsNode = currentMarkupsFiducialNode();
+  if ( currentMarkupsNode == NULL )
+    {
+    return;
+    }
+
+  vtkMRMLDisplayNode* currentMarkupsDisplayNode = currentMarkupsNode->GetDisplayNode();
+  if ( currentMarkupsDisplayNode == NULL )
+    {
+    return;
+    }
+
+  double rgbDoubleVector[3] = {color.redF(),color.greenF(),color.blueF()};
+  currentMarkupsDisplayNode->SetColor( rgbDoubleVector );
+  currentMarkupsDisplayNode->SetSelectedColor( rgbDoubleVector );
+}
+
+//-----------------------------------------------------------------------------
+QColor qSlicerMarkupsPlaceWidget::nodeColor() const
+{
+  Q_D(const qSlicerMarkupsPlaceWidget);
+
+  vtkMRMLMarkupsFiducialNode* currentMarkupsNode = currentMarkupsFiducialNode();
+  if ( currentMarkupsNode == NULL )
+    {
+    return d->DefaultNodeColor;
+    }
+
+  vtkMRMLDisplayNode* currentMarkupsDisplayNode = currentMarkupsNode->GetDisplayNode();
+  if ( currentMarkupsDisplayNode == NULL )
+    {
+    return d->DefaultNodeColor;
+    }
+
+  QColor color;
+  double rgbDoubleVector[3] = {0.0,0.0,0.0};
+  currentMarkupsDisplayNode->GetSelectedColor(rgbDoubleVector);
+  color.setRgb(rgbDoubleVector[0], rgbDoubleVector[1], rgbDoubleVector[2]);
+  return color;
+}
+
+//-----------------------------------------------------------------------------
+void qSlicerMarkupsPlaceWidget::setDefaultNodeColor(QColor color)
+{
+  Q_D(qSlicerMarkupsPlaceWidget);
+  d->DefaultNodeColor = color;
+}
+
+//-----------------------------------------------------------------------------
+QColor qSlicerMarkupsPlaceWidget::defaultNodeColor() const
+{
+  Q_D(const qSlicerMarkupsPlaceWidget);
+  return d->DefaultNodeColor;
+}
+
+//-----------------------------------------------------------------------------
+void qSlicerMarkupsPlaceWidget::onColorButtonChanged(QColor color)
+{
+  Q_D(qSlicerMarkupsPlaceWidget);
+  vtkMRMLMarkupsFiducialNode* currentMarkupsNode = currentMarkupsFiducialNode();
+  if ( currentMarkupsNode == NULL && currentMarkupsNode->GetDisplayNode() == NULL )
+    {
+    return;
+    }
+  double colorDoubleVector[3] = {0.0,0.0,0.0};
+  qMRMLUtils::qColorToColor( color, colorDoubleVector );
+  currentMarkupsNode->GetDisplayNode()->SetSelectedColor( colorDoubleVector );
+}
+
+//-----------------------------------------------------------------------------
+void qSlicerMarkupsPlaceWidget::onVisibilityButtonClicked()
+{
+  Q_D(qSlicerMarkupsPlaceWidget);
+  vtkMRMLMarkupsFiducialNode* currentMarkupsNode = currentMarkupsFiducialNode();
+  if ( currentMarkupsNode == NULL || currentMarkupsNode->GetDisplayNode() == NULL )
+    {
+    return;
+    }
+  currentMarkupsNode->GetDisplayNode()->SetVisibility( ! currentMarkupsNode->GetDisplayNode()->GetVisibility() );
+}
+
+//-----------------------------------------------------------------------------
+void qSlicerMarkupsPlaceWidget::onLockedButtonClicked()
+{
+  Q_D(qSlicerMarkupsPlaceWidget);
+  vtkMRMLMarkupsFiducialNode* currentMarkupsNode = currentMarkupsFiducialNode();
+  if ( currentMarkupsNode == NULL )
+    {
+    return;
+    }
+  currentMarkupsNode->SetLocked( ! currentMarkupsNode->GetLocked() );
 }
