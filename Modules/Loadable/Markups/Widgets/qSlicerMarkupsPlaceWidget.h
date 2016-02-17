@@ -40,8 +40,12 @@ qSlicerMarkupsPlaceWidget : public qSlicerWidget
 {
   Q_OBJECT
   Q_ENUMS(PlaceMultipleMarkupsType)
-  Q_PROPERTY(PlaceMultipleMarkupsType placeMultipleMarkups READ placeMultipleMarkups WRITE setPlaceMultipleMarkups)
+  Q_PROPERTY(bool buttonsVisible READ buttonsVisible WRITE setButtonsVisible)
   Q_PROPERTY(bool deleteAllMarkupsOptionVisible READ deleteAllMarkupsOptionVisible WRITE setDeleteAllMarkupsOptionVisible)
+  Q_PROPERTY(PlaceMultipleMarkupsType placeMultipleMarkups READ placeMultipleMarkups WRITE setPlaceMultipleMarkups)
+  Q_PROPERTY(QColor nodeColor READ nodeColor WRITE setNodeColor)
+  Q_PROPERTY(QColor defaultNodeColor READ defaultNodeColor WRITE setDefaultNodeColor)
+
 
 public:
   typedef qSlicerWidget Superclass;
@@ -73,8 +77,17 @@ public:
   /// Returns markup placement multiplicity option.
   PlaceMultipleMarkupsType placeMultipleMarkups() const;
 
+  /// Returns true if all buttons are visible.
+  bool buttonsVisible() const;
+
   /// Returns true if the Delete all option on the Delete button is visible.
   bool deleteAllMarkupsOptionVisible() const;
+
+  /// Get the selected color of the currently selected markups node.
+  QColor nodeColor() const;
+
+  /// Get the default node color that is shown when no node is selected.
+  QColor defaultNodeColor() const;
 
   Q_INVOKABLE QToolButton* placeButton() const;
 
@@ -90,11 +103,18 @@ public slots:
   /// Set the currently selected markups node to be the active markups node in the Slicer scene. Does not change place mode.
   void setCurrentNodeActive(bool active);
 
+  void setDefaultNodeColor(QColor color);
+
+  void setNodeColor(QColor color);
+
   /// Enable/disable place mode. If place mode is enabled then current markups node is set active, too.
   void setPlaceModeEnabled(bool enable);
 
   /// Configures multiplicity of markups placement.
   void setPlaceMultipleMarkups(PlaceMultipleMarkupsType option);
+
+  /// Show/hide all buttons. Useful for showing/hiding all buttons except specific ones.
+  void setButtonsVisible(bool visible);
 
   /// Set visibility of Delete all markups option.
   void setDeleteAllMarkupsOptionVisible(bool visible);
@@ -112,6 +132,13 @@ protected slots:
 
   /// Update the GUI to reflect the currently selected markups node.
   void updateWidget();
+
+  /// Update the currently selected markups node to have its selected color changed.
+  void onColorButtonChanged(QColor);
+  /// Toggle the visibility of the markups in the viewers.
+  void onVisibilityButtonClicked();
+  /// Toggle whether the current markups node is locked.
+  void onLockedButtonClicked();
 
   void onPlacePersistent(bool enable);
 
