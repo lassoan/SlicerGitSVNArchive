@@ -232,7 +232,11 @@ void qSlicerMouseModeToolBarPrivate::updateWidgetFromSelectionNode()
     if (placeNodeClassName == activePlace)
       {
       // make it the default
-      this->CreateAndPlaceToolButton->setDefaultAction(action);
+      if (this->CreateAndPlaceToolButton->defaultAction()!=action)
+        {
+        this->CreateAndPlaceToolButton->setDefaultAction(action);
+        this->updateWidgetFromInteractionNode();
+        }
       }
     }
 }
