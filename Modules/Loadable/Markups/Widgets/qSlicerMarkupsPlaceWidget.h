@@ -45,6 +45,9 @@ qSlicerMarkupsPlaceWidget : public qSlicerWidget
   Q_PROPERTY(PlaceMultipleMarkupsType placeMultipleMarkups READ placeMultipleMarkups WRITE setPlaceMultipleMarkups)
   Q_PROPERTY(QColor nodeColor READ nodeColor WRITE setNodeColor)
   Q_PROPERTY(QColor defaultNodeColor READ defaultNodeColor WRITE setDefaultNodeColor)
+  Q_PROPERTY(bool currentNodeActive READ currentNodeActive WRITE setCurrentNodeActive)
+  Q_PROPERTY(bool placeModeEnabled READ placeModeEnabled WRITE setPlaceModeEnabled)
+  Q_PROPERTY(bool placeModePersistency READ placeModePersistency WRITE setPlaceModePersistency)
 
 
 public:
@@ -66,13 +69,13 @@ public:
   Q_INVOKABLE vtkMRMLMarkupsFiducialNode* currentMarkupsFiducialNode() const;
 
   /// Returns true if the current markups node is the active markups node in the scene.
-  Q_INVOKABLE bool currentNodeActive() const;
+  bool currentNodeActive() const;
 
   /// Returns true if place mode enabled and current node is active.
-  Q_INVOKABLE bool placeModeEnabled() const;
+  bool placeModeEnabled() const;
 
   /// Returns true if placement mode is persistent, regardless if place mode is enabled or not.
-  Q_INVOKABLE bool placeModePersistency() const;
+  bool placeModePersistency() const;
 
   /// Returns markup placement multiplicity option.
   PlaceMultipleMarkupsType placeMultipleMarkups() const;
