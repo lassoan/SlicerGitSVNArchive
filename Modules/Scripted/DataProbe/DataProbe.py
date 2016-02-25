@@ -288,11 +288,11 @@ class DataProbeInfoWidget(object):
       spacing = "(%s)" % spacing
 
     return \
-      "  {layoutName: <8s}  ({rLabel}{ras_x:6.1f}, {aLabel}{ras_y:6.1f}, {sLabel}{ras_z:6.1f})  {orient: >8s} Sp: {spacing:s}" \
+      "  {layoutName: <8s}  ({rLabel} {ras_x:3.1f}, {aLabel} {ras_y:3.1f}, {sLabel} {ras_z:3.1f})  {orient: >8s} Sp: {spacing:s}" \
       .format(layoutName=sliceNode.GetLayoutName(),
-              rLabel=sliceNode.GetAxisLabel(1)[:1] if ras[0]>=0 else sliceNode.GetAxisLabel(0)[:1],
-              aLabel=sliceNode.GetAxisLabel(3)[:1] if ras[1]>=0 else sliceNode.GetAxisLabel(2)[:1],
-              sLabel=sliceNode.GetAxisLabel(5)[:1] if ras[2]>=0 else sliceNode.GetAxisLabel(4)[:1],
+              rLabel=sliceNode.GetAxisLabel(1) if ras[0]>=0 else sliceNode.GetAxisLabel(0),
+              aLabel=sliceNode.GetAxisLabel(3) if ras[1]>=0 else sliceNode.GetAxisLabel(2),
+              sLabel=sliceNode.GetAxisLabel(5) if ras[2]>=0 else sliceNode.GetAxisLabel(4),
               ras_x=abs(ras[0]),
               ras_y=abs(ras[1]),
               ras_z=abs(ras[2]),
@@ -306,7 +306,7 @@ class DataProbeInfoWidget(object):
 
   def generateIJKPixelDescription(self, ijk, slicerLayerLogic):
     volumeNode = slicerLayerLogic.GetVolumeNode()
-    return "({i:4d}, {j:4d}, {k:4d})".format(i=ijk[0], j=ijk[1], k=ijk[2]) if volumeNode else ""
+    return "({i:3d}, {j:3d}, {k:3d})".format(i=ijk[0], j=ijk[1], k=ijk[2]) if volumeNode else ""
 
   def generateIJKPixelValueDescription(self, ijk, slicerLayerLogic):
     volumeNode = slicerLayerLogic.GetVolumeNode()
