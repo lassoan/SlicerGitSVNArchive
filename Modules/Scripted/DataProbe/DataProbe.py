@@ -288,11 +288,14 @@ class DataProbeInfoWidget(object):
       spacing = "(%s)" % spacing
 
     return \
-      "  {layoutName: <8s}  RAS: ({ras_x:6.1f}, {ras_y:6.1f}, {ras_z:6.1f})  {orient: >8s} Sp: {spacing:s}" \
+      "  {layoutName: <8s}  ({rLabel}{ras_x:6.1f}, {aLabel}{ras_y:6.1f}, {sLabel}{ras_z:6.1f})  {orient: >8s} Sp: {spacing:s}" \
       .format(layoutName=sliceNode.GetLayoutName(),
-              ras_x=ras[0],
-              ras_y=ras[1],
-              ras_z=ras[2],
+              rLabel=sliceNode.GetAxisLabel(1)[:1] if ras[0]>=0 else sliceNode.GetAxisLabel(0)[:1],
+              aLabel=sliceNode.GetAxisLabel(3)[:1] if ras[1]>=0 else sliceNode.GetAxisLabel(2)[:1],
+              sLabel=sliceNode.GetAxisLabel(5)[:1] if ras[2]>=0 else sliceNode.GetAxisLabel(4)[:1],
+              ras_x=abs(ras[0]),
+              ras_y=abs(ras[1]),
+              ras_z=abs(ras[2]),
               orient=sliceNode.GetOrientationString(),
               spacing=spacing
               )
