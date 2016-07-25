@@ -34,6 +34,9 @@
 #include <ctkErrorLogStreamMessageHandler.h>
 #include <ctkITKErrorLogMessageHandler.h>
 #include <ctkMessageBox.h>
+#ifdef Slicer_USE_PYTHONQT
+# include "ctkPythonConsole.h"
+#endif
 #include <ctkSettings.h>
 #ifdef Slicer_USE_QtTesting
 #include <ctkQtTestingUtility.h>
@@ -55,6 +58,7 @@
 #include "qSlicerModuleManager.h"
 #ifdef Slicer_USE_PYTHONQT
 # include "qSlicerPythonManager.h"
+# include "qSlicerSettingsPythonPanel.h"
 #endif
 #ifdef Slicer_BUILD_EXTENSIONMANAGER_SUPPORT
 # include "qSlicerExtensionsManagerDialog.h"
@@ -175,10 +179,25 @@ void qSlicerApplicationPrivate::init()
     // Note: qSlicerCoreApplication class takes ownership of the pythonManager and
     // will be responsible to delete it
     q->setCorePythonManager(new qSlicerPythonManager());
+    // TODO: console may not be deleted if ownership is not transferred to a GUI widget
+    q->setPythonConsole(new ctkPythonConsole());
     }
 #endif
 
   this->Superclass::init();
+
+#ifdef Slicer_USE_PYTHONQT
+  if (!qSlicerCoreApplication::testAttribute(qSlicerCoreApplication::AA_DisablePython))
+    {
+    q->pythonConsole()->initialize(q->pythonManager());
+    QStringList autocompletePreferenceList;
+    autocompletePreferenceList
+      << "slicer"
+      << "slicer.mrmlScene"
+      << "qt.QPushButton";
+    q->pythonConsole()->completer()->setAutocompletePreferenceList(autocompletePreferenceList);
+    }
+#endif
 
   this->initStyle();
 
@@ -244,6 +263,13 @@ void qSlicerApplicationPrivate::init()
   qSlicerSettingsInternationalizationPanel* qtInternationalizationPanel =
       new qSlicerSettingsInternationalizationPanel;
   this->SettingsDialog->addPanel("Internationalization", qtInternationalizationPanel);
+#endif
+
+#ifdef Slicer_USE_PYTHONQT
+  if (!qSlicerCoreApplication::testAttribute(qSlicerCoreApplication::AA_DisablePython))
+    {
+    q->settingsDialog()->addPanel("Python", new qSlicerSettingsPythonPanel);
+    }
 #endif
 
   qSlicerSettingsDeveloperPanel* developerPanel = new qSlicerSettingsDeveloperPanel;
@@ -385,14 +411,23 @@ qSlicerIOManager* qSlicerApplication::ioManager()
 //-----------------------------------------------------------------------------
 qSlicerPythonManager* qSlicerApplication::pythonManager()
 {
-  qSlicerPythonManager* _pythonManager = 0;
-  if (!qSlicerCoreApplication::testAttribute(qSlicerCoreApplication::AA_DisablePython))
+  if (qSlicerCoreApplication::testAttribute(qSlicerCoreApplication::AA_DisablePython))
     {
-    _pythonManager = qobject_cast<qSlicerPythonManager*>(this->corePythonManager());
-    Q_ASSERT(_pythonManager);
+    return 0;
     }
-
+  qSlicerPythonManager* _pythonManager = qobject_cast<qSlicerPythonManager*>(this->corePythonManager());
+  Q_ASSERT(_pythonManager);
   return _pythonManager;
+}
+
+//-----------------------------------------------------------------------------
+ctkPythonConsole* qSlicerApplication::pythonConsole()
+{
+  if (qSlicerCoreApplication::testAttribute(qSlicerCoreApplication::AA_DisablePython))
+    {
+    return 0;
+    }
+  return Superclass::pythonConsole();
 }
 #endif
 

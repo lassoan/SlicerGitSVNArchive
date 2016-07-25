@@ -154,6 +154,7 @@ public:
 #ifdef Slicer_USE_PYTHONQT
   /// CorePythonManager - It should exist only one instance of the CorePythonManager
   QSharedPointer<qSlicerCorePythonManager>    CorePythonManager;
+  QWeakPointer<ctkPythonConsole> PythonConsole; // it will be owned by a GUI widget
 #endif
 
 #ifdef Slicer_BUILD_EXTENSIONMANAGER_SUPPORT

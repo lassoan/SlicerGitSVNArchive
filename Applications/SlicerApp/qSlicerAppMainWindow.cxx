@@ -35,6 +35,7 @@
 #include <QSettings>
 #include <QShowEvent>
 #include <QSignalMapper>
+#include <QTextEdit>
 #include <QTimer>
 #include <QToolButton>
 
@@ -926,11 +927,36 @@ void qSlicerAppMainWindow::on_WindowErrorLogAction_triggered()
 void qSlicerAppMainWindow::on_WindowPythonInteractorAction_triggered()
 {
 #ifdef Slicer_USE_PYTHONQT
-  ctkPythonConsole* console = this->pythonConsole();
-  Q_ASSERT(console);
-  console->show();
-  console->activateWindow();
-  console->raise();
+  ctkPythonConsole* pythonConsole = qSlicerApplication::application()->pythonConsole();
+  if (!pythonConsole)
+    {
+    qCritical() << Q_FUNC_INFO << " failed: python console is not available";
+    return;
+    }
+  QDockWidget* pythonConsoleWindow = this->findChild<QDockWidget*>("pythonConsoleWindow");
+  if (!pythonConsoleWindow)
+    {
+    pythonConsoleWindow = new QDockWidget(tr("Slicer Python Interactor"), this);
+    pythonConsoleWindow->setObjectName("pythonConsoleWindow");
+    pythonConsoleWindow->setAllowedAreas(Qt::AllDockWidgetAreas);
+    pythonConsoleWindow->setWidget(pythonConsole);
+    this->addDockWidget(Qt::BottomDockWidgetArea, pythonConsoleWindow);
+    }
+  if (!pythonConsoleWindow->isVisible())
+    {
+    pythonConsoleWindow->show();
+    pythonConsoleWindow->raise();
+    pythonConsoleWindow->activateWindow();
+    QTextEdit* textEditWidget = pythonConsole->findChild<QTextEdit*>();
+    if (textEditWidget)
+      {
+      textEditWidget->setFocus();
+      }
+    }
+  else
+    {
+    pythonConsoleWindow->hide();
+    }
 #endif
 }
 
@@ -1068,7 +1094,25 @@ void qSlicerAppMainWindow::showEvent(QShowEvent *event)
   if (!event->spontaneous())
     {
     this->disclaimer();
+    this->pythonConsoleInitialDisplay();
     }
+}
+
+//-----------------------------------------------------------------------------
+void qSlicerAppMainWindow::pythonConsoleInitialDisplay()
+{
+#ifdef Slicer_USE_PYTHONQT
+  qSlicerApplication * app = qSlicerApplication::application();
+  if (qSlicerCoreApplication::testAttribute(qSlicerCoreApplication::AA_DisablePython))
+    {
+    return;
+    }
+  if (!app->commandOptions()->showPythonInteractor() || app->pythonConsole()->isVisible())
+    {
+    return;
+    }
+  this->on_WindowPythonInteractorAction_triggered();
+#endif
 }
 
 //-----------------------------------------------------------------------------
