@@ -40,6 +40,9 @@ public:
   static const std::string GetDecimationFactorParameterName() { return "Decimation factor"; };
   /// Conversion parameter: smoothing factor
   static const std::string GetSmoothingFactorParameterName() { return "Smoothing factor"; };
+  /// Conversion parameter: joint smoothing (if non-zero then smoothing will be performed before decimation
+  /// and less smoothing is performed at the boundaries to preserve interfaces between segments)
+  static const std::string GetJointSmoothingParameterName() { return "Joint smoothing"; };
 
 public:
   static vtkBinaryLabelmapToClosedSurfaceConversionRule* New();
@@ -74,11 +77,7 @@ public:
 protected:
   /// If input labelmap has non-background border voxels, then those regions remain open in the output closed surface.
   /// This function checks whether this is the case.
-  bool IsLabelmapPaddingNecessary(vtkOrientedImageData* binaryLabelMap);
-
-  /// If input labelmap has non-background border voxels, then those regions remain open in the output closed surface.
-  /// This function adds a 1 voxel padding to the labelmap in these cases.
-  void PadLabelmap(vtkOrientedImageData* binaryLabelMap);
+  bool IsLabelmapPaddingNecessary(vtkImageData* binaryLabelMap);
 
 protected:
   vtkBinaryLabelmapToClosedSurfaceConversionRule();
