@@ -135,11 +135,20 @@ class SurfaceToolboxWidget(ScriptedLoadableModuleWidget):
     taubinIterationsFrame, taubinIterationsSlider, taubinIterationsSpinBox = numericInputFrame(self.parent,"Iterations:","Tooltip",0.0,100.0,1.0,0)
     taubinMethodFormLayout.addWidget(taubinIterationsFrame)
 
-    taubinPassBandFrame, taubinPassBandSlider, taubinPassBandSpinBox = numericInputFrame(self.parent,"Pass Band:","Tooltip",0.0,1.0,0.01,2)
+    taubinPassBandFrame, taubinPassBandSlider, taubinPassBandSpinBox = numericInputFrame(self.parent,"Pass Band:","Tooltip",0.0,2.0,0.00001,6)
     taubinMethodFormLayout.addWidget(taubinPassBandFrame)
 
     boundarySmoothingCheckBox = qt.QCheckBox("Boundary Smoothing")
     smoothingFormLayout.addWidget(boundarySmoothingCheckBox)
+
+    taubinFeatureEdgeSmoothingCheckBox = qt.QCheckBox("Feature Edge Smoothing")
+    taubinMethodFormLayout.addWidget(taubinFeatureEdgeSmoothingCheckBox)
+
+    taubinFeatureAngleFrame, taubinFeatureAngleSlider, taubinFeatureAngleSpinBox = numericInputFrame(self.parent,"Feature edge angle:","Tooltip",0.0,360.0,5,0)
+    taubinMethodFormLayout.addWidget(taubinFeatureAngleFrame)
+
+    taubinEdgeAngleFrame, taubinEdgeAngleSlider, taubinEdgeAngleSpinBox = numericInputFrame(self.parent,"Edge angle:","Tooltip",0.0,360.0,5,0)
+    taubinMethodFormLayout.addWidget(taubinEdgeAngleFrame)
 
     normalsButton = qt.QPushButton("Normals")
     normalsButton.checkable = True
@@ -200,6 +209,9 @@ class SurfaceToolboxWidget(ScriptedLoadableModuleWidget):
       laplaceRelaxation = 0.5
       taubinIterations = 30.0
       taubinPassBand = 0.1
+      taubinFeatureEdgeSmoothing = True
+      taubinFeatureAngle = 90
+      taubinEdgeAngle = 90
       boundarySmoothing = True
       normals = False
       flipNormals = False
@@ -244,6 +256,11 @@ class SurfaceToolboxWidget(ScriptedLoadableModuleWidget):
       taubinIterationsSpinBox.value = state.taubinIterations
       taubinPassBandSlider.value = state.taubinPassBand
       taubinPassBandSpinBox.value = state.taubinPassBand
+      taubinFeatureEdgeSmoothingCheckBox.checked = state.taubinFeatureEdgeSmoothing
+      taubinFeatureAngleSlider.value = state.taubinFeatureAngle
+      taubinFeatureAngleSpinBox.value = state.taubinFeatureAngle
+      taubinEdgeAngleSlider.value = state.taubinEdgeAngle
+      taubinEdgeAngleSpinBox.value = state.taubinEdgeAngle
       boundarySmoothingCheckBox.checked = state.boundarySmoothing
 
       normalsButton.checked = state.normals
@@ -294,6 +311,11 @@ class SurfaceToolboxWidget(ScriptedLoadableModuleWidget):
     connect(taubinIterationsSpinBox, 'valueChanged(double)', 'state.taubinIterations = int(args[0])')
     connect(taubinPassBandSlider, 'valueChanged(double)', 'state.taubinPassBand = args[0]')
     connect(taubinPassBandSpinBox, 'valueChanged(double)', 'state.taubinPassBand = args[0]')
+    connect(taubinFeatureEdgeSmoothingCheckBox, 'stateChanged(int)', 'state.taubinFeatureEdgeSmoothing = bool(args[0])')
+    connect(taubinFeatureAngleSlider, 'valueChanged(double)', 'state.taubinFeatureAngle = args[0]')
+    connect(taubinFeatureAngleSpinBox, 'valueChanged(double)', 'state.taubinFeatureAngle = args[0]')
+    connect(taubinEdgeAngleSlider, 'valueChanged(double)', 'state.taubinEdgeAngle = args[0]')
+    connect(taubinEdgeAngleSpinBox, 'valueChanged(double)', 'state.taubinEdgeAngle = args[0]')
 
     connect(boundarySmoothingCheckBox, 'stateChanged(int)', 'state.boundarySmoothing = bool(args[0])')
 
@@ -374,6 +396,9 @@ class SurfaceToolboxLogic(ScriptedLoadableModuleLogic):
         smoothing.SetBoundarySmoothing(state.boundarySmoothing)
         smoothing.SetNumberOfIterations(state.taubinIterations)
         smoothing.SetPassBand(state.taubinPassBand)
+        smoothing.SetFeatureEdgeSmoothing(state.taubinFeatureEdgeSmoothing)
+        smoothing.SetFeatureAngle(state.taubinFeatureAngle)
+        smoothing.SetEdgeAngle(state.taubinEdgeAngle)
         smoothing.SetInputConnection(surface)
         surface = smoothing.GetOutputPort()
 
