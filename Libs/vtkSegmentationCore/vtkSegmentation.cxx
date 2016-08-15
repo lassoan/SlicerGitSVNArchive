@@ -1416,3 +1416,72 @@ void vtkSegmentation::DeserializeConversionParameters(std::string conversionPara
 {
   this->Converter->DeserializeConversionParameters(conversionParametersString);
 }
+
+//----------------------------------------------------------------------------
+int vtkSegmentation::GetSegmentIDsAtPosition(double position[3], std::vector<std::string> &segmentIdsFound,
+  const std::vector<std::string>& segmentIdsIncludedInSearchInput /* =std::vector<std::string>() */, int maxNumberOfSegments /* =-1 */)
+{
+  // If segment IDs list is empty then include all segments
+  std::vector<std::string> segmentIdsIncludedInSearch;
+  if (segmentIdsIncludedInSearchInput.empty())
+  {
+    vtkSegmentation::SegmentMap segmentMap = this->GetSegments();
+    for (vtkSegmentation::SegmentMap::iterator segmentIt = segmentMap.begin(); segmentIt != segmentMap.end(); ++segmentIt)
+    {
+      segmentIdsIncludedInSearch.push_back(segmentIt->first);
+    }
+  }
+  else
+  {
+    segmentIdsIncludedInSearch = segmentIdsIncludedInSearchInput;
+  }
+
+  for (std::vector<std::string>::iterator segmentIt = segmentIdsIncludedInSearch.begin(); segmentIt != segmentIdsIncludedInSearch.end(); ++segmentIt)
+  {
+    vtkSegment* currentSegment = this->GetSegment(*segmentIt);
+    if (!currentSegment)
+    {
+      vtkWarningMacro("vtkSegmentation::GetSegmentIDsAtPosition: Segment ID " << (*segmentIt) << " not found in segmentation");
+      continue;
+    }
+    if (this->IsPointInsideSegment(position, currentSegment))
+    {
+      segmentIdsFound.push_back(*segmentIt);
+      if (maxNumberOfSegments > 0 && segmentIdsFound.size() >= maxNumberOfSegments)
+      {
+        return segmentIdsFound.size();
+      }
+    }
+  }
+  return segmentIdsFound.size();
+}
+
+//----------------------------------------------------------------------------
+bool vtkSegmentation::IsPointInsideSegment(double position[3], vtkSegment* segment)
+{
+  vtkOrientedImageData* currentBinaryLabelmap = vtkOrientedImageData::SafeDownCast(
+    segment->GetRepresentation(vtkSegmentationConverter::GetSegmentationBinaryLabelmapRepresentationName()));
+  if (currentBinaryLabelmap == NULL || currentBinaryLabelmap->IsEmpty())
+  {
+    return false;
+  }
+  vtkNew<vtkMatrix4x4> worldToImage;
+  currentBinaryLabelmap->GetWorldToImageMatrix(worldToImage.GetPointer());
+  double position_World[4] = { position[0], position[1], position[2], 1.0 };
+  double positionDouble_IJK[4] = { 0.0 , 0.0, 0.0, 1.0 };
+  worldToImage->MultiplyPoint(position_World, positionDouble_IJK);
+  int position_IJK[3] = { floor(positionDouble_IJK[0] + 0.5), floor(positionDouble_IJK[1] + 0.5), floor(positionDouble_IJK[2] + 0.5) };
+
+  int* extent = currentBinaryLabelmap->GetExtent();
+
+  if (position_IJK[0]<extent[0] || position_IJK[0]>extent[1]
+    || position_IJK[1]<extent[2] || position_IJK[1]>extent[3]
+    || position_IJK[2]<extent[4] || position_IJK[2]>extent[5])
+  {
+    // outside the image extent
+    return false;
+  }
+
+  double voxelValue = currentBinaryLabelmap->GetScalarComponentAsDouble(position_IJK[0], position_IJK[1], position_IJK[2], 0);
+  return (voxelValue > 0);
+}

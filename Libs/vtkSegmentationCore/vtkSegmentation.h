@@ -182,6 +182,16 @@ public:
   /// \return Vector of segments containing the requested tag
   std::vector<vtkSegment*> GetSegmentsByTag(std::string tag, std::string value="");
 
+  /// Get segments that contains the point at specified position.
+  /// \param position Pick position.
+  /// \param segmentIdsFound List of segment IDs that contain the specified point
+  /// \param maxNumberOfSegments Returns first n segments that contain the specified point. If <=0 then there is no restriction.
+  /// \return Number of segments found at the specified position.
+  int GetSegmentIDsAtPosition(double position[3], std::vector<std::string> &segmentIdsFound,
+    const std::vector<std::string>& segmentIdsIncludedInSearch, int maxNumberOfSegments = -1);
+
+  bool IsPointInsideSegment(double position[3], vtkSegment* segment);
+
   /// Get representation from segment
   vtkDataObject* GetSegmentRepresentation(std::string segmentId, std::string representationName);
 
