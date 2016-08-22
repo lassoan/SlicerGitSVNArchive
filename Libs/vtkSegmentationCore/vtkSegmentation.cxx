@@ -876,13 +876,12 @@ bool vtkSegmentation::CreateRepresentation(const std::string& targetRepresentati
     {
     if (!this->ConvertSegmentUsingPath(segmentIt->second, cheapestPath, alwaysConvert))
       {
-      vtkErrorMacro("CreateRepresentation: Conversion failed!");
+      vtkErrorMacro("CreateRepresentation: Conversion failed");
       return false;
       }
     }
 
-  const char* targetRepresentationNameChars = targetRepresentationName.c_str();
-  this->InvokeEvent(vtkSegmentation::RepresentationCreated, (void*)targetRepresentationNameChars);
+  this->InvokeEvent(vtkSegmentation::ContainedRepresentationNamesModified);
   return true;
 }
 
@@ -909,13 +908,12 @@ bool vtkSegmentation::CreateRepresentation(const std::string& targetRepresentati
     {
     if (!this->ConvertSegmentUsingPath(segmentIt->second, path, true))
       {
-      vtkErrorMacro("CreateRepresentation: Conversion failed!");
+      vtkErrorMacro("CreateRepresentation: Conversion failed");
       return false;
       }
     }
 
-  const char* targetRepresentationNameChars = targetRepresentationName.c_str();
-  this->InvokeEvent(vtkSegmentation::RepresentationCreated, (void*)targetRepresentationNameChars);
+  this->InvokeEvent(vtkSegmentation::ContainedRepresentationNamesModified);
   return true;
 }
 
@@ -927,8 +925,7 @@ void vtkSegmentation::RemoveRepresentation(const std::string& representationName
     segmentIt->second->RemoveRepresentation(representationName);
     }
 
-  const char* representationNameChars = representationName.c_str();
-  this->InvokeEvent(vtkSegmentation::RepresentationRemoved, (void*)representationNameChars);
+  this->InvokeEvent(vtkSegmentation::ContainedRepresentationNamesModified);
 }
 
 //---------------------------------------------------------------------------
@@ -939,7 +936,6 @@ vtkDataObject* vtkSegmentation::GetSegmentRepresentation(std::string segmentId, 
     {
     return NULL;
     }
-
   return segment->GetRepresentation(representationName);
 }
 

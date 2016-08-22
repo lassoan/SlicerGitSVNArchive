@@ -187,6 +187,9 @@ public:
   bool UseDisplayableNode(vtkMRMLSegmentationNode* node);
   void ClearDisplayableNodes();
 
+  void RemoveSegment(vtkMRMLSegmentationNode* node, const char* segmentId);
+  void AddSegment(vtkMRMLSegmentationNode* node, char* segmentId);
+
 private:
   vtkSmartPointer<vtkMatrix4x4> SliceXYToRAS;
   vtkMRMLSegmentationsDisplayableManager2D* External;
@@ -854,13 +857,17 @@ void vtkMRMLSegmentationsDisplayableManager2D::vtkInternal::AddObservations(vtkM
     {
     broker->AddObservation(node, vtkMRMLDisplayableNode::DisplayModifiedEvent, this->External, this->External->GetMRMLNodesCallbackCommand() );
     }
-  if (!broker->GetObservationExist(node, vtkSegmentation::MasterRepresentationModified, this->External, this->External->GetMRMLNodesCallbackCommand() ))
+  if (!broker->GetObservationExist(node, vtkSegmentation::RepresentationModified, this->External, this->External->GetMRMLNodesCallbackCommand() ))
     {
-    broker->AddObservation(node, vtkSegmentation::MasterRepresentationModified, this->External, this->External->GetMRMLNodesCallbackCommand() );
+    broker->AddObservation(node, vtkSegmentation::RepresentationModified, this->External, this->External->GetMRMLNodesCallbackCommand() );
     }
-  if (!broker->GetObservationExist(node, vtkSegmentation::RepresentationCreated, this->External, this->External->GetMRMLNodesCallbackCommand() ))
+  if (!broker->GetObservationExist(node, vtkSegmentation::SegmentAdded, this->External, this->External->GetMRMLNodesCallbackCommand()))
     {
-    broker->AddObservation(node, vtkSegmentation::RepresentationCreated, this->External, this->External->GetMRMLNodesCallbackCommand() );
+    broker->AddObservation(node, vtkSegmentation::SegmentAdded, this->External, this->External->GetMRMLNodesCallbackCommand());
+    }
+  if (!broker->GetObservationExist(node, vtkSegmentation::SegmentRemoved, this->External, this->External->GetMRMLNodesCallbackCommand()))
+    {
+    broker->AddObservation(node, vtkSegmentation::SegmentRemoved, this->External, this->External->GetMRMLNodesCallbackCommand());
     }
 }
 
@@ -873,9 +880,11 @@ void vtkMRMLSegmentationsDisplayableManager2D::vtkInternal::RemoveObservations(v
   broker->RemoveObservations(observations);
   observations = broker->GetObservations(node, vtkMRMLDisplayableNode::DisplayModifiedEvent, this->External, this->External->GetMRMLNodesCallbackCommand() );
   broker->RemoveObservations(observations);
-  observations = broker->GetObservations(node, vtkSegmentation::MasterRepresentationModified, this->External, this->External->GetMRMLNodesCallbackCommand() );
+  observations = broker->GetObservations(node, vtkSegmentation::RepresentationModified, this->External, this->External->GetMRMLNodesCallbackCommand() );
   broker->RemoveObservations(observations);
-  observations = broker->GetObservations(node, vtkSegmentation::RepresentationCreated, this->External, this->External->GetMRMLNodesCallbackCommand() );
+  observations = broker->GetObservations(node, vtkSegmentation::SegmentAdded, this->External, this->External->GetMRMLNodesCallbackCommand());
+  broker->RemoveObservations(observations);
+  observations = broker->GetObservations(node, vtkSegmentation::SegmentRemoved, this->External, this->External->GetMRMLNodesCallbackCommand());
   broker->RemoveObservations(observations);
 }
 
@@ -910,6 +919,136 @@ bool vtkMRMLSegmentationsDisplayableManager2D::vtkInternal::UseDisplayableNode(v
   return use;
 }
 
+
+//---------------------------------------------------------------------------
+void vtkMRMLSegmentationsDisplayableManager2D::vtkInternal::AddSegment(vtkMRMLSegmentationNode* node, const char* segmentId)
+{
+  if (!this->Scene)
+  {
+    vtkErrorMacro("AddSegmentDisplayProperties: Unable to update display properties outside a MRML scene");
+    return false;
+  }
+
+  // Get segment
+  vtkSegment* segment = this->Segmentation->GetSegment(segmentId);
+  if (!segment)
+  {
+    vtkErrorMacro("AddSegmentDisplayProperties: No segment found with ID " << segmentId);
+    return false;
+  }
+
+  // Get display node and create it if does not exist
+  int wasModifyingDisplayNode = -1;
+  vtkSmartPointer<vtkMRMLSegmentationDisplayNode> displayNode = vtkMRMLSegmentationDisplayNode::SafeDownCast(this->GetDisplayNode());
+  if (!displayNode)
+  {
+    // Create default display node if not found
+    displayNode = vtkSmartPointer<vtkMRMLSegmentationDisplayNode>::New();
+    this->Scene->AddNode(displayNode);
+    wasModifyingDisplayNode = displayNode->StartModify();
+    this->SetAndObserveDisplayNodeID(displayNode->GetID());
+    displayNode->SetBackfaceCulling(0); // Needed only because of the ribbon model normal vectors
+  }
+  else
+  {
+    // Do not add segment display properties if already present (can be present if node is cloned or scene loaded)
+    if (displayNode->GetSegmentDisplayPropertiesDefined(segmentId))
+    {
+      vtkDebugMacro("AddSegmentDisplayProperties: Display properties for segment " << segmentId << " was already present, leaving it unchanged");
+      return true;
+    }
+    wasModifyingDisplayNode = displayNode->StartModify();
+  }
+
+  // Create color table for segmentation if does not exist
+  vtkMRMLColorTableNode* colorTableNode = vtkMRMLColorTableNode::SafeDownCast(displayNode->GetColorNode());
+  if (!colorTableNode)
+  {
+    //TODO: Color table must be present at all times after terminology support is added
+    colorTableNode = displayNode->CreateColorTableNode(this->Name);
+  }
+
+  int wasModifyingColorTableNode = colorTableNode->StartModify();
+
+  // Add entry in color table for segment
+  int colorIndex = colorTableNode->GetNumberOfColors();
+  colorTableNode->SetNumberOfColors(colorIndex + 1);
+  colorTableNode->GetLookupTable()->SetTableRange(0, colorIndex);
+  // Set color index as tag to segment
+  segment->SetTag(vtkMRMLSegmentationDisplayNode::GetColorIndexTag(), colorIndex);
+
+  // Set segment color for merged labelmap
+  double defaultColor[3] = { 0.0, 0.0, 0.0 };
+  segment->GetDefaultColor(defaultColor);
+  // Generate color if default color is the default gray
+  displayNode->IncrementNumberOfAddedSegments();
+  bool generateNewDefaultColor =
+    (defaultColor[0] == vtkSegment::SEGMENT_COLOR_VALUE_INVALID[0]
+    && defaultColor[1] == vtkSegment::SEGMENT_COLOR_VALUE_INVALID[1]
+    && defaultColor[2] == vtkSegment::SEGMENT_COLOR_VALUE_INVALID[2]);
+  if (generateNewDefaultColor)
+  {
+    displayNode->GenerateSegmentColor(defaultColor);
+  }
+  colorTableNode->SetColor(colorIndex, segmentId.c_str(), defaultColor[0], defaultColor[1], defaultColor[2], 1.0);
+
+  // Add entry in segment display properties
+  vtkMRMLSegmentationDisplayNode::SegmentDisplayProperties properties;
+  properties.Color[0] = defaultColor[0];
+  properties.Color[1] = defaultColor[1];
+  properties.Color[2] = defaultColor[2];
+  properties.Visible = true;
+  properties.Visible3D = true;
+  properties.Visible2DFill = true;
+  properties.Visible2DOutline = true;
+  properties.Opacity3D = 1.0;
+  properties.Opacity2DFill = 0.4;
+  properties.Opacity2DOutline = 1.0;
+  displayNode->SetSegmentDisplayProperties(segmentId, properties);
+
+  // Update segment's default color
+  // (we cannot do this before setting display properties, as changing the default color triggers an update,
+  // and we don't want to perform an update without display properties set up).
+  if (generateNewDefaultColor)
+  {
+    segment->SetDefaultColor(defaultColor);
+  }
+
+  colorTableNode->EndModify(wasModifyingColorTableNode);
+  displayNode->EndModify(wasModifyingDisplayNode);
+
+  return true;
+}
+
+//---------------------------------------------------------------------------
+void vtkMRMLSegmentationsDisplayableManager2D::vtkInternal::RemoveSegment(vtkMRMLSegmentationNode* node, const char* segmentId)
+{
+  // Remove display properties
+  vtkMRMLSegmentationDisplayNode* displayNode = vtkMRMLSegmentationDisplayNode::SafeDownCast(this->GetDisplayNode());
+  if (displayNode)
+  {
+    // Remove entry from segment display properties
+    displayNode->RemoveSegmentDisplayProperties(segmentId);
+
+    // Remove segment entry from color table
+    vtkMRMLColorTableNode* colorTableNode = vtkMRMLColorTableNode::SafeDownCast(displayNode->GetColorNode());
+    if (!colorTableNode)
+    {
+      vtkErrorMacro("vtkMRMLSegmentationNode::OnSegmentRemoved: No color table node associated with segmentation!");
+      return;
+    }
+    int colorIndex = colorTableNode->GetColorIndexByName(segmentId);
+    if (colorIndex < 0)
+    {
+      vtkErrorMacro("vtkMRMLSegmentationNode::OnSegmentRemoved: No color table entry found for segment " << segmentId);
+      return;
+    }
+    colorTableNode->SetColor(colorIndex, vtkMRMLSegmentationDisplayNode::GetSegmentationColorNameRemoved(),
+      vtkSegment::SEGMENT_COLOR_VALUE_INVALID[0], vtkSegment::SEGMENT_COLOR_VALUE_INVALID[1],
+      vtkSegment::SEGMENT_COLOR_VALUE_INVALID[2], vtkSegment::SEGMENT_COLOR_VALUE_INVALID[3]);
+  }
+
+}
 
 //---------------------------------------------------------------------------
 // vtkMRMLSegmentationsDisplayableManager2D methods
@@ -1009,12 +1148,24 @@ void vtkMRMLSegmentationsDisplayableManager2D::ProcessMRMLNodesEvents(vtkObject*
       }
     else if ( (event == vtkMRMLDisplayableNode::TransformModifiedEvent)
            || (event == vtkMRMLTransformableNode::TransformModifiedEvent)
-           || (event == vtkSegmentation::RepresentationCreated) )
+           || (event == vtkSegmentation::RepresentationModified) )
       {
       this->Internal->UpdateDisplayableTransforms(displayableNode);
       this->RequestRender();
       }
-    }
+    else if (event == vtkSegmentation::SegmentAdded)
+      {
+      const char* segmentId = calldata;
+      this->Internal->AddSegment(displayableNode, segmentId);
+      this->RequestRender();
+      }
+    else if (event == vtkSegmentation::SegmentRemoved)
+      {
+      const char* segmentId = calldata;
+      this->Internal->RemoveSegment(displayableNode, segmentId);
+      this->RequestRender();
+      }
+  }
   else if ( vtkMRMLSliceNode::SafeDownCast(caller) )
       {
       this->Internal->UpdateSliceNode();

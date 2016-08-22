@@ -323,7 +323,7 @@ void qMRMLSegmentEditorWidgetPrivate::init()
   // Undo/redo is not yet optimized for speed or performance
   // therefore disable it by default for now.
   // TODO: enable by default after optimizations are completed.
-  q->setUndoEnabled(false);
+  // q->setUndoEnabled(false);
 
   // Widget properties
   this->SegmentsTableView->setSelectionMode(QAbstractItemView::SingleSelection);
@@ -1076,8 +1076,7 @@ void qMRMLSegmentEditorWidget::updateWidgetFromSegmentationNode()
   if (segmentationNode != d->SegmentationNode)
     {
     // Connect events needed to update closed surface button
-    qvtkReconnect(d->SegmentationNode, segmentationNode, vtkSegmentation::RepresentationCreated, this, SLOT(onSegmentAddedRemoved()));
-    qvtkReconnect(d->SegmentationNode, segmentationNode, vtkSegmentation::RepresentationRemoved, this, SLOT(onSegmentAddedRemoved()));
+    qvtkReconnect(d->SegmentationNode, segmentationNode, vtkSegmentation::ContainedRepresentationNamesModified, this, SLOT(onSegmentAddedRemoved()));
     qvtkReconnect(d->SegmentationNode, segmentationNode, vtkSegmentation::SegmentAdded, this, SLOT(onSegmentAddedRemoved()));
     qvtkReconnect(d->SegmentationNode, segmentationNode, vtkSegmentation::SegmentRemoved, this, SLOT(onSegmentAddedRemoved()));
     d->SegmentationNode = segmentationNode;
