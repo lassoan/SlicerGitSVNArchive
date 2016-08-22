@@ -76,7 +76,7 @@ void vtkSegmentationHistory::SetSegmentation(vtkSegmentation* segmentation)
   vtkSetObjectBodyMacro(Segmentation, vtkSegmentation, segmentation);
   if (this->Segmentation)
     {
-    this->Segmentation->AddObserver(vtkCommand::ModifiedEvent, this->SegmentationModifiedCallbackCommand);
+    //this->Segmentation->AddObserver(vtkCommand::ModifiedEvent, this->SegmentationModifiedCallbackCommand);
     this->Segmentation->AddObserver(vtkSegmentation::MasterRepresentationModified, this->SegmentationModifiedCallbackCommand);
     }
 }
@@ -131,8 +131,6 @@ bool vtkSegmentationHistory::SaveState()
   this->LastRestoredState = this->SegmentationStates.size() - 1;
   this->RemoveAllObsoleteStates();
 
-  // TODO: remove this after proper modification observation is fixed
-  this->LastRestoredState = this->SegmentationStates.size();
   this->Modified();
 
   return true;
@@ -162,6 +160,9 @@ bool vtkSegmentationHistory::RestorePreviousState()
     {
     // Save the current state to make sure the user can redo the undo operation
     this->SaveState();
+    // this->SegmentationStates.size() - 1 is the state that we've just saved
+    // this->SegmentationStates.size() - 2 is the state that was the last saved state before
+    stateToRestore = this->SegmentationStates.size() - 2;
     }
   return this->RestoreState(stateToRestore);
 }
@@ -269,6 +270,7 @@ void vtkSegmentationHistory::RemoveAllObsoleteStates()
   while ((this->SegmentationStates.size() > this->MaximumNumberOfStates) && (!this->SegmentationStates.empty()))
     {
     this->SegmentationStates.pop_front();
+    this->LastRestoredState--;
     modified = true;
    }
   if (modified)
@@ -307,8 +309,11 @@ void vtkSegmentationHistory::OnSegmentationModified(vtkObject* vtkNotUsed(caller
     return;
     }
   self->RemoveAllNextStates();
-  self->LastRestoredState = self->SegmentationStates.size();
-  self->Modified();
+  if (self->LastRestoredState != self->SegmentationStates.size())
+    {
+    self->LastRestoredState = self->SegmentationStates.size();
+    self->Modified();
+    }
 }
 
 //---------------------------------------------------------------------------

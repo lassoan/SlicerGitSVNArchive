@@ -145,15 +145,6 @@ void vtkMRMLSegmentationNode::DeepCopy(vtkMRMLNode* aNode)
 
   this->DisableModifiedEventOff();
   this->InvokePendingModifiedEvent(); // This call loses event parameters (i.e. callData)
-
-  // The InvokePendingModifiedEvent call loses event parameters (i.e. callData)
-  // Needed to invoke SegmentAdded events explicitly so that segment subject hierarchy nodes are correctly created
-  vtkSegmentation::SegmentMap segmentMap = this->Segmentation->GetSegments();
-  for (vtkSegmentation::SegmentMap::iterator segmentIt = segmentMap.begin(); segmentIt != segmentMap.end(); ++segmentIt)
-    {
-    const char* segmentIdChars = segmentIt->first.c_str();
-    this->Segmentation->InvokeEvent(vtkSegmentation::SegmentAdded, (void*)segmentIdChars);
-    }
 }
 
 //----------------------------------------------------------------------------
@@ -228,7 +219,7 @@ void vtkMRMLSegmentationNode::SetAndObserveSegmentation(vtkSegmentation* segment
   if (this->Segmentation)
     {
     vtkEventBroker::GetInstance()->RemoveObservations(
-      this->Segmentation, vtkSegmentation::MasterRepresentationModified, this, this->SegmentationModifiedCallbackCommand);
+      this->Segmentation, 0, this, this->SegmentationModifiedCallbackCommand);
     }
 
   this->SetSegmentation(segmentation);
@@ -418,37 +409,6 @@ void vtkMRMLSegmentationNode::OnSubjectHierarchyUIDAdded(vtkMRMLSubjectHierarchy
 }
 
 //----------------------------------------------------------------------------
-void vtkMRMLSegmentationNode::ResetSegmentDisplayProperties()
-{
-  if (!this->Scene)
-    {
-    vtkErrorMacro("ResetSegmentDisplayProperties: Unable to update display properties outside a MRML scene");
-    return;
-    }
-
-  // Clear display properties
-  vtkMRMLSegmentationDisplayNode* displayNode = vtkMRMLSegmentationDisplayNode::SafeDownCast(this->GetDisplayNode());
-  if (displayNode)
-    {
-    displayNode->ClearSegmentDisplayProperties();
-
-    vtkMRMLColorTableNode* colorTableNode = vtkMRMLColorTableNode::SafeDownCast(displayNode->GetColorNode());
-    if (colorTableNode && colorTableNode->GetNumberOfColors() > 0)
-      {
-      colorTableNode->SetNumberOfColors(0);
-      colorTableNode->GetLookupTable()->SetTableRange(0, 0);
-      }
-    }
-
-  // Add display properties for all segments
-  vtkSegmentation::SegmentMap segmentMap = this->Segmentation->GetSegments();
-  for (vtkSegmentation::SegmentMap::iterator segmentIt = segmentMap.begin(); segmentIt != segmentMap.end(); ++segmentIt)
-    {
-    this->AddSegmentDisplayProperties(segmentIt->first);
-    }
-}
-
-//----------------------------------------------------------------------------
 vtkMRMLStorageNode* vtkMRMLSegmentationNode::CreateDefaultStorageNode()
 {
   this->StorableModified(); // Workaround to make save dialog check the segmentation node
@@ -471,9 +431,6 @@ void vtkMRMLSegmentationNode::CreateDefaultDisplayNodes()
   vtkNew<vtkMRMLSegmentationDisplayNode> displayNode;
   this->GetScene()->AddNode(displayNode.GetPointer());
   this->SetAndObserveDisplayNodeID(displayNode->GetID());
-  displayNode->SetBackfaceCulling(0); // Needed only because of the ribbon model normal vectors
-
-  this->ResetSegmentDisplayProperties();
 }
 
 //---------------------------------------------------------------------------

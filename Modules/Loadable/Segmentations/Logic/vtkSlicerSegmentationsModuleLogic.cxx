@@ -1312,15 +1312,11 @@ bool vtkSlicerSegmentationsModuleLogic::SetBinaryLabelmapToSegment(vtkOrientedIm
       }
     }
 
-  // Trigger display update
-  vtkMRMLSegmentationDisplayNode* displayNode = vtkMRMLSegmentationDisplayNode::SafeDownCast(segmentationNode->GetDisplayNode());
-  if (displayNode)
-    {
-    displayNode->Modified();
-    }
-
   // Re-enable master representation modified event
   segmentationNode->GetSegmentation()->SetMasterRepresentationModifiedEnabled(wasMasterRepresentationModifiedEnabled);
+  const char* segmentIdChar = segmentID.c_str();
+  segmentationNode->GetSegmentation()->InvokeEvent(vtkSegmentation::MasterRepresentationModified, (void*)segmentIdChar);
+  segmentationNode->GetSegmentation()->InvokeEvent(vtkSegmentation::RepresentationModified, (void*)segmentIdChar);
 
   return true;
 }

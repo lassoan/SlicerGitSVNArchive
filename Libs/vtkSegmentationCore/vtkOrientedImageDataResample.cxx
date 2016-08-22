@@ -179,6 +179,7 @@ void MergeImageGeneric2(
       modifierImagePtr += modifierIncZ;
       }
     }
+  baseImage->Modified();
 }
 
 //----------------------------------------------------------------------------

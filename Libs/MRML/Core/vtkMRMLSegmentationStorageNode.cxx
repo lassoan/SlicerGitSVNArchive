@@ -928,7 +928,8 @@ int vtkMRMLSegmentationStorageNode::WriteBinaryLabelmapRepresentation(vtkMRMLSeg
     // Set metadata for current segment
     writer->SetAttribute(GetSegmentMetaDataKey(segmentIndex, KEY_SEGMENT_ID).c_str(), currentSegmentID);
     writer->SetAttribute(GetSegmentMetaDataKey(segmentIndex, KEY_SEGMENT_NAME).c_str(), currentSegment->GetName());
-    writer->SetAttribute(GetSegmentMetaDataKey(segmentIndex, KEY_SEGMENT_DEFAULT_COLOR).c_str(), GetSegmentDefaultColorAsString(currentSegment));
+    writer->SetAttribute(GetSegmentMetaDataKey(segmentIndex, KEY_SEGMENT_DEFAULT_COLOR).c_str(),
+      GetSegmentDefaultColorAsString(segmentationNode, currentSegmentID));
     writer->SetAttribute(GetSegmentMetaDataKey(segmentIndex, KEY_SEGMENT_EXTENT).c_str(), GetImageExtentAsString(currentBinaryLabelmapExtent));
     writer->SetAttribute(GetSegmentMetaDataKey(segmentIndex, KEY_SEGMENT_TAGS).c_str(), GetSegmentTagsAsString(currentSegment));
 
@@ -1249,14 +1250,29 @@ void vtkMRMLSegmentationStorageNode::GetImageExtentFromString(int extent[6], std
 }
 
 //----------------------------------------------------------------------------
-std::string vtkMRMLSegmentationStorageNode::GetSegmentDefaultColorAsString(vtkSegment* segment)
+std::string vtkMRMLSegmentationStorageNode::GetSegmentDefaultColorAsString(vtkMRMLSegmentationNode* segmentationNode, const std::string& segmentId)
 {
-  std::stringstream ssDefaultColorValue;
-  double defaultColor[3] = { 0.5, 0.5, 0.5 };
-  if (segment)
+  // Instead of saving the default color (that was set when the segment was created)
+  // we try to retrieve the latest color setting from the first segment display node.
+  // TODO: We should not get any information from the display node here but instead store segment description using standard terminologies.
+  // That description could be stored in the segmentation node and could be used to get a default color by using terminology infrastructure.
+  vtkVector3d defaultColor(0.5, 0.5, 0.5);
+  vtkMRMLSegmentationDisplayNode* displayNode = vtkMRMLSegmentationDisplayNode::SafeDownCast(segmentationNode->GetDisplayNode());
+  if (displayNode)
     {
-    segment->GetDefaultColor(defaultColor);
+    defaultColor = displayNode->GetSegmentColor(segmentId);
     }
+  else
+    {
+    vtkSegment* segment = segmentationNode->GetSegmentation()->GetSegment(segmentId);
+    if (segment)
+      {
+      double defaultColorVec[3] = { 0.5, 0.5, 0.5 };
+      segment->GetDefaultColor(defaultColorVec);
+      defaultColor = vtkVector3d(defaultColorVec);
+      }
+    }
+  std::stringstream ssDefaultColorValue;
   ssDefaultColorValue << defaultColor[0] << " " << defaultColor[1] << " " << defaultColor[2];
   std::string defaultColorValue = ssDefaultColorValue.str();
   return defaultColorValue;

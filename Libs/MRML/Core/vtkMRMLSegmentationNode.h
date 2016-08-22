@@ -179,13 +179,6 @@ public:
   virtual void SetSceneReferences();
 
 protected:
-  /// Add display properties for segment with given ID
-  virtual bool AddSegmentDisplayProperties(std::string segmentId);
-
-  /// Reset all display related data
-  virtual void ResetSegmentDisplayProperties();
-
-protected:
   /// Set segmentation object
   vtkSetObjectMacro(Segmentation, vtkSegmentation);
 
