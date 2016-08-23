@@ -76,8 +76,12 @@ void vtkSegmentationHistory::SetSegmentation(vtkSegmentation* segmentation)
   vtkSetObjectBodyMacro(Segmentation, vtkSegmentation, segmentation);
   if (this->Segmentation)
     {
-    //this->Segmentation->AddObserver(vtkCommand::ModifiedEvent, this->SegmentationModifiedCallbackCommand);
+    // These events invalidate future states (no redo will be available after these)
+    this->Segmentation->AddObserver(vtkSegmentation::SegmentAdded, this->SegmentationModifiedCallbackCommand);
+    this->Segmentation->AddObserver(vtkSegmentation::SegmentRemoved, this->SegmentationModifiedCallbackCommand);
     this->Segmentation->AddObserver(vtkSegmentation::MasterRepresentationModified, this->SegmentationModifiedCallbackCommand);
+    //this->Segmentation->AddObserver(vtkSegmentation::ContainedRepresentationNamesModified, this->SegmentationModifiedCallbackCommand);
+    //this->Segmentation->AddObserver(vtkSegmentation::SegmentModified, this->SegmentationModifiedCallbackCommand);
     }
 }
 
@@ -128,7 +132,7 @@ bool vtkSegmentationHistory::SaveState()
     }
   this->SegmentationStates.push_back(newSegmentationState);
   // Set the current state as last restored state
-  this->LastRestoredState = this->SegmentationStates.size() - 1;
+  this->LastRestoredState = this->SegmentationStates.size();
   this->RemoveAllObsoleteStates();
 
   this->Modified();

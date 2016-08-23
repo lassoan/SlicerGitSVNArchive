@@ -359,3 +359,11 @@ void vtkSegment::ExtendBounds(double partialBounds[6], double globalBounds[6])
     globalBounds[5] = partialBounds[5];
     }
 }
+
+//---------------------------------------------------------------------------
+void vtkSegment::SetDefaultColorWithoutModifiedEvent(double color[3])
+{
+  this->DefaultColor[0] = color[0];
+  this->DefaultColor[1] = color[1];
+  this->DefaultColor[2] = color[2];
+}

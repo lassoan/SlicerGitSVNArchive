@@ -43,6 +43,7 @@
 
 // STD includes
 #include <algorithm>
+#include <vector>
 
 //----------------------------------------------------------------------------
 vtkMRMLNodeNewMacro(vtkMRMLSegmentationDisplayNode);
@@ -370,6 +371,18 @@ void vtkMRMLSegmentationDisplayNode::SetSegmentDisplayProperties(std::string seg
 
   // Set color in color table too
   this->SetSegmentColorTableEntry(segmentId, properties.Color[0], properties.Color[1], properties.Color[2]);
+  // Save cached value of color
+  // TODO: remove this when terminology infrastructure is in place
+  vtkMRMLSegmentationNode* segmentationNode = vtkMRMLSegmentationNode::SafeDownCast(this->GetDisplayableNode());
+  if (segmentationNode)
+    {
+    vtkSegmentation* segmentation = segmentationNode->GetSegmentation();
+    vtkSegment* segment = segmentation->GetSegment(segmentId);
+    if (segment)
+      {
+      segment->SetDefaultColorWithoutModifiedEvent(properties.Color);
+      }
+    }
 
   if (modified)
     {
@@ -1082,44 +1095,52 @@ void vtkMRMLSegmentationDisplayNode::UpdateSegmentList()
 
   int wasModifyingColorTableNode = colorTableNode->StartModify();
 
-  // Remove orphan segment display properties and colors
+  // Remove unused segment display properties and colors
+  // Get list of segment IDs that we have display properties for but does not exist in
+  // the segmentation anymore.
+  std::vector<std::string> orphanSegmentIds;
   for (SegmentDisplayPropertiesMap::iterator it = this->SegmentationDisplayProperties.begin();
     it != this->SegmentationDisplayProperties.end(); ++it)
-  {
-    const char* segmentId = it->first.c_str();
-    if (segmentation->GetSegment(segmentId) != NULL)
+    {
+    if (segmentation->GetSegment(it->first) == NULL)
       {
-      // the segment exists, keep its display properties
-      continue;
+      // the segment does not exist in segmentation
+      orphanSegmentIds.push_back(it->first);
       }
-
-    // The segment is not in the segmentation anymore
-
+    }
+  // Delete unused properties and color table entries
+  for (std::vector<std::string>::iterator orphanSegmentIdIt = orphanSegmentIds.begin();
+    orphanSegmentIdIt != orphanSegmentIds.end(); ++orphanSegmentIdIt)
+    {
     // Remove segment display properies
-    this->RemoveSegmentDisplayProperties(it->first);
-
+    this->RemoveSegmentDisplayProperties(*orphanSegmentIdIt);
     // Remove segment entry from color table
-    int colorIndex = colorTableNode->GetColorIndexByName(segmentId);
-    if (colorIndex < 0)
+    int colorIndex = colorTableNode->GetColorIndexByName(orphanSegmentIdIt->c_str());
+    if (colorIndex >= 0)
       {
-      continue;
+      colorTableNode->SetColor(colorIndex, vtkMRMLSegmentationDisplayNode::GetSegmentationColorNameRemoved(),
+        vtkSegment::SEGMENT_COLOR_VALUE_INVALID[0], vtkSegment::SEGMENT_COLOR_VALUE_INVALID[1],
+        vtkSegment::SEGMENT_COLOR_VALUE_INVALID[2], vtkSegment::SEGMENT_COLOR_VALUE_INVALID[3]);
       }
-    colorTableNode->SetColor(colorIndex, vtkMRMLSegmentationDisplayNode::GetSegmentationColorNameRemoved(),
-      vtkSegment::SEGMENT_COLOR_VALUE_INVALID[0], vtkSegment::SEGMENT_COLOR_VALUE_INVALID[1],
-      vtkSegment::SEGMENT_COLOR_VALUE_INVALID[2], vtkSegment::SEGMENT_COLOR_VALUE_INVALID[3]);
-  }
+    }
 
   // Add missing segment display properties
+  // Get segmend list of segments that do not have display properties.
   vtkSegmentation::SegmentMap segmentMap = segmentation->GetSegments();
-  std::vector<std::string> mergedSegmentIDs;
+  std::vector<std::string> missingSegmentIDs;
   for (vtkSegmentation::SegmentMap::iterator segmentIt = segmentMap.begin(); segmentIt != segmentMap.end(); ++segmentIt)
     {
-    if (this->SegmentationDisplayProperties.find(segmentIt->first) != this->SegmentationDisplayProperties.end())
+    if (this->SegmentationDisplayProperties.find(segmentIt->first) == this->SegmentationDisplayProperties.end())
       {
-      // this segments already has properties
-      continue;
+      // the segment does not exist in segmentation
+      missingSegmentIDs.push_back(segmentIt->first);
       }
-    SetSegmentDisplayPropertiesToDefault(segmentIt->first);
+    }
+  // Add missing properties
+  for (std::vector<std::string>::iterator missingSegmentIdIt = missingSegmentIDs.begin();
+    missingSegmentIdIt != missingSegmentIDs.end(); ++missingSegmentIdIt)
+    {
+    SetSegmentDisplayPropertiesToDefault(*missingSegmentIdIt);
     }
 
   colorTableNode->EndModify(wasModifyingColorTableNode);

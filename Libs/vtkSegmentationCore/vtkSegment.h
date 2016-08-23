@@ -116,6 +116,12 @@ public:
   vtkGetVector3Macro(DefaultColor, double);
   vtkSetVector3Macro(DefaultColor, double);
 
+  /// Set default color without triggering modified event.
+  /// This is a temporary hack for allowing changing default color
+  /// when color in display node is changed.
+  /// TODO: remove this when terminology infrastructure is in place.
+  void SetDefaultColorWithoutModifiedEvent(double color[3]);
+
 protected:
   vtkSegment();
   ~vtkSegment();
