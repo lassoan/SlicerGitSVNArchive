@@ -184,7 +184,7 @@ void vtkSegment::DeepCopy(vtkSegment* source)
     }
 
   // Remove representations that are not in the source segment
-  for (reprIt = this->Representations.begin(); reprIt != source->Representations.end();
+  for (reprIt = this->Representations.begin(); reprIt != this->Representations.end();
     /*upon deletion the increment is done already, so don't increment here*/)
     {
     if (representationNamesToKeep.find(reprIt->first) == representationNamesToKeep.end())
