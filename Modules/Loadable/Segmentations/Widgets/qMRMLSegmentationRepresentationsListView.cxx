@@ -58,7 +58,7 @@ public:
 
 public:
   /// Segmentation MRML node containing shown segments
-  vtkMRMLSegmentationNode* SegmentationNode;
+  vtkWeakPointer<vtkMRMLSegmentationNode> SegmentationNode;
 
 private:
   QStringList ColumnLabels;
@@ -120,8 +120,12 @@ qMRMLSegmentationRepresentationsListView::~qMRMLSegmentationRepresentationsListV
 void qMRMLSegmentationRepresentationsListView::setSegmentationNode(vtkMRMLNode* node)
 {
   Q_D(qMRMLSegmentationRepresentationsListView);
-
   vtkMRMLSegmentationNode* segmentationNode = vtkMRMLSegmentationNode::SafeDownCast(node);
+  if (d->SegmentationNode == segmentationNode)
+    {
+    // no change
+    return;
+    }
 
   qvtkReconnect( d->SegmentationNode, segmentationNode, vtkSegmentation::MasterRepresentationModified,
                  this, SLOT( populateRepresentationsList() ) );
@@ -154,14 +158,14 @@ void qMRMLSegmentationRepresentationsListView::populateRepresentationsList()
   d->setMessage(QString());
 
   // Block signals so that onMasterRepresentationChanged function is not called when populating
-  d->RepresentationsList->blockSignals(true);
+  bool wasBlocked = d->RepresentationsList->blockSignals(true);
 
   d->RepresentationsList->clear();
 
   if (!d->SegmentationNode)
     {
     d->setMessage(tr("No node is selected"));
-    d->RepresentationsList->blockSignals(false);
+    d->RepresentationsList->blockSignals(wasBlocked);
     return;
     }
 
@@ -297,7 +301,7 @@ void qMRMLSegmentationRepresentationsListView::populateRepresentationsList()
     }
 
   // Unblock signals
-  d->RepresentationsList->blockSignals(false);
+  d->RepresentationsList->blockSignals(wasBlocked);
 }
 
 //-----------------------------------------------------------------------------

@@ -250,10 +250,6 @@ void vtkMRMLSegmentationNode::SegmentationModifiedCallback(vtkObject* vtkNotUsed
     {
     return;
     }
-  if (self->Scene && self->Scene->IsImporting())
-    {
-    return;
-    }
   if (!self->Segmentation)
     {
     // this object is being deleted
