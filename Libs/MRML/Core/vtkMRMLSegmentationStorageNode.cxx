@@ -563,11 +563,7 @@ int vtkMRMLSegmentationStorageNode::ReadBinaryLabelmapRepresentation(vtkMRMLSegm
     std::string defaultColorValue = reader->GetHeaderValue(GetSegmentMetaDataKey(segmentIndex, KEY_SEGMENT_DEFAULT_COLOR).c_str());
     double currentSegmentDefaultColor[3] = { 0.0, 0.0, 0.0 };
     GetSegmentDefaultColorFromString(currentSegmentDefaultColor, defaultColorValue);
-
-    // Extent
-    std::string extentValue = reader->GetHeaderValue(GetSegmentMetaDataKey(segmentIndex, KEY_SEGMENT_EXTENT).c_str());
-    int currentSegmentExtent[6] = { 0, -1, 0, -1, 0, -1 };
-    GetImageExtentFromString(currentSegmentExtent, extentValue);
+    currentSegment->SetDefaultColor(currentSegmentDefaultColor);
 
     // Tags
     std::string tagsValue = reader->GetHeaderValue(GetSegmentMetaDataKey(segmentIndex, KEY_SEGMENT_TAGS).c_str());
@@ -575,6 +571,11 @@ int vtkMRMLSegmentationStorageNode::ReadBinaryLabelmapRepresentation(vtkMRMLSegm
 
     // Create binary labelmap volume
     vtkSmartPointer<vtkOrientedImageData> currentBinaryLabelmap = vtkSmartPointer<vtkOrientedImageData>::New();
+
+    // Extent
+    std::string extentValue = reader->GetHeaderValue(GetSegmentMetaDataKey(segmentIndex, KEY_SEGMENT_EXTENT).c_str());
+    int currentSegmentExtent[6] = { 0, -1, 0, -1, 0, -1 };
+    GetImageExtentFromString(currentSegmentExtent, extentValue);
 
     // Copy with clipping to specified extent
     if (currentSegmentExtent[0] <= currentSegmentExtent[1]

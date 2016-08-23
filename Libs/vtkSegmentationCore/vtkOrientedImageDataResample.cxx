@@ -181,7 +181,7 @@ void MergeImageGeneric2(
           baseImagePtr++;
           modifierImagePtr++;
         }
-        modifierImagePtr += modifierIncY;
+        baseImagePtr += baseIncY;
         modifierImagePtr += modifierIncY;
         }
       baseImagePtr += baseIncZ;
