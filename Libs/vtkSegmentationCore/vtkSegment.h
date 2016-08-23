@@ -52,7 +52,10 @@ public:
   void WriteXML(ostream& of, int nIndent);
 
   /// Deep copy one segment into another
-  virtual void DeepCopy(vtkSegment* aSegment);
+  virtual void DeepCopy(vtkSegment* source);
+
+  /// Deep copy metadata (i.e., all data but representations) one segment into another
+  virtual void DeepCopyMetadata(vtkSegment* source);
 
   /// Get bounding box in global RAS in the form (xmin,xmax, ymin,ymax, zmin,zmax).
   virtual void GetBounds(double bounds[6]);

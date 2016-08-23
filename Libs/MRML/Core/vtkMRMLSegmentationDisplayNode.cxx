@@ -26,7 +26,7 @@
 // MRML includes
 #include <vtkMRMLScene.h>
 #include <vtkMRMLColorTableNode.h>
-
+#include <vtkMRMLSegmentationNode.h>
 // SegmentationCore includes
 #include "vtkSegmentation.h"
 #include "vtkOrientedImageData.h"
