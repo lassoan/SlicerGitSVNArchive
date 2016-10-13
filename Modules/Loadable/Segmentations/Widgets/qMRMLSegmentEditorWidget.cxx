@@ -341,7 +341,7 @@ void qMRMLSegmentEditorWidgetPrivate::init()
 
   // Define default effect order
   this->DefaultEffectOrder << "Paint" << "Draw" << "Erase" << "Wand" << "LevelTracing"
-    << "Scissors" << "Margin"  << "GrowCut" << "Threshold" << "Logical"; //TODO: Add island effects, etc.
+    << "Scissors" << "Margin"  << "AutoComplete" << "Threshold" << "Logical";
 
   // Instantiate and expose effects
   this->initializeEffects();

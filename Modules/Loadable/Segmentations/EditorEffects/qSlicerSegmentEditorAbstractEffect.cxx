@@ -626,6 +626,13 @@ void qSlicerSegmentEditorAbstractEffect::addOptionsWidget(QWidget* newOptionsWid
 }
 
 //-----------------------------------------------------------------------------
+void qSlicerSegmentEditorAbstractEffect::addOptionsWidget(QLayout* newOptionsWidget)
+{
+  Q_D(qSlicerSegmentEditorAbstractEffect);
+  this->optionsLayout()->addRow(newOptionsWidget);
+}
+
+//-----------------------------------------------------------------------------
 QWidget* qSlicerSegmentEditorAbstractEffect::addLabeledOptionsWidget(QString label, QWidget* newOptionsWidget)
 {
   Q_D(qSlicerSegmentEditorAbstractEffect);
