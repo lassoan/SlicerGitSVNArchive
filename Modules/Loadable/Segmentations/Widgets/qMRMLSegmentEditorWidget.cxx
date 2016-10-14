@@ -823,6 +823,12 @@ void qMRMLSegmentEditorWidgetPrivate::updateEffectsEnabled()
 void qMRMLSegmentEditorWidgetPrivate::setEffectCursor(qSlicerSegmentEditorAbstractEffect* effect)
 {
   qSlicerLayoutManager* layoutManager = qSlicerApplication::application()->layoutManager();
+  if (!layoutManager)
+    {
+    // application is closing
+    return;
+    }
+
   foreach(QString sliceViewName, layoutManager->sliceViewNames())
     {
     qMRMLSliceWidget* sliceWidget = layoutManager->sliceWidget(sliceViewName);

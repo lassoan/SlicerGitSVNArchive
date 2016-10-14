@@ -107,8 +107,20 @@ a complete segmentation, taking into account the master volume content.
     self.updateGUIFromMRML()
 
   def onApply(self):
+    import vtkSegmentationCorePython as vtkSegmentationCore
+    segmentationNode = self.scriptedEffect.parameterSetNode().GetSegmentationNode()
     previewNode = self.scriptedEffect.parameterSetNode().GetNodeReference(ResultPreviewNodeReferenceRole)
-    # TODO: move segments into current segmentation
+
+    # Move segments from preview into current segmentation
+    segmentIDs = vtk.vtkStringArray()
+    previewNode.GetSegmentation().GetSegmentIDs(segmentIDs)
+    for index in xrange(segmentIDs.GetNumberOfValues()):
+      segmentID = segmentIDs.GetValue(index)
+      previewSegment = previewNode.GetSegmentation().GetSegment(segmentID)
+      previewSegmentLabelmap = previewSegment.GetRepresentation(vtkSegmentationCore.vtkSegmentationConverter.GetSegmentationBinaryLabelmapRepresentationName())
+      slicer.vtkSlicerSegmentationsModuleLogic.SetBinaryLabelmapToSegment(previewSegmentLabelmap, segmentationNode, segmentID)
+      previewNode.GetSegmentation().RemoveSegment(segmentID) # delete now to limit memory usage
+
     if previewNode:
       self.scriptedEffect.parameterSetNode().SetNodeReferenceID(ResultPreviewNodeReferenceRole, None)
       slicer.mrmlScene.RemoveNode(previewNode)
@@ -197,17 +209,15 @@ a complete segmentation, taking into account the master volume content.
     previewNode = self.scriptedEffect.parameterSetNode().GetNodeReference(ResultPreviewNodeReferenceRole)
     if not previewNode:
       previewNode = slicer.mrmlScene.CreateNodeByClass('vtkMRMLSegmentationNode')
-      #referenceImageGeometry = segmentationNode.GetSegmentation().GetConversionParameter(
-      #  vtkSegmentationCore.vtkSegmentationConverter.GetReferenceImageGeometryParameterName())
-      #previewNode.GetSegmentation().SetConversionParameter(
-      #  vtkSegmentationCore.vtkSegmentationConverter.GetReferenceImageGeometryParameterName(), referenceImageGeometry)
       previewNode = slicer.mrmlScene.AddNode(previewNode)
       previewNode.CreateDefaultDisplayNodes()
+      previewNode.GetDisplayNode().SetVisibility2DOutline(False)
       if segmentationNode.GetParentTransformNode():
         previewNode.SetAndObserveTransformNodeID(segmentationNode.GetParentTransformNode().GetID())
       self.scriptedEffect.parameterSetNode().SetNodeReferenceID(ResultPreviewNodeReferenceRole, previewNode.GetID())
-    else:
-      previewNode.GetSegmentation().RemoveAllSegments()
+
+    previewNode.GetSegmentation().RemoveAllSegments()
+    previewNode.SetName(segmentationNode.GetName()+" preview")
 
     # Write output segmentation results in segments
     segmentIDs = vtk.vtkStringArray()
@@ -240,10 +250,8 @@ a complete segmentation, taking into account the master volume content.
       newSegmentLabelmap = vtkSegmentationCore.vtkOrientedImageData()
       newSegmentLabelmap.ShallowCopy(thresh.GetOutput())
       newSegmentLabelmap.CopyDirections(mergedImage)
-      #slicer.vtkSlicerSegmentationsModuleLogic.SetBinaryLabelmapToSegment(newSegmentLabelmap,
-      #  segmentationNode, segmentID, slicer.vtkSlicerSegmentationsModuleLogic.MODE_REPLACE, newSegmentLabelmap.GetExtent())
       newSegment = vtkSegmentationCore.vtkSegment()
-      maybe set name to avoid crash when hovering over?
+      newSegment.SetName(segment.GetName())
       previewNode.GetSegmentation().AddSegment(newSegment, segmentID)
       slicer.vtkSlicerSegmentationsModuleLogic.SetBinaryLabelmapToSegment(newSegmentLabelmap, previewNode, segmentID)
 
