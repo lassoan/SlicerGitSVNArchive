@@ -1,12 +1,12 @@
 #ifndef FASTGROWCUT_H
 #define FASTGROWCUT_H
 
-#include "vtkSlicerSegmentEditorFastGrowCutModuleLogicExport.h"
+#include "vtkSlicerSegmentationsModuleLogicExport.h"
 
 #include <vtkImageAlgorithm.h>
 #include <vtkImageData.h>
 
-class VTK_SLICER_SEGMENTEDITORFASTGROWCUT_MODULE_LOGIC_EXPORT vtkFastGrowCutSeg : public vtkImageAlgorithm
+class VTK_SLICER_SEGMENTATIONS_LOGIC_EXPORT vtkFastGrowCutSeg : public vtkImageAlgorithm
 {
 public:
   static vtkFastGrowCutSeg* New();

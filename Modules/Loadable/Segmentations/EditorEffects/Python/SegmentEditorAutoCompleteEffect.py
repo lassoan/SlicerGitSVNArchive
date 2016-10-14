@@ -15,6 +15,10 @@ class SegmentEditorAutoCompleteEffect(AbstractScriptedSegmentEditorEffect):
     # This means that while this effect is active, no segment can be selected
     scriptedEffect.perSegment = False
     AbstractScriptedSegmentEditorEffect.__init__(self, scriptedEffect)
+    # Stores merged labelmap image geometry (voxel data is not allocated)
+    self.mergedLabelmapGeometryImage = None
+    self.selectedSegmentIds = None
+    self.clippedMasterImageData = None
 
   def clone(self):
     import qSlicerSegmentationsEditorEffectsPythonQt as effects
@@ -37,8 +41,8 @@ Masking settings are bypassed. Minimum two segments are required. If segments ov
 
   def setupOptionsFrame(self):
     self.methodSelectorComboBox = qt.QComboBox()
-    self.methodSelectorComboBox.addItem("Fill between slices", MORPHOLOGICAL_SLICE_INTERPOLATION)
-    self.methodSelectorComboBox.addItem("Expand segments", GROWCUT)
+    self.methodSelectorComboBox.addItem("Fill between parallel slices", MORPHOLOGICAL_SLICE_INTERPOLATION)
+    self.methodSelectorComboBox.addItem("Grow from seeds", GROWCUT)
     self.methodSelectorComboBox.setToolTip("""<html>Auto-complete methods:<ul style="margin: 0">
 <li><b>Fill between slices:</b> Perform complete segmentation on selected slices using any editor effect.
 The complete segmentation will be created by interpolating segmentations on slices that were skipped.</li>
@@ -99,12 +103,18 @@ a complete segmentation, taking into account the master volume content.
     self.scriptedEffect.saveStateForUndo()
     self.preview()
 
-  def onCancel(self):
+  def reset(self):
     previewNode = self.scriptedEffect.parameterSetNode().GetNodeReference(ResultPreviewNodeReferenceRole)
     if previewNode:
       self.scriptedEffect.parameterSetNode().SetNodeReferenceID(ResultPreviewNodeReferenceRole, None)
       slicer.mrmlScene.RemoveNode(previewNode)
+    self.mergedLabelmapGeometryImage = None
+    self.selectedSegmentIds = None
+    self.clippedMasterImageData = None
     self.updateGUIFromMRML()
+
+  def onCancel(self):
+    self.reset()
 
   def onApply(self):
     import vtkSegmentationCorePython as vtkSegmentationCore
@@ -121,10 +131,7 @@ a complete segmentation, taking into account the master volume content.
       slicer.vtkSlicerSegmentationsModuleLogic.SetBinaryLabelmapToSegment(previewSegmentLabelmap, segmentationNode, segmentID)
       previewNode.GetSegmentation().RemoveSegment(segmentID) # delete now to limit memory usage
 
-    if previewNode:
-      self.scriptedEffect.parameterSetNode().SetNodeReferenceID(ResultPreviewNodeReferenceRole, None)
-      slicer.mrmlScene.RemoveNode(previewNode)
-    self.updateGUIFromMRML()
+    self.reset()
 
   def preview(self):
     # Get master volume image data
@@ -133,22 +140,61 @@ a complete segmentation, taking into account the master volume content.
     # Get segmentation
     segmentationNode = self.scriptedEffect.parameterSetNode().GetSegmentationNode()
 
-    # Generate merged labelmap as input to AutoComplete
+    previewNode = self.scriptedEffect.parameterSetNode().GetNodeReference(ResultPreviewNodeReferenceRole)
+    if not previewNode:
+      # Compute merged labelmap extent (effective extent slightly expanded)
+      self.selectedSegmentIds = vtk.vtkStringArray()
+      segmentationNode.GetDisplayNode().GetVisibleSegmentIDs(self.selectedSegmentIds)
+      minimumNumberOfSegments = 2 if method == GROWCUT else 1
+      if self.selectedSegmentIds.GetNumberOfValues() < minimumNumberOfSegments:
+        logging.info("Auto-complete operation skipped: at least {0} visible segments are required".format(minimumNumberOfSegments))
+        return
+      if not self.mergedLabelmapGeometryImage:
+        self.mergedLabelmapGeometryImage = vtkSegmentationCore.vtkOrientedImageData()
+      commonGeometryString = segmentationNode.GetSegmentation().DetermineCommonLabelmapGeometry(
+        vtkSegmentationCore.vtkSegmentation.EXTENT_UNION_OF_EFFECTIVE_SEGMENTS, self.selectedSegmentIds)
+      if not commonGeometryString:
+        logging.info("Auto-complete operation skipped: all visible segments are empty")
+        return
+      vtkSegmentationCore.vtkSegmentationConverter.DeserializeImageGeometry(commonGeometryString, self.mergedLabelmapGeometryImage)
+
+      masterImageExtent = masterImageData.GetExtent()
+      labelsEffectiveExtent = self.mergedLabelmapGeometryImage.GetExtent()
+      margin = [17, 17, 17]
+      labelsExpandedExtent = [
+        max(masterImageExtent[0], labelsEffectiveExtent[0]-margin[0]),
+        min(masterImageExtent[1], labelsEffectiveExtent[1]+margin[0]),
+        max(masterImageExtent[2], labelsEffectiveExtent[2]-margin[1]),
+        min(masterImageExtent[3], labelsEffectiveExtent[3]+margin[1]),
+        max(masterImageExtent[4], labelsEffectiveExtent[4]-margin[2]),
+        min(masterImageExtent[5], labelsEffectiveExtent[5]+margin[2]) ]
+      self.mergedLabelmapGeometryImage.SetExtent(labelsExpandedExtent)
+
+      previewNode = slicer.mrmlScene.CreateNodeByClass('vtkMRMLSegmentationNode')
+      previewNode = slicer.mrmlScene.AddNode(previewNode)
+      previewNode.CreateDefaultDisplayNodes()
+      previewNode.GetDisplayNode().SetVisibility2DOutline(False)
+      if segmentationNode.GetParentTransformNode():
+        previewNode.SetAndObserveTransformNodeID(segmentationNode.GetParentTransformNode().GetID())
+      self.scriptedEffect.parameterSetNode().SetNodeReferenceID(ResultPreviewNodeReferenceRole, previewNode.GetID())
+
+      self.clippedMasterImageData = vtkSegmentationCore.vtkOrientedImageData()
+      masterImageClipper = vtk.vtkImageConstantPad()
+      masterImageClipper.SetInputData(masterImageData)
+      masterImageClipper.SetOutputWholeExtent(self.mergedLabelmapGeometryImage.GetExtent())
+      masterImageClipper.Update()
+      self.clippedMasterImageData.ShallowCopy(masterImageClipper.GetOutput())
+      self.clippedMasterImageData.CopyDirections(self.mergedLabelmapGeometryImage)
+
+    previewNode.GetSegmentation().RemoveAllSegments()
+    previewNode.SetName(segmentationNode.GetName()+" preview")
+
     mergedImage = vtkSegmentationCore.vtkOrientedImageData()
-    segmentationNode.GenerateMergedLabelmapForAllSegments(mergedImage, vtkSegmentationCore.vtkSegmentation.EXTENT_UNION_OF_EFFECTIVE_SEGMENTS, masterImageData)
+    segmentationNode.GenerateMergedLabelmapForAllSegments(mergedImage,
+      vtkSegmentationCore.vtkSegmentation.EXTENT_UNION_OF_EFFECTIVE_SEGMENTS, self.mergedLabelmapGeometryImage, self.selectedSegmentIds)
 
     # Make a zero-valued volume for the output
     outputLabelmap = vtkSegmentationCore.vtkOrientedImageData()
-    thresh = vtk.vtkImageThreshold()
-    thresh.ReplaceInOn()
-    thresh.ReplaceOutOn()
-    thresh.SetInValue(0)
-    thresh.SetOutValue(0)
-    thresh.SetOutputScalarType( vtk.VTK_SHORT )
-    thresh.SetInputData( mergedImage )
-    thresh.SetOutput( outputLabelmap )
-    thresh.Update()
-    outputLabelmap.DeepCopy( mergedImage ) #TODO: It was thresholded just above, why deep copy now?
 
     method = self.scriptedEffect.parameter("AutoCompleteMethod")
 
@@ -160,45 +206,13 @@ a complete segmentation, taking into account the master volume content.
         outputLabelmap.DeepCopy(interpolator.GetOutput())
 
     elif method == GROWCUT:
-      # Cast master image if not short
-      if masterImageData.GetScalarType() != vtk.VTK_SHORT:
-        imageCast = vtk.vtkImageCast()
-        imageCast.SetInputData(masterImageData)
-        imageCast.SetOutputScalarTypeToShort()
-        imageCast.ClampOverflowOn()
-        imageCast.Update()
-        masterImageDataShort = vtkSegmentationCore.vtkOrientedImageData()
-        masterImageDataShort.DeepCopy(imageCast.GetOutput()) # Copy image data
-        masterImageDataShort.CopyDirections(masterImageData) # Copy geometry
-        masterImageData = masterImageDataShort
 
-      # Perform grow cut
-      import vtkITK
-      growCutFilter = vtkITK.vtkITKGrowCutSegmentationImageFilter()
-      growCutFilter.SetInputData( 0, masterImageData )
-      growCutFilter.SetInputData( 1, mergedImage )
-      #TODO: This call sets an empty image for the optional "previous segmentation", and
-      #      is apparently needed for the first segmentation too. Why?
-      growCutFilter.SetInputConnection( 2, thresh.GetOutputPort() )
+      #TODO: get common effective extent from merged labelmap size, pad with zeros, clip master to padded extent
 
-      #TODO: These are magic numbers inherited from EditorLib/AutoComplete.py
-      objectSize = 5.
-      contrastNoiseRatio = 0.8
-      priorStrength = 0.003
-      segmented = 2
-      conversion = 1000
-
-      spacing = mergedImage.GetSpacing()
-      voxelVolume = reduce(lambda x,y: x*y, spacing)
-      voxelAmount = objectSize / voxelVolume
-      voxelNumber = round(voxelAmount) * conversion
-
-      cubeRoot = 1./3.
-      oSize = int(round(pow(voxelNumber,cubeRoot)))
-
-      growCutFilter.SetObjectSize( oSize )
-      growCutFilter.SetContrastNoiseRatio( contrastNoiseRatio )
-      growCutFilter.SetPriorSegmentConfidence( priorStrength )
+      import vtkSlicerSegmentationsModuleLogicPython as vtkSlicerSegmentationsModuleLogic
+      growCutFilter = vtkSlicerSegmentationsModuleLogic.vtkFastGrowCutSeg()
+      growCutFilter.SetSourceVol(self.clippedMasterImageData)
+      growCutFilter.SetSeedVol(mergedImage)
       growCutFilter.Update()
 
       outputLabelmap.DeepCopy( growCutFilter.GetOutput() )
@@ -206,22 +220,9 @@ a complete segmentation, taking into account the master volume content.
       logging.error("Invalid auto-complete method {0}".format(smoothingMethod))
       return
 
-    previewNode = self.scriptedEffect.parameterSetNode().GetNodeReference(ResultPreviewNodeReferenceRole)
-    if not previewNode:
-      previewNode = slicer.mrmlScene.CreateNodeByClass('vtkMRMLSegmentationNode')
-      previewNode = slicer.mrmlScene.AddNode(previewNode)
-      previewNode.CreateDefaultDisplayNodes()
-      previewNode.GetDisplayNode().SetVisibility2DOutline(False)
-      if segmentationNode.GetParentTransformNode():
-        previewNode.SetAndObserveTransformNodeID(segmentationNode.GetParentTransformNode().GetID())
-      self.scriptedEffect.parameterSetNode().SetNodeReferenceID(ResultPreviewNodeReferenceRole, previewNode.GetID())
-
-    previewNode.GetSegmentation().RemoveAllSegments()
-    previewNode.SetName(segmentationNode.GetName()+" preview")
-
     # Write output segmentation results in segments
     segmentIDs = vtk.vtkStringArray()
-    segmentationNode.GetSegmentation().GetSegmentIDs(segmentIDs)
+    segmentationNode.GetDisplayNode().GetVisibleSegmentIDs(segmentIDs)
     for index in xrange(segmentIDs.GetNumberOfValues()):
       segmentID = segmentIDs.GetValue(index)
       segment = segmentationNode.GetSegmentation().GetSegment(segmentID)
@@ -253,6 +254,7 @@ a complete segmentation, taking into account the master volume content.
       newSegment = vtkSegmentationCore.vtkSegment()
       newSegment.SetName(segment.GetName())
       previewNode.GetSegmentation().AddSegment(newSegment, segmentID)
+      previewNode.GetDisplayNode().SetSegmentColor(segmentID, segmentationNode.GetDisplayNode().GetSegmentColor(segmentID))
       slicer.vtkSlicerSegmentationsModuleLogic.SetBinaryLabelmapToSegment(newSegmentLabelmap, previewNode, segmentID)
 
     self.updateGUIFromMRML()
