@@ -135,7 +135,7 @@ a complete segmentation, taking into account the master volume content.
 
     # Generate merged labelmap as input to AutoComplete
     mergedImage = vtkSegmentationCore.vtkOrientedImageData()
-    segmentationNode.GenerateMergedLabelmapForAllSegments(mergedImage, vtkSegmentationCore.vtkSegmentation.EXTENT_UNION_OF_SEGMENTS, masterImageData)
+    segmentationNode.GenerateMergedLabelmapForAllSegments(mergedImage, vtkSegmentationCore.vtkSegmentation.EXTENT_UNION_OF_EFFECTIVE_SEGMENTS, masterImageData)
 
     # Make a zero-valued volume for the output
     outputLabelmap = vtkSegmentationCore.vtkOrientedImageData()
