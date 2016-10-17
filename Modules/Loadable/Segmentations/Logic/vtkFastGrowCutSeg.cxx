@@ -9,9 +9,12 @@ const int VTKDistPixelType = VTK_FLOAT;
 
 #include <vtkInformation.h>
 #include <vtkInformationVector.h>
+#include <vtkLoggingMacros.h>
+#include <vtkNew.h>
 #include <vtkObjectFactory.h>
 #include <vtkSmartPointer.h>
 #include <vtkStreamingDemandDrivenPipeline.h>
+#include <vtkTimerLog.h>
 
 #include "FibHeap.h"
 
@@ -490,11 +493,16 @@ void vtkFastGrowCutSeg::ExecuteDataWithInformation(
 
   //TODO: check if source and seed volumes have the same size, origin, spacing
 
+  vtkNew<vtkTimerLog> logger;
+  logger->StartTimer();
+
   switch (sourceVol->GetScalarType())
   {
     vtkTemplateMacro(this->Internal->ExecuteGrowCut<VTK_TT>(sourceVol, seedVol, outVol));
     break;
   }
+  logger->StopTimer();
+  vtkInfoMacro(<< "vtkFastGrowCutSeg execution time: " << logger->GetElapsedTime());
 }
 
 //-----------------------------------------------------------------------------
