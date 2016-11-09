@@ -102,17 +102,6 @@ class SegmentStatisticsWidget(ScriptedLoadableModuleWidget):
     self.applyButton.enabled = False
     self.parent.layout().addWidget(self.applyButton)
 
-    # # model and view for stats table
-    # self.outputTableView = slicer.qMRMLTableView()
-    # # qt.QSizePolicy(qt.QSizePolicy.Expanding, qt.QSizePolicy.Expanding)
-    # # fails on some systems, therefore set the policies using separate method calls
-    # qSize = qt.QSizePolicy()
-    # qSize.setHorizontalPolicy(qt.QSizePolicy.Expanding)
-    # qSize.setVerticalPolicy(qt.QSizePolicy.Expanding)
-    # self.outputTableView.setSizePolicy(qSize)
-    # self.parent.layout().addWidget(self.outputTableView)
-    # #outputFormLayout.addWidget(self.outputTableView)
-
     # Add vertical spacer
     self.parent.layout().addStretch(1)
 
@@ -128,7 +117,6 @@ class SegmentStatisticsWidget(ScriptedLoadableModuleWidget):
     self.applyButton.enabled = (self.segmentationSelector.currentNode() is not None) and (self.outputTableSelector.currentNode() is not None)
     if self.segmentationSelector.currentNode():
       self.outputTableSelector.baseName = self.segmentationSelector.currentNode().GetName() + ' statistics'
-    self.outputTableView.setMRMLTableNode(self.outputTableSelector.currentNode())
 
   def onApply(self):
     """Calculate the label statistics
@@ -136,7 +124,6 @@ class SegmentStatisticsWidget(ScriptedLoadableModuleWidget):
 
     self.applyButton.text = "Working..."
     self.applyButton.setEnabled(False)
-    #self.applyButton.repaint()
     slicer.app.processEvents()
     self.logic = SegmentStatisticsLogic(self.outputTableSelector.currentNode(), self.segmentationSelector.currentNode(), self.grayscaleSelector.currentNode())
     self.applyButton.setEnabled(True)
@@ -215,25 +202,76 @@ class SegmentStatisticsLogic(ScriptedLoadableModuleLogic):
       self.labelStats[segmentID,"Volume mm^3"] = stat.GetVoxelCount() * cubicMMPerVoxel
       self.labelStats[segmentID,"Volume cc"] = stat.GetVoxelCount() * cubicMMPerVoxel * ccPerCubicMM
 
-      if grayscaleNode:
-        stat.SetInputConnection(grayscaleNode.GetImageDataConnection())
-        stat.Update()
-        self.labelStats[segmentID,"Min"] = stat.GetMin()[0]
-        self.labelStats[segmentID,"Max"] = stat.GetMax()[0]
-        self.labelStats[segmentID,"Mean"] = stat.GetMean()[0]
-        self.labelStats[segmentID,"StdDev"] = stat.GetStandardDeviation()[0]
+      if grayscaleNode and grayscaleNode.GetImageData():
+        self.addGrayscaleVolumeStats(segmentID, segmentationNode, segmentLabelmap, grayscaleNode)
 
       # TODO: add closed surface statistics as well
 
       self.exportToTable(outputTableNode)
 
+  def addGrayscaleVolumeStats(self, segmentID, segmentationNode, segmentLabelmap, grayscaleNode):
+    import vtkSegmentationCorePython as vtkSegmentationCore
+
+    # Get reference geometry in the segmentation node's coordinate system
+    # Create (non-allocated) image data that matches reference geometry
+    referenceGeometry_Reference = vtkSegmentationCore.vtkOrientedImageData() # reference geometry in reference node coordinate system
+    referenceGeometry_Reference.SetExtent(grayscaleNode.GetImageData().GetExtent())
+    ijkToRasMatrix = vtk.vtkMatrix4x4()
+    grayscaleNode.GetIJKToRASMatrix(ijkToRasMatrix)
+    referenceGeometry_Reference.SetGeometryFromImageToWorldMatrix(ijkToRasMatrix)
+    # # Transform it to the segmentation node coordinate system
+    # referenceGeometry_Segmentation = vtkSegmentationCore.vtkOrientedImageData() # reference geometry in segmentation coordinate system
+    # referenceGeometry_Segmentation.DeepCopy(referenceGeometry_Reference)
+
+    # referenceGeometryToSegmentationTransform = vtk.vtkGeneralTransform()
+    # slicer.vtkMRMLTransformNode.GetTransformBetweenNodes(grayscaleNode.GetParentTransformNode(),
+      # segmentationNode.GetParentTransformNode(), referenceGeometryToSegmentationTransform)
+    # vtkSegmentationCore.vtkOrientedImageDataResample.TransformOrientedImage(referenceGeometry_Segmentation, referenceGeometryToSegmentationTransform, True)
+    # segmentationToReferenceGeometryTransform = referenceGeometryToSegmentationTransform.GetInverse()
+    # segmentationToReferenceGeometryTransform.Update()
+
+    segmentationToReferenceGeometryTransform = vtk.vtkGeneralTransform()
+    slicer.vtkMRMLTransformNode.GetTransformBetweenNodes(segmentationNode.GetParentTransformNode(),
+      grayscaleNode.GetParentTransformNode(), segmentationToReferenceGeometryTransform)
+
+    segmentLabelmap_Reference = vtkSegmentationCore.vtkOrientedImageData()
+    vtkSegmentationCore.vtkOrientedImageDataResample.ResampleOrientedImageToReferenceOrientedImage(
+      segmentLabelmap, referenceGeometry_Reference, segmentLabelmap_Reference,
+      False, # nearest neighbor interpolation
+      False, # no padding
+      segmentationToReferenceGeometryTransform)
+
+    # We need to know exactly the value of the segment voxels, apply threshold to make force the selected label value
+    labelValue = 1
+    backgroundValue = 0
+    thresh = vtk.vtkImageThreshold()
+    thresh.SetInputData(segmentLabelmap_Reference)
+    thresh.ThresholdByLower(0)
+    thresh.SetInValue(backgroundValue)
+    thresh.SetOutValue(labelValue)
+    thresh.SetOutputScalarType(vtk.VTK_UNSIGNED_CHAR)
+    thresh.Update()
+
+    #  use vtk's statistics class with the binary labelmap as a stencil
+    stencil = vtk.vtkImageToImageStencil()
+    stencil.SetInputData(thresh.GetOutput())
+    stencil.ThresholdByUpper(labelValue)
+    stencil.Update()
+
+    stat = vtk.vtkImageAccumulate()
+    stat.SetInputData(grayscaleNode.GetImageData())
+    stat.SetStencilData(stencil.GetOutput())
+    stat.Update()
+    if stat.GetVoxelCount()>0:
+      self.labelStats[segmentID,"Min"] = stat.GetMin()[0]
+      self.labelStats[segmentID,"Max"] = stat.GetMax()[0]
+      self.labelStats[segmentID,"Mean"] = stat.GetMean()[0]
+      self.labelStats[segmentID,"StdDev"] = stat.GetStandardDeviation()[0]
+
   def exportToTable(self, table):
     """
     Export statistics to table node
     """
-
-    table.SetUseFirstColumnAsRowHeader(True)
-    table.SetUseColumnNameAsColumnHeader(True)
 
     tableWasModified = table.StartModify()
 
