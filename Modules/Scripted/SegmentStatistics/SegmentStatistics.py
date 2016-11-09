@@ -51,50 +51,41 @@ class SegmentStatisticsWidget(ScriptedLoadableModuleWidget):
     # Instantiate and connect widgets ...
     #
 
+    # Inputs
+    inputsCollapsibleButton = ctk.ctkCollapsibleButton()
+    inputsCollapsibleButton.text = "Inputs"
+    self.layout.addWidget(inputsCollapsibleButton)
+    inputsFormLayout = qt.QFormLayout(inputsCollapsibleButton)
+
     # Segmentation selector
-    self.segmentationSelectorFrame = qt.QFrame()
-    self.segmentationSelectorFrame.setLayout( qt.QHBoxLayout() )
-    self.parent.layout().addWidget( self.segmentationSelectorFrame )
-
-    self.segmentationSelectorLabel = qt.QLabel("Segmentation:")
-    self.segmentationSelectorFrame.layout().addWidget( self.segmentationSelectorLabel )
-
     self.segmentationSelector = slicer.qMRMLNodeComboBox()
     self.segmentationSelector.nodeTypes = ["vtkMRMLSegmentationNode"]
+    self.segmentationSelector.addEnabled = False
     self.segmentationSelector.removeEnabled = True
     self.segmentationSelector.renameEnabled = True
     self.segmentationSelector.setMRMLScene( slicer.mrmlScene )
     self.segmentationSelector.setToolTip( "Pick the segmentation to compute statistics for" )
-    self.segmentationSelectorFrame.layout().addWidget( self.segmentationSelector )
+    inputsFormLayout.addRow("Segmentation:", self.segmentationSelector)
 
     # Grayscale volume selector
-    self.grayscaleSelectorFrame = qt.QFrame()
-    self.grayscaleSelectorFrame.setLayout(qt.QHBoxLayout())
-    self.parent.layout().addWidget(self.grayscaleSelectorFrame)
-
-    self.grayscaleSelectorLabel = qt.QLabel("Grayscale volume:")
-    self.grayscaleSelectorLabel.setToolTip( "Select the grayscale volume for intensity statistics calculations")
-    self.grayscaleSelectorFrame.layout().addWidget(self.grayscaleSelectorLabel)
-
     self.grayscaleSelector = slicer.qMRMLNodeComboBox()
     self.grayscaleSelector.nodeTypes = ["vtkMRMLScalarVolumeNode"]
+    self.grayscaleSelector.addEnabled = False
     self.grayscaleSelector.removeEnabled = True
     self.grayscaleSelector.renameEnabled = True
     self.grayscaleSelector.noneEnabled = True
     self.grayscaleSelector.showChildNodeTypes = False
     self.grayscaleSelector.setMRMLScene( slicer.mrmlScene )
-    self.grayscaleSelectorFrame.layout().addWidget(self.grayscaleSelector)
+    self.grayscaleSelector.setToolTip( "Select the grayscale volume for intensity statistics calculations")
+    inputsFormLayout.addRow("Grayscale volume:", self.grayscaleSelector)
 
     # Output table selector
-    self.outputTableSelectorFrame = qt.QFrame()
-    self.outputTableSelectorFrame.setLayout(qt.QHBoxLayout())
-    self.parent.layout().addWidget(self.outputTableSelectorFrame)
+    outputCollapsibleButton = ctk.ctkCollapsibleButton()
+    outputCollapsibleButton.text = "Output"
+    self.layout.addWidget(outputCollapsibleButton)
+    outputFormLayout = qt.QFormLayout(outputCollapsibleButton)
 
-    self.outputTableSelectorLabel = qt.QLabel("Output table:")
-    self.outputTableSelectorLabel.setToolTip( "Select the table where statistics will be saved into")
-    self.outputTableSelectorFrame.layout().addWidget(self.outputTableSelectorLabel)
-
-    self.outputTableSelector = slicer.qMRMLNodeComboBox(self.outputTableSelectorFrame)
+    self.outputTableSelector = slicer.qMRMLNodeComboBox()
     self.outputTableSelector.nodeTypes = ["vtkMRMLTableNode"]
     self.outputTableSelector.addEnabled = True
     self.outputTableSelector.selectNodeUponCreation = True
@@ -102,28 +93,28 @@ class SegmentStatisticsWidget(ScriptedLoadableModuleWidget):
     self.outputTableSelector.removeEnabled = True
     self.outputTableSelector.noneEnabled = False
     self.outputTableSelector.setMRMLScene( slicer.mrmlScene )
-    self.outputTableSelectorFrame.layout().addWidget(self.outputTableSelector)
+    self.outputTableSelector.setToolTip( "Select the table where statistics will be saved into")
+    outputFormLayout.addRow("Output table:", self.outputTableSelector)
 
-    #
     # Apply Button
-    #
     self.applyButton = qt.QPushButton("Apply")
     self.applyButton.toolTip = "Calculate Statistics."
     self.applyButton.enabled = False
     self.parent.layout().addWidget(self.applyButton)
 
-    # model and view for stats table
-    self.outputTableView = slicer.qMRMLTableView()
-    # qt.QSizePolicy(qt.QSizePolicy.Expanding, qt.QSizePolicy.Expanding)
-    # fails on some systems, therefore set the policies using separate method calls
-    qSize = qt.QSizePolicy()
-    qSize.setHorizontalPolicy(qt.QSizePolicy.Expanding)
-    qSize.setVerticalPolicy(qt.QSizePolicy.Expanding)
-    self.outputTableView.setSizePolicy(qSize)
-    self.parent.layout().addWidget(self.outputTableView)
+    # # model and view for stats table
+    # self.outputTableView = slicer.qMRMLTableView()
+    # # qt.QSizePolicy(qt.QSizePolicy.Expanding, qt.QSizePolicy.Expanding)
+    # # fails on some systems, therefore set the policies using separate method calls
+    # qSize = qt.QSizePolicy()
+    # qSize.setHorizontalPolicy(qt.QSizePolicy.Expanding)
+    # qSize.setVerticalPolicy(qt.QSizePolicy.Expanding)
+    # self.outputTableView.setSizePolicy(qSize)
+    # self.parent.layout().addWidget(self.outputTableView)
+    # #outputFormLayout.addWidget(self.outputTableView)
 
     # Add vertical spacer
-    #self.parent.layout().addStretch(1)
+    self.parent.layout().addStretch(1)
 
     # connections
     self.applyButton.connect('clicked()', self.onApply)
@@ -150,6 +141,12 @@ class SegmentStatisticsWidget(ScriptedLoadableModuleWidget):
     self.logic = SegmentStatisticsLogic(self.outputTableSelector.currentNode(), self.segmentationSelector.currentNode(), self.grayscaleSelector.currentNode())
     self.applyButton.setEnabled(True)
     self.applyButton.text = "Apply"
+
+    currentLayout = slicer.app.layoutManager().layout
+    layoutWithTable = slicer.modules.tables.logic().GetLayoutWithTable(currentLayout)
+    slicer.app.layoutManager().setLayout(layoutWithTable)
+    slicer.app.applicationLogic().GetSelectionNode().SetReferenceActiveTableID(self.outputTableSelector.currentNode().GetID())
+    slicer.app.applicationLogic().PropagateTableSelection()
 
 #
 # SegmentStatisticsLogic
