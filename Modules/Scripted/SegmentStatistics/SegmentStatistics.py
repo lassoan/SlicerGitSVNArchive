@@ -22,6 +22,14 @@ class SegmentStatistics(ScriptedLoadableModule):
     self.parent.contributors = ["Andras Lasso (PerkLab), Steve Pieper (Isomics)"]
     self.parent.helpText = """
 Use this module to calculate counts and volumes for segments plus statistics on the grayscale background volume.
+Computed fields:
+Segment labelmap stastistics (LM): voxel count, volume mm3, volume cc.
+Requires segment labelmap representation.
+Grayscale volume statistics (GS): voxel count, volume mm3, volume cc (where segments overlap grayscale volume),
+min, max, mean, stdev (intensity statistics).
+Requires segment labelmap representation and selection of a grayscale volume
+Closed surface statistics (CS): surface mm2, volume mm3, volume cc (computed from closed surface).
+Requires segment closed surface representation.
 """
     self.parent.helpText += self.getDefaultModuleDocumentationLink()
     self.parent.acknowledgementText = """
@@ -40,9 +48,7 @@ class SegmentStatisticsWidget(ScriptedLoadableModuleWidget):
   def setup(self):
     ScriptedLoadableModuleWidget.setup(self)
 
-    self.chartOptions = ("Count", "Volume mm^3", "Volume cc", "Min", "Max", "Mean", "StdDev")
-
-    self.logic = None
+    self.logic = SegmentStatisticsLogic()
     self.grayscaleNode = None
     self.labelNode = None
     self.fileName = None
@@ -121,19 +127,18 @@ class SegmentStatisticsWidget(ScriptedLoadableModuleWidget):
   def onApply(self):
     """Calculate the label statistics
     """
-
+    # Lock GUI
     self.applyButton.text = "Working..."
     self.applyButton.setEnabled(False)
     slicer.app.processEvents()
-    self.logic = SegmentStatisticsLogic(self.outputTableSelector.currentNode(), self.segmentationSelector.currentNode(), self.grayscaleSelector.currentNode())
+    # Compute statistics
+    self.logic.computeStatistics(self.segmentationSelector.currentNode(), self.grayscaleSelector.currentNode())
+    self.logic.exportToTable(self.outputTableSelector.currentNode())
+    # Unlock GUI
     self.applyButton.setEnabled(True)
     self.applyButton.text = "Apply"
 
-    currentLayout = slicer.app.layoutManager().layout
-    layoutWithTable = slicer.modules.tables.logic().GetLayoutWithTable(currentLayout)
-    slicer.app.layoutManager().setLayout(layoutWithTable)
-    slicer.app.applicationLogic().GetSelectionNode().SetReferenceActiveTableID(self.outputTableSelector.currentNode().GetID())
-    slicer.app.applicationLogic().PropagateTableSelection()
+    self.logic.showTable(self.outputTableSelector.currentNode())
 
 #
 # SegmentStatisticsLogic
@@ -147,26 +152,56 @@ class SegmentStatisticsLogic(ScriptedLoadableModuleLogic):
   https://github.com/Slicer/Slicer/blob/master/Base/Python/slicer/ScriptedLoadableModule.py
   """
 
-  def __init__(self, outputTableNode, segmentationNode, grayscaleNode):
+  def __init__(self):
+    self.keys = ("Segment",
+      "LM voxel count", "LM volume mm3", "LM volume cc",
+      "GS voxel count", "GS volume mm3", "GS volume cc", "GS min", "GS max", "GS mean", "GS stdev",
+      "CS surface mm2", "CS volume mm3", "CS volume cc")
+    self.notAvailableValueString = ""
+    self.reset()
+
+  def reset(self):
+    """Clear all computation results"""
+    self.statistics = {}
+    self.statistics["SegmentIDs"] = []
+
+  def computeStatistics(self, segmentationNode, grayscaleNode, visibleSegmentsOnly = True):
     import vtkSegmentationCorePython as vtkSegmentationCore
 
-    self.keys = ("Segment", "Count", "Volume mm^3", "Volume cc", "Min", "Max", "Mean", "StdDev")
+    self.reset()
 
-    self.labelStats = {}
-    self.labelStats["SegmentIDs"] = []
+    self.segmentationNode = segmentationNode
+    self.grayscaleNode = grayscaleNode
 
-    segmentation = segmentationNode.GetSegmentation()
-
-    # Generate merged labelmap of all visible segments
+    # Get segment ID list
     visibleSegmentIds = vtk.vtkStringArray()
-    segmentationNode.GetDisplayNode().GetVisibleSegmentIDs(visibleSegmentIds)
+    if visibleSegmentsOnly:
+      self.segmentationNode.GetDisplayNode().GetVisibleSegmentIDs(visibleSegmentIds)
+    else:
+      self.segmentationNode.GetSegmentation().GetSegmentIDs(visibleSegmentIds)
     if visibleSegmentIds.GetNumberOfValues() == 0:
-      logging.info("Smoothing operation skipped: there are no visible segments")
-      return
-
+      logging.debug("computeStatistics will not return any results: there are no visible segments")
+    # Initialize self.statistics with segment IDs and names
     for segmentIndex in range(visibleSegmentIds.GetNumberOfValues()):
       segmentID = visibleSegmentIds.GetValue(segmentIndex)
-      segment = segmentation.GetSegment(segmentID)
+      segment = self.segmentationNode.GetSegmentation().GetSegment(segmentID)
+      self.statistics["SegmentIDs"].append(segmentID)
+      self.statistics[segmentID,"Segment"] = segment.GetName()
+
+    self.addSegmentLabelmapStatistics()
+    self.addGrayscaleVolumeStatistics()
+    self.addSegmentClosedSurfaceStatistics()
+
+  def addSegmentLabelmapStatistics(self):
+    import vtkSegmentationCorePython as vtkSegmentationCore
+
+    containsLabelmapRepresentation = self.segmentationNode.GetSegmentation().ContainsRepresentation(
+      vtkSegmentationCore.vtkSegmentationConverter.GetSegmentationBinaryLabelmapRepresentationName())
+    if not containsLabelmapRepresentation:
+      return
+
+    for segmentID in self.statistics["SegmentIDs"]:
+      segment = self.segmentationNode.GetSegmentation().GetSegment(segmentID)
       segmentLabelmap = segment.GetRepresentation(vtkSegmentationCore.vtkSegmentationConverter.GetSegmentationBinaryLabelmapRepresentationName())
 
       # We need to know exactly the value of the segment voxels, apply threshold to make force the selected label value
@@ -180,7 +215,7 @@ class SegmentStatisticsLogic(ScriptedLoadableModuleLogic):
       thresh.SetOutputScalarType(vtk.VTK_UNSIGNED_CHAR)
       thresh.Update()
 
-      #  use vtk's statistics class with the binary labelmap as a stencil
+      #  Use binary labelmap as a stencil
       stencil = vtk.vtkImageToImageStencil()
       stencil.SetInputData(thresh.GetOutput())
       stencil.ThresholdByUpper(labelValue)
@@ -191,137 +226,176 @@ class SegmentStatisticsLogic(ScriptedLoadableModuleLogic):
       stat.SetStencilData(stencil.GetOutput())
       stat.Update()
 
-
+      # Add data to statistics list
       cubicMMPerVoxel = reduce(lambda x,y: x*y, segmentLabelmap.GetSpacing())
       ccPerCubicMM = 0.001
+      self.statistics[segmentID,"LM voxel count"] = stat.GetVoxelCount()
+      self.statistics[segmentID,"LM volume mm3"] = stat.GetVoxelCount() * cubicMMPerVoxel
+      self.statistics[segmentID,"LM volume cc"] = stat.GetVoxelCount() * cubicMMPerVoxel * ccPerCubicMM
 
-      # add an entry to the LabelStats list
-      self.labelStats["SegmentIDs"].append(segmentID)
-      self.labelStats[segmentID,"Segment"] = segment.GetName()
-      self.labelStats[segmentID,"Count"] = stat.GetVoxelCount()
-      self.labelStats[segmentID,"Volume mm^3"] = stat.GetVoxelCount() * cubicMMPerVoxel
-      self.labelStats[segmentID,"Volume cc"] = stat.GetVoxelCount() * cubicMMPerVoxel * ccPerCubicMM
-
-      if grayscaleNode and grayscaleNode.GetImageData():
-        self.addGrayscaleVolumeStats(segmentID, segmentationNode, segmentLabelmap, grayscaleNode)
-
-      # TODO: add closed surface statistics as well
-
-      self.exportToTable(outputTableNode)
-
-  def addGrayscaleVolumeStats(self, segmentID, segmentationNode, segmentLabelmap, grayscaleNode):
+  def addSegmentClosedSurfaceStatistics(self):
     import vtkSegmentationCorePython as vtkSegmentationCore
 
-    # Get reference geometry in the segmentation node's coordinate system
-    # Create (non-allocated) image data that matches reference geometry
+    containsClosedSurfaceRepresentation = self.segmentationNode.GetSegmentation().ContainsRepresentation(
+      vtkSegmentationCore.vtkSegmentationConverter.GetSegmentationClosedSurfaceRepresentationName())
+    if not containsClosedSurfaceRepresentation:
+      return
+
+    for segmentID in self.statistics["SegmentIDs"]:
+      segment = self.segmentationNode.GetSegmentation().GetSegment(segmentID)
+      segmentClosedSurface = segment.GetRepresentation(vtkSegmentationCore.vtkSegmentationConverter.GetSegmentationClosedSurfaceRepresentationName())
+
+      # Compute statistics
+      massProperties = vtk.vtkMassProperties()
+      massProperties.SetInputData(segmentClosedSurface)
+
+      # Add data to statistics list
+      ccPerCubicMM = 0.001
+      self.statistics[segmentID,"CS surface mm2"] = massProperties.GetSurfaceArea()
+      self.statistics[segmentID,"CS volume mm3"] = massProperties.GetVolume()
+      self.statistics[segmentID,"CS volume cc"] = massProperties.GetVolume() * ccPerCubicMM
+
+  def addGrayscaleVolumeStatistics(self):
+    import vtkSegmentationCorePython as vtkSegmentationCore
+
+    containsLabelmapRepresentation = self.segmentationNode.GetSegmentation().ContainsRepresentation(
+      vtkSegmentationCore.vtkSegmentationConverter.GetSegmentationBinaryLabelmapRepresentationName())
+    if not containsLabelmapRepresentation:
+      return
+
+    if self.grayscaleNode is None or self.grayscaleNode.GetImageData() is None:
+      return
+
+    # Get geometry of grayscale volume node as oriented image data
     referenceGeometry_Reference = vtkSegmentationCore.vtkOrientedImageData() # reference geometry in reference node coordinate system
-    referenceGeometry_Reference.SetExtent(grayscaleNode.GetImageData().GetExtent())
+    referenceGeometry_Reference.SetExtent(self.grayscaleNode.GetImageData().GetExtent())
     ijkToRasMatrix = vtk.vtkMatrix4x4()
-    grayscaleNode.GetIJKToRASMatrix(ijkToRasMatrix)
+    self.grayscaleNode.GetIJKToRASMatrix(ijkToRasMatrix)
     referenceGeometry_Reference.SetGeometryFromImageToWorldMatrix(ijkToRasMatrix)
-    # # Transform it to the segmentation node coordinate system
-    # referenceGeometry_Segmentation = vtkSegmentationCore.vtkOrientedImageData() # reference geometry in segmentation coordinate system
-    # referenceGeometry_Segmentation.DeepCopy(referenceGeometry_Reference)
 
-    # referenceGeometryToSegmentationTransform = vtk.vtkGeneralTransform()
-    # slicer.vtkMRMLTransformNode.GetTransformBetweenNodes(grayscaleNode.GetParentTransformNode(),
-      # segmentationNode.GetParentTransformNode(), referenceGeometryToSegmentationTransform)
-    # vtkSegmentationCore.vtkOrientedImageDataResample.TransformOrientedImage(referenceGeometry_Segmentation, referenceGeometryToSegmentationTransform, True)
-    # segmentationToReferenceGeometryTransform = referenceGeometryToSegmentationTransform.GetInverse()
-    # segmentationToReferenceGeometryTransform.Update()
-
+    # Get transform between grayscale volume and segmentation
     segmentationToReferenceGeometryTransform = vtk.vtkGeneralTransform()
-    slicer.vtkMRMLTransformNode.GetTransformBetweenNodes(segmentationNode.GetParentTransformNode(),
-      grayscaleNode.GetParentTransformNode(), segmentationToReferenceGeometryTransform)
+    slicer.vtkMRMLTransformNode.GetTransformBetweenNodes(self.segmentationNode.GetParentTransformNode(),
+      self.grayscaleNode.GetParentTransformNode(), segmentationToReferenceGeometryTransform)
 
-    segmentLabelmap_Reference = vtkSegmentationCore.vtkOrientedImageData()
-    vtkSegmentationCore.vtkOrientedImageDataResample.ResampleOrientedImageToReferenceOrientedImage(
-      segmentLabelmap, referenceGeometry_Reference, segmentLabelmap_Reference,
-      False, # nearest neighbor interpolation
-      False, # no padding
-      segmentationToReferenceGeometryTransform)
+    cubicMMPerVoxel = reduce(lambda x,y: x*y, referenceGeometry_Reference.GetSpacing())
+    ccPerCubicMM = 0.001
 
-    # We need to know exactly the value of the segment voxels, apply threshold to make force the selected label value
-    labelValue = 1
-    backgroundValue = 0
-    thresh = vtk.vtkImageThreshold()
-    thresh.SetInputData(segmentLabelmap_Reference)
-    thresh.ThresholdByLower(0)
-    thresh.SetInValue(backgroundValue)
-    thresh.SetOutValue(labelValue)
-    thresh.SetOutputScalarType(vtk.VTK_UNSIGNED_CHAR)
-    thresh.Update()
+    for segmentID in self.statistics["SegmentIDs"]:
+      segment = self.segmentationNode.GetSegmentation().GetSegment(segmentID)
+      segmentLabelmap = segment.GetRepresentation(vtkSegmentationCore.vtkSegmentationConverter.GetSegmentationBinaryLabelmapRepresentationName())
 
-    #  use vtk's statistics class with the binary labelmap as a stencil
-    stencil = vtk.vtkImageToImageStencil()
-    stencil.SetInputData(thresh.GetOutput())
-    stencil.ThresholdByUpper(labelValue)
-    stencil.Update()
+      segmentLabelmap_Reference = vtkSegmentationCore.vtkOrientedImageData()
+      vtkSegmentationCore.vtkOrientedImageDataResample.ResampleOrientedImageToReferenceOrientedImage(
+        segmentLabelmap, referenceGeometry_Reference, segmentLabelmap_Reference,
+        False, # nearest neighbor interpolation
+        False, # no padding
+        segmentationToReferenceGeometryTransform)
 
-    stat = vtk.vtkImageAccumulate()
-    stat.SetInputData(grayscaleNode.GetImageData())
-    stat.SetStencilData(stencil.GetOutput())
-    stat.Update()
-    if stat.GetVoxelCount()>0:
-      self.labelStats[segmentID,"Min"] = stat.GetMin()[0]
-      self.labelStats[segmentID,"Max"] = stat.GetMax()[0]
-      self.labelStats[segmentID,"Mean"] = stat.GetMean()[0]
-      self.labelStats[segmentID,"StdDev"] = stat.GetStandardDeviation()[0]
+      # We need to know exactly the value of the segment voxels, apply threshold to make force the selected label value
+      labelValue = 1
+      backgroundValue = 0
+      thresh = vtk.vtkImageThreshold()
+      thresh.SetInputData(segmentLabelmap_Reference)
+      thresh.ThresholdByLower(0)
+      thresh.SetInValue(backgroundValue)
+      thresh.SetOutValue(labelValue)
+      thresh.SetOutputScalarType(vtk.VTK_UNSIGNED_CHAR)
+      thresh.Update()
 
-  def exportToTable(self, table):
+      #  Use binary labelmap as a stencil
+      stencil = vtk.vtkImageToImageStencil()
+      stencil.SetInputData(thresh.GetOutput())
+      stencil.ThresholdByUpper(labelValue)
+      stencil.Update()
+
+      stat = vtk.vtkImageAccumulate()
+      stat.SetInputData(self.grayscaleNode.GetImageData())
+      stat.SetStencilData(stencil.GetOutput())
+      stat.Update()
+
+      # Add data to statistics list
+      self.statistics[segmentID,"GS voxel count"] = stat.GetVoxelCount()
+      self.statistics[segmentID,"GS volume mm3"] = stat.GetVoxelCount() * cubicMMPerVoxel
+      self.statistics[segmentID,"GS volume cc"] = stat.GetVoxelCount() * cubicMMPerVoxel * ccPerCubicMM
+      if stat.GetVoxelCount()>0:
+        self.statistics[segmentID,"GS min"] = stat.GetMin()[0]
+        self.statistics[segmentID,"GS max"] = stat.GetMax()[0]
+        self.statistics[segmentID,"GS mean"] = stat.GetMean()[0]
+        self.statistics[segmentID,"GS stdev"] = stat.GetStandardDeviation()[0]
+
+  def getStatisticsValueAsString(self, segmentID, key):
+    if self.statistics.has_key((segmentID, key)):
+      value = self.statistics[segmentID, key]
+      if isinstance(value, float):
+        return "%0.3f" % value # round to 3 decimals
+      else:
+        return str(value)
+    else:
+      return self.notAvailableValueString
+
+  def getNonEmptyKeys(self):
+    # Fill columns
+    nonEmptyKeys = []
+    for key in self.keys:
+      for segmentID in self.statistics["SegmentIDs"]:
+        if self.statistics.has_key((segmentID, key)):
+          nonEmptyKeys.append(key)
+          break
+    return nonEmptyKeys
+
+  def exportToTable(self, table, nonEmptyKeysOnly = True):
     """
     Export statistics to table node
     """
-
     tableWasModified = table.StartModify()
-
     table.RemoveAllColumns()
 
+    keys = self.getNonEmptyKeys() if nonEmptyKeysOnly else self.keys
+
     # Define table columns
-    for k in self.keys:
+    for k in keys:
       col = table.AddColumn()
       col.SetName(k)
 
     # Fill columns
-    for segmentID in self.labelStats["SegmentIDs"]:
+    for segmentID in self.statistics["SegmentIDs"]:
       rowIndex = table.AddEmptyRow()
       columnIndex = 0
-      for k in self.keys:
-        value = self.labelStats[segmentID, k] if self.labelStats.has_key((segmentID, k)) else ""
-        table.SetCellText(rowIndex, columnIndex, str(value))
+      for k in keys:
+        table.SetCellText(rowIndex, columnIndex, str(self.getStatisticsValueAsString(segmentID, k)))
         columnIndex += 1
 
     table.Modified()
     table.EndModify(tableWasModified)
 
-  def statsAsCSV(self):
+  def showTable(self, table):
     """
-    print comma separated value file with header keys in quotes
+    Switch to a layou where tables are visible and show the selected table
     """
+    currentLayout = slicer.app.layoutManager().layout
+    layoutWithTable = slicer.modules.tables.logic().GetLayoutWithTable(currentLayout)
+    slicer.app.layoutManager().setLayout(layoutWithTable)
+    slicer.app.applicationLogic().GetSelectionNode().SetReferenceActiveTableID(table.GetID())
+    slicer.app.applicationLogic().PropagateTableSelection()
 
-    colorNode = self.getColorNode()
-
-    csv = ""
-    header = ""
-    if colorNode:
-      header += "\"%s\"" % "Type" + ","
-    for k in self.keys[:-1]:
-      header += "\"%s\"" % k + ","
-    header += "\"%s\"" % self.keys[-1] + "\n"
-    csv = header
-    for i in self.labelStats["Labels"]:
-      line = ""
-      if colorNode:
-        line += colorNode.GetColorName(i) + ","
-      for k in self.keys[:-1]:
-        line += str(self.labelStats[i,k]) + ","
-      line += str(self.labelStats[i,self.keys[-1]]) + "\n"
-      csv += line
+  def exportToString(self, nonEmptyKeysOnly = True):
+    """
+    Returns string with comma separated values, with header keys in quotes.
+    """
+    keys = self.getNonEmptyKeys() if nonEmptyKeysOnly else self.keys
+    # Header
+    csv = '"' + '","'.join(keys) + '"'
+    # Rows
+    for i in self.statistics["Labels"]:
+      csv += str(self.statistics[i,keys[0]])
+      for k in keys[1:]:
+        csv += "," + str(self.statistics[i,k])
     return csv
 
-  def saveStats(self,fileName):
+  def exportToCSVFile(self, fileName, nonEmptyKeysOnly = True):
     fp = open(fileName, "w")
-    fp.write(self.statsAsCSV())
+    fp.write(self.statisticsAsCSV(nonEmptyKeysOnly))
     fp.close()
 
 class SegmentStatisticsTest(ScriptedLoadableModuleTest):
