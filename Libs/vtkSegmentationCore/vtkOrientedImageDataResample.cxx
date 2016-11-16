@@ -56,29 +56,29 @@ void MergeImageGeneric2(
     double fillValue)
 {
   // Compute update extent as intersection of base and modifier image extents (extent can be further reduced by specifying a smaller extent)
-  int updateExt[6] = { 0, -1, 0, -1, 0, -1 };
-  baseImage->GetExtent(updateExt);
+  int commonExt[6] = { 0, -1, 0, -1, 0, -1 };
+  baseImage->GetExtent(commonExt);
   int* modifierExt = modifierImage->GetExtent();
   for (int idx = 0; idx < 3; ++idx)
     {
-    if (modifierExt[idx * 2] > updateExt[idx * 2])
+    if (modifierExt[idx * 2] > commonExt[idx * 2])
       {
-      updateExt[idx * 2] = modifierExt[idx * 2];
+      commonExt[idx * 2] = modifierExt[idx * 2];
       }
-    if (extent && extent[idx * 2] > updateExt[idx * 2])
+    if (extent && extent[idx * 2] > commonExt[idx * 2])
       {
-      updateExt[idx * 2] = extent[idx * 2];
+      commonExt[idx * 2] = extent[idx * 2];
       }
-    if (modifierExt[idx * 2 + 1] < updateExt[idx * 2 + 1])
+    if (modifierExt[idx * 2 + 1] < commonExt[idx * 2 + 1])
       {
-      updateExt[idx * 2 + 1] = modifierExt[idx * 2 + 1];
+      commonExt[idx * 2 + 1] = modifierExt[idx * 2 + 1];
       }
-    if (extent && extent[idx * 2 + 1] < updateExt[idx * 2 + 1])
+    if (extent && extent[idx * 2 + 1] < commonExt[idx * 2 + 1])
       {
-      updateExt[idx * 2 + 1] = extent[idx * 2 + 1];
+      commonExt[idx * 2 + 1] = extent[idx * 2 + 1];
       }
     }
-  if (updateExt[0] > updateExt[1] || updateExt[2] > updateExt[3] || updateExt[4] > updateExt[5])
+  if (commonExt[0] > commonExt[1] || commonExt[2] > commonExt[3] || commonExt[4] > commonExt[5])
     {
     // base and modifier images don't intersect, nothing need to be done
     return;
@@ -91,13 +91,13 @@ void MergeImageGeneric2(
   vtkIdType modifierIncX = 0;
   vtkIdType modifierIncY = 0;
   vtkIdType modifierIncZ = 0;
-  baseImage->GetContinuousIncrements(updateExt, baseIncX, baseIncY, baseIncZ);
-  modifierImage->GetContinuousIncrements(updateExt, modifierIncX, modifierIncY, modifierIncZ);
-  int maxX = (updateExt[1] - updateExt[0]) * baseImage->GetNumberOfScalarComponents();
-  int maxY = updateExt[3] - updateExt[2];
-  int maxZ = updateExt[5] - updateExt[4];
-  BaseImageScalarType* baseImagePtr = static_cast<BaseImageScalarType*>(baseImage->GetScalarPointerForExtent(updateExt));
-  ModifierImageScalarType* modifierImagePtr = static_cast<ModifierImageScalarType*>(modifierImage->GetScalarPointerForExtent(updateExt));
+  baseImage->GetContinuousIncrements(commonExt, baseIncX, baseIncY, baseIncZ);
+  modifierImage->GetContinuousIncrements(commonExt, modifierIncX, modifierIncY, modifierIncZ);
+  int maxX = (commonExt[1] - commonExt[0]) * baseImage->GetNumberOfScalarComponents();
+  int maxY = commonExt[3] - commonExt[2];
+  int maxZ = commonExt[5] - commonExt[4];
+  BaseImageScalarType* baseImagePtr = static_cast<BaseImageScalarType*>(baseImage->GetScalarPointerForExtent(commonExt));
+  ModifierImageScalarType* modifierImagePtr = static_cast<ModifierImageScalarType*>(modifierImage->GetScalarPointerForExtent(commonExt));
 
   if (baseImagePtr == NULL)
     {
@@ -174,6 +174,30 @@ void MergeImageGeneric2(
         for (vtkIdType idxX = 0; idxX <= maxX; idxX++)
           {
           if (*modifierImagePtr > maskThreshold)
+            {
+            *baseImagePtr = fillValueBaseImageType;
+            baseImageModified = true;
+            }
+          baseImagePtr++;
+          modifierImagePtr++;
+        }
+        baseImagePtr += baseIncY;
+        modifierImagePtr += modifierIncY;
+        }
+      baseImagePtr += baseIncZ;
+      modifierImagePtr += modifierIncZ;
+      }
+    }
+  else if (operation == vtkOrientedImageDataResample::OPERATION_MASKING_INVERSE)
+    {
+    BaseImageScalarType fillValueBaseImageType = static_cast<BaseImageScalarType>(fillValue);
+    for (vtkIdType idxZ = 0; idxZ <= maxZ; idxZ++)
+      {
+      for (vtkIdType idxY = 0; idxY <= maxY; idxY++)
+        {
+        for (vtkIdType idxX = 0; idxX <= maxX; idxX++)
+          {
+          if (*modifierImagePtr <= maskThreshold)
             {
             *baseImagePtr = fillValueBaseImageType;
             baseImageModified = true;

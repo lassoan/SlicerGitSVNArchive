@@ -53,7 +53,6 @@
 
 // VTK includes
 #include <vtkImageConstantPad.h>
-#include <vtkImageMask.h>
 #include <vtkImageShiftScale.h>
 #include <vtkImageThreshold.h>
 #include <vtkMatrix4x4.h>
@@ -207,28 +206,14 @@ void qSlicerSegmentEditorAbstractEffect::applyImageMask(vtkOrientedImageData* in
     return;
     }
 
-  // Make sure mask has the same extent as the input labelmap
-  vtkSmartPointer<vtkImageConstantPad> padder = vtkSmartPointer<vtkImageConstantPad>::New();
-  padder->SetInputData(mask);
-  padder->SetOutputWholeExtent(input->GetExtent());
-  padder->Update();
-  //mask->DeepCopy(padder->GetOutput());
-
   // Apply mask
-  vtkSmartPointer<vtkImageMask> masker = vtkSmartPointer<vtkImageMask>::New();
-  masker->SetImageInputData(input);
-  //masker->SetMaskInputData(resampledMask);
-  masker->SetMaskInputData(padder->GetOutput());
-  //masker->SetMaskInputData(mask);
-  masker->SetNotMask(notMask);
-  masker->SetMaskedOutputValue(fillValue);
-  masker->Update();
-
-  // Copy masked input to input
-  vtkSmartPointer<vtkMatrix4x4> inputImageToWorldMatrix = vtkSmartPointer<vtkMatrix4x4>::New();
-  input->GetImageToWorldMatrix(inputImageToWorldMatrix);
-  input->DeepCopy(masker->GetOutput());
-  input->SetGeometryFromImageToWorldMatrix(inputImageToWorldMatrix);
+  vtkOrientedImageDataResample::ModifyImage(
+    input,
+    mask,
+    notMask ? vtkOrientedImageDataResample::OPERATION_MASKING_INVERSE : vtkOrientedImageDataResample::OPERATION_MASKING,
+    NULL,
+    0,
+    fillValue);
 }
 
 //-----------------------------------------------------------------------------

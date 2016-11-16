@@ -44,7 +44,8 @@ public:
     {
     OPERATION_MINIMUM,
     OPERATION_MAXIMUM,
-    OPERATION_MASKING
+    OPERATION_MASKING,
+    OPERATION_MASKING_INVERSE
     };
 
   /// Resample an oriented image data to match the geometry of a reference geometry matrix.

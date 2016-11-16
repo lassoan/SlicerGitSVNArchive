@@ -40,7 +40,6 @@
 #include <vtkMatrix4x4.h>
 #include <vtkTransform.h>
 #include <vtkImageConstantPad.h>
-#include <vtkImageMask.h>
 #include <vtkImageThreshold.h>
 #include <vtkPolyData.h>
 #include <vtkImageMathematics.h>
