@@ -256,6 +256,7 @@
          <string>vtkMRMLSliceNode</string>
          <string>vtkMRMLModelNode</string>
          <string>vtkMRMLVolumeNode</string>
+         <string>vtkMRMLMarkupsFiducialNode</string>
         </stringlist>
        </property>
        <property name="baseName">
