@@ -36,7 +36,9 @@ Version:   $Revision: 1.3 $
 #include <vtkNew.h>
 #include <vtkObjectFactory.h>
 #include <vtkPointData.h>
+#include <vtkReverseSense.h>
 #include <vtkSmartPointer.h>
+#include <vtkTransform.h>
 #include <vtkTransformPolyDataFilter.h>
 #include <vtkTrivialProducer.h>
 #include <vtkVersion.h>
@@ -555,29 +557,35 @@ void vtkMRMLModelNode::ApplyTransform(vtkAbstractTransform* transform)
     {
     return;
     }
-  vtkTransformPolyDataFilter* transformFilter = vtkTransformPolyDataFilter::New();
+  if (transform == 0)
+    {
+    return;
+    }
+  vtkNew<vtkTransformPolyDataFilter> transformFilter;
   transformFilter->SetInputConnection(this->PolyDataConnection);
-
   transformFilter->SetTransform(transform);
-  transformFilter->Update();
+  vtkPolyDataAlgorithm* outputFilter = transformFilter.GetPointer();
+
+  vtkNew<vtkTransform> linearTransform;
+  vtkNew<vtkReverseSense> reverser;
+  if (vtkMRMLTransformNode::IsGeneralTransformLinear(transform, linearTransform.GetPointer())
+    && linearTransform->GetMatrix()->Determinant()<0)
+    {
+    reverser->SetInputConnection(transformFilter->GetOutputPort());
+    outputFilter = reverser.GetPointer();
+    }
 
   bool isInPipeline = !vtkTrivialProducer::SafeDownCast(
     this->PolyDataConnection ? this->PolyDataConnection->GetProducer() : 0);
-  vtkSmartPointer<vtkPolyData> polyData;
   if (isInPipeline)
     {
-    polyData = vtkSmartPointer<vtkPolyData>::New();
+    this->SetPolyDataConnection(outputFilter->GetOutputPort());
     }
   else
     {
-    polyData = this->GetPolyData();
+    outputFilter->Update();
+    this->GetPolyData()->DeepCopy(outputFilter->GetOutput());
     }
-  polyData->DeepCopy(transformFilter->GetOutput());
-  if (isInPipeline)
-    {
-    this->SetPolyDataConnection(transformFilter->GetOutputPort());
-    }
-  transformFilter->Delete();
 }
 
 //---------------------------------------------------------------------------
