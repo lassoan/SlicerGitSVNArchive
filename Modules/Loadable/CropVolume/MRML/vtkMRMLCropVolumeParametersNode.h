@@ -39,29 +39,32 @@ class VTK_SLICER_CROPVOLUME_MODULE_MRML_EXPORT vtkMRMLCropVolumeParametersNode :
 
   virtual vtkMRMLNode* CreateNodeInstance();
 
-  // Description:
-  // Set node attributes
+  /// Set node attributes from XML attributes
   virtual void ReadXMLAttributes( const char** atts);
 
-  // Description:
-  // Write this node's information to a MRML file in XML format.
+  /// Write this node's information to a MRML file in XML format.
   virtual void WriteXML(ostream& of, int indent);
 
-  // Description:
-  // Copy the node's attributes to this object
+  /// Copy the node's attributes to this object
   virtual void Copy(vtkMRMLNode *node);
 
-  // Description:
-  // Get node XML tag name (like Volume, Model)
+  /// Get node XML tag name (like Volume, Model)
   virtual const char* GetNodeTagName() {return "CropVolumeParameters";};
 
-  // Description:
-  vtkSetStringMacro(InputVolumeNodeID);
-  vtkGetStringMacro (InputVolumeNodeID);
-  vtkSetStringMacro(OutputVolumeNodeID);
-  vtkGetStringMacro (OutputVolumeNodeID);
-  vtkSetStringMacro(ROINodeID);
-  vtkGetStringMacro (ROINodeID);
+  /// Set volume node to be cropped
+  void SetInputVolumeNodeID(const char *nodeID);
+  /// Get volume node to be cropped
+  const char *GetInputVolumeNodeID();
+
+  /// Set resulting cropped volume node
+  void SetOutputVolumeNodeID(const char *nodeID);
+  /// Get resulting cropped volume node
+  const char *GetOutputVolumeNodeID();
+
+  /// Set cropping region of interest
+  void SetROINodeID(const char *nodeID);
+  /// Get cropping region of interest
+  const char *GetROINodeID();
 
   vtkSetMacro(IsotropicResampling,bool);
   vtkGetMacro(IsotropicResampling,bool);
@@ -87,10 +90,6 @@ protected:
 
   vtkMRMLCropVolumeParametersNode(const vtkMRMLCropVolumeParametersNode&);
   void operator=(const vtkMRMLCropVolumeParametersNode&);
-
-  char *InputVolumeNodeID;
-  char *OutputVolumeNodeID;
-  char *ROINodeID;
 
   bool ROIVisibility;
   bool VoxelBased;

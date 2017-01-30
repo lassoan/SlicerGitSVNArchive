@@ -187,8 +187,8 @@ void qSlicerCropVolumeModuleWidget::setup()
   Q_D(qSlicerCropVolumeModuleWidget);
 
   d->setupUi(this);
-  ctkFlowLayout* flowLayout = ctkFlowLayout::replaceLayout(d->InterpolatorWidget);
-  flowLayout->setPreferredExpandingDirections(Qt::Vertical);
+  //ctkFlowLayout* flowLayout = ctkFlowLayout::replaceLayout(d->InterpolatorWidget);
+  //flowLayout->setPreferredExpandingDirections(Qt::Vertical);
 
   this->Superclass::setup();
 
@@ -381,6 +381,24 @@ void qSlicerCropVolumeModuleWidget::onInputVolumeChanged()
       }
     }
 }
+
+/*
+vtkNew<vtkIntArray> inputVolumeEvents;
+inputVolumeEvents->InsertNextValue(vtkCommand::ModifiedEvent);
+inputVolumeEvents->InsertNextValue(vtkMRMLVolumeNode::ImageDataModifiedEvent);
+this->AddNodeReferenceRole(InputVolumeNodeReferenceRole,
+  InputVolumeNodeReferenceMRMLAttributeName,
+  inputVolumeEvents.GetPointer());
+
+vtkNew<vtkIntArray> roiEvents;
+roiEvents->InsertNextValue(vtkCommand::ModifiedEvent);
+this->AddNodeReferenceRole(ROINodeReferenceRole,
+  ROINodeReferenceMRMLAttributeName,
+  roiEvents.GetPointer());
+
+this->AddNodeReferenceRole(OutputVolumeNodeReferenceRole,
+  OutputVolumeNodeReferenceMRMLAttributeName);
+  */
 
 //-----------------------------------------------------------------------------
 void qSlicerCropVolumeModuleWidget::onInputVolumeAdded(vtkMRMLNode *mrmlNode)
@@ -686,7 +704,7 @@ void qSlicerCropVolumeModuleWidget::updateWidget()
     return;
     }
 
-  char *volumeNodeID = parametersNode->GetInputVolumeNodeID();
+  const char *volumeNodeID = parametersNode->GetInputVolumeNodeID();
   int nodeCount = d->InputVolumeComboBox->nodeCount();
   if (!volumeNodeID && nodeCount != 0)
     {
@@ -700,7 +718,7 @@ void qSlicerCropVolumeModuleWidget::updateWidget()
   vtkMRMLNode *volumeNode = this->mrmlScene()->GetNodeByID(volumeNodeID);
   d->InputVolumeComboBox->setCurrentNode(volumeNode);
 
-  char *roiNodeID = parametersNode->GetROINodeID();
+  const char *roiNodeID = parametersNode->GetROINodeID();
   if (!roiNodeID && d->InputROIComboBox->nodeCount() != 0)
     {
     int nodeIndex =  d->InputROIComboBox->nodeCount() - 1;
