@@ -105,64 +105,59 @@ void qSlicerCropVolumeModuleWidgetPrivate::performROIVoxelGridAlignment()
 {
   Q_ASSERT(this->InputVolumeComboBox);
   Q_ASSERT(this->InputROIComboBox);
-  Q_ASSERT(this->InterpolationModeRadioButton);
-  Q_ASSERT(this->VoxelBasedModeRadioButton);
 
   vtkSmartPointer<vtkMRMLVolumeNode> inputVolume = vtkMRMLVolumeNode::SafeDownCast(this->InputVolumeComboBox->currentNode());
   vtkSmartPointer<vtkMRMLAnnotationROINode> inputROI = vtkMRMLAnnotationROINode::SafeDownCast(this->InputROIComboBox->currentNode());
 
-  if( !inputVolume || !inputROI || this->VoxelBasedModeRadioButton->isChecked() == false)
+  if (!inputVolume || !inputROI || this->InterpolationEnabledCheckBox->isChecked())
+    {
     return;
+    }
 
   vtkNew<vtkMatrix4x4> volRotMat;
   bool volumeTilted = vtkSlicerCropVolumeLogic::IsVolumeTiltedInRAS(inputVolume,volRotMat.GetPointer());
 
-
   vtkMRMLTransformNode* roiTransform = inputROI->GetParentTransformNode();
-
   if(roiTransform && roiTransform->IsTransformToWorldLinear())
     {
-      vtkNew<vtkMatrix4x4> parentTransform;
-      roiTransform->GetMatrixTransformToWorld(parentTransform.GetPointer());
-
-      bool same = true;
-
-      for(int i=0; i < 4; ++i)
+    vtkNew<vtkMatrix4x4> parentTransform;
+    roiTransform->GetMatrixTransformToWorld(parentTransform.GetPointer());
+    bool same = true;
+    for(int i=0; i < 4 && same; ++i)
+      {
+      for(int j=0; j < 4; ++j)
         {
-          for(int j=0; j < 4; ++j)
-            {
-                if(parentTransform->GetElement(i,j) != volRotMat->GetElement(i,j))
-                  {
-                    same = false;
-                    break;
-                  }
-            }
-
-          if (same == false)
-            break;
+        if(parentTransform->GetElement(i,j) != volRotMat->GetElement(i,j))
+          {
+          same = false;
+          break;
+          }
         }
-      if(!same)
+      }
+    if(!same)
+      {
+      QString message = "The selected ROI has a transform which is neither an identity transform"
+        " nor a Crop Volume voxelgrid alignment transform for the selected volume. In order to perform"
+        " voxel based cropping a new transform will be applied to the ROI.\n\nDo you want to continue and reset the ROI's transform?";
+      int ret = QMessageBox::information(NULL,"Crop Volume",message,QMessageBox::Yes,QMessageBox::No);
+
+      if(ret == QMessageBox::Yes)
         {
-          QString message = "The selected ROI has a transform which is neither an identity transform nor a Crop Volume voxelgrid alignment transform for the selected volume. In order to perform voxel based cropping a new transform will be applied to the ROI.\n\nDo you want to continue and reset the ROI's transform?";
-          int ret = QMessageBox::information(NULL,"Crop Volume",message,QMessageBox::Yes,QMessageBox::No);
-
-          if(ret == QMessageBox::Yes)
-            {
-              inputROI->SetAndObserveTransformNodeID(0);
-            }
-          else if(ret == QMessageBox::No)
-            {
-              this->InputROIComboBox->setCurrentNode(NULL);
-              return;
-            }
+        inputROI->SetAndObserveTransformNodeID(0);
         }
+      else if(ret == QMessageBox::No)
+        {
+        this->InputROIComboBox->setCurrentNode(NULL);
+        return;
+        }
+      }
     }
 
   if(volumeTilted)
     {
-      vtkSlicerCropVolumeLogic* logic = this->logic();
-      Q_ASSERT(logic);
-      logic->SnapROIToVoxelGrid(inputROI,inputVolume);
+    vtkSlicerCropVolumeLogic* logic = this->logic();
+    Q_ASSERT(logic);
+    logic->SnapROIToVoxelGrid(inputROI,inputVolume);
     }
 
 }
@@ -216,6 +211,9 @@ void qSlicerCropVolumeModuleWidget::setup()
 
   connect(d->VisibilityButton, SIGNAL(toggled(bool)),
           this, SLOT(onROIVisibilityChanged()));
+  connect(d->ROIFitPushButton, SIGNAL(clicked()),
+    this, SLOT(onROIFit()));
+
   connect(d->LinearRadioButton, SIGNAL(toggled(bool)),
           this, SLOT(onInterpolationModeChanged()));
   connect(d->NNRadioButton, SIGNAL(toggled(bool)),
@@ -228,8 +226,8 @@ void qSlicerCropVolumeModuleWidget::setup()
           this, SLOT(onIsotropicModeChanged()));
   connect(d->SpacingScalingSpinBox, SIGNAL(valueChanged(double)),
           this, SLOT(onSpacingScalingValueChanged(double)));
-  connect(d->VoxelBasedModeRadioButton,SIGNAL(toggled(bool)),
-          this, SLOT(onVoxelBasedChecked(bool)) );
+  connect(d->InterpolationEnabledCheckBox, SIGNAL(toggled(bool)),
+          this, SLOT(onInterpolationEnabled(bool)) );
 }
 
 //-----------------------------------------------------------------------------
@@ -335,7 +333,6 @@ void qSlicerCropVolumeModuleWidget::onInputVolumeChanged()
 {
   Q_D(qSlicerCropVolumeModuleWidget);
   Q_ASSERT(d->InputVolumeComboBox);
-  Q_ASSERT(d->VoxelBasedModeRadioButton);
 
   vtkMRMLCropVolumeParametersNode *parametersNode = NULL;
   if (d->ParametersNodeComboBox->currentNode())
@@ -346,7 +343,7 @@ void qSlicerCropVolumeModuleWidget::onInputVolumeChanged()
   vtkMRMLNode* node = d->InputVolumeComboBox->currentNode();
   if (node)
     {
-    if (d->VoxelBasedModeRadioButton->isChecked())
+    if (!d->InterpolationEnabledCheckBox->isChecked())
       {
       if (d->checkForVolumeParentTransform())
         {
@@ -426,7 +423,6 @@ void qSlicerCropVolumeModuleWidget::onInputVolumeAdded(vtkMRMLNode *mrmlNode)
 void qSlicerCropVolumeModuleWidget::onInputROIChanged()
 {
   Q_D(qSlicerCropVolumeModuleWidget);
-  Q_ASSERT(d->VoxelBasedModeRadioButton);
 
   vtkMRMLCropVolumeParametersNode *parametersNode = NULL;
   if (d->ParametersNodeComboBox->currentNode())
@@ -441,7 +437,7 @@ void qSlicerCropVolumeModuleWidget::onInputROIChanged()
       vtkMRMLAnnotationROINode::SafeDownCast(node);
     if (roiNode)
       {
-      if (d->VoxelBasedModeRadioButton->isChecked())
+      if (!d->InterpolationEnabledCheckBox->isChecked())
         {
         d->performROIVoxelGridAlignment();
         }
@@ -515,6 +511,30 @@ void qSlicerCropVolumeModuleWidget::onROIVisibilityChanged()
 }
 
 //-----------------------------------------------------------------------------
+void qSlicerCropVolumeModuleWidget::onROIFit()
+{
+  Q_D(qSlicerCropVolumeModuleWidget);
+
+  if (!d->ParametersNodeComboBox->currentNode())
+  {
+    return;
+  }
+  vtkMRMLCropVolumeParametersNode *parametersNode = NULL;
+  parametersNode = vtkMRMLCropVolumeParametersNode::SafeDownCast(d->ParametersNodeComboBox->currentNode());
+  if (!parametersNode)
+  {
+    return;
+  }
+  parametersNode->SetROIVisibility(d->VisibilityButton->isChecked());
+  vtkMRMLAnnotationROINode* node =
+    vtkMRMLAnnotationROINode::SafeDownCast(d->InputROIComboBox->currentNode());
+  if (node)
+  {
+    node->SetDisplayVisibility(d->VisibilityButton->isChecked());
+  }
+}
+
+//-----------------------------------------------------------------------------
 void qSlicerCropVolumeModuleWidget::onInterpolationModeChanged()
 {
   Q_D(qSlicerCropVolumeModuleWidget);
@@ -584,7 +604,7 @@ void qSlicerCropVolumeModuleWidget::onIsotropicModeChanged()
 
 //-----------------------------------------------------------------------------
 void
-qSlicerCropVolumeModuleWidget::onVoxelBasedChecked(bool checked)
+qSlicerCropVolumeModuleWidget::onInterpolationEnabled(bool interpolationEnabled)
 {
   Q_D(qSlicerCropVolumeModuleWidget);
 
@@ -598,7 +618,7 @@ qSlicerCropVolumeModuleWidget::onVoxelBasedChecked(bool checked)
     {
     return;
     }
-  parametersNode->SetVoxelBased(checked);
+  parametersNode->SetVoxelBased(!interpolationEnabled);
 
   if (d->checkForVolumeParentTransform())
     {
@@ -655,7 +675,7 @@ void qSlicerCropVolumeModuleWidget::updateParameters()
     parametersNode->SetROINodeID(NULL);
     }
 
-  parametersNode->SetVoxelBased(d->VoxelBasedModeRadioButton->isChecked());
+  parametersNode->SetVoxelBased(!d->InterpolationEnabledCheckBox->isChecked());
   parametersNode->SetROIVisibility(d->VisibilityButton->isChecked());
 
   if (d->NNRadioButton->isChecked())
@@ -687,7 +707,7 @@ void qSlicerCropVolumeModuleWidget::updateWidget()
     d->InputVolumeComboBox->setCurrentNode(NULL);
     d->InputROIComboBox->setCurrentNode(NULL);
 
-    d->VoxelBasedModeRadioButton->setChecked(false);
+    d->InterpolationEnabledCheckBox->setChecked(true);
     d->VisibilityButton->setChecked(true);
 
     d->IsotropicCheckbox->setChecked(false);
@@ -728,14 +748,7 @@ void qSlicerCropVolumeModuleWidget::updateWidget()
   vtkMRMLNode *roiNode = this->mrmlScene()->GetNodeByID(roiNodeID);
   d->InputROIComboBox->setCurrentNode(roiNode);
 
-  if (parametersNode->GetVoxelBased())
-    {
-    d->VoxelBasedModeRadioButton->setChecked(true);
-    }
-  else
-    {
-    d->InterpolationModeRadioButton->setChecked(true);
-    }
+  d->InterpolationEnabledCheckBox->setChecked(!parametersNode->GetVoxelBased());
   d->VisibilityButton->setChecked(parametersNode->GetROIVisibility());
 
   switch (parametersNode->GetInterpolationMode())

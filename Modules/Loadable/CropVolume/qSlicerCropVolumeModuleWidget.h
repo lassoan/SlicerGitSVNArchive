@@ -48,6 +48,7 @@ protected slots:
   /// have a current node, select it
   void onInputROIAdded(vtkMRMLNode*);
   void onROIVisibilityChanged();
+  void onROIFit();
   void onInterpolationModeChanged();
   void onApply();
   void updateWidget();
@@ -55,7 +56,7 @@ protected slots:
   void onSpacingScalingValueChanged(double);
   void onIsotropicModeChanged();
   void onEndCloseEvent();
-  void onVoxelBasedChecked(bool checked);
+  void onInterpolationEnabled(bool interpolationEnabled);
 
 
 private:
