@@ -151,7 +151,8 @@ int vtkSlicerCropVolumeLogic::Apply(vtkMRMLCropVolumeParametersNode* pnode)
     }
 
   std::ostringstream outSS;
-  double outputSpacing[3], spacingScaleConst = pnode->GetSpacingScalingConst();
+
+  double spacingScaleConst = pnode->GetSpacingScalingConst();
   outSS << inputVolume->GetName() << "-subvolume-scale_" << spacingScaleConst;
 
   if(dtvnode)
@@ -209,161 +210,33 @@ int vtkSlicerCropVolumeLogic::Apply(vtkMRMLCropVolumeParametersNode* pnode)
 
   outputVolume->SetName(outSS.str().c_str());
 
+  int errorCode = 0;
   if(pnode->GetVoxelBased()) // voxel based cropping selected
     {
-      this->CropVoxelBased(inputROI,inputVolume,outputVolume);
+    errorCode = this->CropVoxelBased(inputROI, inputVolume, outputVolume);
     }
   else  // interpolated cropping selected
     {
-      vtkMRMLScalarVolumeNode *refVolume;
-      vtkMatrix4x4 *inputRASToIJK = vtkMatrix4x4::New();
-      vtkMatrix4x4 *inputIJKToRAS = vtkMatrix4x4::New();
-      vtkMatrix4x4 *outputRASToIJK = vtkMatrix4x4::New();
-      vtkMatrix4x4 *outputIJKToRAS = vtkMatrix4x4::New();
-
-      refVolume = this->Internal->VolumesLogic->CreateAndAddLabelVolume(
-          this->GetMRMLScene(), inputVolume, "CropVolume_ref_volume");
-      refVolume->HideFromEditorsOn();
-
-      refVolume->GetRASToIJKMatrix(inputRASToIJK);
-      refVolume->GetIJKToRASMatrix(inputIJKToRAS);
-      outputRASToIJK->Identity();
-      outputIJKToRAS->Identity();
-
-      // prepare the resampling reference volume
-      double roiRadius[3], roiXYZ[3];
-      inputROI->GetRadiusXYZ(roiRadius);
-      inputROI->GetXYZ(roiXYZ);
-
-      double* inputSpacing = inputVolume->GetSpacing();
-      double minSpacing = inputSpacing[0];
-      if (minSpacing > inputSpacing[1])
-        {
-          minSpacing = inputSpacing[1];
-        }
-      if (minSpacing > inputSpacing[2])
-        {
-          minSpacing = inputSpacing[2];
-        }
-
-      if (pnode->GetIsotropicResampling())
-        {
-          outputSpacing[0] = minSpacing * spacingScaleConst;
-          outputSpacing[1] = minSpacing * spacingScaleConst;
-          outputSpacing[2] = minSpacing * spacingScaleConst;
-        }
-      else
-        {
-          outputSpacing[0] = inputSpacing[0] * spacingScaleConst;
-          outputSpacing[1] = inputSpacing[1] * spacingScaleConst;
-          outputSpacing[2] = inputSpacing[2] * spacingScaleConst;
-        }
-
-      int outputExtent[3];
-
-      outputExtent[0] = roiRadius[0] / outputSpacing[0] * 2.;
-      outputExtent[1] = roiRadius[1] / outputSpacing[1] * 2.;
-      outputExtent[2] = roiRadius[2] / outputSpacing[2] * 2.;
-
-      outputIJKToRAS->SetElement(0, 0, outputSpacing[0]);
-      outputIJKToRAS->SetElement(1, 1, outputSpacing[1]);
-      outputIJKToRAS->SetElement(2, 2, outputSpacing[2]);
-
-      outputIJKToRAS->SetElement(0, 3,
-          roiXYZ[0] - roiRadius[0] + outputSpacing[0] * .5);
-      outputIJKToRAS->SetElement(1, 3,
-          roiXYZ[1] - roiRadius[1] + outputSpacing[1] * .5);
-      outputIJKToRAS->SetElement(2, 3,
-          roiXYZ[2] - roiRadius[2] + outputSpacing[2] * .5);
-
-      // account for the ROI parent transform, if present
-      vtkMRMLTransformNode *roiTransform = inputROI->GetParentTransformNode();
-      if (roiTransform && roiTransform->IsTransformToWorldLinear())
-        {
-          vtkMatrix4x4 *roiMatrix = vtkMatrix4x4::New();
-          roiTransform->GetMatrixTransformToWorld(roiMatrix);
-          outputIJKToRAS->Multiply4x4(roiMatrix, outputIJKToRAS,
-              outputIJKToRAS);
-        }
-
-      outputRASToIJK->DeepCopy(outputIJKToRAS);
-      outputRASToIJK->Invert();
-
-      vtkImageData* outputImageData = vtkImageData::New();
-      outputImageData->SetDimensions(outputExtent[0], outputExtent[1],
-          outputExtent[2]);
-      outputImageData->AllocateScalars(VTK_DOUBLE, 1);
-
-      refVolume->SetAndObserveImageData(outputImageData);
-      outputImageData->Delete();
-
-      refVolume->SetIJKToRASMatrix(outputIJKToRAS);
-      refVolume->SetRASToIJKMatrix(outputRASToIJK);
-
-      inputRASToIJK->Delete();
-      inputIJKToRAS->Delete();
-      outputRASToIJK->Delete();
-      outputIJKToRAS->Delete();
-
-      if (this->Internal->ResampleLogic == 0)
-        {
-          std::cerr << "CropVolume: ERROR: resample logic is not set!";
-          return -3;
-        }
-
-      vtkSmartPointer<vtkMRMLCommandLineModuleNode> cmdNode =
-          this->Internal->ResampleLogic->CreateNodeInScene();
-      assert(cmdNode.GetPointer() != 0);
-
-      cmdNode->SetParameterAsString("inputVolume", inputVolume->GetID());
-      cmdNode->SetParameterAsString("referenceVolume", refVolume->GetID());
-      cmdNode->SetParameterAsString("outputVolume", outputVolume->GetID());
-
-      vtkMRMLTransformNode *movingVolumeTransform = inputVolume->GetParentTransformNode();
-
-      if (movingVolumeTransform != NULL && movingVolumeTransform->IsLinear())
-        {
-        cmdNode->SetParameterAsString("transformationFile",
-            movingVolumeTransform->GetID());
-        }
-
-      std::string interp = "linear";
-      switch (pnode->GetInterpolationMode())
-        {
-      case 1:
-        interp = "nn";
-        break;
-      case 2:
-        interp = "linear";
-        break;
-      case 3:
-        interp = "ws";
-        break;
-      case 4:
-        interp = "bs";
-        break;
-        }
-
-      cmdNode->SetParameterAsString("interpolationType", interp.c_str());
-      this->Internal->ResampleLogic->ApplyAndWait(cmdNode);
-
-      this->GetMRMLScene()->RemoveNode(refVolume);
-      this->GetMRMLScene()->RemoveNode(cmdNode);
-
+    errorCode = this->CropInterpolated(inputROI, inputVolume, outputVolume,
+      pnode->GetIsotropicResampling(), spacingScaleConst, pnode->GetInterpolationMode());
     }
-
-  outputVolume->SetAndObserveTransformNodeID(NULL);
-  pnode->SetOutputVolumeNodeID(outputVolume->GetID());
-
-  return 0;
+  if (!errorCode)
+    {
+    // no errors
+    outputVolume->SetAndObserveTransformNodeID(NULL);
+    pnode->SetOutputVolumeNodeID(outputVolume->GetID());
+    }
+  return errorCode;
 }
 
 
 //----------------------------------------------------------------------------
-void vtkSlicerCropVolumeLogic::CropVoxelBased(vtkMRMLAnnotationROINode* roi, vtkMRMLVolumeNode* inputVolume, vtkMRMLVolumeNode* outputVolume)
+int vtkSlicerCropVolumeLogic::CropVoxelBased(vtkMRMLAnnotationROINode* roi, vtkMRMLVolumeNode* inputVolume, vtkMRMLVolumeNode* outputVolume)
 {
   if(!roi || !inputVolume || !outputVolume)
-    return;
+    {
+    return -1;
+    }
 
   vtkNew<vtkImageData> imageDataWorkingCopy;
   imageDataWorkingCopy->DeepCopy(inputVolume->GetImageData());
@@ -455,10 +328,6 @@ void vtkSlicerCropVolumeLogic::CropVoxelBased(vtkMRMLAnnotationROINode* roi, vtk
 
   outputVolume->SetOrigin(rasNewOrigin[0],rasNewOrigin[1],rasNewOrigin[2]);
 
-  vtkNew<vtkMatrix4x4> outputRASToIJK;
-  outputRASToIJK->DeepCopy(outputIJKToRAS.GetPointer());
-  outputRASToIJK->Invert();
-
   vtkNew<vtkImageData> outputImageData;
   outputImageData->DeepCopy(imageClip->GetOutput());
 
@@ -469,10 +338,147 @@ void vtkSlicerCropVolumeLogic::CropVoxelBased(vtkMRMLAnnotationROINode* roi, vtk
 
   outputVolume->SetAndObserveImageData(outputImageData.GetPointer());
   outputVolume->SetIJKToRASMatrix(outputIJKToRAS.GetPointer());
-  outputVolume->SetRASToIJKMatrix(outputRASToIJK.GetPointer());
 
   outputVolume->Modified();
 
+  return 0;
+}
+
+//----------------------------------------------------------------------------
+int vtkSlicerCropVolumeLogic::CropInterpolated(vtkMRMLAnnotationROINode* roi, vtkMRMLVolumeNode* inputVolume, vtkMRMLVolumeNode* outputVolume,
+  bool isotropicResampling, double spacingScale, int interpolationMode)
+{
+  if (!roi || !inputVolume || !outputVolume)
+    {
+    return -1;
+    }
+
+  // prepare the resampling reference volume
+  double roiRadius[3], roiXYZ[3];
+  roi->GetRadiusXYZ(roiRadius);
+  roi->GetXYZ(roiXYZ);
+
+  double* inputSpacing = inputVolume->GetSpacing();
+
+  // TODO: find output spacing axis that is closest to the input spacing
+
+  double minSpacing = inputSpacing[0];
+  if (minSpacing > inputSpacing[1])
+    {
+    minSpacing = inputSpacing[1];
+    }
+  if (minSpacing > inputSpacing[2])
+    {
+    minSpacing = inputSpacing[2];
+    }
+
+  double outputSpacing[3] = { 0 };
+  if (isotropicResampling)
+    {
+    outputSpacing[0] = minSpacing * spacingScale;
+    outputSpacing[1] = minSpacing * spacingScale;
+    outputSpacing[2] = minSpacing * spacingScale;
+    }
+  else
+    {
+    outputSpacing[0] = inputSpacing[0] * spacingScale;
+    outputSpacing[1] = inputSpacing[1] * spacingScale;
+    outputSpacing[2] = inputSpacing[2] * spacingScale;
+    }
+
+  int outputExtent[3];
+
+  outputExtent[0] = roiRadius[0] / outputSpacing[0] * 2.;
+  outputExtent[1] = roiRadius[1] / outputSpacing[1] * 2.;
+  outputExtent[2] = roiRadius[2] / outputSpacing[2] * 2.;
+
+  vtkNew<vtkMatrix4x4> outputIJKToRAS;
+
+  outputIJKToRAS->SetElement(0, 0, outputSpacing[0]);
+  outputIJKToRAS->SetElement(1, 1, outputSpacing[1]);
+  outputIJKToRAS->SetElement(2, 2, outputSpacing[2]);
+
+  outputIJKToRAS->SetElement(0, 3,
+    roiXYZ[0] - roiRadius[0] + outputSpacing[0] * .5);
+  outputIJKToRAS->SetElement(1, 3,
+    roiXYZ[1] - roiRadius[1] + outputSpacing[1] * .5);
+  outputIJKToRAS->SetElement(2, 3,
+    roiXYZ[2] - roiRadius[2] + outputSpacing[2] * .5);
+
+  // account for the ROI parent transform, if present
+  vtkMRMLTransformNode *roiTransform = roi->GetParentTransformNode();
+  if (roiTransform && roiTransform->IsTransformToWorldLinear())
+    {
+    vtkNew<vtkMatrix4x4> roiMatrix;
+    roiTransform->GetMatrixTransformToWorld(roiMatrix.GetPointer());
+    outputIJKToRAS->Multiply4x4(roiMatrix.GetPointer(), outputIJKToRAS.GetPointer(),
+      outputIJKToRAS.GetPointer());
+    }
+
+  vtkNew<vtkImageData> outputImageData;
+  outputImageData->SetDimensions(outputExtent[0], outputExtent[1], outputExtent[2]);
+  outputImageData->AllocateScalars(VTK_DOUBLE, 1);
+
+  vtkNew<vtkMRMLLabelMapVolumeNode> refVolume;
+  refVolume->HideFromEditorsOn();
+  refVolume->SetAndObserveImageData(outputImageData.GetPointer());
+  refVolume->SetIJKToRASMatrix(outputIJKToRAS.GetPointer());
+  this->GetMRMLScene()->AddNode(refVolume.GetPointer());
+
+  if (this->Internal->ResampleLogic == 0)
+    {
+    vtkErrorMacro("CropVolume: resample logic is not set");
+    return -3;
+    }
+
+  vtkSmartPointer<vtkMRMLCommandLineModuleNode> cmdNode =
+    vtkSmartPointer<vtkMRMLCommandLineModuleNode>::Take(
+    this->Internal->ResampleLogic->CreateNodeInScene());
+  if (cmdNode.GetPointer() == NULL)
+    {
+    vtkErrorMacro("CropVolume: failed to create resample node");
+    return -4;
+    }
+
+  cmdNode->SetParameterAsString("inputVolume", inputVolume->GetID());
+  cmdNode->SetParameterAsString("referenceVolume", refVolume->GetID());
+  cmdNode->SetParameterAsString("outputVolume", outputVolume->GetID());
+
+  vtkMRMLTransformNode *movingVolumeTransform = inputVolume->GetParentTransformNode();
+
+  // TODO: check if it works with non-linear transform - it should!
+  // TODO: we should use the relative transform between the input and output volume node
+  if (movingVolumeTransform != NULL && movingVolumeTransform->IsLinear())
+    {
+    cmdNode->SetParameterAsString("transformationFile",
+      movingVolumeTransform->GetID());
+    }
+
+  std::string interp = "linear";
+  switch (interpolationMode)
+    {
+    case 1:
+      interp = "nn";
+      break;
+    case 2:
+      interp = "linear";
+      break;
+    case 3:
+      interp = "ws";
+      break;
+    case 4:
+      interp = "bs";
+      break;
+    }
+
+  cmdNode->SetParameterAsString("interpolationType", interp.c_str());
+  this->Internal->ResampleLogic->ApplyAndWait(cmdNode);
+
+  this->GetMRMLScene()->RemoveNode(refVolume.GetPointer());
+  this->GetMRMLScene()->RemoveNode(cmdNode);
+
+  // success
+  return 0;
 }
 
 //----------------------------------------------------------------------------

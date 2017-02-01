@@ -51,7 +51,9 @@ public:
 
   int Apply(vtkMRMLCropVolumeParametersNode*);
 
-  void CropVoxelBased(vtkMRMLAnnotationROINode* roi, vtkMRMLVolumeNode* inputVolume, vtkMRMLVolumeNode* outputNode);
+  int CropVoxelBased(vtkMRMLAnnotationROINode* roi, vtkMRMLVolumeNode* inputVolume, vtkMRMLVolumeNode* outputNode);
+  int CropInterpolated(vtkMRMLAnnotationROINode* roi, vtkMRMLVolumeNode* inputVolume, vtkMRMLVolumeNode* outputNode,
+    bool isotropicResampling, double spacingScale, int interpolationMode);
 
   virtual void RegisterNodes();
 

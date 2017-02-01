@@ -319,6 +319,7 @@ void qSlicerCropVolumeModuleWidget::onApply()
   parametersNode->SetInputVolumeNodeID(d->InputVolumeComboBox->currentNode()->GetID());
   parametersNode->SetROINodeID(d->InputROIComboBox->currentNode()->GetID());
 
+  QApplication::setOverrideCursor(QCursor(Qt::BusyCursor));
   if (!logic->Apply(parametersNode))
     {
     vtkSlicerApplicationLogic *appLogic = this->module()->appLogic();
@@ -326,6 +327,7 @@ void qSlicerCropVolumeModuleWidget::onApply()
     selectionNode->SetReferenceActiveVolumeID(parametersNode->GetOutputVolumeNodeID());
     appLogic->PropagateVolumeSelection();
     }
+  QApplication::restoreOverrideCursor();
 }
 
 //-----------------------------------------------------------------------------
@@ -526,12 +528,34 @@ void qSlicerCropVolumeModuleWidget::onROIFit()
     return;
   }
   parametersNode->SetROIVisibility(d->VisibilityButton->isChecked());
-  vtkMRMLAnnotationROINode* node =
+  vtkMRMLAnnotationROINode* roiNode =
     vtkMRMLAnnotationROINode::SafeDownCast(d->InputROIComboBox->currentNode());
-  if (node)
+  if (!roiNode)
   {
-    node->SetDisplayVisibility(d->VisibilityButton->isChecked());
+    return;
   }
+  vtkMRMLVolumeNode* volumeNode =
+    vtkMRMLVolumeNode::SafeDownCast(d->InputVolumeComboBox->currentNode());
+  if (!volumeNode)
+  {
+    return;
+  }
+
+  vtkNew<vtkMatrix4x4> worldToROI;
+  vtkMRMLTransformNode::GetMatrixTransformBetweenNodes(NULL, roiNode->GetParentTransformNode(), worldToROI.GetPointer());
+  double volumeBounds_ROI[6] = { 0 }; // volume bounds in ROI's coordinate system
+
+  volumeNode->GetSliceBounds(volumeBounds_ROI, worldToROI.GetPointer());
+
+  double roiCenter[3] = { 0 };
+  double roiRadius[3] = { 0 };
+  for (int i = 0; i < 3; i++)
+    {
+    roiCenter[i] = (volumeBounds_ROI[i * 2 + 1] + volumeBounds_ROI[i * 2]) / 2;
+    roiRadius[i] = (volumeBounds_ROI[i * 2 + 1] - volumeBounds_ROI[i * 2]) / 2;
+    }
+  roiNode->SetXYZ(roiCenter);
+  roiNode->SetRadiusXYZ(roiRadius);
 }
 
 //-----------------------------------------------------------------------------
