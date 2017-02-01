@@ -304,7 +304,6 @@ void qSlicerCropVolumeModuleWidget::initializeNode(vtkMRMLNode *n)
 //-----------------------------------------------------------------------------
 void qSlicerCropVolumeModuleWidget::onApply()
 {
-
   Q_D(const qSlicerCropVolumeModuleWidget);
   vtkSlicerCropVolumeLogic *logic = d->logic();
 
@@ -516,46 +515,7 @@ void qSlicerCropVolumeModuleWidget::onROIVisibilityChanged()
 void qSlicerCropVolumeModuleWidget::onROIFit()
 {
   Q_D(qSlicerCropVolumeModuleWidget);
-
-  if (!d->ParametersNodeComboBox->currentNode())
-  {
-    return;
-  }
-  vtkMRMLCropVolumeParametersNode *parametersNode = NULL;
-  parametersNode = vtkMRMLCropVolumeParametersNode::SafeDownCast(d->ParametersNodeComboBox->currentNode());
-  if (!parametersNode)
-  {
-    return;
-  }
-  parametersNode->SetROIVisibility(d->VisibilityButton->isChecked());
-  vtkMRMLAnnotationROINode* roiNode =
-    vtkMRMLAnnotationROINode::SafeDownCast(d->InputROIComboBox->currentNode());
-  if (!roiNode)
-  {
-    return;
-  }
-  vtkMRMLVolumeNode* volumeNode =
-    vtkMRMLVolumeNode::SafeDownCast(d->InputVolumeComboBox->currentNode());
-  if (!volumeNode)
-  {
-    return;
-  }
-
-  vtkNew<vtkMatrix4x4> worldToROI;
-  vtkMRMLTransformNode::GetMatrixTransformBetweenNodes(NULL, roiNode->GetParentTransformNode(), worldToROI.GetPointer());
-  double volumeBounds_ROI[6] = { 0 }; // volume bounds in ROI's coordinate system
-
-  volumeNode->GetSliceBounds(volumeBounds_ROI, worldToROI.GetPointer());
-
-  double roiCenter[3] = { 0 };
-  double roiRadius[3] = { 0 };
-  for (int i = 0; i < 3; i++)
-    {
-    roiCenter[i] = (volumeBounds_ROI[i * 2 + 1] + volumeBounds_ROI[i * 2]) / 2;
-    roiRadius[i] = (volumeBounds_ROI[i * 2 + 1] - volumeBounds_ROI[i * 2]) / 2;
-    }
-  roiNode->SetXYZ(roiCenter);
-  roiNode->SetRadiusXYZ(roiRadius);
+  d->logic()->FitROIToInputVolume(vtkMRMLCropVolumeParametersNode::SafeDownCast(d->ParametersNodeComboBox->currentNode()));
 }
 
 //-----------------------------------------------------------------------------
@@ -570,23 +530,23 @@ void qSlicerCropVolumeModuleWidget::onInterpolationModeChanged()
   parametersNode = vtkMRMLCropVolumeParametersNode::SafeDownCast(d->ParametersNodeComboBox->currentNode());
   if (!parametersNode)
     {
-      return;
+    return;
     }
   if(d->NNRadioButton->isChecked())
     {
-    parametersNode->SetInterpolationMode(1);
+    parametersNode->SetInterpolationMode(vtkMRMLCropVolumeParametersNode::InterpolationNearestNeighbor);
     }
   if(d->LinearRadioButton->isChecked())
     {
-    parametersNode->SetInterpolationMode(2);
+    parametersNode->SetInterpolationMode(vtkMRMLCropVolumeParametersNode::InterpolationLinear);
     }
   if(d->WSRadioButton->isChecked())
     {
-    parametersNode->SetInterpolationMode(3);
+    parametersNode->SetInterpolationMode(vtkMRMLCropVolumeParametersNode::InterpolationWindowedSinc);
     }
   if(d->BSRadioButton->isChecked())
     {
-    parametersNode->SetInterpolationMode(4);
+    parametersNode->SetInterpolationMode(vtkMRMLCropVolumeParametersNode::InterpolationBSpline);
     }
 }
 
@@ -703,13 +663,21 @@ void qSlicerCropVolumeModuleWidget::updateParameters()
   parametersNode->SetROIVisibility(d->VisibilityButton->isChecked());
 
   if (d->NNRadioButton->isChecked())
-    parametersNode->SetInterpolationMode(1);
+    {
+    parametersNode->SetInterpolationMode(vtkMRMLCropVolumeParametersNode::InterpolationNearestNeighbor);
+    }
   else if (d->LinearRadioButton->isChecked())
-    parametersNode->SetInterpolationMode(2);
+    {
+    parametersNode->SetInterpolationMode(vtkMRMLCropVolumeParametersNode::InterpolationLinear);
+    }
   else if (d->WSRadioButton->isChecked())
-    parametersNode->SetInterpolationMode(3);
+    {
+    parametersNode->SetInterpolationMode(vtkMRMLCropVolumeParametersNode::InterpolationWindowedSinc);
+    }
   else if (d->BSRadioButton->isChecked())
-    parametersNode->SetInterpolationMode(4);
+    {
+    parametersNode->SetInterpolationMode(vtkMRMLCropVolumeParametersNode::InterpolationBSpline);
+    }
 
   parametersNode->SetIsotropicResampling(d->IsotropicCheckbox->isChecked());
 

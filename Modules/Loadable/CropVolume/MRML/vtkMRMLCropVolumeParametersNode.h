@@ -31,7 +31,14 @@ class vtkMRMLVolumeNode;
 /// \ingroup Slicer_QtModules_CropVolume
 class VTK_SLICER_CROPVOLUME_MODULE_MRML_EXPORT vtkMRMLCropVolumeParametersNode : public vtkMRMLNode
 {
-  public:
+public:
+  enum
+    {
+    InterpolationNearestNeighbor = 1,
+    InterpolationLinear = 2,
+    InterpolationWindowedSinc = 3,
+    InterpolationBSpline = 4
+    };
 
   static vtkMRMLCropVolumeParametersNode *New();
   vtkTypeMacro(vtkMRMLCropVolumeParametersNode,vtkMRMLNode);
@@ -55,16 +62,19 @@ class VTK_SLICER_CROPVOLUME_MODULE_MRML_EXPORT vtkMRMLCropVolumeParametersNode :
   void SetInputVolumeNodeID(const char *nodeID);
   /// Get volume node to be cropped
   const char *GetInputVolumeNodeID();
+  vtkMRMLVolumeNode* GetInputVolumeNode();
 
   /// Set resulting cropped volume node
   void SetOutputVolumeNodeID(const char *nodeID);
   /// Get resulting cropped volume node
-  const char *GetOutputVolumeNodeID();
+  const char* GetOutputVolumeNodeID();
+  vtkMRMLVolumeNode* GetOutputVolumeNode();
 
   /// Set cropping region of interest
   void SetROINodeID(const char *nodeID);
   /// Get cropping region of interest
-  const char *GetROINodeID();
+  const char* GetROINodeID();
+  vtkMRMLAnnotationROINode* GetROINode();
 
   vtkSetMacro(IsotropicResampling,bool);
   vtkGetMacro(IsotropicResampling,bool);

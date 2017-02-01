@@ -189,6 +189,12 @@ const char * vtkMRMLCropVolumeParametersNode::GetInputVolumeNodeID()
 }
 
 //----------------------------------------------------------------------------
+vtkMRMLVolumeNode* vtkMRMLCropVolumeParametersNode::GetInputVolumeNode()
+{
+  return vtkMRMLVolumeNode::SafeDownCast(this->GetNodeReference(InputVolumeNodeReferenceRole));
+}
+
+//----------------------------------------------------------------------------
 void vtkMRMLCropVolumeParametersNode::SetOutputVolumeNodeID(const char *nodeID)
 {
   this->SetNodeReferenceID(OutputVolumeNodeReferenceRole, nodeID);
@@ -201,6 +207,12 @@ const char * vtkMRMLCropVolumeParametersNode::GetOutputVolumeNodeID()
 }
 
 //----------------------------------------------------------------------------
+vtkMRMLVolumeNode* vtkMRMLCropVolumeParametersNode::GetOutputVolumeNode()
+{
+  return vtkMRMLVolumeNode::SafeDownCast(this->GetNodeReference(OutputVolumeNodeReferenceRole));
+}
+
+//----------------------------------------------------------------------------
 void vtkMRMLCropVolumeParametersNode::SetROINodeID(const char *nodeID)
 {
   this->SetNodeReferenceID(ROINodeReferenceRole, nodeID);
@@ -210,4 +222,10 @@ void vtkMRMLCropVolumeParametersNode::SetROINodeID(const char *nodeID)
 const char * vtkMRMLCropVolumeParametersNode::GetROINodeID()
 {
   return this->GetNodeReferenceID(ROINodeReferenceRole);
+}
+
+//----------------------------------------------------------------------------
+vtkMRMLAnnotationROINode* vtkMRMLCropVolumeParametersNode::GetROINode()
+{
+  return vtkMRMLAnnotationROINode::SafeDownCast(this->GetNodeReference(ROINodeReferenceRole));
 }

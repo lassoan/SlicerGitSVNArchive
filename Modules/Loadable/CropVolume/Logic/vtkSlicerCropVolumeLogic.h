@@ -51,9 +51,16 @@ public:
 
   int Apply(vtkMRMLCropVolumeParametersNode*);
 
+  /// Voxel-based cropping of non-linearly transformed input volume is not supported.
+  /// If ROI is under a non-linear transform then the transform will be ignored.
   int CropVoxelBased(vtkMRMLAnnotationROINode* roi, vtkMRMLVolumeNode* inputVolume, vtkMRMLVolumeNode* outputNode);
+
   int CropInterpolated(vtkMRMLAnnotationROINode* roi, vtkMRMLVolumeNode* inputVolume, vtkMRMLVolumeNode* outputNode,
     bool isotropicResampling, double spacingScale, int interpolationMode);
+
+  /// Sets ROI to fit to input volume.
+  /// If ROI is under a non-linear transform then the transform will be ignored.
+  bool FitROIToInputVolume(vtkMRMLCropVolumeParametersNode* parametersNode);
 
   virtual void RegisterNodes();
 

@@ -226,10 +226,17 @@ public:
                                                               const char *name);
 
   /// Create a deep copy of a \a volumeNode and add it to the \a scene
+  /// Only works for vtkMRMLScalarVolumeNode. Kept it for background compatibility only,
+  /// internally it calls CloneVolumeGeneric.
   static vtkMRMLScalarVolumeNode *CloneVolume(vtkMRMLScene *scene,
                                               vtkMRMLVolumeNode *volumeNode,
                                               const char *name,
                                               bool cloneImageData=true);
+  /// Create a deep copy of a \a volumeNode and add it to the \a scene
+  static vtkMRMLVolumeNode *CloneVolumeGeneric(vtkMRMLScene *scene,
+    vtkMRMLVolumeNode *volumeNode,
+    const char *name,
+    bool cloneImageData = true);
 
   /// Computes matrix we need to register
   /// V1Node to V2Node given the "register.dat" matrix from tkregister2 (FreeSurfer)
