@@ -154,7 +154,7 @@
          <string>Crop Volume ROI</string>
         </property>
         <property name="noneEnabled">
-         <bool>true</bool>
+         <bool>false</bool>
         </property>
         <property name="editEnabled">
          <bool>true</bool>
@@ -240,6 +240,9 @@
         </property>
         <property name="renameEnabled">
          <bool>true</bool>
+        </property>
+        <property name="noneDisplay">
+         <string>Create new volume</string>
         </property>
        </widget>
       </item>
@@ -650,7 +653,7 @@
      <y>4</y>
     </hint>
     <hint type="destinationlabel">
-     <x>458</x>
+     <x>307</x>
      <y>46</y>
     </hint>
    </hints>
@@ -666,7 +669,7 @@
      <y>4</y>
     </hint>
     <hint type="destinationlabel">
-     <x>461</x>
+     <x>307</x>
      <y>103</y>
     </hint>
    </hints>
@@ -678,11 +681,11 @@
    <slot>setMRMLScene(vtkMRMLScene*)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>352</x>
+     <x>311</x>
      <y>7</y>
     </hint>
     <hint type="destinationlabel">
-     <x>568</x>
+     <x>307</x>
      <y>129</y>
     </hint>
    </hints>
@@ -694,11 +697,11 @@
    <slot>setMRMLScene(vtkMRMLScene*)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>334</x>
+     <x>311</x>
      <y>329</y>
     </hint>
     <hint type="destinationlabel">
-     <x>513</x>
+     <x>307</x>
      <y>187</y>
     </hint>
    </hints>
@@ -710,12 +713,12 @@
    <slot>setMRMLScene(vtkMRMLScene*)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>334</x>
+     <x>311</x>
      <y>499</y>
     </hint>
     <hint type="destinationlabel">
-     <x>546</x>
-     <y>428</y>
+     <x>297</x>
+     <y>429</y>
     </hint>
    </hints>
   </connection>
@@ -726,12 +729,12 @@
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>391</x>
-     <y>231</y>
+     <x>307</x>
+     <y>237</y>
     </hint>
     <hint type="destinationlabel">
-     <x>391</x>
-     <y>250</y>
+     <x>307</x>
+     <y>282</y>
     </hint>
    </hints>
   </connection>
@@ -746,8 +749,8 @@
      <y>232</y>
     </hint>
     <hint type="destinationlabel">
-     <x>148</x>
-     <y>274</y>
+     <x>266</x>
+     <y>263</y>
     </hint>
    </hints>
   </connection>
@@ -838,12 +841,76 @@
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>403</x>
-     <y>119</y>
+     <x>307</x>
+     <y>129</y>
     </hint>
     <hint type="destinationlabel">
-     <x>414</x>
-     <y>148</y>
+     <x>306</x>
+     <y>160</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>ParametersNodeComboBox</sender>
+   <signal>currentNodeChanged(bool)</signal>
+   <receiver>InputOutputCollapsibleButton</receiver>
+   <slot>setEnabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>102</x>
+     <y>38</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>102</x>
+     <y>68</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>ParametersNodeComboBox</sender>
+   <signal>currentNodeChanged(bool)</signal>
+   <receiver>InterpolationOptionsCollapsibleButton</receiver>
+   <slot>setEnabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>129</x>
+     <y>38</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>70</x>
+     <y>209</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>ParametersNodeComboBox</sender>
+   <signal>currentNodeChanged(bool)</signal>
+   <receiver>VolumeInformationCollapsibleButton</receiver>
+   <slot>setEnabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>253</x>
+     <y>37</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>93</x>
+     <y>403</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>ParametersNodeComboBox</sender>
+   <signal>currentNodeChanged(bool)</signal>
+   <receiver>CropButton</receiver>
+   <slot>setEnabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>228</x>
+     <y>37</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>58</x>
+     <y>438</y>
     </hint>
    </hints>
   </connection>

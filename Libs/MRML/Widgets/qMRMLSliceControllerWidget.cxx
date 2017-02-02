@@ -1266,8 +1266,15 @@ void qMRMLSliceControllerWidgetPrivate::onSliceLogicModifiedEvent()
   // Calculate the number of slices in the current range
   double sliceBounds[6] = {0, -1, 0, -1, 0, -1};
   this->SliceLogic->GetLowestVolumeSliceBounds(sliceBounds);
-  Q_ASSERT(sliceBounds[4] <= sliceBounds[5]);
-  q->setSliceOffsetRange(sliceBounds[4], sliceBounds[5]);
+  if (sliceBounds[4] <= sliceBounds[5])
+    {
+    q->setSliceOffsetRange(sliceBounds[4], sliceBounds[5]);
+    }
+  else
+    {
+    qWarning() << "Slice bounds are invalid (" << sliceBounds[4] << ">" << sliceBounds[5] << ")";
+    q->setSliceOffsetRange(this->SliceLogic->GetSliceOffset(), this->SliceLogic->GetSliceOffset());
+    }
 
   // Update slider position
   this->SliceOffsetSlider->setValue(this->SliceLogic->GetSliceOffset());

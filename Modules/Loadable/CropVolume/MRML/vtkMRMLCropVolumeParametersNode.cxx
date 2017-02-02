@@ -5,11 +5,6 @@ Portions (c) Copyright 2005 Brigham and Women\"s Hospital (BWH) All Rights Reser
 See COPYRIGHT.txt
 or http://www.slicer.org/copyright/copyright.txt for details.
 
-Program:   3D Slicer
-Module:    $RCSfile: vtkMRMLCropVolumeParametersNode.cxx,v $
-Date:      $Date: 2006/03/17 15:10:10 $
-Version:   $Revision: 1.2 $
-
 =========================================================================auto=*/
 
 // VTK includes
@@ -60,7 +55,6 @@ vtkMRMLCropVolumeParametersNode::vtkMRMLCropVolumeParametersNode()
   this->AddNodeReferenceRole(OutputVolumeNodeReferenceRole,
     OutputVolumeNodeReferenceMRMLAttributeName);
 
-  this->ROIVisibility = true;
   this->VoxelBased = false;
   this->InterpolationMode = 2;
   this->IsotropicResampling = false;
@@ -83,18 +77,7 @@ void vtkMRMLCropVolumeParametersNode::ReadXMLAttributes(const char** atts)
   {
     attName = *(atts++);
     attValue = *(atts++);
-    if (!strcmp(attName, "ROIVisibility"))
-      {
-      if (!strcmp(attValue, "true") || !strcmp(attValue, "1"))
-        {
-        this->ROIVisibility = true;
-        }
-      else
-        {
-        this->ROIVisibility = false;
-        }
-      }
-    else if (!strcmp(attName,"VoxelBased"))
+    if (!strcmp(attName,"VoxelBased"))
       {
       if (!strcmp(attValue, "true"))
         {
@@ -138,7 +121,6 @@ void vtkMRMLCropVolumeParametersNode::WriteXML(ostream& of, int nIndent)
 
   vtkIndent indent(nIndent);
 
-  of << indent << " ROIVisibility=\"" << (this->ROIVisibility ? "true" : "false") << "\"";
   of << indent << " voxelBased=\"" << (this->VoxelBased ? "true" : "false") << "\"";
   of << indent << " interpolationMode=\"" << this->InterpolationMode << "\"";
   of << indent << " isotropicResampling=\"" << (this->IsotropicResampling ? "true" : "false") << "\"";
@@ -155,7 +137,6 @@ void vtkMRMLCropVolumeParametersNode::Copy(vtkMRMLNode *anode)
   Superclass::Copy(anode);
   vtkMRMLCropVolumeParametersNode *node = vtkMRMLCropVolumeParametersNode::SafeDownCast(anode);
 
-  this->SetROIVisibility(node->GetROIVisibility());
   this->SetVoxelBased(node->GetVoxelBased());
   this->SetInterpolationMode(node->GetInterpolationMode());
   this->SetIsotropicResampling(node->GetIsotropicResampling());
@@ -169,7 +150,6 @@ void vtkMRMLCropVolumeParametersNode::PrintSelf(ostream& os, vtkIndent indent)
 {
   Superclass::PrintSelf(os,indent);
 
-  os << "ROIVisibility: " << (this->ROIVisibility ? "true" : "false") << "\n";
   os << "VoxelBased: " << (this->VoxelBased ? "true" : "false") << "\n";
   os << "InterpolationMode: " << this->InterpolationMode << "\n";
   os << "IsotropicResampling: " << (this->IsotropicResampling ? "true" : "false") << "\n";

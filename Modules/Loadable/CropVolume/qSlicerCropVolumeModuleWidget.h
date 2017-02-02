@@ -22,6 +22,8 @@ public:
   qSlicerCropVolumeModuleWidget(QWidget *parent=0);
   virtual ~qSlicerCropVolumeModuleWidget();
 
+  void setParametersNode(vtkMRMLNode* node);
+
   virtual bool setEditedNode(vtkMRMLNode* node, QString role = QString(), QString context = QString());
 
 public slots:
@@ -33,31 +35,26 @@ protected:
   virtual void enter();
   virtual void setMRMLScene(vtkMRMLScene*);
 
-  void initializeParameterNode(vtkMRMLScene*);
-
-
-
 protected slots:
-  void initializeNode(vtkMRMLNode*);
-  void onInputVolumeChanged();
-  /// when input volumes get added to the node selector, if the selector doesn't
-  /// have a current node, select it
-  void onInputVolumeAdded(vtkMRMLNode*);
-  void onInputROIChanged();
+  void setInputVolume(vtkMRMLNode*);
+  void setOutputVolume(vtkMRMLNode* node);
+  void setInputROI(vtkMRMLNode*);
+  void initializeInputROI(vtkMRMLNode*);
   /// when ROIs get added to the node selector, if the selector doesn't
   /// have a current node, select it
-  void onInputROIAdded(vtkMRMLNode*);
-  void onROIVisibilityChanged();
+  void onInputROIAdded(vtkMRMLNode* node);
+
+  void onROIVisibilityChanged(bool);
   void onROIFit();
   void onInterpolationModeChanged();
   void onApply();
-  void updateWidget();
-  void updateParameters();
+  void updateWidgetFromMRML();
   void onSpacingScalingValueChanged(double);
-  void onIsotropicModeChanged();
-  void onEndCloseEvent();
+  void onIsotropicModeChanged(bool);
+  void onMRMLSceneEndBatchProcessEvent();
   void onInterpolationEnabled(bool interpolationEnabled);
 
+  void updateVolumeInfo();
 
 private:
   Q_DECLARE_PRIVATE(qSlicerCropVolumeModuleWidget);

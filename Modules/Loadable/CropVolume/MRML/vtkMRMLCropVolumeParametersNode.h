@@ -5,11 +5,6 @@
   See COPYRIGHT.txt
   or http://www.slicer.org/copyright/copyright.txt for details.
 
-  Program:   3D Slicer
-  Module:    $RCSfile: vtkMRMLVolumeRenderingParametersNode.h,v $
-  Date:      $Date: 2006/03/19 17:12:29 $
-  Version:   $Revision: 1.3 $
-
 =========================================================================auto=*/
 // .NAME vtkMRMLVolumeRenderingParametersNode - MRML node for storing a slice through RAS space
 // .SECTION Description
@@ -80,10 +75,6 @@ public:
   vtkGetMacro(IsotropicResampling,bool);
   vtkBooleanMacro(IsotropicResampling,bool);
 
-  vtkSetMacro(ROIVisibility,bool);
-  vtkGetMacro(ROIVisibility,bool);
-  vtkBooleanMacro(ROIVisibility,bool);
-
   vtkSetMacro(VoxelBased,bool);
   vtkGetMacro(VoxelBased,bool);
   vtkBooleanMacro(VoxelBased,bool);
@@ -101,7 +92,6 @@ protected:
   vtkMRMLCropVolumeParametersNode(const vtkMRMLCropVolumeParametersNode&);
   void operator=(const vtkMRMLCropVolumeParametersNode&);
 
-  bool ROIVisibility;
   bool VoxelBased;
   int InterpolationMode;
   bool IsotropicResampling;

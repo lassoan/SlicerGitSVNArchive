@@ -256,7 +256,7 @@ int vtkSlicerCropVolumeLogic::CropVoxelBased(vtkMRMLAnnotationROINode* roi, vtkM
   };
 
   // Get ROI extent in IJK coordinate system
-  int outputWholeExtentDouble[6] = { 0 };
+  double outputWholeExtentDouble[6] = { 0 };
   for (int cornerPointIndex = 0; cornerPointIndex < numberOfCorners; cornerPointIndex++)
     {
     double volumeCorner_IJK[4] = { 0, 0, 0, 1 };
@@ -279,23 +279,13 @@ int vtkSlicerCropVolumeLogic::CropVoxelBased(vtkMRMLAnnotationROINode* roi, vtkM
   int outputWholeExtent[6] = { 0 };
   for (int axisIndex = 0; axisIndex < 3; ++axisIndex)
     {
-    outputWholeExtent[axisIndex * 2] = std::max(inputExtent[axisIndex * 2], int(outputWholeExtentDouble[axisIndex * 2]));
+    outputWholeExtent[axisIndex * 2] = std::max(inputExtent[axisIndex * 2], int(ceil(outputWholeExtentDouble[axisIndex * 2])));
     // 0.5 for rounding purposes to make sure everything selected by roi is cropped
-    outputWholeExtent[axisIndex * 2 + 1] = std::min(inputExtent[axisIndex * 2 + 1], int(outputWholeExtentDouble[axisIndex * 2 + 1] + 0.5));
+    outputWholeExtent[axisIndex * 2 + 1] = std::min(inputExtent[axisIndex * 2 + 1], int(floor(outputWholeExtentDouble[axisIndex * 2 + 1])));
     }
 
-  /*
-  const double ijkNewOrigin[] = {
-    static_cast<double>(outputWholeExtent[0]),
-    static_cast<double>(outputWholeExtent[2]),
-    static_cast<double>(outputWholeExtent[4]),
-    static_cast<double>(1.0)};
-*/
   vtkNew<vtkMatrix4x4> inputIJKToRAS;
   inputVolume->GetIJKToRASMatrix(inputIJKToRAS.GetPointer());
-  //double  rasNewOrigin[4];
-  //inputIJKToRAS->MultiplyPoint(ijkNewOrigin,rasNewOrigin);
-
 
   vtkNew<vtkImageClip> imageClip;
   imageClip->SetInputData(inputVolume->GetImageData());
@@ -303,27 +293,8 @@ int vtkSlicerCropVolumeLogic::CropVoxelBased(vtkMRMLAnnotationROINode* roi, vtkM
   imageClip->SetClipData(true);
   imageClip->Update();
 
-  /*
-  vtkNew<vtkMatrix4x4> outputIJKToRAS;
-  outputIJKToRAS->DeepCopy(inputIJKToRAS.GetPointer());
-  outputIJKToRAS->SetElement(0,3,rasNewOrigin[0]);
-  outputIJKToRAS->SetElement(1,3,rasNewOrigin[1]);
-  outputIJKToRAS->SetElement(2,3,rasNewOrigin[2]);
-  */
-
-  /*
-  vtkNew<vtkImageData> outputImageData;
-  outputImageData->DeepCopy(imageClip->GetOutput());
-  */
-
-  //int extent[6];
-  //imageClip->GetOutput()->GetExtent(extent);
-
-  //outputImageData->SetExtent(0, extent[1]-extent[0], 0, extent[3]-extent[2], 0, extent[5]-extent[4]);
-
   int wasModified = outputVolume->StartModify();
   outputVolume->SetAndObserveImageData(imageClip->GetOutput());
-  //outputVolume->SetIJKToRASMatrix(outputIJKToRAS.GetPointer());
   outputVolume->SetIJKToRASMatrix(inputIJKToRAS.GetPointer());
   outputVolume->ShiftImageDataExtentToZeroStart();
   outputVolume->EndModify(wasModified);

@@ -1028,9 +1028,9 @@ void qSlicerSegmentationsModuleWidget::onMRMLSceneEndRestoreEvent()
 void qSlicerSegmentationsModuleWidget::onMRMLSceneEndBatchProcessEvent()
 {
   if (!this->mrmlScene())
-      {
+    {
     return;
-      }
+    }
   this->updateWidgetFromMRML();
 }
 
@@ -1038,9 +1038,9 @@ void qSlicerSegmentationsModuleWidget::onMRMLSceneEndBatchProcessEvent()
 void qSlicerSegmentationsModuleWidget::onMRMLSceneEndCloseEvent()
 {
   if (!this->mrmlScene() || this->mrmlScene()->IsBatchProcessing())
-      {
+    {
     return;
-      }
+    }
   this->updateWidgetFromMRML();
 }
 
