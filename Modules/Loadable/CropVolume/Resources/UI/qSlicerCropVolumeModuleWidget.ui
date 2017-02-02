@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>312</width>
-    <height>585</height>
+    <width>508</width>
+    <height>792</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -120,7 +120,7 @@
          </stringlist>
         </property>
         <property name="noneEnabled">
-         <bool>true</bool>
+         <bool>false</bool>
         </property>
         <property name="addEnabled">
          <bool>false</bool>
@@ -414,8 +414,8 @@
          <string>Input volume</string>
         </property>
         <layout class="QGridLayout" name="gridLayout">
-         <item row="0" column="1">
-          <widget class="qMRMLCoordinatesWidget" name="InputSpacingWidget">
+         <item row="1" column="1">
+          <widget class="qMRMLCoordinatesWidget" name="InputDimensionsWidget">
            <property name="enabled">
             <bool>false</bool>
            </property>
@@ -432,29 +432,15 @@
             <double>1000000.000000000000000</double>
            </property>
            <property name="coordinates" stdset="0">
-            <string>1,1,1</string>
+            <string>0,0,0</string>
            </property>
            <property name="unitAwareProperties">
             <set>qMRMLCoordinatesWidget::All</set>
            </property>
           </widget>
          </item>
-         <item row="1" column="0">
-          <widget class="QLabel" name="InputDimensionsLabel">
-           <property name="text">
-            <string>Dimensions:</string>
-           </property>
-          </widget>
-         </item>
-         <item row="0" column="0">
-          <widget class="QLabel" name="InputSpacingLabel">
-           <property name="text">
-            <string>Spacing:</string>
-           </property>
-          </widget>
-         </item>
-         <item row="1" column="1">
-          <widget class="qMRMLCoordinatesWidget" name="InputDimensionsWidget">
+         <item row="0" column="1">
+          <widget class="qMRMLCoordinatesWidget" name="InputSpacingWidget">
            <property name="enabled">
             <bool>false</bool>
            </property>
@@ -481,6 +467,20 @@
            </property>
            <property name="unitAwareProperties">
             <set>qMRMLCoordinatesWidget::Precision|qMRMLCoordinatesWidget::Prefix|qMRMLCoordinatesWidget::Scaling|qMRMLCoordinatesWidget::Suffix</set>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="0">
+          <widget class="QLabel" name="InputDimensionsLabel">
+           <property name="text">
+            <string>Dimensions:</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="0">
+          <widget class="QLabel" name="InputSpacingLabel">
+           <property name="text">
+            <string>Spacing:</string>
            </property>
           </widget>
          </item>
@@ -499,6 +499,31 @@
             <bool>false</bool>
            </property>
            <property name="toolTip">
+            <string>Output volume dimension after cropping</string>
+           </property>
+           <property name="decimals">
+            <number>0</number>
+           </property>
+           <property name="minimum">
+            <double>0.000000000000000</double>
+           </property>
+           <property name="maximum">
+            <double>1000000.000000000000000</double>
+           </property>
+           <property name="coordinates" stdset="0">
+            <string>0,0,0</string>
+           </property>
+           <property name="unitAwareProperties">
+            <set>qMRMLCoordinatesWidget::All</set>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="1">
+          <widget class="qMRMLCoordinatesWidget" name="CroppedSpacingWidget">
+           <property name="enabled">
+            <bool>false</bool>
+           </property>
+           <property name="toolTip">
             <string>Output volume spacing after cropping</string>
            </property>
            <property name="decimals">
@@ -524,28 +549,10 @@
            </property>
           </widget>
          </item>
-         <item row="0" column="1">
-          <widget class="qMRMLCoordinatesWidget" name="CroppedSpacingWidget">
-           <property name="enabled">
-            <bool>false</bool>
-           </property>
-           <property name="toolTip">
-            <string>Output volume dimension after cropping</string>
-           </property>
-           <property name="decimals">
-            <number>0</number>
-           </property>
-           <property name="minimum">
-            <double>0.000000000000000</double>
-           </property>
-           <property name="maximum">
-            <double>1000000.000000000000000</double>
-           </property>
-           <property name="coordinates" stdset="0">
-            <string>1,1,1</string>
-           </property>
-           <property name="unitAwareProperties">
-            <set>qMRMLCoordinatesWidget::All</set>
+         <item row="0" column="0">
+          <widget class="QLabel" name="CroppedSpacingLabel">
+           <property name="text">
+            <string>Spacing:</string>
            </property>
           </widget>
          </item>
@@ -553,13 +560,6 @@
           <widget class="QLabel" name="CroppedDimensionsLabel">
            <property name="text">
             <string>Dimensions:</string>
-           </property>
-          </widget>
-         </item>
-         <item row="0" column="0">
-          <widget class="QLabel" name="CroppedSpacingLabel">
-           <property name="text">
-            <string>Spacing:</string>
            </property>
           </widget>
          </item>
@@ -709,7 +709,7 @@
   <connection>
    <sender>qSlicerCropVolumeModuleWidget</sender>
    <signal>mrmlSceneChanged(vtkMRMLScene*)</signal>
-   <receiver>InputDimensionsWidget</receiver>
+   <receiver>InputSpacingWidget</receiver>
    <slot>setMRMLScene(vtkMRMLScene*)</slot>
    <hints>
     <hint type="sourcelabel">

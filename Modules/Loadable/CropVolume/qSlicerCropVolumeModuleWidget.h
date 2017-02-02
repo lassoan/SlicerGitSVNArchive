@@ -22,11 +22,10 @@ public:
   qSlicerCropVolumeModuleWidget(QWidget *parent=0);
   virtual ~qSlicerCropVolumeModuleWidget();
 
-  void setParametersNode(vtkMRMLNode* node);
-
   virtual bool setEditedNode(vtkMRMLNode* node, QString role = QString(), QString context = QString());
 
 public slots:
+  void setParametersNode(vtkMRMLNode* node);
 
 protected:
   QScopedPointer<qSlicerCropVolumeModuleWidgetPrivate> d_ptr;
@@ -53,6 +52,7 @@ protected slots:
   void onIsotropicModeChanged(bool);
   void onMRMLSceneEndBatchProcessEvent();
   void onInterpolationEnabled(bool interpolationEnabled);
+  void onVolumeInformationSectionClicked(bool isOpen);
 
   void updateVolumeInfo();
 
