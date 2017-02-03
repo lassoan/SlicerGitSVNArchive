@@ -55,8 +55,16 @@ public:
   /// If ROI is under a non-linear transform then the transform will be ignored.
   int CropVoxelBased(vtkMRMLAnnotationROINode* roi, vtkMRMLVolumeNode* inputVolume, vtkMRMLVolumeNode* outputNode);
 
+  // Computes output volume geometry without actually cropping the image.
+  bool GetVoxelBasedCropOutputExtent(vtkMRMLAnnotationROINode* roi, vtkMRMLVolumeNode* inputVolume, int outputExtent[6]);
+
   int CropInterpolated(vtkMRMLAnnotationROINode* roi, vtkMRMLVolumeNode* inputVolume, vtkMRMLVolumeNode* outputNode,
     bool isotropicResampling, double spacingScale, int interpolationMode);
+
+  // Computes output volume geometry without actually cropping the image.
+  bool GetInterpolatedCropOutputGeometry(vtkMRMLAnnotationROINode* roi, vtkMRMLVolumeNode* inputVolume,
+    bool isotropicResampling, double spacingScale, int outputExtent[6], double outputSpacing[3]);
+
 
   /// Sets ROI to fit to input volume.
   /// If ROI is under a non-linear transform then the transform will be ignored.

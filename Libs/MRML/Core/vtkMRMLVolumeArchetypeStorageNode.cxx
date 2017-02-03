@@ -53,7 +53,7 @@ vtkMRMLNodeNewMacro(vtkMRMLVolumeArchetypeStorageNode);
 vtkMRMLVolumeArchetypeStorageNode::vtkMRMLVolumeArchetypeStorageNode()
 {
   this->CenterImage = 0;
-  this->SingleFile  = 0;
+  this->SingleFile  = 1;
   this->UseOrientationFromFile = 1;
   this->DefaultWriteFileExtension = "nrrd";
 }

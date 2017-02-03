@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>508</width>
-    <height>792</height>
+    <width>284</width>
+    <height>471</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -285,6 +285,9 @@
       </item>
       <item row="0" column="1">
        <widget class="QCheckBox" name="InterpolationEnabledCheckBox">
+        <property name="toolTip">
+         <string>Interpolate and pad the input volume to make the output image exactly the size of the ROI, with the requested spacing.</string>
+        </property>
         <property name="text">
          <string/>
         </property>
@@ -350,35 +353,44 @@
        </widget>
       </item>
       <item row="3" column="1">
-       <layout class="QVBoxLayout" name="verticalLayout_2">
-        <property name="spacing">
-         <number>6</number>
-        </property>
-        <item>
+       <layout class="QGridLayout" name="gridLayout_3">
+        <item row="1" column="1">
+         <widget class="QRadioButton" name="BSRadioButton">
+          <property name="toolTip">
+           <string>High quality, slow</string>
+          </property>
+          <property name="text">
+           <string>B-spline</string>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="0">
          <widget class="QRadioButton" name="NNRadioButton">
+          <property name="toolTip">
+           <string>Low quality, fastest</string>
+          </property>
           <property name="text">
            <string>Nearest Neighbor</string>
           </property>
          </widget>
         </item>
-        <item>
+        <item row="0" column="1">
          <widget class="QRadioButton" name="LinearRadioButton">
+          <property name="toolTip">
+           <string>Medium quality, medium speed</string>
+          </property>
           <property name="text">
            <string>Linear</string>
           </property>
          </widget>
         </item>
-        <item>
+        <item row="1" column="0">
          <widget class="QRadioButton" name="WSRadioButton">
+          <property name="toolTip">
+           <string>High quality, slow</string>
+          </property>
           <property name="text">
            <string>Windowed Sinc</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QRadioButton" name="BSRadioButton">
-          <property name="text">
-           <string>B-spline</string>
           </property>
          </widget>
         </item>
@@ -653,7 +665,7 @@
      <y>4</y>
     </hint>
     <hint type="destinationlabel">
-     <x>307</x>
+     <x>279</x>
      <y>46</y>
     </hint>
    </hints>
@@ -669,7 +681,7 @@
      <y>4</y>
     </hint>
     <hint type="destinationlabel">
-     <x>307</x>
+     <x>279</x>
      <y>103</y>
     </hint>
    </hints>
@@ -681,11 +693,11 @@
    <slot>setMRMLScene(vtkMRMLScene*)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>311</x>
+     <x>283</x>
      <y>7</y>
     </hint>
     <hint type="destinationlabel">
-     <x>307</x>
+     <x>279</x>
      <y>129</y>
     </hint>
    </hints>
@@ -697,11 +709,11 @@
    <slot>setMRMLScene(vtkMRMLScene*)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>311</x>
+     <x>283</x>
      <y>329</y>
     </hint>
     <hint type="destinationlabel">
-     <x>307</x>
+     <x>279</x>
      <y>187</y>
     </hint>
    </hints>
@@ -713,12 +725,12 @@
    <slot>setMRMLScene(vtkMRMLScene*)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>311</x>
+     <x>283</x>
      <y>499</y>
     </hint>
     <hint type="destinationlabel">
-     <x>297</x>
-     <y>429</y>
+     <x>269</x>
+     <y>456</y>
     </hint>
    </hints>
   </connection>
@@ -729,11 +741,11 @@
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>307</x>
+     <x>279</x>
      <y>237</y>
     </hint>
     <hint type="destinationlabel">
-     <x>307</x>
+     <x>279</x>
      <y>282</y>
     </hint>
    </hints>
@@ -841,11 +853,11 @@
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>307</x>
+     <x>279</x>
      <y>129</y>
     </hint>
     <hint type="destinationlabel">
-     <x>306</x>
+     <x>278</x>
      <y>160</y>
     </hint>
    </hints>
@@ -910,7 +922,23 @@
     </hint>
     <hint type="destinationlabel">
      <x>58</x>
-     <y>438</y>
+     <y>610</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>qSlicerCropVolumeModuleWidget</sender>
+   <signal>mrmlSceneChanged(vtkMRMLScene*)</signal>
+   <receiver>CroppedSpacingWidget</receiver>
+   <slot>setMRMLScene(vtkMRMLScene*)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>14</x>
+     <y>55</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>173</x>
+     <y>531</y>
     </hint>
    </hints>
   </connection>

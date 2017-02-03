@@ -372,7 +372,10 @@ void qSlicerCropVolumeModuleWidget::setInputVolume(vtkMRMLNode* volumeNode)
 
   if (!d->ParametersNode.GetPointer())
     {
-    qWarning() << Q_FUNC_INFO << ": invalid parameter node";
+    if (volumeNode != NULL)
+      {
+      qWarning() << Q_FUNC_INFO << ": invalid parameter node";
+      }
     return;
     }
 
@@ -423,7 +426,10 @@ void qSlicerCropVolumeModuleWidget::setOutputVolume(vtkMRMLNode* volumeNode)
   vtkMRMLCropVolumeParametersNode *parametersNode = vtkMRMLCropVolumeParametersNode::SafeDownCast(d->ParametersNodeComboBox->currentNode());
   if (!parametersNode)
     {
-    qWarning() << Q_FUNC_INFO << ": invalid parameter node";
+    if (volumeNode != NULL)
+      {
+      qWarning() << Q_FUNC_INFO << ": invalid parameter node";
+      }
     return;
     }
 
@@ -437,7 +443,10 @@ void qSlicerCropVolumeModuleWidget::setInputROI(vtkMRMLNode* node)
 
   if (!d->ParametersNode.GetPointer())
     {
-    qWarning() << Q_FUNC_INFO << ": invalid parameter node";
+    if (node != NULL)
+      {
+      qWarning() << Q_FUNC_INFO << ": invalid parameter node";
+      }
     return;
     }
   vtkMRMLAnnotationROINode* roiNode = vtkMRMLAnnotationROINode::SafeDownCast(node);
@@ -465,16 +474,14 @@ void qSlicerCropVolumeModuleWidget::onInputROIAdded(vtkMRMLNode* node)
 
   if (!d->ParametersNode.GetPointer())
     {
-    qWarning() << Q_FUNC_INFO << ": invalid parameter node";
     return;
     }
-/*
-vtkMRMLAnnotationROINode* roiNode = vtkMRMLAnnotationROINode::SafeDownCast(node);
-  if (roiNode && d->ParametersNode->GetInputVolumeNode())
+  if (!d->ParametersNode->GetROINode() && node)
     {
-    this->onROIFit();
+    // There was no ROI selected and the user just added one
+    // use that for cropping.
+    d->ParametersNode->SetROINodeID(node->GetID());
     }
-    */
 }
 
 //-----------------------------------------------------------------------------
@@ -675,16 +682,28 @@ void qSlicerCropVolumeModuleWidget::updateVolumeInfo()
     {
     d->InputDimensionsWidget->setCoordinates(0, 0, 0);
     d->InputSpacingWidget->setCoordinates(0, 0, 0);
-   }
-
-  if (true)
-    {
-    d->CroppedDimensionsWidget->setCoordinates(0, 0, 0);
-    d->CroppedSpacingWidget->setCoordinates(0, 0, 0);
     }
 
+  int outputExtent[6] = { 0, -1, -0, -1, 0, -1 };
+  double outputSpacing[3] = { 0 };
+  if (d->ParametersNode != NULL && d->ParametersNode->GetInputVolumeNode())
+    {
+    if (d->ParametersNode->GetVoxelBased())
+      {
+      d->logic()->GetVoxelBasedCropOutputExtent(d->ParametersNode->GetROINode(), d->ParametersNode->GetInputVolumeNode(), outputExtent);
+      d->ParametersNode->GetInputVolumeNode()->GetSpacing(outputSpacing);
+      }
+    else
+      {
+      d->logic()->GetInterpolatedCropOutputGeometry(d->ParametersNode->GetROINode(), d->ParametersNode->GetInputVolumeNode(),
+        d->ParametersNode->GetIsotropicResampling(), d->ParametersNode->GetSpacingScalingConst(),
+        outputExtent, outputSpacing);
+      }
+    }
 
-  // d->InputDimensionsWidget->setCoordinates()
+  d->CroppedDimensionsWidget->setCoordinates(outputExtent[1] - outputExtent[0] + 1,
+    outputExtent[3] - outputExtent[2] + 1, outputExtent[5] - outputExtent[4] + 1);
+  d->CroppedSpacingWidget->setCoordinates(outputSpacing);
 }
 
 //------------------------------------------------------------------------------
