@@ -382,34 +382,33 @@ int vtkSlicerCropVolumeLogic::CropInterpolated(vtkMRMLAnnotationROINode* roi, vt
   double roiRadius[3] = { 0 };
   roi->GetRadiusXYZ(roiRadius);
 
-  double outputOrigin[3] =
-  {
-    roiXYZ[0] - roiRadius[0] + outputSpacing[0] * .5, // offset in LPS/IJK space?
-    roiXYZ[1] - roiRadius[1] + outputSpacing[1] * .5,
-    roiXYZ[2] - roiRadius[2] + outputSpacing[2] * .5
-  };
-
-  /*
   vtkNew<vtkMatrix4x4> outputIJKToRAS;
   outputIJKToRAS->SetElement(0, 0, outputSpacing[0]);
   outputIJKToRAS->SetElement(1, 1, outputSpacing[1]);
   outputIJKToRAS->SetElement(2, 2, outputSpacing[2]);
-  outputIJKToRAS->SetElement(0, 3, outputOrigin[0]);
-  outputIJKToRAS->SetElement(1, 3, outputOrigin[0]);
-  outputIJKToRAS->SetElement(2, 3, outputOrigin[0]);
+  outputIJKToRAS->SetElement(0, 3, roiXYZ[0] - roiRadius[0]);
+  outputIJKToRAS->SetElement(1, 3, roiXYZ[1] - roiRadius[1]);
+  outputIJKToRAS->SetElement(2, 3, roiXYZ[2] - roiRadius[2]);
 
   // account for the ROI parent transform, if present
   vtkMRMLTransformNode *roiTransform = roi->GetParentTransformNode();
-  // If ROI is transformed with a warping transform then we ignore the transformation
-  if (roiTransform && roiTransform->IsTransformToWorldLinear())
+  if (roiTransform)
     {
-    vtkNew<vtkMatrix4x4> roiMatrix;
-    roiTransform->GetMatrixTransformToWorld(roiMatrix.GetPointer());
-    outputIJKToRAS->Multiply4x4(roiMatrix.GetPointer(), outputIJKToRAS.GetPointer(),
-      outputIJKToRAS.GetPointer());
+    if (roiTransform->IsTransformToWorldLinear())
+      {
+      vtkNew<vtkMatrix4x4> roiMatrix;
+      roiTransform->GetMatrixTransformToWorld(roiMatrix.GetPointer());
+      outputIJKToRAS->Multiply4x4(roiMatrix.GetPointer(), outputIJKToRAS.GetPointer(),
+        outputIJKToRAS.GetPointer());
+      }
+    else
+      {
+      // If ROI is transformed with a warping transform then we ignore the transformation because non-linear
+      // transform of ROI node is not supported.
+      vtkWarningMacro("vtkSlicerCropVolumeLogic::CropInterpolated: ROI is under a non-linear transform,"
+        " all transformation of the ROI will be ignored");
+      }
     }
-
-  */
 
   vtkMRMLCommandLineModuleNode* cmdNode = this->Internal->ResampleLogic->CreateNodeInScene();
   if (cmdNode == NULL)
@@ -418,26 +417,8 @@ int vtkSlicerCropVolumeLogic::CropInterpolated(vtkMRMLAnnotationROINode* roi, vt
     return -4;
     }
 
-  /*
-  vtkNew<vtkMRMLLabelMapVolumeNode> refVolume;
-  refVolume->HideFromEditorsOn();
-  vtkNew<vtkImageData> refImageData;
-  refImageData->SetExtent(outputExtent);
-  // Note: it is a waste of memory to allocate reference image
-  // (as it is only used for defining geometry)
-  refImageData->AllocateScalars(VTK_UNSIGNED_CHAR, 1);
-  refVolume->SetAndObserveImageData(refImageData.GetPointer());
-  refVolume->SetIJKToRASMatrix(outputIJKToRAS.GetPointer());
-  this->GetMRMLScene()->AddNode(refVolume.GetPointer());
-  */
-
   cmdNode->SetParameterAsString("inputVolume", inputVolume->GetID());
-  //cmdNode->SetParameterAsString("referenceVolume", refVolume->GetID());
   cmdNode->SetParameterAsString("outputVolume", outputVolume->GetID());
-
-  std::stringstream spacingStream;
-  spacingStream << std::setprecision(15) << outputSpacing[0] << "," << outputSpacing[1] << "," << outputSpacing[2];
-  cmdNode->SetParameterAsString("outputImageSpacing", spacingStream.str());
 
   std::stringstream sizeStream;
   sizeStream << outputExtent[1] - outputExtent[0] + 1  << ","
@@ -445,27 +426,59 @@ int vtkSlicerCropVolumeLogic::CropInterpolated(vtkMRMLAnnotationROINode* roi, vt
     << outputExtent[5] - outputExtent[4] + 1;
   cmdNode->SetParameterAsString("outputImageSize", sizeStream.str());
 
-  cmdNode->SetParameterAsString("directionMatrix", "-1,0,0,0,-1,0,0,0,1");
+  // Origin is in the voxel's center. Shift the origin by half voxel
+  // to have the ROI edge at the output image voxel edge.
+  double outputOrigin_IJK[4] = { 0.5, 0.5, 0.5, 1.0 };
+  double outputOrigin_RAS[4] = { 0.0, 0.0, 0.0, 1.0 };
+  outputIJKToRAS->MultiplyPoint(outputOrigin_IJK, outputOrigin_RAS);
 
-  /*
-  std::stringstream originStream;
-  originStream << std::setprecision(15) << -outputOrigin[0] << "," << -outputOrigin[1] << "," << outputOrigin[2];
-  cmdNode->SetParameterAsString("outputImageOrigin", originStream.str());
-  */
   vtkNew<vtkMRMLMarkupsFiducialNode> originMarkupNode;
-  originMarkupNode->AddFiducial(outputOrigin[0], outputOrigin[1], outputOrigin[2]);
+  // Markups are transformed from RAS to LPS by the CLI infrastructure, so we pass them in RAS
+  originMarkupNode->AddFiducial(outputOrigin_RAS[0], outputOrigin_RAS[1], outputOrigin_RAS[2]);
   this->GetMRMLScene()->AddNode(originMarkupNode.GetPointer());
   cmdNode->SetParameterAsString("outputImageOrigin", originMarkupNode->GetID());
 
-  vtkMRMLTransformNode *inputToReferenceVolumeTransform = inputVolume->GetParentTransformNode();
+  vtkNew<vtkMatrix4x4> rasToLPS;
+  rasToLPS->SetElement(0, 0, -1);
+  rasToLPS->SetElement(1, 1, -1);
+  vtkNew<vtkMatrix4x4> outputIJKToLPS;
+  vtkMatrix4x4::Multiply4x4(rasToLPS.GetPointer(), outputIJKToRAS.GetPointer(), outputIJKToLPS.GetPointer());
 
-  // TODO: check if it works with non-linear transform - it should!
-  // TODO: we should use the relative transform between the input and output volume node
-  // (put that transform in a temporary transform node)
-  if (inputToReferenceVolumeTransform != NULL && inputToReferenceVolumeTransform->IsLinear())
+  // contains axis directions, in unconventional indexing (column, row)
+  // so that it can be conveniently normalized
+  double outputDirectionColRow[3][3] = { 0 };
+  for (int column = 0; column < 3; column++)
     {
-    cmdNode->SetParameterAsString("transformationFile",
-      inputToReferenceVolumeTransform->GetID());
+    for (int row = 0; row < 3; row++)
+      {
+      outputDirectionColRow[column][row] = outputIJKToLPS->GetElement(row, column);
+      }
+    outputSpacing[column] = vtkMath::Normalize(outputDirectionColRow[column]);
+    }
+
+  std::stringstream spacingStream;
+  spacingStream << std::setprecision(15) << outputSpacing[0] << "," << outputSpacing[1] << "," << outputSpacing[2];
+  cmdNode->SetParameterAsString("outputImageSpacing", spacingStream.str());
+
+  std::stringstream directionStream;
+  directionStream << std::setprecision(15);
+  for (int row = 0; row < 3; row++)
+    {
+    for (int column = 0; column < 3; column++)
+      {
+      if (row > 0 || column > 0)
+        {
+        directionStream << ",";
+        }
+      directionStream << outputDirectionColRow[column][row];
+      }
+    }
+
+  cmdNode->SetParameterAsString("directionMatrix", directionStream.str());
+
+  if (inputVolume->GetTransformNodeID() != NULL)
+    {
+    cmdNode->SetParameterAsString("transformationFile", inputVolume->GetTransformNodeID());
     }
 
   std::string interp = "linear";

@@ -302,7 +302,7 @@
       <item row="1" column="0">
        <widget class="QLabel" name="InputSpacingScalingConstantLabel">
         <property name="toolTip">
-         <string>If not equal to 1, this will result in upsampling (&lt;1) or downsampling (&gt;1) relative to the voxel spacing of the input volume.</string>
+         <string>The voxel spacing in the output volume will be scaled by this value. Values larger than 1.0 will make the cropped volume lower resolution than the input volume. Values smaller than 1.0 will make the cropped volume higher resolution than the input volume.</string>
         </property>
         <property name="text">
          <string>Spacing scale:</string>
@@ -312,7 +312,7 @@
       <item row="1" column="1">
        <widget class="ctkDoubleSpinBox" name="SpacingScalingSpinBox">
         <property name="toolTip">
-         <string>The voxel spacing in the output volume will be scaled by this value.</string>
+         <string>The voxel spacing in the output volume will be scaled by this value. Values larger than 1.0 will make the cropped volume lower resolution than the input volume. Values smaller than 1.0 will make the cropped volume higher resolution than the input volume.</string>
         </property>
         <property name="suffix">
          <string>x</string>
