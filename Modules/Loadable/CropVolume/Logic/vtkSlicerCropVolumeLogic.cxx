@@ -192,7 +192,6 @@ int vtkSlicerCropVolumeLogic::Apply(vtkMRMLCropVolumeParametersNode* pnode)
     return errorCode;
     }
   // no errors
-  outputVolume->SetAndObserveTransformNodeID(NULL);
   pnode->SetOutputVolumeNodeID(outputVolume->GetID());
   return 0;
 }
@@ -319,6 +318,8 @@ int vtkSlicerCropVolumeLogic::CropVoxelBased(vtkMRMLAnnotationROINode* roi, vtkM
   outputVolume->ShiftImageDataExtentToZeroStart();
   outputVolume->EndModify(wasModified);
 
+  outputVolume->SetAndObserveTransformNodeID(NULL);
+
   return 0;
 }
 
@@ -397,23 +398,25 @@ int vtkSlicerCropVolumeLogic::CropInterpolated(vtkMRMLAnnotationROINode* roi, vt
 
   // account for the ROI parent transform, if present
   vtkMRMLTransformNode *roiTransform = roi->GetParentTransformNode();
-  if (roiTransform)
+  vtkMRMLTransformNode *outputTransform = outputVolume->GetParentTransformNode();
+  if (roiTransform && !roiTransform->IsTransformToWorldLinear())
     {
-    if (roiTransform->IsTransformToWorldLinear())
-      {
-      vtkNew<vtkMatrix4x4> roiMatrix;
-      roiTransform->GetMatrixTransformToWorld(roiMatrix.GetPointer());
-      outputIJKToRAS->Multiply4x4(roiMatrix.GetPointer(), outputIJKToRAS.GetPointer(),
-        outputIJKToRAS.GetPointer());
-      }
-    else
-      {
-      // If ROI is transformed with a warping transform then we ignore the transformation because non-linear
-      // transform of ROI node is not supported.
-      vtkWarningMacro("vtkSlicerCropVolumeLogic::CropInterpolated: ROI is under a non-linear transform,"
-        " all transformation of the ROI will be ignored");
-      }
+    // We can only display a If ROI is transformed with a warping transform then we ignore the transformation because non-linear
+    // transform of ROI node is not supported.
+    vtkErrorMacro("vtkSlicerCropVolumeLogic::CropInterpolated: ROI is under a non-linear transform");
+    return -5;
     }
+  if (outputTransform && !outputTransform->IsTransformToWorldLinear())
+    {
+    // The resample module can only create a rectangular output.
+    vtkErrorMacro("vtkSlicerCropVolumeLogic::CropInterpolated: output volume is under a non-linear transform");
+    return -6;
+    }
+
+  vtkNew<vtkMatrix4x4> roiMatrix;
+  vtkMRMLTransformNode::GetMatrixTransformBetweenNodes(roiTransform, outputTransform, roiMatrix.GetPointer());
+  outputIJKToRAS->Multiply4x4(roiMatrix.GetPointer(), outputIJKToRAS.GetPointer(),
+    outputIJKToRAS.GetPointer());
 
   vtkNew<vtkMatrix4x4> rasToLPS;
   rasToLPS->SetElement(0, 0, -1);
@@ -432,7 +435,6 @@ int vtkSlicerCropVolumeLogic::CropInterpolated(vtkMRMLAnnotationROINode* roi, vt
       }
     outputSpacing[column] = vtkMath::Normalize(outputDirectionColRow[column]);
     }
-
 
   vtkMRMLCommandLineModuleNode* cmdNode = this->Internal->ResampleLogic->CreateNodeInScene();
   if (cmdNode == NULL)
@@ -500,7 +502,7 @@ int vtkSlicerCropVolumeLogic::CropInterpolated(vtkMRMLAnnotationROINode* roi, vt
   if (inputVolume->GetParentTransformNode() != NULL)
     {
     vtkNew<vtkGeneralTransform> inputToRASTransform;
-    inputVolume->GetParentTransformNode()->GetTransformToWorld(inputToRASTransform.GetPointer());
+    inputVolume->GetParentTransformNode()->GetTransformToNode(outputVolume->GetParentTransformNode(), inputToRASTransform.GetPointer());
     vtkNew<vtkMRMLTransformNode> inputToRASTransformNode;
     inputToRASTransformNode->SetAndObserveTransformToParent(inputToRASTransform.GetPointer());
     this->GetMRMLScene()->AddNode(inputToRASTransformNode.GetPointer());
