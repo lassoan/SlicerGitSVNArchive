@@ -39,6 +39,7 @@
 #include <vtkMRMLAnnotationROINode.h>
 
 // VTK includes
+#include <vtkGeneralTransform.h>
 #include <vtkImageData.h>
 #include <vtkImageClip.h>
 #include <vtkNew.h>
@@ -272,11 +273,11 @@ bool vtkSlicerCropVolumeLogic::GetVoxelBasedCropOutputExtent(vtkMRMLAnnotationRO
 
   // Limit output extent to input extent
   int* inputExtent = inputVolume->GetImageData()->GetExtent();
+  double tolerance = 0.001;
   for (int axisIndex = 0; axisIndex < 3; ++axisIndex)
     {
-    outputExtent[axisIndex * 2] = std::max(inputExtent[axisIndex * 2], int(ceil(outputExtentDouble[axisIndex * 2])));
-    // 0.5 for rounding purposes to make sure everything selected by roi is cropped
-    outputExtent[axisIndex * 2 + 1] = std::min(inputExtent[axisIndex * 2 + 1], int(floor(outputExtentDouble[axisIndex * 2 + 1])));
+    outputExtent[axisIndex * 2] = std::max(inputExtent[axisIndex * 2], int(ceil(outputExtentDouble[axisIndex * 2]+0.5-tolerance)));
+    outputExtent[axisIndex * 2 + 1] = std::min(inputExtent[axisIndex * 2 + 1], int(floor(outputExtentDouble[axisIndex * 2 + 1]-0.5+tolerance)));
     }
 
   return true;
@@ -351,9 +352,13 @@ bool vtkSlicerCropVolumeLogic::GetInterpolatedCropOutputGeometry(vtkMRMLAnnotati
   roi->GetRadiusXYZ(roiRadius);
 
   outputExtent[0] = outputExtent[2] = outputExtent[4] = 0;
-  outputExtent[1] = int(roiRadius[0] / outputSpacing[0] * 2. + 0.5) - 1;
-  outputExtent[3] = int(roiRadius[1] / outputSpacing[1] * 2. + 0.5) - 1;
-  outputExtent[5] = int(roiRadius[2] / outputSpacing[2] * 2. + 0.5) - 1;
+  // add a bit of tolerance in deciding how many voxels the output should contain
+  // to make sure that if the ROI size is set to match the image size exactly then we
+  // output extent contains the whole image
+  double tolerance = 0.001;
+  outputExtent[1] = int(roiRadius[0] / outputSpacing[0] * 2. + tolerance) - 1;
+  outputExtent[3] = int(roiRadius[1] / outputSpacing[1] * 2. + tolerance) - 1;
+  outputExtent[5] = int(roiRadius[2] / outputSpacing[2] * 2. + tolerance) - 1;
 
   return true;
 }
@@ -410,34 +415,6 @@ int vtkSlicerCropVolumeLogic::CropInterpolated(vtkMRMLAnnotationROINode* roi, vt
       }
     }
 
-  vtkMRMLCommandLineModuleNode* cmdNode = this->Internal->ResampleLogic->CreateNodeInScene();
-  if (cmdNode == NULL)
-    {
-    vtkErrorMacro("CropVolume: failed to create resample node");
-    return -4;
-    }
-
-  cmdNode->SetParameterAsString("inputVolume", inputVolume->GetID());
-  cmdNode->SetParameterAsString("outputVolume", outputVolume->GetID());
-
-  std::stringstream sizeStream;
-  sizeStream << outputExtent[1] - outputExtent[0] + 1  << ","
-    << outputExtent[3] - outputExtent[2] + 1 << ","
-    << outputExtent[5] - outputExtent[4] + 1;
-  cmdNode->SetParameterAsString("outputImageSize", sizeStream.str());
-
-  // Origin is in the voxel's center. Shift the origin by half voxel
-  // to have the ROI edge at the output image voxel edge.
-  double outputOrigin_IJK[4] = { 0.5, 0.5, 0.5, 1.0 };
-  double outputOrigin_RAS[4] = { 0.0, 0.0, 0.0, 1.0 };
-  outputIJKToRAS->MultiplyPoint(outputOrigin_IJK, outputOrigin_RAS);
-
-  vtkNew<vtkMRMLMarkupsFiducialNode> originMarkupNode;
-  // Markups are transformed from RAS to LPS by the CLI infrastructure, so we pass them in RAS
-  originMarkupNode->AddFiducial(outputOrigin_RAS[0], outputOrigin_RAS[1], outputOrigin_RAS[2]);
-  this->GetMRMLScene()->AddNode(originMarkupNode.GetPointer());
-  cmdNode->SetParameterAsString("outputImageOrigin", originMarkupNode->GetID());
-
   vtkNew<vtkMatrix4x4> rasToLPS;
   rasToLPS->SetElement(0, 0, -1);
   rasToLPS->SetElement(1, 1, -1);
@@ -455,6 +432,49 @@ int vtkSlicerCropVolumeLogic::CropInterpolated(vtkMRMLAnnotationROINode* roi, vt
       }
     outputSpacing[column] = vtkMath::Normalize(outputDirectionColRow[column]);
     }
+
+
+  vtkMRMLCommandLineModuleNode* cmdNode = this->Internal->ResampleLogic->CreateNodeInScene();
+  if (cmdNode == NULL)
+    {
+    vtkErrorMacro("CropVolume: failed to create resample node");
+    return -4;
+    }
+
+  cmdNode->SetParameterAsString("inputVolume", inputVolume->GetID());
+  cmdNode->SetParameterAsString("outputVolume", outputVolume->GetID());
+
+  std::stringstream sizeStream;
+  sizeStream << (outputExtent[1] - outputExtent[0] + 1)  << ","
+    << (outputExtent[3] - outputExtent[2] + 1) << ","
+    << (outputExtent[5] - outputExtent[4] + 1);
+  cmdNode->SetParameterAsString("outputImageSize", sizeStream.str());
+
+  // Center the output image in the ROI. For that, compute the size difference between
+  // the ROI and the output image.
+  double sizeDifference_IJK[3] =
+    {
+    roiRadius[0] * 2 / outputSpacing[0] - (outputExtent[1] - outputExtent[0] + 1),
+    roiRadius[1] * 2 / outputSpacing[1] - (outputExtent[3] - outputExtent[2] + 1),
+    roiRadius[2] * 2 / outputSpacing[2] - (outputExtent[5] - outputExtent[4] + 1)
+    };
+  // Origin is in the voxel's center. Shift the origin by half voxel
+  // to have the ROI edge at the output image voxel edge.
+  double outputOrigin_IJK[4] =
+    {
+    0.5 + sizeDifference_IJK[0] / 2,
+    0.5 + sizeDifference_IJK[1] / 2,
+    0.5 + sizeDifference_IJK[2] / 2,
+    1.0
+    };
+  double outputOrigin_RAS[4] = { 0.0, 0.0, 0.0, 1.0 };
+  outputIJKToRAS->MultiplyPoint(outputOrigin_IJK, outputOrigin_RAS);
+
+  vtkNew<vtkMRMLMarkupsFiducialNode> originMarkupNode;
+  // Markups are transformed from RAS to LPS by the CLI infrastructure, so we pass them in RAS
+  originMarkupNode->AddFiducial(outputOrigin_RAS[0], outputOrigin_RAS[1], outputOrigin_RAS[2]);
+  this->GetMRMLScene()->AddNode(originMarkupNode.GetPointer());
+  cmdNode->SetParameterAsString("outputImageOrigin", originMarkupNode->GetID());
 
   std::stringstream spacingStream;
   spacingStream << std::setprecision(15) << outputSpacing[0] << "," << outputSpacing[1] << "," << outputSpacing[2];
@@ -476,9 +496,16 @@ int vtkSlicerCropVolumeLogic::CropInterpolated(vtkMRMLAnnotationROINode* roi, vt
 
   cmdNode->SetParameterAsString("directionMatrix", directionStream.str());
 
-  if (inputVolume->GetTransformNodeID() != NULL)
+  vtkMRMLTransformNode* inputToRASTransformNodeToRemove = NULL;
+  if (inputVolume->GetParentTransformNode() != NULL)
     {
-    cmdNode->SetParameterAsString("transformationFile", inputVolume->GetTransformNodeID());
+    vtkNew<vtkGeneralTransform> inputToRASTransform;
+    inputVolume->GetParentTransformNode()->GetTransformToWorld(inputToRASTransform.GetPointer());
+    vtkNew<vtkMRMLTransformNode> inputToRASTransformNode;
+    inputToRASTransformNode->SetAndObserveTransformToParent(inputToRASTransform.GetPointer());
+    this->GetMRMLScene()->AddNode(inputToRASTransformNode.GetPointer());
+    inputToRASTransformNodeToRemove = inputToRASTransformNode.GetPointer();
+    cmdNode->SetParameterAsString("transformationFile", inputToRASTransformNode->GetID());
     }
 
   std::string interp = "linear";
@@ -501,9 +528,12 @@ int vtkSlicerCropVolumeLogic::CropInterpolated(vtkMRMLAnnotationROINode* roi, vt
   cmdNode->SetParameterAsString("interpolationType", interp.c_str());
   this->Internal->ResampleLogic->ApplyAndWait(cmdNode, false);
 
-  //this->GetMRMLScene()->RemoveNode(refVolume.GetPointer());
   this->GetMRMLScene()->RemoveNode(cmdNode);
   this->GetMRMLScene()->RemoveNode(originMarkupNode.GetPointer());
+  if (inputToRASTransformNodeToRemove != NULL)
+    {
+    this->GetMRMLScene()->RemoveNode(inputToRASTransformNodeToRemove);
+    }
 
   // success
   return 0;

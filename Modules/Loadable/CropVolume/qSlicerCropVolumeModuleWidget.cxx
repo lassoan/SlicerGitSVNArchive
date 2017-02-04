@@ -300,7 +300,15 @@ void qSlicerCropVolumeModuleWidget::enter()
 
     d->ParametersNodeComboBox->setCurrentNode(parametersNode.GetPointer());
     }
-
+  else
+    {
+    // There is at least one parameter node.
+    // If none is selected then select the first one.
+    if (d->ParametersNodeComboBox->currentNode() == NULL)
+      {
+      d->ParametersNodeComboBox->setCurrentNode(scene->GetNthNodeByClass(0, "vtkMRMLCropVolumeParametersNode"));
+      }
+    }
   //this->setInputVolume();
   //this->onInputROIChanged();
 

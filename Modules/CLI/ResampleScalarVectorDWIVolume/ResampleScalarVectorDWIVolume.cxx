@@ -14,6 +14,7 @@
 
 // ITK includes
 #include <itkBSplineDeformableTransform.h>
+#include <itkCompositeTransform.h>
 #include <itkImageFileReader.h>
 #include <itkImageFileWriter.h>
 #include <itkMetaDataObject.h>
@@ -21,6 +22,7 @@
 #include <itkResampleImageFilter.h>
 #include <itkBSplineInterpolateImageFunction.h>
 #include <itkRigid3DTransform.h>
+#include <itkThinPlateSplineKernelTransform.h>
 #include <itkTransformFileReader.h>
 #include <itkVectorResampleImageFilter.h>
 #include <itkWindowedSincInterpolateImageFunction.h>
@@ -260,6 +262,31 @@ SetUpTransform( parameters & list,
   return transform;
 }
 
+void InitializeThinPlateSpliteTransform(itk::Transform<double, 3, 3>::Pointer transform)
+{
+  std::string transformClassName = transform->GetNameOfClass();
+  // ITK does not initialize TPS transforms properly when they are read from file.
+  // tpsTransform->ComputeWMatrix() has to be called after the transform is read but
+  //  before the transform is used, otherwise the application crashes.
+  if (transformClassName == "ThinPlateSplineKernelTransform")
+    {
+    typedef itk::ThinPlateSplineKernelTransform< double, 3 > ThinPlateSplineTransformType;
+    ThinPlateSplineTransformType* tpsTransform = static_cast<ThinPlateSplineTransformType*>(transform.GetPointer());
+    tpsTransform->ComputeWMatrix();
+    }
+  else if (transformClassName == "CompositeTransform")
+    {
+    typedef itk::CompositeTransform< double, 3 > CompositeTransformType;
+    CompositeTransformType* compositeTransform = static_cast<CompositeTransformType*>(transform.GetPointer());
+    for (unsigned int i = 0; i < compositeTransform->GetNumberOfTransforms(); ++i)
+      {
+      InitializeThinPlateSpliteTransform(compositeTransform->GetNthTransform(i));
+      }
+    }
+
+}
+
+
 // Set the transformation
 template <class ImageType>
 typename itk::Transform<double, 3, 3>::Pointer
@@ -303,6 +330,9 @@ SetTransformAndOrder( parameters & list,
           }
         else // if non-rigid
           {
+
+          InitializeThinPlateSpliteTransform(transform.GetPointer());
+
           if ( transformClassName.find("Transform") != std::string::npos )
             { // if non rigid Transform loaded
             list.transformType.assign( "nr" );
