@@ -108,8 +108,6 @@ protected:
   vtkSlicerCropVolumeLogic();
   virtual ~vtkSlicerCropVolumeLogic();
 
-//  static bool ComputeOrientationMatrixFromScanOrder(const char *order, vtkMatrix4x4 *outputMatrix);
-
 private:
   vtkSlicerCropVolumeLogic(const vtkSlicerCropVolumeLogic&); // Not implemented
   void operator=(const vtkSlicerCropVolumeLogic&);           // Not implemented

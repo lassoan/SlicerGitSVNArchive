@@ -47,6 +47,7 @@ protected slots:
   void onROIFit();
   void onInterpolationModeChanged();
   void onApply();
+  void onFixAlignment();
   void updateWidgetFromMRML();
   void onSpacingScalingValueChanged(double);
   void onIsotropicModeChanged(bool);

@@ -39,6 +39,7 @@
 #include <vtkMRMLAnnotationROINode.h>
 
 // VTK includes
+#include <vtkBoundingBox.h>
 #include <vtkGeneralTransform.h>
 #include <vtkImageData.h>
 #include <vtkImageClip.h>
@@ -642,6 +643,9 @@ void vtkSlicerCropVolumeLogic::SnapROIToVoxelGrid(vtkMRMLCropVolumeParametersNod
     return;
     }
 
+  double originalBounds_World[6] = { 0, -1, 0, -1, 0, -1 };
+  parametersNode->GetROINode()->GetRASBounds(originalBounds_World);
+
   // If we don't transform it, is it aligned?
   if (parametersNode->GetROINode()->GetParentTransformNode() != NULL)
     {
@@ -650,6 +654,13 @@ void vtkSlicerCropVolumeLogic::SnapROIToVoxelGrid(vtkMRMLCropVolumeParametersNod
       {
       // ROI is aligned if it's not transformed, no need for ROI alignment transform
       parametersNode->DeleteROIAlignmentTransformNode();
+      // Update ROI to approximately match original region
+      parametersNode->GetROINode()->SetXYZ((originalBounds_World[1] + originalBounds_World[0]) / 2.0,
+        (originalBounds_World[3] + originalBounds_World[2]) / 2.0,
+        (originalBounds_World[5] + originalBounds_World[4]) / 2.0);
+      parametersNode->GetROINode()->SetRadiusXYZ((originalBounds_World[1] - originalBounds_World[0]) / 2.0,
+        (originalBounds_World[3] - originalBounds_World[2]) / 2.0,
+        (originalBounds_World[5] - originalBounds_World[4]) / 2.0);
       return;
       }
     }
@@ -676,6 +687,35 @@ void vtkSlicerCropVolumeLogic::SnapROIToVoxelGrid(vtkMRMLCropVolumeParametersNod
   parametersNode->GetROIAlignmentTransformNode()->SetAndObserveTransformNodeID(NULL);
   parametersNode->GetROIAlignmentTransformNode()->SetMatrixTransformToParent(volumeIJKToWorld.GetPointer());
   parametersNode->GetROINode()->SetAndObserveTransformNodeID(parametersNode->GetROIAlignmentTransformNode()->GetID());
+
+  vtkNew<vtkMatrix4x4> worldToROITransformMatrix;
+  parametersNode->GetROIAlignmentTransformNode()->GetMatrixTransformFromWorld(worldToROITransformMatrix.GetPointer());
+
+  // Update ROI to approximately match original region
+  const int numberOfCornerPoints = 8;
+  double cornerPoints_World[numberOfCornerPoints][4] =
+    {
+    { originalBounds_World[0], originalBounds_World[2], originalBounds_World[4], 1 },
+    { originalBounds_World[0], originalBounds_World[2], originalBounds_World[5], 1 },
+    { originalBounds_World[0], originalBounds_World[3], originalBounds_World[4], 1 },
+    { originalBounds_World[0], originalBounds_World[3], originalBounds_World[5], 1 },
+    { originalBounds_World[1], originalBounds_World[2], originalBounds_World[4], 1 },
+    { originalBounds_World[1], originalBounds_World[2], originalBounds_World[5], 1 },
+    { originalBounds_World[1], originalBounds_World[3], originalBounds_World[4], 1 },
+    { originalBounds_World[1], originalBounds_World[3], originalBounds_World[5], 1 }
+    };
+  vtkBoundingBox boundingBox_ROI;
+  for (int i = 0; i < numberOfCornerPoints; i++)
+    {
+    double* cornerPoint_ROI = worldToROITransformMatrix->MultiplyDoublePoint(cornerPoints_World[i]);
+    boundingBox_ROI.AddPoint(cornerPoint_ROI);
+    }
+  double center_ROI[3] = { 0 };
+  boundingBox_ROI.GetCenter(center_ROI);
+  parametersNode->GetROINode()->SetXYZ(center_ROI);
+  double diameters_ROI[3] = { 0 };
+  boundingBox_ROI.GetLengths(diameters_ROI);
+  parametersNode->GetROINode()->SetRadiusXYZ(diameters_ROI[0] / 2, diameters_ROI[1] / 2, diameters_ROI[2] / 2);
 }
 
 //----------------------------------------------------------------------------
