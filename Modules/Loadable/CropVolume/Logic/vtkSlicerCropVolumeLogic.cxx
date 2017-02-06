@@ -44,9 +44,13 @@
 #include <vtkImageClip.h>
 #include <vtkNew.h>
 #include <vtkMatrix4x4.h>
+#include <vtkMatrix3x3.h>
 #include <vtkObjectFactory.h>
 #include <vtkSmartPointer.h>
+#include <vtkTransform.h>
 #include <vtkVersion.h>
+
+#include <vtkAddonMathUtilities.h>
 
 // STD includes
 #include <cassert>
@@ -113,6 +117,16 @@ void vtkSlicerCropVolumeLogic::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->vtkObject::PrintSelf(os, indent);
   os << indent << "vtkSlicerCropVolumeLogic:             " << this->GetClassName() << "\n";
+}
+
+//----------------------------------------------------------------------------
+void vtkSlicerCropVolumeLogic::RegisterNodes()
+{
+  if (!this->GetMRMLScene())
+    {
+    return;
+    }
+  this->GetMRMLScene()->RegisterNodeClass(vtkSmartPointer<vtkMRMLCropVolumeParametersNode>::New());
 }
 
 //----------------------------------------------------------------------------
@@ -212,13 +226,13 @@ bool vtkSlicerCropVolumeLogic::GetVoxelBasedCropOutputExtent(vtkMRMLAnnotationRO
   vtkMRMLTransformNode* roiTransform = roi->GetParentTransformNode();
   if (roiTransform && !roiTransform->IsTransformToWorldLinear())
     {
-    vtkWarningMacro("CropVolume: ROI is transformed using a non-linear transform. The transformation will be ignored");
+    vtkGenericWarningMacro("CropVolume: ROI is transformed using a non-linear transform. The transformation will be ignored");
     roiTransform = NULL;
     }
 
   if (inputVolume->GetParentTransformNode() && !inputVolume->GetParentTransformNode()->IsTransformToWorldLinear())
     {
-    vtkWarningMacro("vtkSlicerCropVolumeLogic::CropVoxelBased: voxel-based cropping of non-linearly transformed input volume is not supported");
+    vtkGenericWarningMacro("vtkSlicerCropVolumeLogic::CropVoxelBased: voxel-based cropping of non-linearly transformed input volume is not supported");
     return -1;
     }
 
@@ -291,15 +305,15 @@ int vtkSlicerCropVolumeLogic::CropVoxelBased(vtkMRMLAnnotationROINode* roi, vtkM
     }
   if (!inputVolume->GetImageData())
     {
-    vtkWarningMacro("vtkSlicerCropVolumeLogic::CropVoxelBased: input image is empty")
+    vtkGenericWarningMacro("vtkSlicerCropVolumeLogic::CropVoxelBased: input image is empty")
     outputVolume->SetAndObserveImageData(NULL);
     return 0;
     }
 
   int outputExtent[6] = { 0, -1, 0, -1, 0, -1 };
-  if (!this->GetVoxelBasedCropOutputExtent(roi, inputVolume, outputExtent))
+  if (!vtkSlicerCropVolumeLogic::GetVoxelBasedCropOutputExtent(roi, inputVolume, outputExtent))
     {
-    vtkWarningMacro("vtkSlicerCropVolumeLogic::CropVoxelBased: failed to get output geometry")
+    vtkGenericWarningMacro("vtkSlicerCropVolumeLogic::CropVoxelBased: failed to get output geometry")
     return -1;
     }
 
@@ -312,13 +326,13 @@ int vtkSlicerCropVolumeLogic::CropVoxelBased(vtkMRMLAnnotationROINode* roi, vtkM
   imageClip->SetClipData(true);
   imageClip->Update();
 
-  int wasModified = outputVolume->StartModify();
+  //int wasModified = outputVolume->StartModify();
   outputVolume->SetAndObserveImageData(imageClip->GetOutput());
   outputVolume->SetIJKToRASMatrix(inputIJKToRAS.GetPointer());
   outputVolume->ShiftImageDataExtentToZeroStart();
-  outputVolume->EndModify(wasModified);
+  //outputVolume->EndModify(wasModified);
 
-  outputVolume->SetAndObserveTransformNodeID(NULL);
+  outputVolume->SetAndObserveTransformNodeID(inputVolume->GetTransformNodeID());
 
   return 0;
 }
@@ -342,10 +356,41 @@ bool vtkSlicerCropVolumeLogic::GetInterpolatedCropOutputGeometry(vtkMRMLAnnotati
     }
   else
     {
-    // TODO: find output spacing axis that is closest to the input spacing
-    outputSpacing[0] = inputSpacing[0] * spacingScale;
-    outputSpacing[1] = inputSpacing[1] * spacingScale;
-    outputSpacing[2] = inputSpacing[2] * spacingScale;
+    int inputAxisIndexForROIAxis[3] = { 0, 1, 2 };
+    // Find which image axis corresponds to each ROI axis, to get the correct spacing value for each ROI axis
+    vtkNew<vtkGeneralTransform> volumeToROITransform;
+    vtkNew<vtkTransform> volumeToROITransformLinear;
+    vtkMRMLTransformNode::GetTransformBetweenNodes(inputVolume->GetParentTransformNode(),
+      roi->GetParentTransformNode(), volumeToROITransform.GetPointer());
+    if (vtkMRMLTransformNode::IsGeneralTransformLinear(volumeToROITransform.GetPointer(), volumeToROITransformLinear.GetPointer()))
+      {
+      // Transformation between input volume and ROI is linear, therefore we can find matching axes
+      vtkNew<vtkMatrix4x4> volumeRasToROI;
+      volumeToROITransformLinear->GetMatrix(volumeRasToROI.GetPointer());
+      vtkNew<vtkMatrix4x4> volumeIJKToRAS;
+      inputVolume->GetIJKToRASMatrix(volumeIJKToRAS.GetPointer());
+      vtkNew<vtkMatrix4x4> volumeIJKToROI;
+      vtkMatrix4x4::Multiply4x4(volumeRasToROI.GetPointer(), volumeIJKToRAS.GetPointer(), volumeIJKToROI.GetPointer());
+      double scale[3] = { 1.0 };
+      vtkAddonMathUtilities::NormalizeOrientationColumns(volumeIJKToROI.GetPointer(), scale);
+      // Find the volumeIJK axis that is best aligned with each ROI azis
+      for (int roiAxisIndex = 0; roiAxisIndex < 3; roiAxisIndex++)
+        {
+        double largestComponentValue = 0;
+        for (int volumeIJKAxisIndex = 0; volumeIJKAxisIndex < 3; volumeIJKAxisIndex++)
+          {
+            double currentComponentValue = fabs(volumeIJKToROI->GetElement(roiAxisIndex, volumeIJKAxisIndex));
+          if (currentComponentValue > largestComponentValue)
+            {
+            largestComponentValue = currentComponentValue;
+            inputAxisIndexForROIAxis[roiAxisIndex] = volumeIJKAxisIndex;
+            }
+          }
+        }
+      }
+    outputSpacing[0] = inputSpacing[inputAxisIndexForROIAxis[0]] * spacingScale;
+    outputSpacing[1] = inputSpacing[inputAxisIndexForROIAxis[1]] * spacingScale;
+    outputSpacing[2] = inputSpacing[inputAxisIndexForROIAxis[2]] * spacingScale;
     }
 
   // prepare the resampling reference volume
@@ -555,17 +600,17 @@ bool vtkSlicerCropVolumeLogic::FitROIToInputVolume(vtkMRMLCropVolumeParametersNo
     return false;
     }
 
-  double volumeBounds_ROI[6] = { 0 }; // volume bounds in ROI's coordinate system
-
   vtkMRMLTransformNode* roiTransform = roiNode->GetParentTransformNode();
   if (roiTransform && !roiTransform->IsTransformToWorldLinear())
     {
-    vtkGenericWarningMacro("CropVolume: ROI is transformed using a non-linear transform. The transformation will be ignored");
     roiTransform = NULL;
+    roiNode->SetAndObserveTransformNodeID(NULL);
+    parametersNode->DeleteROIAlignmentTransformNode();
     }
   vtkNew<vtkMatrix4x4> worldToROI;
   vtkMRMLTransformNode::GetMatrixTransformBetweenNodes(NULL, roiTransform, worldToROI.GetPointer());
 
+  double volumeBounds_ROI[6] = { 0 }; // volume bounds in ROI's coordinate system
   volumeNode->GetSliceBounds(volumeBounds_ROI, worldToROI.GetPointer());
 
   double roiCenter[3] = { 0 };
@@ -582,199 +627,103 @@ bool vtkSlicerCropVolumeLogic::FitROIToInputVolume(vtkMRMLCropVolumeParametersNo
 }
 
 //----------------------------------------------------------------------------
-void vtkSlicerCropVolumeLogic::RegisterNodes()
+void vtkSlicerCropVolumeLogic::SnapROIToVoxelGrid(vtkMRMLCropVolumeParametersNode* parametersNode)
 {
-  if(!this->GetMRMLScene())
+  if (!parametersNode || !parametersNode->GetInputVolumeNode() || !parametersNode->GetROINode())
     {
+    // no misalignment (not enough nodes to be misaligned)
     return;
     }
-  vtkMRMLCropVolumeParametersNode* pNode = vtkMRMLCropVolumeParametersNode::New();
-  this->GetMRMLScene()->RegisterNodeClass(pNode);
-  pNode->Delete();
+
+  // Is it already aligned?
+  if (IsROIAlignedWithInputVolume(parametersNode))
+    {
+    // already aligned, nothing to do
+    return;
+    }
+
+  // If we don't transform it, is it aligned?
+  if (parametersNode->GetROINode()->GetParentTransformNode() != NULL)
+    {
+    parametersNode->GetROINode()->SetAndObserveTransformNodeID(NULL);
+    if (IsROIAlignedWithInputVolume(parametersNode))
+      {
+      // ROI is aligned if it's not transformed, no need for ROI alignment transform
+      parametersNode->DeleteROIAlignmentTransformNode();
+      return;
+      }
+    }
+
+  // It's a non-trivial rotation, use the ROI alignment transform node to align
+  vtkNew<vtkMatrix4x4> volumeRasToWorld;
+  vtkMRMLTransformNode::GetMatrixTransformBetweenNodes(parametersNode->GetInputVolumeNode()->GetParentTransformNode(),
+    NULL, volumeRasToWorld.GetPointer());
+  vtkNew<vtkMatrix4x4> volumeIJKToRAS;
+  parametersNode->GetInputVolumeNode()->GetIJKToRASMatrix(volumeIJKToRAS.GetPointer());
+  vtkNew<vtkMatrix4x4> volumeIJKToWorld;
+  vtkMatrix4x4::Multiply4x4(volumeRasToWorld.GetPointer(), volumeIJKToRAS.GetPointer(), volumeIJKToWorld.GetPointer());
+  double scale[3] = { 1.0 };
+  vtkAddonMathUtilities::NormalizeOrientationColumns(volumeIJKToWorld.GetPointer(), scale);
+
+  // Apply transform to ROI alignment transform
+  if (!parametersNode->GetROIAlignmentTransformNode())
+    {
+    vtkNew<vtkMRMLTransformNode> roiTransformNode;
+    roiTransformNode->SetName("Crop volume ROI alignment");
+    parametersNode->GetScene()->AddNode(roiTransformNode.GetPointer());
+    parametersNode->SetROIAlignmentTransformNodeID(roiTransformNode->GetID());
+    }
+  parametersNode->GetROIAlignmentTransformNode()->SetAndObserveTransformNodeID(NULL);
+  parametersNode->GetROIAlignmentTransformNode()->SetMatrixTransformToParent(volumeIJKToWorld.GetPointer());
+  parametersNode->GetROINode()->SetAndObserveTransformNodeID(parametersNode->GetROIAlignmentTransformNode()->GetID());
 }
-
-
-void vtkSlicerCropVolumeLogic::SnapROIToVoxelGrid(vtkMRMLAnnotationROINode* inputROI, vtkMRMLVolumeNode* inputVolume)
-{
-  if (!inputROI || !inputVolume)
-    {
-      vtkDebugMacro(
-          "vtkSlicerCropVolumeLogic: Snapping ROI to voxel grid failed (input ROI and/or input Volume are invalid)");
-      return;
-    }
-
-  vtkSmartPointer<vtkMRMLScene> scene = this->GetMRMLScene();
-
-  if (!scene)
-    {
-      vtkDebugMacro(
-          "vtkSlicerCropVolumeLogic: Snapping ROI to voxel grid failed (MRML Scene is not available)");
-      return;
-    }
-
-  vtkNew<vtkMatrix4x4> rotationMat;
-
-  bool ok = vtkSlicerCropVolumeLogic::ComputeIJKToRASRotationOnlyMatrix(
-      inputVolume, rotationMat.GetPointer());
-
-
-  if (!ok)
-    {
-      vtkDebugMacro(
-          "vtkSlicerCropVolumeLogic: Snapping ROI to voxel grid failed (IJK to RAS rotation only matrix computation failed)");
-      return;
-    }
-
-  vtkNew<vtkMRMLLinearTransformNode> roiTransformNode;
-  roiTransformNode->ApplyTransformMatrix(rotationMat.GetPointer());
-  roiTransformNode->SetScene(this->GetMRMLScene());
-
-  this->GetMRMLScene()->AddNode(roiTransformNode.GetPointer());
-
-  inputROI->SetAndObserveTransformNodeID(roiTransformNode->GetID());
-}
-
-
 
 //----------------------------------------------------------------------------
-bool vtkSlicerCropVolumeLogic::ComputeIJKToRASRotationOnlyMatrix(vtkMRMLVolumeNode* inputVolume, vtkMatrix4x4* outputMatrix)
+bool vtkSlicerCropVolumeLogic::IsROIAlignedWithInputVolume(vtkMRMLCropVolumeParametersNode* parametersNode)
 {
-  if(inputVolume == NULL || outputMatrix == NULL)
-    return false;
-
-  vtkNew<vtkMatrix4x4> rotationMat;
-  rotationMat->Identity();
-
-  vtkNew<vtkMatrix4x4> inputIJKToRASMat;
-  inputVolume->GetIJKToRASMatrix(inputIJKToRASMat.GetPointer());
-  const char* scanOrder = vtkMRMLVolumeNode::ComputeScanOrderFromIJKToRAS(inputIJKToRASMat.GetPointer());
-
-  vtkNew<vtkMatrix4x4> orientMat;
-  orientMat->Identity();
-
-  bool orientation = vtkSlicerCropVolumeLogic::ComputeOrientationMatrixFromScanOrder(scanOrder,orientMat.GetPointer());
-
-  if(!orientation)
-    return false;
-
-  orientMat->Invert();
-
-  vtkNew<vtkMatrix4x4> directionsMat;
-  directionsMat->Identity();
-
-  inputVolume->GetIJKToRASDirectionMatrix(directionsMat.GetPointer());
-
-  vtkMatrix4x4::Multiply4x4(directionsMat.GetPointer(),orientMat.GetPointer(),rotationMat.GetPointer());
-
-  outputMatrix->DeepCopy(rotationMat.GetPointer());
-
-  return true;
-}
-
-
-//----------------------------------------------------------------------------
-bool vtkSlicerCropVolumeLogic::IsVolumeTiltedInRAS( vtkMRMLVolumeNode* inputVolume, vtkMatrix4x4* rotationMatrix)
-{
-  assert(inputVolume);
-
-  vtkNew<vtkMatrix4x4> iJKToRASMat;
-  vtkNew<vtkMatrix4x4> directionMat;
-
-  inputVolume->GetIJKToRASMatrix(iJKToRASMat.GetPointer());
-  inputVolume->GetIJKToRASDirectionMatrix(directionMat.GetPointer());
-
-  const char* scanOrder = vtkMRMLVolumeNode::ComputeScanOrderFromIJKToRAS(iJKToRASMat.GetPointer());
-
-  vtkNew<vtkMatrix4x4> orientMat;
-  vtkSlicerCropVolumeLogic::ComputeOrientationMatrixFromScanOrder(scanOrder,orientMat.GetPointer());
-
-  bool same = true;
-
-  for(int i=0; i < 4; ++i)
+  if (!parametersNode || !parametersNode->GetInputVolumeNode() || !parametersNode->GetROINode())
     {
-      for(int j=0; j < 4; ++j)
+    // no misalignment (not enough nodes to be misaligned)
+    return true;
+    }
+
+  if (parametersNode->GetInputVolumeNode()->GetParentTransformNode()
+    && !parametersNode->GetInputVolumeNode()->GetParentTransformNode()->IsTransformToWorldLinear())
+    {
+    // no misalignment, as if input volume is under a non-linear transform then we cannot align a ROI
+    return true;
+    }
+
+  if (parametersNode->GetROINode()->GetParentTransformNode()
+    && !parametersNode->GetROINode()->GetParentTransformNode()->IsTransformToWorldLinear())
+    {
+    // misaligned, as ROI node is under non-linear transform
+    return false;
+    }
+
+  vtkNew<vtkMatrix4x4> volumeRasToROI;
+  vtkMRMLTransformNode::GetMatrixTransformBetweenNodes(parametersNode->GetInputVolumeNode()->GetParentTransformNode(),
+    parametersNode->GetROINode()->GetParentTransformNode(), volumeRasToROI.GetPointer());
+  vtkNew<vtkMatrix4x4> volumeIJKToRAS;
+  parametersNode->GetInputVolumeNode()->GetIJKToRASMatrix(volumeIJKToRAS.GetPointer());
+  vtkNew<vtkMatrix4x4> volumeIJKToROI;
+  vtkMatrix4x4::Multiply4x4(volumeRasToROI.GetPointer(), volumeIJKToRAS.GetPointer(), volumeIJKToROI.GetPointer());
+
+  double scale[3] = { 1.0 };
+  vtkAddonMathUtilities::NormalizeOrientationColumns(volumeIJKToROI.GetPointer(), scale);
+
+  double tolerance = 0.001;
+  for (int row = 0; row < 3; row++)
+    {
+    for (int column = 0; column < 3; column++)
+      {
+        double elemAbs = fabs(volumeIJKToROI->GetElement(row, column));
+      if (elemAbs > tolerance && elemAbs < 1 - tolerance)
         {
-          if(directionMat->GetElement(i,j) != orientMat->GetElement(i,j))
-            {
-              same = false;
-              break;
-            }
+        // axes are neither orthogonal nor parallel
+        return false;
         }
-      if(same == false)
-        break;
+      }
     }
-
-  if(!rotationMatrix)
-    rotationMatrix = vtkSmartPointer<vtkMatrix4x4>::New();
-
-  if(same)
-    {
-      rotationMatrix->Identity();
-    }
-  else
-    {
-      vtkSlicerCropVolumeLogic::ComputeIJKToRASRotationOnlyMatrix(inputVolume,rotationMatrix);
-      return true;
-    }
-
-
-
-  return false;
-}
-
-//----------------------------------------------------------------------------
-bool
-vtkSlicerCropVolumeLogic::ComputeOrientationMatrixFromScanOrder(
-    const char *order, vtkMatrix4x4 *outputMatrix)
-{
-  vtkNew<vtkMatrix4x4> orientMat;
-  orientMat->Identity();
-
-  if (!strcmp(order, "IS") || !strcmp(order, "Axial IS")
-      || !strcmp(order, "Axial"))
-    {
-      double elems[] =
-        { -1, 0, 0, 0, 0, -1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1 };
-      orientMat->DeepCopy(elems);
-    }
-  else if (!strcmp(order, "SI") || !strcmp(order, "Axial SI"))
-    {
-      double elems[] =
-        { -1, 0, 0, 0, 0, -1, 0, 0, 0, 0, -1, 0, 0, 0, 0, 1 };
-      orientMat->DeepCopy(elems);
-    }
-  else if (!strcmp(order, "RL") || !strcmp(order, "Sagittal RL")
-      || !strcmp(order, "Sagittal"))
-    {
-      double elems[] =
-        { 0, 0, -1, 0, -1, 0, 0, 0, 0, -1, 0, 0, 0, 0, 0, 1 };
-      orientMat->DeepCopy(elems);
-    }
-  else if (!strcmp(order, "LR") || !strcmp(order, "Sagittal LR"))
-    {
-      double elems[] =
-        { 0, 0, 1, 0, -1, 0, 0, 0, 0, -1, 0, 0, 0, 0, 0, 1 };
-      orientMat->DeepCopy(elems);
-    }
-  else if (!strcmp(order, "PA") || !strcmp(order, "Coronal PA")
-      || !strcmp(order, "Coronal"))
-    {
-      double elems[] =
-        { -1, 0, 0, 0, 0, 0, 1, 0, 0, -1, 0, 0, 0, 0, 0, 1 };
-      orientMat->DeepCopy(elems);
-    }
-  else if (!strcmp(order, "AP") || !strcmp(order, "Coronal AP"))
-    {
-      double elems[] =
-        { -1, 0, 0, 0, 0, 0, -1, 0, 0, -1, 0, 0, 0, 0, 0, 1 };
-      orientMat->DeepCopy(elems);
-    }
-  else
-    {
-      return false;
-    }
-
-
-  outputMatrix->DeepCopy(orientMat.GetPointer());
   return true;
 }

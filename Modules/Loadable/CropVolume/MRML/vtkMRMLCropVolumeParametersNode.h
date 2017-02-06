@@ -21,6 +21,7 @@
 #include "vtkSlicerCropVolumeModuleMRMLExport.h"
 
 class vtkMRMLAnnotationROINode;
+class vtkMRMLTransformNode;
 class vtkMRMLVolumeNode;
 
 /// \ingroup Slicer_QtModules_CropVolume
@@ -70,6 +71,13 @@ public:
   /// Get cropping region of interest
   const char* GetROINodeID();
   vtkMRMLAnnotationROINode* GetROINode();
+
+  /// Set transform node that may be used for aligning
+  /// the ROI with the input volume.
+  void SetROIAlignmentTransformNodeID(const char *nodeID);
+  const char* GetROIAlignmentTransformNodeID();
+  vtkMRMLTransformNode* GetROIAlignmentTransformNode();
+  void DeleteROIAlignmentTransformNode();
 
   vtkSetMacro(IsotropicResampling,bool);
   vtkGetMacro(IsotropicResampling,bool);

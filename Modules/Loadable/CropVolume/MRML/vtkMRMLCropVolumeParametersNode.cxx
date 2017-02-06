@@ -15,6 +15,7 @@ or http://www.slicer.org/copyright/copyright.txt for details.
 
 // MRML includes
 #include "vtkMRMLVolumeNode.h"
+#include "vtkMRMLTransformNode.h"
 
 // CropModuleMRML includes
 #include "vtkMRMLCropVolumeParametersNode.h"
@@ -30,6 +31,8 @@ static const char* OutputVolumeNodeReferenceRole = "outputVolume";
 static const char* OutputVolumeNodeReferenceMRMLAttributeName = "outputVolumeNodeID";
 static const char* ROINodeReferenceRole = "roi";
 static const char* ROINodeReferenceMRMLAttributeName = "ROINodeID";
+static const char* ROIAlignmentTransformNodeReferenceRole = "roiAlignmentTransform";
+static const char* ROIAlignmentTransformNodeReferenceMRMLAttributeName = "ROIAlignmentTransformNodeID";
 
 //----------------------------------------------------------------------------
 vtkMRMLNodeNewMacro(vtkMRMLCropVolumeParametersNode);
@@ -56,7 +59,7 @@ vtkMRMLCropVolumeParametersNode::vtkMRMLCropVolumeParametersNode()
     OutputVolumeNodeReferenceMRMLAttributeName);
 
   this->VoxelBased = false;
-  this->InterpolationMode = 2;
+  this->InterpolationMode = vtkMRMLCropVolumeParametersNode::InterpolationLinear;
   this->IsotropicResampling = false;
   this->SpacingScalingConst = 1.;
 }
@@ -208,4 +211,36 @@ const char * vtkMRMLCropVolumeParametersNode::GetROINodeID()
 vtkMRMLAnnotationROINode* vtkMRMLCropVolumeParametersNode::GetROINode()
 {
   return vtkMRMLAnnotationROINode::SafeDownCast(this->GetNodeReference(ROINodeReferenceRole));
+}
+
+//----------------------------------------------------------------------------
+void vtkMRMLCropVolumeParametersNode::SetROIAlignmentTransformNodeID(const char *nodeID)
+{
+  this->SetNodeReferenceID(ROIAlignmentTransformNodeReferenceRole, nodeID);
+}
+
+//----------------------------------------------------------------------------
+const char * vtkMRMLCropVolumeParametersNode::GetROIAlignmentTransformNodeID()
+{
+  return this->GetNodeReferenceID(ROIAlignmentTransformNodeReferenceRole);
+}
+
+//----------------------------------------------------------------------------
+vtkMRMLTransformNode* vtkMRMLCropVolumeParametersNode::GetROIAlignmentTransformNode()
+{
+  return vtkMRMLTransformNode::SafeDownCast(this->GetNodeReference(ROIAlignmentTransformNodeReferenceRole));
+}
+
+//----------------------------------------------------------------------------
+void vtkMRMLCropVolumeParametersNode::DeleteROIAlignmentTransformNode()
+{
+  vtkMRMLTransformNode* transformNode = this->GetROIAlignmentTransformNode();
+  if (transformNode)
+    {
+    this->SetROIAlignmentTransformNodeID(NULL);
+    if (this->GetScene())
+      {
+      this->GetScene()->RemoveNode(transformNode);
+      }
+    }
 }
