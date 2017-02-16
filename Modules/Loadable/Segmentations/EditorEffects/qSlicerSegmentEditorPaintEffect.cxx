@@ -221,7 +221,7 @@ qSlicerSegmentEditorPaintEffectPrivate::qSlicerSegmentEditorPaintEffectPrivate(q
   , BrushRadiusFrame(NULL)
   , BrushRadiusSpinBox(NULL)
   , BrushRadiusSlider(NULL)
-  , BrushRadiusUnitsToggle(NULL)
+  , BrushRadiusRelativeToggle(NULL)
   , BrushSphereCheckbox(NULL)
   , ColorSmudgeCheckbox(NULL)
   , BrushPixelModeCheckbox(NULL)
@@ -538,20 +538,27 @@ void qSlicerSegmentEditorPaintEffectPrivate::paintPixels(
 void qSlicerSegmentEditorPaintEffectPrivate::scaleRadius(double scaleFactor)
 {
   Q_Q(qSlicerSegmentEditorPaintEffect);
-
-  q->setCommonParameter("BrushRadius", q->doubleParameter("BrushRadius") * scaleFactor);
+  if (q->integerParameter("BrushRadiusIsRelative"))
+    {
+    q->setCommonParameter("BrushRelativeRadius", q->doubleParameter("BrushRelativeRadius") * scaleFactor);
+    }
+  else
+    {
+    q->setCommonParameter("BrushAbsoluteRadius", q->doubleParameter("BrushAbsoluteRadius") * scaleFactor);
+    }
 }
 
 //-----------------------------------------------------------------------------
 void qSlicerSegmentEditorPaintEffectPrivate::onRadiusUnitsClicked()
 {
-  if (this->BrushRadiusUnitsToggle->text().compare("mm:"))
+  Q_Q(qSlicerSegmentEditorPaintEffect);
+  if (q->integerParameter("BrushRadiusIsRelative") == 0)
     {
-    this->BrushRadiusUnitsToggle->setText("mm:");
+    q->setCommonParameter("BrushRadiusIsRelative", 1);
     }
   else
     {
-    this->BrushRadiusUnitsToggle->setText("px:");
+    q->setCommonParameter("BrushRadiusIsRelative", 0);
     }
 }
 
@@ -564,38 +571,85 @@ void qSlicerSegmentEditorPaintEffectPrivate::onQuickRadiusButtonClicked()
   QPushButton* senderButton = dynamic_cast<QPushButton*>(sender());
   int radius = senderButton->property("BrushRadius").toInt();
 
-  double radiusMm = 0.0;
-  if (!this->BrushRadiusUnitsToggle->text().compare("px:"))
-    {
-    if (modifierLabelmap)
-      {
-      double spacing[3] = {0.0, 0.0, 0.0};
-      modifierLabelmap->GetSpacing(spacing);
-      double minimumSpacing = qMin(spacing[0], qMin(spacing[1], spacing[2]));
-      radiusMm = minimumSpacing * radius;
-      }
-    }
-  else
-    {
-    radiusMm = radius;
-    }
-
-  this->onRadiusValueChanged(radiusMm);
+  this->onRadiusValueChanged(radius);
 }
 
 //-----------------------------------------------------------------------------
 void qSlicerSegmentEditorPaintEffectPrivate::onRadiusValueChanged(double value)
 {
   Q_Q(qSlicerSegmentEditorPaintEffect);
+  if (q->integerParameter("BrushRadiusIsRelative") == 0)
+    {
+    q->setCommonParameter("BrushAbsoluteRadius", value);
+    }
+  else
+    {
+    q->setCommonParameter("BrushRelativeRadius", value);
+    }
+}
 
-  q->setCommonParameter("BrushRadius", value);
+//-----------------------------------------------------------------------------
+void qSlicerSegmentEditorPaintEffectPrivate::updateAbsoluteBrushRadius(qMRMLWidget* viewWidget)
+{
+  Q_Q(qSlicerSegmentEditorPaintEffect);
+  if (!q->integerParameter("BrushRadiusIsRelative"))
+    {
+    // user specified absolute brush radius
+    return;
+    }
+
+  double mmPerPixel = 1.0;
+  int screenSizePixel = 1000;
+  qMRMLSliceWidget* sliceWidget = qobject_cast<qMRMLSliceWidget*>(viewWidget);
+  qMRMLThreeDWidget* threeDWidget = qobject_cast<qMRMLThreeDWidget*>(viewWidget);
+  if (sliceWidget)
+    {
+    vtkMatrix4x4* xyToSlice = sliceWidget->sliceLogic()->GetSliceNode()->GetXYToSlice();
+    mmPerPixel = sqrt(xyToSlice->GetElement(0, 1)*xyToSlice->GetElement(0, 1)
+      + xyToSlice->GetElement(1, 1)*xyToSlice->GetElement(1, 1)
+      + xyToSlice->GetElement(2, 1)*xyToSlice->GetElement(2, 1));
+    screenSizePixel = sliceWidget->sliceView()->renderWindow()->GetScreenSize()[1];
+    }
+  else if (threeDWidget && threeDWidget->threeDView() && threeDWidget->threeDView()->renderer()
+    && threeDWidget->threeDView()->renderer()->GetActiveCamera())
+    {
+      screenSizePixel = threeDWidget->threeDView()->renderWindow()->GetScreenSize()[1];
+      vtkRenderer* renderer = threeDWidget->threeDView()->renderer();
+      vtkCamera *cam = renderer->GetActiveCamera();
+      if (cam && cam->GetParallelProjection())
+        {
+        // Viewport: xmin, ymin, xmax, ymax; range: 0.0-1.0; origin is bottom left
+        // Determine the available renderer size in pixels
+        double minX = 0;
+        double minY = 0;
+        renderer->NormalizedDisplayToDisplay(minX, minY);
+        double maxX = 1;
+        double maxY = 1;
+        renderer->NormalizedDisplayToDisplay(maxX, maxY);
+        int rendererSizeInPixels[2] = { static_cast<int>(maxX - minX), static_cast<int>(maxY - minY) };
+        // Parallel scale: height of the viewport in world-coordinate distances.
+        // Larger numbers produce smaller images.
+        mmPerPixel = double(rendererSizeInPixels[1]) / cam->GetParallelScale() / 2.0;
+        }
+    }
+  double brushRelativeRadius = q->doubleParameter("BrushRelativeRadius");
+  double newBrushAbsoluteRadius = screenSizePixel * (brushRelativeRadius/100.0) * mmPerPixel;
+
+  double brushAbsoluteRadius = q->doubleParameter("BrushAbsoluteRadius");
+  if (brushAbsoluteRadius > 0 && fabs(newBrushAbsoluteRadius - brushAbsoluteRadius) / brushAbsoluteRadius < 0.01)
+    {
+    // no brush size change
+    return;
+    }
+  q->setCommonParameter("BrushAbsoluteRadius", newBrushAbsoluteRadius);
 }
 
 //-----------------------------------------------------------------------------
 void qSlicerSegmentEditorPaintEffectPrivate::updateBrushModel(qMRMLWidget* viewWidget, double brushPosition_World[3])
 {
   Q_Q(qSlicerSegmentEditorPaintEffect);
-  double radiusMm = q->doubleParameter("BrushRadius");
+  double radiusMm = q->doubleParameter("BrushAbsoluteRadius");
+
   qMRMLSliceWidget* sliceWidget = qobject_cast<qMRMLSliceWidget*>(viewWidget);
   if (!sliceWidget || q->integerParameter("BrushSphere"))
     {
@@ -607,7 +661,7 @@ void qSlicerSegmentEditorPaintEffectPrivate::updateBrushModel(qMRMLWidget* viewW
   else
     {
     this->BrushCylinderSource->SetRadius(radiusMm);
-    this->BrushCylinderSource->SetResolution(16);
+    this->BrushCylinderSource->SetResolution(32);
     double sliceSpacingMm = qSlicerSegmentEditorAbstractEffect::sliceSpacing(sliceWidget);
     this->BrushCylinderSource->SetHeight(sliceSpacingMm);
     this->BrushCylinderSource->SetCenter(0, 0, sliceSpacingMm/2.0);
@@ -641,7 +695,7 @@ void qSlicerSegmentEditorPaintEffectPrivate::updateBrush(qMRMLWidget* viewWidget
     pipeline->SetBrushVisibility(false);
     return;
     }
-  pipeline->SetBrushVisibility(true);
+  //pipeline->SetBrushVisibility(true);
 
   qMRMLSliceWidget* sliceWidget = qobject_cast<qMRMLSliceWidget*>(viewWidget);
   if (sliceWidget)
@@ -810,6 +864,8 @@ bool qSlicerSegmentEditorPaintEffect::processInteractionEvents(
   int eventPosition[2] = { 0, 0 };
   callerInteractor->GetEventPosition(eventPosition);
 
+  bool shiftKeyPressed = callerInteractor->GetShiftKey();
+
   double brushPosition_World[4] = {0.0, 0.0, 0.0, 1.0};
   if (sliceWidget)
     {
@@ -869,7 +925,7 @@ bool qSlicerSegmentEditorPaintEffect::processInteractionEvents(
       }
     }
 
-  if (eid == vtkCommand::LeftButtonPressEvent)
+  if (eid == vtkCommand::LeftButtonPressEvent && !shiftKeyPressed)
     {
     d->IsPainting = true;
     if (!this->integerParameter("BrushPixelMode"))
@@ -933,6 +989,7 @@ bool qSlicerSegmentEditorPaintEffect::processInteractionEvents(
 
   // Update paint feedback glyph to follow mouse
   d->updateBrushModel(viewWidget, brushPosition_World);
+  d->updateAbsoluteBrushRadius(viewWidget);
   d->updateBrushes();
   qSlicerSegmentEditorAbstractEffect::forceRender(viewWidget);
   return abortEvent;
@@ -988,22 +1045,22 @@ void qSlicerSegmentEditorPaintEffect::setupOptionsFrame()
   d->BrushRadiusSpinBox->setUnitAwareProperties(qMRMLSpinBox::Prefix | qMRMLSpinBox::Suffix);
   d->BrushRadiusFrame->layout()->addWidget(d->BrushRadiusSpinBox);
 
-  d->BrushRadiusUnitsToggle = new QPushButton("px:");
-  d->BrushRadiusUnitsToggle->setToolTip("Toggle radius quick set buttons between mm and label volume pixel size units");
-  d->BrushRadiusUnitsToggle->setFixedWidth(35);
-  d->BrushRadiusFrame->layout()->addWidget(d->BrushRadiusUnitsToggle);
-
   QList<int> quickRadii;
   quickRadii << 2 << 3 << 4 << 5 << 10 << 20;
   foreach (int radius, quickRadii)
     {
     QPushButton* quickRadiusButton = new QPushButton(QString::number(radius));
     quickRadiusButton->setProperty("BrushRadius", QVariant(radius));
-    quickRadiusButton->setFixedWidth(25);
+    //quickRadiusButton->setFixedWidth(25);
     quickRadiusButton->setToolTip("Set radius based on mm or label voxel size units depending on toggle value");
     d->BrushRadiusFrame->layout()->addWidget(quickRadiusButton);
     QObject::connect(quickRadiusButton, SIGNAL(clicked()), d, SLOT(onQuickRadiusButtonClicked()));
     }
+
+  d->BrushRadiusRelativeToggle = new QPushButton("%");
+  d->BrushRadiusRelativeToggle->setToolTip("Toggle radius quick set buttons between percentage of window size / absolute size in millimeters");
+  //d->BrushRadiusRelativeToggle->setFixedWidth(35);
+  d->BrushRadiusFrame->layout()->addWidget(d->BrushRadiusRelativeToggle);
 
   d->BrushRadiusSlider = new ctkDoubleSlider();
   d->BrushRadiusSlider->setOrientation(Qt::Horizontal);
@@ -1025,7 +1082,7 @@ void qSlicerSegmentEditorPaintEffect::setupOptionsFrame()
   d->BrushPixelModeCheckbox->setToolTip("Paint exactly the pixel under the cursor, ignoring the radius, threshold, and paint over.");
   this->addOptionsWidget(d->BrushPixelModeCheckbox);
 
-  QObject::connect(d->BrushRadiusUnitsToggle, SIGNAL(clicked()), d, SLOT(onRadiusUnitsClicked()));
+  QObject::connect(d->BrushRadiusRelativeToggle, SIGNAL(clicked()), d, SLOT(onRadiusUnitsClicked()));
   QObject::connect(d->BrushSphereCheckbox, SIGNAL(clicked()), this, SLOT(updateMRMLFromGUI()));
   QObject::connect(d->ColorSmudgeCheckbox, SIGNAL(clicked()), this, SLOT(updateMRMLFromGUI()));
   QObject::connect(d->BrushPixelModeCheckbox, SIGNAL(clicked()), this, SLOT(updateMRMLFromGUI()));
@@ -1038,9 +1095,11 @@ void qSlicerSegmentEditorPaintEffect::setMRMLDefaults()
 {
   Superclass::setMRMLDefaults();
 
-  this->setCommonParameterDefault("BrushMinimumRadius", 0.01);
-  this->setCommonParameterDefault("BrushMaximumRadius", 100.0);
-  this->setCommonParameterDefault("BrushRadius", 5.0);
+  this->setCommonParameterDefault("BrushMinimumAbsoluteRadius", 0.01);
+  this->setCommonParameterDefault("BrushMaximumAbsoluteRadius", 100.0);
+  this->setCommonParameterDefault("BrushAbsoluteRadius", 5.0);
+  this->setCommonParameterDefault("BrushRelativeRadius", 3.0);
+  this->setCommonParameterDefault("BrushRadiusIsRelative", 1);
   this->setCommonParameterDefault("BrushSphere", 0);
   this->setCommonParameterDefault("ColorSmudge", 0);
   this->setCommonParameterDefault("BrushPixelMode", 0);
@@ -1079,19 +1138,36 @@ void qSlicerSegmentEditorPaintEffect::updateGUIFromMRML()
   // Radius is also disabled if pixel mode is on
   d->BrushRadiusFrame->setEnabled(!pixelMode);
 
+  bool brushRadiusIsRelative = this->integerParameter("BrushRadiusIsRelative");
+
+  d->BrushRadiusRelativeToggle->blockSignals(true);
+  d->BrushRadiusRelativeToggle->setText(brushRadiusIsRelative ? "%" : "mm");
+  d->BrushRadiusRelativeToggle->blockSignals(false);
+
   d->BrushRadiusSlider->blockSignals(true);
-  d->BrushRadiusSlider->setMinimum(this->doubleParameter("BrushMinimumRadius"));
-  d->BrushRadiusSlider->setMaximum(this->doubleParameter("BrushMaximumRadius"));
-  d->BrushRadiusSlider->setValue(this->doubleParameter("BrushRadius"));
-  d->BrushRadiusSlider->setSingleStep(this->doubleParameter("BrushMinimumRadius"));
+  if (brushRadiusIsRelative)
+    {
+    d->BrushRadiusSlider->setMinimum(1);
+    d->BrushRadiusSlider->setMaximum(25);
+    d->BrushRadiusSlider->setValue(this->doubleParameter("BrushRelativeRadius"));
+    d->BrushRadiusSlider->setSingleStep(1);
+    }
+  else
+    {
+    d->BrushRadiusSlider->setMinimum(this->doubleParameter("BrushMinimumAbsoluteRadius"));
+    d->BrushRadiusSlider->setMaximum(this->doubleParameter("BrushMaximumAbsoluteRadius"));
+    d->BrushRadiusSlider->setValue(this->doubleParameter("BrushAbsoluteRadius"));
+    d->BrushRadiusSlider->setSingleStep(this->doubleParameter("BrushMinimumAbsoluteRadius"));
+    }
   d->BrushRadiusSlider->blockSignals(false);
+
 
   d->BrushRadiusSpinBox->blockSignals(true);
   d->BrushRadiusSpinBox->setMRMLScene(this->scene());
-  d->BrushRadiusSpinBox->setMinimum(this->doubleParameter("BrushMinimumRadius"));
-  d->BrushRadiusSpinBox->setMaximum(this->doubleParameter("BrushMaximumRadius"));
-  d->BrushRadiusSpinBox->setValue(this->doubleParameter("BrushRadius"));
-  int decimals = (int)(log10(this->doubleParameter("BrushMinimumRadius")));
+  d->BrushRadiusSpinBox->setMinimum(d->BrushRadiusSlider->minimum());
+  d->BrushRadiusSpinBox->setMaximum(d->BrushRadiusSlider->maximum());
+  d->BrushRadiusSpinBox->setValue(d->BrushRadiusSlider->value());
+  int decimals = (int)(log10(d->BrushRadiusSlider->minimum()));
   if (decimals < 0)
     {
     d->BrushRadiusSpinBox->setDecimals(-decimals * 2);
@@ -1114,7 +1190,17 @@ void qSlicerSegmentEditorPaintEffect::updateMRMLFromGUI()
   bool pixelMode = d->BrushPixelModeCheckbox->isChecked();
   bool pixelModeChanged = (pixelMode != (bool)this->integerParameter("BrushPixelMode"));
   this->setCommonParameter("BrushPixelMode", (int)pixelMode);
-  this->setCommonParameter("BrushRadius", d->BrushRadiusSlider->value());
+
+  bool isBrushRadiusRelative = (d->BrushRadiusRelativeToggle->text() == "%");
+  this->setCommonParameter("BrushRadiusIsRelative", isBrushRadiusRelative ? 1 : 0);
+  if (isBrushRadiusRelative)
+    {
+    this->setCommonParameter("BrushRelativeRadius", d->BrushRadiusSlider->value());
+    }
+  else
+    {
+    this->setCommonParameter("BrushAbsoluteRadius", d->BrushRadiusSlider->value());
+    }
 
   // If pixel mode changed, then other GUI changes are due
   if (pixelModeChanged)
@@ -1147,9 +1233,9 @@ void qSlicerSegmentEditorPaintEffect::referenceGeometryChanged()
   double maximumBounds = qMax(bounds[0], qMax(bounds[1], bounds[2]));
   double maximumRadius = 0.5 * maximumBounds;
 
-  this->setCommonParameter("BrushMinimumRadius", minimumRadius);
-  this->setCommonParameter("BrushMaximumRadius", maximumRadius);
-  this->setCommonParameter("BrushRadius", qMin(50.0 * minimumRadius, 0.5 * maximumRadius));
+  this->setCommonParameter("BrushAbsoluteMinimumRadius", minimumRadius);
+  this->setCommonParameter("BrushAbsoluteMaximumRadius", maximumRadius);
+  this->setCommonParameter("BrushAbsoluteRadius", qMin(50.0 * minimumRadius, 0.5 * maximumRadius));
 
   this->updateGUIFromMRML();
 }
