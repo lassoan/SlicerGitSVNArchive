@@ -44,6 +44,7 @@
 #include <vtkSphereSource.h>
 #include <vtkTransform.h>
 #include <vtkTransformPolyDataFilter.h>
+#include <vtkWeakPointer.h>
 
 // Qt includes
 #include <QObject>
@@ -115,7 +116,9 @@ protected:
   //double GetSliceSpacing(qMRMLSliceWidget* sliceWidget);
 
   // Compute absolute size (in mm) from relative size (percentage of screen height)
-  void updateAbsoluteBrushRadius(qMRMLWidget* viewWidget);
+  void updateAbsoluteBrushRadius();
+
+  bool brushPositionInWorld(qMRMLWidget* viewWidget, int brushPositionInView[2], double brushPosition_World[3]);
 
 public slots:
   void onRadiusUnitsClicked();
@@ -146,6 +149,10 @@ public:
   QMap<qMRMLWidget*, BrushPipeline*> BrushPipelines;
   bool DelayedPaint;
   bool IsPainting;
+
+  // Observed view node
+  qMRMLWidget* ActiveViewWidget;
+  int ActiveViewLastInteractionPosition[2];
 
   QFrame* BrushRadiusFrame;
   qMRMLSpinBox* BrushRadiusSpinBox;
