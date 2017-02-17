@@ -113,8 +113,6 @@ protected:
   /// Scale brush radius and save it in parameter node
   void scaleRadius(double scaleFactor);
 
-  //double GetSliceSpacing(qMRMLSliceWidget* sliceWidget);
-
   // Compute absolute size (in mm) from relative size (percentage of screen height)
   void updateAbsoluteBrushRadius();
 

@@ -595,7 +595,6 @@ void qSlicerSegmentEditorPaintEffectPrivate::onRadiusValueChanged(double value)
 void qSlicerSegmentEditorPaintEffectPrivate::updateAbsoluteBrushRadius()
 {
   Q_Q(qSlicerSegmentEditorPaintEffect);
-  qDebug() << Q_FUNC_INFO << ": start";
   if (!q->integerParameter("BrushRadiusIsRelative"))
     {
     // user specified absolute brush radius
@@ -605,7 +604,6 @@ void qSlicerSegmentEditorPaintEffectPrivate::updateAbsoluteBrushRadius()
     {
     return;
     }
-  qDebug() << Q_FUNC_INFO << ": active viewWidget";
 
   double mmPerPixel = 1.0;
   int screenSizePixel = 1000;
@@ -650,13 +648,10 @@ void qSlicerSegmentEditorPaintEffectPrivate::updateAbsoluteBrushRadius()
     // no brush size change
     return;
     }
-  qDebug() << Q_FUNC_INFO << ": before set BrushAbsoluteRadius";
   q->setCommonParameter("BrushAbsoluteRadius", newBrushAbsoluteRadius);
-  qDebug() << Q_FUNC_INFO << ": after set BrushAbsoluteRadius";
 
   if (this->ActiveViewWidget)
     {
-    qDebug() << Q_FUNC_INFO << ": scheduleRender";
     qSlicerSegmentEditorAbstractEffect::scheduleRender(this->ActiveViewWidget);
     }
 }
@@ -665,9 +660,7 @@ void qSlicerSegmentEditorPaintEffectPrivate::updateAbsoluteBrushRadius()
 void qSlicerSegmentEditorPaintEffectPrivate::updateBrushModel(qMRMLWidget* viewWidget, double brushPosition_World[3])
 {
   Q_Q(qSlicerSegmentEditorPaintEffect);
-  qDebug() << Q_FUNC_INFO << ": start";
   this->updateAbsoluteBrushRadius();
-  qDebug() << Q_FUNC_INFO << ": after updateAbsoluteBrushRadius";
 
   double radiusMm = q->doubleParameter("BrushAbsoluteRadius");
 
@@ -967,6 +960,8 @@ bool qSlicerSegmentEditorPaintEffect::processInteractionEvents(
     return abortEvent;
     }
 
+//  qDebug() << "brushPosition_World = " << brushPosition_World[0] << ", " << brushPosition_World[1] << ", " << brushPosition_World[2];
+
   if (eid == vtkCommand::LeftButtonPressEvent && !shiftKeyPressed)
     {
     d->IsPainting = true;
@@ -1053,12 +1048,10 @@ bool qSlicerSegmentEditorPaintEffect::processInteractionEvents(
     // slice is being zoomed in/out
     // don't force immediate rendering
     qSlicerSegmentEditorAbstractEffect::scheduleRender(viewWidget);
-    qDebug() << Q_FUNC_INFO << ": scheduleRender";
     }
   else
     {
     qSlicerSegmentEditorAbstractEffect::forceRender(viewWidget);
-    qDebug() << Q_FUNC_INFO << ": forceRender";
     }
 
   return abortEvent;
@@ -1104,9 +1097,7 @@ void qSlicerSegmentEditorPaintEffect::processViewNodeEvents(
     qSlicerSegmentEditorAbstractEffect::scheduleRender(d->ActiveViewWidget);
     }
 
-  qDebug() << Q_FUNC_INFO << ": before updateBrush";
   d->updateBrush(viewWidget, brushPipeline);
-  qDebug() << Q_FUNC_INFO << ": after updateBrush";
 
 }
 
@@ -1194,7 +1185,6 @@ void qSlicerSegmentEditorPaintEffect::setMRMLDefaults()
 //-----------------------------------------------------------------------------
 void qSlicerSegmentEditorPaintEffect::updateGUIFromMRML()
 {
-  qDebug() << Q_FUNC_INFO << ": start";
   Q_D(qSlicerSegmentEditorPaintEffect);
   if (!this->active())
     {
@@ -1273,16 +1263,13 @@ void qSlicerSegmentEditorPaintEffect::updateGUIFromMRML()
   d->BrushRadiusSpinBox->blockSignals(false);
 
   // Update brushes
-  qDebug() << Q_FUNC_INFO << ": before updateBrushes";
   d->updateBrushes();
-  qDebug() << Q_FUNC_INFO << ": after updateBrushes";
 }
 
 //-----------------------------------------------------------------------------
 void qSlicerSegmentEditorPaintEffect::updateMRMLFromGUI()
 {
   Q_D(qSlicerSegmentEditorPaintEffect);
-  qDebug() << Q_FUNC_INFO << ": start";
 
   Superclass::updateMRMLFromGUI();
 

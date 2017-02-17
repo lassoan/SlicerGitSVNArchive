@@ -381,7 +381,7 @@ void vtkSliceViewInteractorStyle::ScaleZoom(double zoomScaleFactor)
 {
   // the factor operation is so 'z' isn't changed and the
   // slider can still move through the full range
-  if (zoomScaleFactor < 0)
+  if (zoomScaleFactor <= 0)
     {
     vtkWarningMacro("vtkSliceViewInteractorStyle::ScaleZoom: invalid zoom scale factor (" << zoomScaleFactor);
     return;
@@ -558,7 +558,7 @@ void vtkSliceViewInteractorStyle::OnMouseWheelForward()
 {
   if (this->Interactor->GetControlKey())
     {
-    this->ScaleZoom(1.2);
+    this->ScaleZoom(0.8);
     }
   else if (!this->Interactor->GetShiftKey())
     {
@@ -572,7 +572,7 @@ void vtkSliceViewInteractorStyle::OnMouseWheelBackward()
 {
   if (this->Interactor->GetControlKey())
     {
-      this->ScaleZoom(0.8);
+    this->ScaleZoom(1.2);
     }
   else if (!this->Interactor->GetShiftKey())
     {
@@ -638,7 +638,6 @@ void vtkSliceViewInteractorStyle::DecrementSlice()
 {
   this->MoveSlice(-1. * this->GetSliceSpacing());
 }
-
 //----------------------------------------------------------------------------
 void vtkSliceViewInteractorStyle::MoveSlice(double delta)
 {
