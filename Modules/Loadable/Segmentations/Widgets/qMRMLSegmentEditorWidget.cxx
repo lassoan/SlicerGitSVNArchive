@@ -77,7 +77,7 @@
 
 // Qt includes
 #include <QDebug>
-#include <QPushButton>
+#include <QToolButton>
 #include <QButtonGroup>
 #include <QMainWindow>
 #include <QMessageBox>
@@ -346,7 +346,7 @@ void qMRMLSegmentEditorWidgetPrivate::init()
   // Define default effect order
   this->DefaultEffectOrder
     // Local painting
-    << "Paint" << "Draw" << "Erase" << "Flood filling" << "LevelTracing" << "Auto-complete"
+    << "Paint" << "Draw" << "Erase" << "Flood filling" << "Level tracing" << "Grow from seeds" << "Fill between slices"
     // Global processing
     << "Threshold" << "Margin" << "Smoothing"
     // Global splitting, merging
@@ -378,6 +378,7 @@ void qMRMLSegmentEditorWidgetPrivate::initializeEffects()
   ctkFlowLayout* effectsGroupLayout = new ctkFlowLayout();
   effectsGroupLayout->setContentsMargins(4,4,4,4);
   effectsGroupLayout->setSpacing(4);
+  effectsGroupLayout->setAlignItems(false);
   this->EffectsGroupBox->setLayout(effectsGroupLayout);
 
   // Initialize effects specified in default ordering
@@ -406,28 +407,29 @@ void qMRMLSegmentEditorWidgetPrivate::initializeEffect(qSlicerSegmentEditorAbstr
   if (!effect)
     {
     // NULL effect (used for deactivating all effects)
-    QPushButton* effectButton = new QPushButton(this->EffectsGroupBox);
+    QToolButton* effectButton = new QToolButton(this->EffectsGroupBox);
     effectButton->setObjectName(NULL_EFFECT_NAME);
     effectButton->setCheckable(true);
     effectButton->setIcon(QIcon(":Icons/NullEffect.png"));
+    effectButton->setText("None");
     effectButton->setToolTip("No editing");
-    effectButton->setMaximumWidth(31);
+    effectButton->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
+    //effectButton->setMaximumWidth(31);
     effectButton->setProperty("Effect", QVariant::fromValue<QObject*>(NULL));
     this->EffectButtonGroup.addButton(effectButton);
     this->EffectsGroupBox->layout()->addWidget(effectButton);
-    this->EffectsGroupBox->layout()->addItem(
-      new QSpacerItem(3, 0, QSizePolicy::Fixed,
-      QSizePolicy::MinimumExpanding));
     return;
     }
 
   // Create button for activating effect
-  QPushButton* effectButton = new QPushButton(this->EffectsGroupBox);
+  QToolButton* effectButton = new QToolButton(this->EffectsGroupBox);
   effectButton->setObjectName(effect->name());
   effectButton->setCheckable(true);
+  effectButton->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
   effectButton->setIcon(effect->icon());
+  effectButton->setText(effect->name());
   effectButton->setToolTip(effect->name());
-  effectButton->setMaximumWidth(31);
+  //effectButton->setMaximumWidth(31);
   effectButton->setProperty("Effect", QVariant::fromValue<QObject*>(effect));
 
   this->EffectButtonGroup.addButton(effectButton);

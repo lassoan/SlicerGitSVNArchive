@@ -244,7 +244,7 @@
        <number>4</number>
       </property>
       <property name="spacing">
-       <number>4</number>
+       <number>0</number>
       </property>
       <item row="1" column="0" colspan="2">
        <widget class="QFrame" name="EffectsOptionsFrame">
@@ -262,18 +262,19 @@
         </property>
        </widget>
       </item>
-      <item row="0" column="0" colspan="2">
-       <widget class="QLabel" name="label_EffectHelp">
-        <property name="font">
-         <font>
-          <italic>true</italic>
-         </font>
+      <item row="0" column="0">
+       <widget class="ctkFittedTextBrowser" name="label_EffectHelp">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Ignored" vsizetype="Preferred">
+          <horstretch>1</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
         </property>
-        <property name="text">
-         <string/>
+        <property name="frameShape">
+         <enum>QFrame::NoFrame</enum>
         </property>
-        <property name="wordWrap">
-         <bool>true</bool>
+        <property name="frameShadow">
+         <enum>QFrame::Plain</enum>
         </property>
        </widget>
       </item>
@@ -396,6 +397,11 @@
    <extends>QFrame</extends>
    <header>ctkExpandableWidget.h</header>
    <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>ctkFittedTextBrowser</class>
+   <extends>QTextBrowser</extends>
+   <header>ctkFittedTextBrowser.h</header>
   </customwidget>
   <customwidget>
    <class>ctkRangeWidget</class>
