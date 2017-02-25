@@ -379,6 +379,7 @@ void qMRMLSegmentEditorWidgetPrivate::initializeEffects()
   effectsGroupLayout->setContentsMargins(4,4,4,4);
   effectsGroupLayout->setSpacing(4);
   effectsGroupLayout->setAlignItems(false);
+  effectsGroupLayout->setAlignment(Qt::AlignJustify);
   effectsGroupLayout->setPreferredExpandingDirections(Qt::Vertical);
   this->EffectsGroupBox->setLayout(effectsGroupLayout);
 
