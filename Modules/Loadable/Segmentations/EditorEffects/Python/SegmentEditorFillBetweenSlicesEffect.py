@@ -10,8 +10,8 @@ class SegmentEditorFillBetweenSlicesEffect(AbstractScriptedSegmentEditorAutoComp
   """
 
   def __init__(self, scriptedEffect):
-    scriptedEffect.name = 'Fill between slices'
     AbstractScriptedSegmentEditorAutoCompleteEffect.__init__(self, scriptedEffect)
+    scriptedEffect.name = 'Fill between slices'
 
   def clone(self):
     import qSlicerSegmentationsEditorEffectsPythonQt as effects

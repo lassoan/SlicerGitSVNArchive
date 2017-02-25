@@ -10,11 +10,11 @@ class SegmentEditorGrowFromSeedsEffect(AbstractScriptedSegmentEditorAutoComplete
   """
 
   def __init__(self, scriptedEffect):
+    AbstractScriptedSegmentEditorAutoCompleteEffect.__init__(self, scriptedEffect)
     scriptedEffect.name = 'Grow from seeds'
     self.minimumNumberOfSegments = 2
     self.clippedMasterImageDataRequired = True # master volume intensities are used by this effect
     self.growCutFilter = None
-    AbstractScriptedSegmentEditorAutoCompleteEffect.__init__(self, scriptedEffect)
 
   def clone(self):
     import qSlicerSegmentationsEditorEffectsPythonQt as effects

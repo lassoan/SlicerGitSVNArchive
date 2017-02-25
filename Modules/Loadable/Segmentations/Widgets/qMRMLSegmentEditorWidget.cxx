@@ -379,6 +379,7 @@ void qMRMLSegmentEditorWidgetPrivate::initializeEffects()
   effectsGroupLayout->setContentsMargins(4,4,4,4);
   effectsGroupLayout->setSpacing(4);
   effectsGroupLayout->setAlignItems(false);
+  effectsGroupLayout->setPreferredExpandingDirections(Qt::Vertical);
   this->EffectsGroupBox->setLayout(effectsGroupLayout);
 
   // Initialize effects specified in default ordering
@@ -414,8 +415,8 @@ void qMRMLSegmentEditorWidgetPrivate::initializeEffect(qSlicerSegmentEditorAbstr
     effectButton->setText("None");
     effectButton->setToolTip("No editing");
     effectButton->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
-    //effectButton->setMaximumWidth(31);
     effectButton->setProperty("Effect", QVariant::fromValue<QObject*>(NULL));
+    effectButton->setSizePolicy(QSizePolicy::MinimumExpanding, effectButton->sizePolicy().verticalPolicy());
     this->EffectButtonGroup.addButton(effectButton);
     this->EffectsGroupBox->layout()->addWidget(effectButton);
     return;
@@ -429,7 +430,7 @@ void qMRMLSegmentEditorWidgetPrivate::initializeEffect(qSlicerSegmentEditorAbstr
   effectButton->setIcon(effect->icon());
   effectButton->setText(effect->name());
   effectButton->setToolTip(effect->name());
-  //effectButton->setMaximumWidth(31);
+  effectButton->setSizePolicy(QSizePolicy::MinimumExpanding, effectButton->sizePolicy().verticalPolicy());
   effectButton->setProperty("Effect", QVariant::fromValue<QObject*>(effect));
 
   this->EffectButtonGroup.addButton(effectButton);

@@ -170,9 +170,16 @@ class AbstractScriptedSegmentEditorAutoCompleteEffect(AbstractScriptedSegmentEdi
       for eventId in observedEvents:
         self.segmentationNodeObserverTags.append(self.observedSegmentation.AddObserver(eventId, self.onSegmentationModified))
 
+  def getPreviewNode(self):
+    previewNode = self.scriptedEffect.parameterSetNode().GetNodeReference(ResultPreviewNodeReferenceRole)
+    if previewNode and self.scriptedEffect.parameter("SegmentationResultPreviewOwnerEffect") != self.scriptedEffect.name:
+      # another effect owns this preview node
+      return None
+    return previewNode
+
   def updateGUIFromMRML(self):
 
-    previewNode = self.scriptedEffect.parameterSetNode().GetNodeReference(ResultPreviewNodeReferenceRole)
+    previewNode = self.getPreviewNode()
 
     self.cancelButton.setEnabled(previewNode is not None)
     self.applyButton.setEnabled(previewNode is not None)
@@ -198,7 +205,7 @@ class AbstractScriptedSegmentEditorAutoCompleteEffect(AbstractScriptedSegmentEdi
 
   def updateMRMLFromGUI(self):
     segmentationNode = self.scriptedEffect.parameterSetNode().GetSegmentationNode()
-    previewNode = self.scriptedEffect.parameterSetNode().GetNodeReference(ResultPreviewNodeReferenceRole)
+    previewNode = self.getPreviewNode()
     if previewNode:
       self.setPreviewOpacity(self.previewOpacitySlider.value)
 
@@ -206,7 +213,7 @@ class AbstractScriptedSegmentEditorAutoCompleteEffect(AbstractScriptedSegmentEdi
     self.scriptedEffect.setParameter("AutoUpdate", autoUpdate)
 
   def onPreview(self):
-    slicer.util.showStatusMessage("Running {0} auto-complete...".format(self.name), 2000)
+    slicer.util.showStatusMessage("Running {0} auto-complete...".format(self.scriptedEffect.name), 2000)
     try:
       # This can be a long operation - indicate it to the user
       qt.QApplication.setOverrideCursor(qt.Qt.WaitCursor)
@@ -221,6 +228,7 @@ class AbstractScriptedSegmentEditorAutoCompleteEffect(AbstractScriptedSegmentEdi
     if previewNode:
       self.scriptedEffect.parameterSetNode().SetNodeReferenceID(ResultPreviewNodeReferenceRole, None)
       slicer.mrmlScene.RemoveNode(previewNode)
+      self.scriptedEffect.setCommonParameter("SegmentationResultPreviewOwnerEffect", "")
     segmentationNode = self.scriptedEffect.parameterSetNode().GetSegmentationNode()
     segmentationNode.GetDisplayNode().SetOpacity(1.0)
     self.mergedLabelmapGeometryImage = None
@@ -238,7 +246,7 @@ class AbstractScriptedSegmentEditorAutoCompleteEffect(AbstractScriptedSegmentEdi
 
     import vtkSegmentationCorePython as vtkSegmentationCore
     segmentationNode = self.scriptedEffect.parameterSetNode().GetSegmentationNode()
-    previewNode = self.scriptedEffect.parameterSetNode().GetNodeReference(ResultPreviewNodeReferenceRole)
+    previewNode = self.getPreviewNode()
 
     self.scriptedEffect.saveStateForUndo()
 
@@ -257,7 +265,7 @@ class AbstractScriptedSegmentEditorAutoCompleteEffect(AbstractScriptedSegmentEdi
   def setPreviewOpacity(self, opacity):
     segmentationNode = self.scriptedEffect.parameterSetNode().GetSegmentationNode()
     segmentationNode.GetDisplayNode().SetOpacity(1.0-opacity)
-    previewNode = self.scriptedEffect.parameterSetNode().GetNodeReference(ResultPreviewNodeReferenceRole)
+    previewNode = self.getPreviewNode()
     if previewNode:
       previewNode.GetDisplayNode().SetOpacity(opacity)
 
@@ -267,7 +275,7 @@ class AbstractScriptedSegmentEditorAutoCompleteEffect(AbstractScriptedSegmentEdi
     self.previewOpacitySlider.blockSignals(wasBlocked)
 
   def getPreviewOpacity(self):
-    previewNode = self.scriptedEffect.parameterSetNode().GetNodeReference(ResultPreviewNodeReferenceRole)
+    previewNode = self.getPreviewNode()
     return previewNode.GetDisplayNode().GetOpacity() if previewNode else 0.6 # default opacity for preview
 
   def preview(self):
@@ -278,9 +286,7 @@ class AbstractScriptedSegmentEditorAutoCompleteEffect(AbstractScriptedSegmentEdi
     # Get segmentation
     segmentationNode = self.scriptedEffect.parameterSetNode().GetSegmentationNode()
 
-    method = self.scriptedEffect.parameter("AutoCompleteMethod")
-
-    previewNode = self.scriptedEffect.parameterSetNode().GetNodeReference(ResultPreviewNodeReferenceRole)
+    previewNode = self.getPreviewNode()
     if not previewNode or not self.mergedLabelmapGeometryImage \
       or (self.clippedMasterImageDataRequired and not self.clippedMasterImageData):
       self.reset()
@@ -319,6 +325,7 @@ class AbstractScriptedSegmentEditorAutoCompleteEffect(AbstractScriptedSegmentEdi
       if segmentationNode.GetParentTransformNode():
         previewNode.SetAndObserveTransformNodeID(segmentationNode.GetParentTransformNode().GetID())
       self.scriptedEffect.parameterSetNode().SetNodeReferenceID(ResultPreviewNodeReferenceRole, previewNode.GetID())
+      self.scriptedEffect.setCommonParameter("SegmentationResultPreviewOwnerEffect", self.scriptedEffect.name)
       self.setPreviewOpacity(0.6)
 
       if self.clippedMasterImageDataRequired:
@@ -373,4 +380,4 @@ class AbstractScriptedSegmentEditorAutoCompleteEffect(AbstractScriptedSegmentEdi
 
     self.updateGUIFromMRML()
 
-ResultPreviewNodeReferenceRole = "AutoCompleteSegmentationResultPreview"
+ResultPreviewNodeReferenceRole = "SegmentationResultPreview"
