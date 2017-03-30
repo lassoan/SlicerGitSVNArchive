@@ -14,6 +14,8 @@ set(${KIT}_INCLUDE_DIRECTORIES
 )
 
 set(displayable_manager_SRCS
+  vtkMRML${MODULE_NAME}AngleDisplayableManager2D.cxx
+  vtkMRML${MODULE_NAME}AngleDisplayableManager3D.cxx
   vtkMRML${MODULE_NAME}DisplayableManager3D.cxx
   vtkMRML${MODULE_NAME}DisplayableManager2D.cxx
   vtkMRML${MODULE_NAME}FiducialDisplayableManager3D.cxx
