@@ -150,6 +150,64 @@ public:
   /// Set and observe segmentation object
   void SetAndObserveSegmentation(vtkSegmentation* segmentation);
 
+  virtual bool CreateClosedSurfaceRepresentation();
+  virtual vtkOrientedImageData* GetClosedSurfaceRepresentation(segmentid);
+  virtual bool GetClosedSurfaceRepresentation(segmentid, vtkOrientedImageData*);
+  virtual void RemoveClosedSurfaceRepresentation();
+
+  /// Add new segment from a closed surface.
+  /// \return Segment ID of the new segment. Empty string if an error occurred.
+  virtual std::string AddSegmentFromClosedSurfaceRepresentation(
+vtkPolyData* polyData, std::string segmentId = "", std::string
+segmentName = "", double color[3] = NULL);
+
+  /// Add new segment from a binary labelmap.
+  /// \return Segment ID of the new segment. Empty string if an error occurred.
+  std::string AddSegmentFromBinaryLabelmapRepresentation(vtkOrientedImageData*
+imageData, std::string segmentId = "", std::string segmentName = "", double color[3] = NULL)
+
+
+  tumorSegment.AddRepresentation(
+vtkSegmentationCore.vtkSegmentationConverter.
+GetSegmentationClosedSurfaceRepresentationName(), tumorSeed.GetOutput())
+    segmentationNode.GetSegmentation().AddSegment(tumorSegment)
+
+
+    virtual bool CreateLabelmapRepresentation();
+  virtual void RemoveLabelmapRepresentation();
+
+  tumorSegment.AddRepresentation(vtkSegmentationCore.vtkSegmentationConverter.GetSegmentationClosedSurfaceRepresentationName(), tumorSeed.GetOutput())
+
+
+    segmentationNode.CreateDefaultDisplayNodes()
+    Why do I even need display nodes in batch processing ?
+
+
+    commonGeometryString = segmentation.DetermineCommonLabelmapGeometry(
+    vtkSegmentationCore.vtkSegmentation.EXTENT_UNION_OF_EFFECTIVE_SEGMENTS,
+    selectedSegmentIds)
+    vtkSegmentationCore.vtkSegmentationConverter.DeserializeImageGeometry(
+    commonGeometryString, mergedLabelmapGeometryImage)
+    I guess this is calculating the bounds of the part image with data...
+
+
+    displayNode.SetSegmentVisibility(selectedSegmentIds.GetValue(0), False)
+    Kind of cheating, since I knew that the first value was the ID of the old
+segment.Why isn't there a segment.GetSegmentID() method? Also, can't we make a list of the desired segments instead of using only the visible ones ?
+
+
+
+    # Compute merged labelmap extent(effective extent slightly expanded)
+
+    selectedSegmentIds = vtk.vtkStringArray()
+    segmentationNode.GetDisplayNode().GetVisibleSegmentIDs(selectedSegmentIds)
+    mergedLabelmapGeometryImage = vtkSegmentationCore.vtkOrientedImageData()
+    commonGeometryString = segmentationNode.GetSegmentation().
+DetermineCommonLabelmapGeometry(vtkSegmentationCore.vtkSegmentation.EXTENT_UNION_OF_EFFECTIVE_SEGMENTS, selectedSegmentIds)
+    vtkSegmentationCore.vtkSegmentationConverter.DeserializeImageGeometry(commonGeometryString, mergedLabelmapGeometryImage)
+
+
+
 protected:
   /// Set segmentation object
   vtkSetObjectMacro(Segmentation, vtkSegmentation);

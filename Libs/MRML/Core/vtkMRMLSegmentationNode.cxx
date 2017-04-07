@@ -710,3 +710,55 @@ void vtkMRMLSegmentationNode::SetReferenceImageGeometryParameterFromVolumeNode(v
   this->SetNodeReferenceID(
     vtkMRMLSegmentationNode::GetReferenceImageGeometryReferenceRole().c_str(), volumeNode->GetID() );
 }
+
+//---------------------------------------------------------------------------
+std::string vtkMRMLSegmentationNode::AddSegmentFromClosedSurfaceRepresentation(vtkPolyData* polyData,
+  std::string segmentId/* ="" */, std::string segmentName/* ="" */, double color[3] /* =NULL */)
+{
+  if (!this->Segmentation)
+    {
+    vtkErrorMacro("AddSegmentFromClosedSurfaceRepresentation: Invalid segmentation");
+    return "";
+    }
+  vtkNew<vtkSegment> newSegment;
+  if (!segmentName.empty())
+    {
+    newSegment->SetName(segmentName.c_str());
+    }
+  if (color!=NULL)
+    {
+    newSegment->SetColor(color);
+    }
+  newSegment->AddRepresentation(vtkSegmentationConverter::GetSegmentationClosedSurfaceRepresentationName(), polyData);
+  if (!this->Segmentation->AddSegment(newSegment.GetPointer()))
+    {
+    return "";
+    }
+  return this->Segmentation->GetSegmentIdBySegment(newSegment.GetPointer());
+}
+
+//---------------------------------------------------------------------------
+std::string vtkMRMLSegmentationNode::AddSegmentFromBinaryLabelmapRepresentation(vtkOrientedImageData* imageData,
+  std::string segmentId/* ="" */, std::string segmentName/* ="" */, double color[3] /* =NULL */)
+{
+  if (!this->Segmentation)
+    {
+    vtkErrorMacro("AddSegmentFromBinaryLabelmapRepresentation: Invalid segmentation");
+    return "";
+    }
+  vtkNew<vtkSegment> newSegment;
+  if (!segmentName.empty())
+    {
+    newSegment->SetName(segmentName.c_str());
+    }
+  if (color != NULL)
+    {
+    newSegment->SetColor(color);
+    }
+  newSegment->AddRepresentation(vtkSegmentationConverter::GetSegmentationBinaryLabelmapRepresentationName(), imageData);
+  if (!this->Segmentation->AddSegment(newSegment.GetPointer()))
+    {
+    return "";
+    }
+  return this->Segmentation->GetSegmentIdBySegment(newSegment.GetPointer());
+}
