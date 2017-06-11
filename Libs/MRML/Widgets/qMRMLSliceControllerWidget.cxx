@@ -1264,8 +1264,10 @@ void qMRMLSliceControllerWidgetPrivate::onSliceLogicModifiedEvent()
 
   // Set slice offset range to match the field of view
   // Calculate the number of slices in the current range
+  // Get bounds of voxel centers so that if the user moves the slider to the
+  // min/max position, the viewer is aligned to the voxel center.
   double sliceBounds[6] = {0, -1, 0, -1, 0, -1};
-  this->SliceLogic->GetLowestVolumeSliceBounds(sliceBounds);
+  this->SliceLogic->GetLowestVolumeSliceBounds(sliceBounds, false);
   if (sliceBounds[4] <= sliceBounds[5])
     {
     q->setSliceOffsetRange(sliceBounds[4], sliceBounds[5]);

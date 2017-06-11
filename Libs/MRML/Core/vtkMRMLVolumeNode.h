@@ -153,8 +153,12 @@ public:
   ///
   /// Get bounding box in slice form (xmin,xmax, ymin,ymax, zmin,zmax).
   /// If not rasToSlice is passed, then it returns the bounds in global RAS form.
+  /// \param bounds stores computed bounds
+  /// \param rasToSlice defines slice position and orientation
+  /// \param useVoxelCorner return boundaries that include voxel corners; if false then
+  ///   boundaries enclosing voxel centerpoints are returned
   /// \sa GetRASBounds()
-  void GetSliceBounds(double bounds[6], vtkMatrix4x4* rasToSlice);
+  void GetSliceBounds(double bounds[6], vtkMatrix4x4* rasToSlice, bool useVoxelCorner = true);
 
   ///
   /// Associated display MRML node
@@ -236,7 +240,7 @@ protected:
   ///
   /// Return the bounds of the node transformed or not depending on
   /// the useTransform parameter and the rasToSlice transform
-  virtual void GetBoundsInternal(double bounds[6], vtkMatrix4x4* rasToSlice, bool useTransform);
+  virtual void GetBoundsInternal(double bounds[6], vtkMatrix4x4* rasToSlice, bool useTransform, bool useVoxelCorner = true);
 
   /// these are unit length direction cosines
   double IJKToRASDirections[3][3];

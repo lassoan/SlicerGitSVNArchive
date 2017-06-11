@@ -899,9 +899,9 @@ void vtkMRMLVolumeNode::GetRASBounds(double bounds[6])
 }
 
 //---------------------------------------------------------------------------
-void vtkMRMLVolumeNode::GetSliceBounds(double bounds[6], vtkMatrix4x4* rasToSlice)
+void vtkMRMLVolumeNode::GetSliceBounds(double bounds[6], vtkMatrix4x4* rasToSlice, bool useVoxelCorner /*=true*/)
 {
-  vtkMRMLVolumeNode::GetBoundsInternal(bounds, rasToSlice, true);
+  vtkMRMLVolumeNode::GetBoundsInternal(bounds, rasToSlice, true, useVoxelCorner);
 }
 
 //---------------------------------------------------------------------------
@@ -913,12 +913,22 @@ void vtkMRMLVolumeNode::GetBounds(double bounds[6])
 //---------------------------------------------------------------------------
 void vtkMRMLVolumeNode::GetBoundsInternal(double bounds[6],
                                           vtkMatrix4x4* rasToSlice,
-                                          bool useTransform)
+                                          bool useTransform,
+                                          bool useVoxelCorner /*=true*/)
 {
   vtkMath::UninitializeBounds(bounds);
   vtkImageData *volumeImage = this->GetImageData();
   if (!volumeImage)
     {
+    // No image
+    return;
+    }
+  int* extent = volumeImage->GetExtent();
+  if (extent[0] > extent[1] ||
+    extent[2] > extent[3] ||
+    extent[4] > extent[5])
+    {
+    // Image is empty, indicated by uninitialized bounds
     return;
     }
 
@@ -951,21 +961,34 @@ void vtkMRMLVolumeNode::GetBoundsInternal(double bounds[6],
     transform->Concatenate(rasToSlice);
     }
 
-  int dimensions[3] = { 0 };
-  volumeImage->GetDimensions(dimensions);
-  double doubleDimensions[4] = { 0, 0, 0, 1 };
   vtkBoundingBox boundingBox;
-  for (int i=0; i<2; i++)
+  for (int xSide=0; xSide<2; ++xSide)
     {
-    for (int j=0; j<2; j++)
+    for (int ySide=0; ySide<2; ++ySide)
       {
-      for (int k=0; k<2; k++)
+      for (int zSide=0; zSide<2; ++zSide)
         {
-        doubleDimensions[0] = i*(dimensions[0]) - 0.5;
-        doubleDimensions[1] = j*(dimensions[1]) - 0.5;
-        doubleDimensions[2] = k*(dimensions[2]) - 0.5;
-        double* rasHDimensions = transform->TransformDoublePoint(doubleDimensions);
-        boundingBox.AddPoint(rasHDimensions);
+        // Get corner point. Loop variables are either 0 or 1, so coordinate is
+        // either low or high extent bound along that axis
+        double cornerPointIJK[4] = {
+          static_cast<double>(extent[xSide]),
+          static_cast<double>(extent[2+ySide]),
+          static_cast<double>(extent[4+zSide]),
+          1.0 };
+
+        if (useVoxelCorner)
+          {
+          // Use voxel corner as boundary, not voxel center:
+          cornerPointIJK[0] += (xSide == 0 ? -0.5 : 0.5);
+          cornerPointIJK[1] += (ySide == 0 ? -0.5 : 0.5);
+          cornerPointIJK[2] += (zSide == 0 ? -0.5 : 0.5);
+          }
+
+        // Transform IJK coordinate to get the world coordinate
+        double *cornerPointWorld = transform->TransformDoublePoint(cornerPointIJK);
+
+        // Determine bounds based on current corner point
+        boundingBox.AddPoint(cornerPointWorld);
         }
       }
     }
