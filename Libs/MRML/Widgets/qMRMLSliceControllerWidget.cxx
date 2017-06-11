@@ -401,7 +401,7 @@ void qMRMLSliceControllerWidgetPrivate::init()
   this->SliceOffsetSlider->setToolTip(q->tr("Slice distance from RAS origin"));
   this->SliceOffsetSlider->setQuantity("length");
   this->SliceOffsetSlider->setUnitAwareProperties(
-    qMRMLSliderWidget::Suffix|qMRMLSliderWidget::Precision|qMRMLSliderWidget::Scaling);
+    qMRMLSliderWidget::Suffix);
   this->SliceOffsetSlider->spinBox()->setDecimalsOption(
     ctkDoubleSpinBox::DecimalsByShortcuts |
     ctkDoubleSpinBox::DecimalsByKey |
@@ -1257,15 +1257,22 @@ void qMRMLSliceControllerWidgetPrivate::onSliceLogicModifiedEvent()
   bool wasBlocking = this->SliceOffsetSlider->blockSignals(true);
 
   // Set the scale increments to match the z spacing (rotated into slice space)
-  const double * sliceSpacing = this->SliceLogic->GetLowestVolumeSliceSpacing();
-  Q_ASSERT(sliceSpacing);
-  double offsetResolution = sliceSpacing ? sliceSpacing[2] : 0;
+
+  vtkMRMLSliceNode *sliceNode = this->SliceLogic->GetSliceNode();
+  double offsetResolution = 1.0;
+  if (sliceNode != NULL && sliceNode->GetSliceSpacingMode() == vtkMRMLSliceNode::PrescribedSliceSpacingMode)
+  {
+    offsetResolution = sliceNode->GetPrescribedSliceSpacing()[2];
+  }
+  else
+  {
+    offsetResolution = this->SliceLogic->GetLowestVolumeSliceSpacing()[2];
+  }
+
   q->setSliceOffsetResolution(offsetResolution);
 
   // Set slice offset range to match the field of view
   // Calculate the number of slices in the current range
-  // Get bounds of voxel centers so that if the user moves the slider to the
-  // min/max position, the viewer is aligned to the voxel center.
   double sliceBounds[6] = {0, -1, 0, -1, 0, -1};
   this->SliceLogic->GetLowestVolumeSliceBounds(sliceBounds, false);
   if (sliceBounds[4] <= sliceBounds[5])
