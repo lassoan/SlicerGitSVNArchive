@@ -55,6 +55,8 @@ set(vtkAddon_SRCS
   vtkLoggingMacros.h
   vtkTestingOutputWindow.cxx
   vtkTestingOutputWindow.h
+  vtkDelimitedTextWriter2.cxx
+  vtkDelimitedTextWriter2.h
   vtkOrientedBSplineTransform.cxx
   vtkOrientedBSplineTransform.h
   vtkOrientedGridTransform.cxx

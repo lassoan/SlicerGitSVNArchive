@@ -96,9 +96,7 @@ public:
   /// - longName: full human-readable name of the column
   /// - description: human-readable detailed description of the column
   /// - unitLabel: simple unit label
-  /// - unitCodeMeaning: standard unit definition. Example: Standardized Uptake Value body weight.
-  /// - unitCodeValue: standard unit definition. Example: {SUVbw}g/ml.
-  /// - unitCodingSchemeDesignator: standard unit definition. Example: UCUM.
+  /// - formatSpecifier: defines how value should be printed (important for floating-point numbers)
   virtual void SetAndObserveSchema(vtkTable* schema);
   vtkGetObjectMacro(Schema, vtkTable);
 
@@ -146,7 +144,7 @@ public:
   /// Remove all columns from the table (including associated properties).
   /// Returns with true on success.
   bool RemoveAllColumns();
-  
+
   ///
   /// Add an empty row at the end of the table
   /// Returns the index of the inserted row or -1 on failure.
@@ -214,6 +212,13 @@ public:
   /// Set measurement unit for the data stored in the selected column.
   void SetColumnUnitLabel(const std::string& columnName, const std::string& unitLabel);
   std::string GetColumnUnitLabel(const std::string& columnName);
+
+  ///
+  /// Set format specifier for display data stored in the selected column.
+  /// See definition of format specification here: http://www.cplusplus.com/reference/cstdio/printf/ .
+  /// It may be important to set non-default format for display floating-point numbers.
+  void SetColumnFormatSpecifier(const std::string& columnName, const std::string& formatSpecifier);
+  std::string GetColumnFormatSpecifier(const std::string& columnName);
 
   ///
   /// Get a column property.

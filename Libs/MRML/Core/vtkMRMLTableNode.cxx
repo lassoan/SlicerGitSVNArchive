@@ -44,6 +44,7 @@ static const char SCHEMA_COLUMN_DEFAULT_VALUE[] = "defaultValue";
 static const char SCHEMA_COLUMN_LONG_NAME[] = "longName";
 static const char SCHEMA_COLUMN_DESCRIPTION[] = "description";
 static const char SCHEMA_COLUMN_UNIT_LABEL[] = "unitLabel";
+static const char SCHEMA_COLUMN_FORMAT_SPECIFIER[] = "formatSpecifier";
 
 //------------------------------------------------------------------------------
 vtkMRMLNodeNewMacro(vtkMRMLTableNode);
@@ -929,9 +930,21 @@ void vtkMRMLTableNode::SetColumnUnitLabel(const std::string& columnName, const s
 }
 
 //----------------------------------------------------------------------------
-std::string  vtkMRMLTableNode::GetColumnUnitLabel(const std::string& columnName)
+std::string vtkMRMLTableNode::GetColumnUnitLabel(const std::string& columnName)
 {
   return this->GetColumnProperty(columnName, SCHEMA_COLUMN_UNIT_LABEL);
+}
+
+//----------------------------------------------------------------------------
+void vtkMRMLTableNode::SetColumnFormatSpecifier(const std::string& columnName, const std::string& formatSpecifier)
+{
+  this->SetColumnProperty(columnName, SCHEMA_COLUMN_FORMAT_SPECIFIER, formatSpecifier);
+}
+
+//----------------------------------------------------------------------------
+std::string vtkMRMLTableNode::GetColumnFormatSpecifier(const std::string& columnName)
+{
+  return this->GetColumnProperty(columnName, SCHEMA_COLUMN_FORMAT_SPECIFIER);
 }
 
 //----------------------------------------------------------------------------
