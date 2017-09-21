@@ -345,6 +345,12 @@ vtkAbstractArray* vtkMRMLTableNode::AddColumn(vtkAbstractArray* column)
     newColumn->SetName(newColumnName.c_str());
     }
 
+  // Copy default value and other column properties
+  if (this->Schema && this->GetPropertyRowIndex(SCHEMA_DEFAULT_COLUMN_NAME)>=0)
+    {
+    this->CopyAllColumnProperties(SCHEMA_DEFAULT_COLUMN_NAME, newColumn->GetName());
+    }
+
   this->Table->AddColumn(newColumn);
   this->Table->Modified();
   this->EndModify(tableWasModified);
@@ -690,7 +696,7 @@ void vtkMRMLTableNode::GetAllColumnPropertyNames(vtkStringArray* propertyNames)
       continue;
       }
     std::string columnName = column->GetName();
-    if (!columnName.compare(SCHEMA_COLUMN_NAME) || !columnName.compare(SCHEMA_COLUMN_TYPE))
+    if (!columnName.compare(SCHEMA_COLUMN_NAME))
       {
       // reserved for internal use
       continue;
@@ -698,7 +704,6 @@ void vtkMRMLTableNode::GetAllColumnPropertyNames(vtkStringArray* propertyNames)
     propertyNames->InsertNextValue(columnName.c_str());
     }
 }
-
 
 //----------------------------------------------------------------------------
 std::string vtkMRMLTableNode::GetColumnProperty(int columnIndex, const std::string& propertyName)
@@ -779,9 +784,9 @@ void vtkMRMLTableNode::SetColumnProperty(const std::string& columnName, const st
     vtkErrorMacro("vtkMRMLTableNode::SetColumnProperty failed: reserved propertyName: " << propertyName);
     return;
     }
-  if (propertyName == SCHEMA_COLUMN_TYPE && columnName != SCHEMA_DEFAULT_COLUMN_NAME)
+  if (propertyName == SCHEMA_COLUMN_TYPE)
     {
-    vtkErrorMacro("vtkMRMLTableNode::SetColumnProperty failed: reserved propertyName: " << propertyName);
+    this->SetColumnType(columnName, propertyValue);
     return;
     }
   if (propertyName.empty())
@@ -789,6 +794,12 @@ void vtkMRMLTableNode::SetColumnProperty(const std::string& columnName, const st
     vtkErrorMacro("vtkMRMLTableNode::SetColumnProperty failed: property name is invalid");
     return;
     }
+  this->SetColumnPropertyInternal(columnName, propertyName, propertyValue);
+}
+
+//----------------------------------------------------------------------------
+void vtkMRMLTableNode::SetColumnPropertyInternal(const std::string& columnName, const std::string& propertyName, const std::string& propertyValue)
+{
   // Make sure there is a schema
   if (this->Schema == NULL)
     {
@@ -822,7 +833,7 @@ void vtkMRMLTableNode::SetColumnProperty(const std::string& columnName, const st
     newPropertyArray->SetNumberOfValues(numberOfRows);
     for (int i = 0; i<numberOfRows; i++)
       {
-        newPropertyArray->SetVariantValue(i, "");
+      newPropertyArray->SetVariantValue(i, "");
       }
     this->Schema->AddColumn(newPropertyArray.GetPointer());
     propertyArray = newPropertyArray.GetPointer();
@@ -1014,6 +1025,65 @@ bool vtkMRMLTableNode::SetDefaultColumnType(const std::string& type, const std::
     return false;
     }
   this->SetColumnProperty(SCHEMA_DEFAULT_COLUMN_NAME, SCHEMA_COLUMN_TYPE, type);
-  this->SetColumnProperty(SCHEMA_DEFAULT_COLUMN_NAME, SCHEMA_COLUMN_TYPE, defaultValue);
+  this->SetColumnProperty(SCHEMA_DEFAULT_COLUMN_NAME, SCHEMA_COLUMN_DEFAULT_VALUE, defaultValue);
   return true;
+}
+
+//----------------------------------------------------------------------------
+bool vtkMRMLTableNode::SetColumnType(const std::string& columnName, const std::string& type)
+{
+  int valueType = this->GetValueTypeFromString(type);
+  if (valueType == VTK_VOID)
+    {
+    vtkErrorMacro("vtkMRMLTableNode::SetColumnType failed: Unknown column value type: " << type
+      << ". Supported types: string, double, float, int, unsigned int, bit,"
+      ", short, unsigned short, long, unsigned long, char, signed char, unsigned char, long long, unsigned long long"
+      ", __int64, unsigned __int64, idtype");
+    return false;
+    }
+
+  if (this->GetColumnIndex(columnName.c_str()) < 0)
+    {
+    // there is no such column, it can be only the default column type
+    if (columnName != SCHEMA_DEFAULT_COLUMN_NAME)
+      {
+      vtkErrorMacro("vtkMRMLTableNode::SetColumnType failed: column by this name does not exist: " << columnName);
+      return false;
+      }
+    this->SetColumnPropertyInternal(columnName, SCHEMA_COLUMN_TYPE, type);
+    return true;
+    }
+
+  if (this->GetColumnType(columnName) == type)
+    {
+    // nothing to do, type not changed
+    return true;
+    }
+
+  // TODO: convert column type
+
+  return false;
+}
+
+//----------------------------------------------------------------------------
+std::string vtkMRMLTableNode::GetColumnType(const std::string& columnName)
+{
+  if (columnName == SCHEMA_DEFAULT_COLUMN_NAME)
+    {
+    int valueTypeId = this->GetColumnValueTypeFromSchema(SCHEMA_DEFAULT_COLUMN_NAME);
+    if (valueTypeId == VTK_VOID)
+      {
+      // schema is not defined or no valid column type is defined for column
+      valueTypeId = VTK_STRING;
+      }
+    return vtkImageScalarTypeNameMacro(valueTypeId);
+    }
+
+  int columnIndex = this->GetColumnIndex(columnName.c_str());
+  if (columnIndex < 0)
+    {
+    return "";
+    }
+  int valueTypeId = this->Table->GetColumn(columnIndex)->GetArrayType();
+  return vtkImageScalarTypeNameMacro(valueTypeId);
 }
