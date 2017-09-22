@@ -218,7 +218,7 @@ public:
 
   ///
   /// Get a column property.
-  /// Property names reserved for internal use: columnName, type.
+  /// Property name "columnName" is reserved for internal use.
   /// \sa SetAndObserveSchema, GetColumnValueTypeFromSchema
   std::string GetColumnProperty(const std::string& columnName, const std::string& propertyName);
   std::string GetColumnProperty(int columnIndex, const std::string& propertyName);
@@ -230,8 +230,9 @@ public:
 
   ///
   /// Set a column property value.
-  /// Property names reserved for internal use: columnName, type.
-  /// \sa SetAndObserveSchema, GetColumnValueTypeFromSchema
+  /// Property name "columnName" is reserved for internal use.
+  /// Property name "type" converts existing values in the column.
+  /// \sa SetAndObserveSchema
   void SetColumnProperty(const std::string& columnName, const std::string& propertyName, const std::string& propertyValue);
   void SetColumnProperty(int columnIndex, const std::string& propertyName, const std::string& propertyValue);
 
@@ -259,11 +260,22 @@ public:
   /// \return row index of the inserted row
   vtkIdType InsertNextBlankRowWithDefaultValues(vtkTable* table);
 
+  /// Get data type of a column.
+  /// \return Empty string on failure.
+  std::string GetColumnType(const std::string& columnName);
+
+  /// Change data type of a column.
+  /// If values are stored in the column then values will be converted, therefore
+  /// data loss may occur.
+  /// \param type: new value type (string, double, ...)
+  /// \return True on success.
+  bool SetColumnType(const std::string& columnName, const std::string& type);
+
   /// Set default type and default value for new columns.
   /// This is a convenience method to set column type with a simple call.
   /// To get or set other default properties, call SetColumnProperty()
   /// or GetColumnProperty() using the column name returned by GetDefaultColumnName().
-  /// \param type: type of valyes stored in new columns by default (string, double, ...)
+  /// \param type: type of values stored in new columns by default (string, double, ...)
   /// \param defaultValue: this value is used when a new row is added to the column
   /// \return True on success.
   /// \sa SetAndObserveSchema
@@ -286,6 +298,9 @@ public:
 
   /// Get column property, even for reserved properties
   std::string GetColumnPropertyInternal(const std::string& columnName, const std::string& propertyName);
+
+  /// Set column property, even for reserved properties
+  void SetColumnPropertyInternal(const std::string& columnName, const std::string& propertyName, const std::string& propertyValue);
 
   vtkIdType GetPropertyRowIndex(const std::string& columnName);
 
