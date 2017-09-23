@@ -25,6 +25,7 @@
 #include "vtkMRMLTableStorageNode.h"
 
 // VTK includes
+#include <vtkBitArray.h>
 #include <vtkCommand.h>
 #include <vtkNew.h>
 #include <vtkObjectFactory.h>
@@ -36,6 +37,7 @@
 
 // STD includes
 #include <sstream>
+#include <deque>
 
 // Reserved property names
 static const char SCHEMA_COLUMN_NAME[] = "columnName";
@@ -728,10 +730,9 @@ std::string vtkMRMLTableNode::GetColumnProperty(const std::string& columnName, c
     vtkErrorMacro("vtkMRMLTableNode::GetColumnProperty failed: reserved propertyName: " << propertyName);
     return "";
     }
-  if (propertyName == SCHEMA_COLUMN_TYPE && columnName != SCHEMA_DEFAULT_COLUMN_NAME)
+  if (propertyName == SCHEMA_COLUMN_TYPE)
     {
-    vtkErrorMacro("vtkMRMLTableNode::GetColumnProperty failed: reserved propertyName: " << propertyName);
-    return "";
+    return this->GetColumnType(columnName);
     }
 
   return this->GetColumnPropertyInternal(columnName, propertyName);
@@ -1042,7 +1043,8 @@ bool vtkMRMLTableNode::SetColumnType(const std::string& columnName, const std::s
     return false;
     }
 
-  if (this->GetColumnIndex(columnName.c_str()) < 0)
+  int columnIndex = this->GetColumnIndex(columnName.c_str());
+  if (columnIndex < 0)
     {
     // there is no such column, it can be only the default column type
     if (columnName != SCHEMA_DEFAULT_COLUMN_NAME)
@@ -1060,9 +1062,68 @@ bool vtkMRMLTableNode::SetColumnType(const std::string& columnName, const std::s
     return true;
     }
 
-  // TODO: convert column type
+  vtkTable* table = this->GetTable();
 
-  return false;
+  vtkSmartPointer<vtkAbstractArray> oldColumn = table->GetColumn(columnIndex);
+  vtkSmartPointer<vtkAbstractArray> newColumn = vtkSmartPointer<vtkAbstractArray>::Take(vtkAbstractArray::CreateArray(valueType));
+  newColumn->SetName(oldColumn->GetName());
+  vtkIdType numberOfTuples = oldColumn->GetNumberOfTuples();
+  newColumn->SetNumberOfTuples(numberOfTuples);
+  vtkVariant defaultValue(this->GetColumnProperty(columnIndex, "defaultValue"));
+
+  vtkDataArray* newDataArray = vtkDataArray::SafeDownCast(newColumn);
+  if (newDataArray)
+    {
+    // Initialize it with 0, just in case conversion from default value fails
+    // (for example if default value is "abc" and new type is double, then
+    // some new column values could remain uninitialized).
+    newDataArray->FillComponent(0, 0);
+    }
+
+  vtkBitArray* oldColumnBitArray = vtkBitArray::SafeDownCast(oldColumn);
+  if (oldColumnBitArray)
+    {
+    // vtkVariant cannot convert values from VTK_BIT type, therefore we need to handle it
+    // as a special case here.
+    for (int tupleIndex = 0; tupleIndex < numberOfTuples; ++tupleIndex)
+      {
+      int value = oldColumnBitArray->GetValue(tupleIndex);
+      newColumn->SetVariantValue(tupleIndex, vtkVariant(value));
+      }
+    }
+  else
+    {
+    for (int tupleIndex = 0; tupleIndex < numberOfTuples; ++tupleIndex)
+      {
+      // Initialize it with default value, just in case conversion from previous value fails
+      newColumn->SetVariantValue(tupleIndex, defaultValue);
+      // Copy converted value
+      std::string valueAsString = oldColumn->GetVariantValue(tupleIndex).ToString();
+      vtkVariant value(valueAsString);
+      newColumn->SetVariantValue(tupleIndex, value);
+      }
+    }
+
+  // Replace column: vtkTable API has no way of inserting a column, so we temporarily remove all columns
+  // after the selected column and put back in order.
+  int wasModified = this->StartModify();
+  std::deque< vtkSmartPointer< vtkAbstractArray > > removedColumns;
+  while (table->GetNumberOfColumns() > columnIndex)
+    {
+    removedColumns.push_back(table->GetColumn(table->GetNumberOfColumns()-1));
+    table->RemoveColumn(table->GetNumberOfColumns() - 1);
+    }
+  removedColumns.pop_back(); // discard the last column, that is the old column
+  table->AddColumn(newColumn);
+  while (!removedColumns.empty())
+    {
+    table->AddColumn(removedColumns.back());
+    removedColumns.pop_back();
+    }
+  this->Modified();
+  this->EndModify(wasModified);
+
+  return true;
 }
 
 //----------------------------------------------------------------------------
@@ -1084,6 +1145,6 @@ std::string vtkMRMLTableNode::GetColumnType(const std::string& columnName)
     {
     return "";
     }
-  int valueTypeId = this->Table->GetColumn(columnIndex)->GetArrayType();
+  int valueTypeId = this->Table->GetColumn(columnIndex)->GetDataType();
   return vtkImageScalarTypeNameMacro(valueTypeId);
 }

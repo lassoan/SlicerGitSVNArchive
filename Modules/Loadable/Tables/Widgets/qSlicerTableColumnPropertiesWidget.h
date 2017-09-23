@@ -32,113 +32,70 @@
 
 
 class qSlicerTableColumnPropertiesWidgetPrivate;
+class vtkMRMLTableNode;
+class qMRMLTableView;
 
 /// \ingroup Slicer_QtModules_CreateModels
 class Q_SLICER_MODULE_TABLES_WIDGETS_EXPORT
 qSlicerTableColumnPropertiesWidget : public qSlicerWidget
 {
   Q_OBJECT
-  /*
-  Q_PROPERTY(bool enterPlaceModeOnNodeChange READ enterPlaceModeOnNodeChange WRITE setEnterPlaceModeOnNodeChange)
-  Q_PROPERTY(bool jumpToSliceEnabled READ jumpToSliceEnabled WRITE setJumpToSliceEnabled)
-  Q_PROPERTY(bool nodeSelectorVisible READ nodeSelectorVisible WRITE setNodeSelectorVisible)
-  Q_PROPERTY(bool optionsVisible READ optionsVisible WRITE setOptionsVisible)
-  Q_PROPERTY(QColor nodeColor READ nodeColor WRITE setNodeColor)
-  Q_PROPERTY(QColor defaultNodeColor READ defaultNodeColor WRITE setDefaultNodeColor)
-  Q_PROPERTY(int viewGroup READ viewGroup WRITE setViewGroup)
-  */
+  Q_PROPERTY(bool columnNameVisible READ columnNameVisible WRITE setColumnNameVisible)
+  Q_PROPERTY(bool confirmTypeChange READ confirmTypeChange WRITE setConfirmTypeChange)
 
 public:
   typedef qSlicerWidget Superclass;
   qSlicerTableColumnPropertiesWidget(QWidget *parent=0);
   virtual ~qSlicerTableColumnPropertiesWidget();
 
-  /// Get the currently selected table node.
-  Q_INVOKABLE vtkMRMLNode* currentNode() const;
+  /// Get the table node the columns are edited of.
+  Q_INVOKABLE vtkMRMLTableNode* mrmlTableNode()const;
+
+  Q_INVOKABLE QStringList mrmlTableColumnNames();
+
+  /// Get the selected table node and column from the specified tableView widget.
+  Q_INVOKABLE void setSelectionFromMRMLTableView(qMRMLTableView* tableView);
+
+  Q_INVOKABLE bool columnNameVisible() const;
+  Q_INVOKABLE bool confirmTypeChange() const;
 
   Q_INVOKABLE void setColumnProperty(QString propertyName, QString propertyValue);
-
   Q_INVOKABLE QString columnProperty(QString propertyName) const;
-  /*
-  /// Show/hide the table node selector widget.
-  bool nodeSelectorVisible() const;
 
-  /// Show/hide options (place, activate, color, etc buttons).
-  bool optionsVisible() const;
-
-  /// Get the selected color of the currently selected table node.
-  QColor nodeColor() const;
-
-  /// Get the default node color that is applied to newly created nodes.
-  QColor defaultNodeColor() const;
-
-  /// Set views where slice positions will be updated on jump to slice.
-  /// If it is set to -1 (by default it is) then all slices will be jumped.
-  void setViewGroup(int newViewGroup);
-
-  /// Get view group where slice positions will be updated.
-  int viewGroup()const;
-  */
 public slots:
 
   void setMRMLScene(vtkMRMLScene* scene);
 
-  /// Set the currently selected table node.
-  void setCurrentNode(vtkMRMLNode* currentNode);
+  void setMRMLTableNode(vtkMRMLTableNode* tableNode);
+  /// Utility function to simply connect signals/slots with Qt Designer
+  void setMRMLTableNode(vtkMRMLNode* tableNode);
 
-  /*
-  /// Accessors to control place mode behavior
-  void setEnterPlaceModeOnNodeChange(bool);
+  void setMRMLTableColumnName(const QString& selectedColumn);
+  void setMRMLTableColumnNames(const QStringList& selectedColumns);
 
-  /// If enabled then the fiducial will be shown in all slice views when a fiducial is selected
-  void setJumpToSliceEnabled(bool);
+  /// Show table name row
+  void setColumnNameVisible(bool);
 
-  /// Show/hide the table node selector widget.
-  void setNodeSelectorVisible(bool);
+  /// If enabled then column type change is not performed immediately but user
+  /// must to confirmit  by pressing "Convert" button.
+  void setConfirmTypeChange(bool);
 
-  /// Show/hide options (place, activate, color, etc buttons).
-  void setOptionsVisible(bool);
-
-  /// Set the selected color of the currently selected table node.
-  void setNodeColor(QColor color);
-
-  /// Set the default color that is assigned to newly created table nodes in the combo box.
-  void setDefaultNodeColor(QColor color);
-
-  /// Scrolls to and selects the Nth fiducial in the table of fiducials.
-  void highlightNthFiducial(int n);
-
-  /// Set the currently selected table node to be the active table node in the Slicer scene.
-  void activate();
-
-  /// Set the currently selected table node to be the active table node in the Slicer scene.
-  /// The argument \a place is true then also interaction mode is set to place mode.
-  void placeActive(bool place);
-  */
 protected slots:
 
-/*
-  /// Update the widget when a different table node is selected by the combo box.
-  void onTableFiducialNodeChanged();
-  /// Setup a newly created markups node - add display node, set color.
-  void onTableFiducialNodeAdded(vtkMRMLNode*);
-  /// Create context menu for the table displaying the currently selected markups node.
-  void onTableFiducialTableContextMenu(const QPoint& position);
+  /// Called when selection is changed in the associated table view
+  void tableViewSelectionChanged();
 
-  /// Edit the name or position of the currently selected markups node.
-  void onTableFiducialEdited(int row, int column);
+  void onDataTypeChanged(const QString&);
 
-  /// Clicked on a fiducial or used keyboard to move between fiducials in the table.
-  void onTableFiducialSelected(int row, int column);
-  */
+  void onPropertyChanged(const QString&);
+
+  void onApplyTypeChange();
+  void onCancelTypeChange();
 
   /// Update the GUI to reflect the currently selected table node.
   void updateWidget();
 
 signals:
-
-  /// The signal is emitted when a different markup node is selected.
-  //void tableNodeChanged();
 
   /// This signal is emitted if updates to the widget have finished.
   /// It is called after fiducials are changed (added, position modified, etc).

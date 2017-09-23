@@ -282,7 +282,7 @@ public:
   bool SetDefaultColumnType(const std::string& type, const std::string& defaultValue="");
 
   /// Name of the column that stores default properties that are used when a new column is created.
-  const char* GetDefaultColumnName();
+  static const char* GetDefaultColumnName();
 
   //----------------------------------------------------------------
   /// Constructor and destructor
