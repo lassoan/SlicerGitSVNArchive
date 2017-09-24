@@ -73,7 +73,7 @@ int qSlicerTableColumnPropertiesWidgetTest1( int argc, char * argv [] )
   vtkNew<vtkMRMLTableNode> tableNode;
   tableNode->SetAndObserveTable(table.GetPointer());
 
-  tableNode->SetColumnDefaultValue("X Axis", "3.0");
+  tableNode->SetColumnNullValue("X Axis", "-5000");
   tableNode->SetColumnDescription("X Axis", "this is the x column");
   tableNode->SetColumnLongName("X Axis", "full name of x column");
   tableNode->SetColumnUnitLabel("X Axis", "HU");
@@ -81,7 +81,7 @@ int qSlicerTableColumnPropertiesWidgetTest1( int argc, char * argv [] )
   tableNode->SetColumnProperty("X Axis", "unitCodingSchemeDesignator", "UCUM");
   tableNode->SetColumnProperty("X Axis", "unitCodeMeaning", "Hounsfield unit");
 
-  tableNode->SetColumnDefaultValue("Y Axis", "0.0");
+  tableNode->SetColumnNullValue("Y Axis", "0.0");
   tableNode->SetColumnDescription("Y Axis", "this is the y column");
   tableNode->SetColumnLongName("Y Axis", "full name of y column");
   tableNode->SetColumnUnitLabel("Y Axis", "mm");

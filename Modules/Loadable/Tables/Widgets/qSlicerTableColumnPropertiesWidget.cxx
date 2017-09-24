@@ -114,12 +114,12 @@ void qSlicerTableColumnPropertiesWidget::setup()
   d->ApplyTypeChangeButton->setVisible(false);
   d->CancelTypeChangeButton->setVisible(false);
 
-  d->DefaultValueLineEdit->setProperty(SCHEMA_PROPERTY_NAME, QString("defaultValue"));
+  d->NullValueLineEdit->setProperty(SCHEMA_PROPERTY_NAME, QString("nullValue"));
   d->LongNameLineEdit->setProperty(SCHEMA_PROPERTY_NAME, QString("longName"));
   d->DescriptionLineEdit->setProperty(SCHEMA_PROPERTY_NAME, QString("description"));
   d->UnitLabelLineEdit->setProperty(SCHEMA_PROPERTY_NAME, QString("unitLabel"));
 
-  d->PropertyEditWidgets << d->DefaultValueLineEdit;
+  d->PropertyEditWidgets << d->NullValueLineEdit;
   d->PropertyEditWidgets << d->LongNameLineEdit;
   d->PropertyEditWidgets << d->DescriptionLineEdit;
   d->PropertyEditWidgets << d->UnitLabelLineEdit;
