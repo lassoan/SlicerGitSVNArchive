@@ -40,6 +40,7 @@ vtkMRMLModelDisplayNode::vtkMRMLModelDisplayNode()
   this->AssignAttribute = vtkAssignAttribute::New();
   this->ThresholdFilter = vtkThreshold::New();
   this->ThresholdEnabled = false;
+  this->IntersectionMode = INTERSECTION_PROJECT;
 
   // the default behavior for models is to use the scalar range of the data
   // to reset the display scalar range, so use the Data flag

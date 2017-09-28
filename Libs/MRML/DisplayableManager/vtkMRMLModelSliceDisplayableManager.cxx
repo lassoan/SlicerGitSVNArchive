@@ -432,20 +432,40 @@ void vtkMRMLModelSliceDisplayableManager::vtkInternal
   this->SetSlicePlaneFromMatrix(this->SliceXYToRAS, pipeline->Plane);
   pipeline->Plane->Modified();
 
-  //  Set Poly Data Transform
-  vtkNew<vtkMatrix4x4> rasToSliceXY;
-  vtkMatrix4x4::Invert(this->SliceXYToRAS, rasToSliceXY.GetPointer());
-  pipeline->TransformToSlice->SetMatrix(rasToSliceXY.GetPointer());
-
-  // optimization for slice to slice intersections which are 1 quad polydatas
-  // no need for 50^3 default locator divisons
-  if (pointSet->GetPoints() != NULL && pointSet->GetNumberOfPoints() <= 4)
+  if (modelDisplayNode->GetIntersectionMode() == vtkMRMLModelDisplayNode::INTERSECTION_CUT)
     {
-    vtkNew<vtkPointLocator> locator;
-    double *bounds = pointSet->GetBounds();
-    locator->SetDivisions(2,2,2);
-    locator->InitPointInsertion(pointSet->GetPoints(), bounds);
-    pipeline->Cutter->SetLocator(locator.GetPointer());
+    pipeline->Transformer->SetInputConnection(pipeline->Cutter->GetOutputPort());
+    pipeline->Cutter->SetInputConnection(pipeline->ModelWarper->GetOutputPort());
+
+    //  Set Poly Data Transform
+    vtkNew<vtkMatrix4x4> rasToSliceXY;
+    vtkMatrix4x4::Invert(this->SliceXYToRAS, rasToSliceXY.GetPointer());
+    pipeline->TransformToSlice->SetMatrix(rasToSliceXY.GetPointer());
+
+    // optimization for slice to slice intersections which are 1 quad polydatas
+    // no need for 50^3 default locator divisons
+    if (pointSet->GetPoints() != NULL && pointSet->GetNumberOfPoints() <= 4)
+      {
+      vtkNew<vtkPointLocator> locator;
+      double *bounds = pointSet->GetBounds();
+      locator->SetDivisions(2,2,2);
+      locator->InitPointInsertion(pointSet->GetPoints(), bounds);
+      pipeline->Cutter->SetLocator(locator.GetPointer());
+      }
+    }
+  else if (modelDisplayNode->GetIntersectionMode() == vtkMRMLModelDisplayNode::INTERSECTION_PROJECT)
+    {
+    // skip cutter from the pipeline if projection mode is used, we just need to flatten the model
+    pipeline->Transformer->SetInputConnection(pipeline->ModelWarper->GetOutputPort());
+
+    //  Set Poly Data Transform
+    vtkNew<vtkMatrix4x4> rasToSliceXY;
+    vtkMatrix4x4::Invert(this->SliceXYToRAS, rasToSliceXY.GetPointer());
+    // Project all points to the slice plane (slice Z coordinate = 0)
+    rasToSliceXY->SetElement(2, 0, 0);
+    rasToSliceXY->SetElement(2, 1, 0);
+    rasToSliceXY->SetElement(2, 2, 0);
+    pipeline->TransformToSlice->SetMatrix(rasToSliceXY.GetPointer());
     }
 
   // Update pipeline actor

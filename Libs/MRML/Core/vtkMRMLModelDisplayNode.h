@@ -38,6 +38,12 @@ public:
   static vtkMRMLModelDisplayNode *New();
   vtkTypeMacro(vtkMRMLModelDisplayNode,vtkMRMLDisplayNode);
 
+  enum IntersectionModeType
+  {
+    INTERSECTION_CUT,
+    INTERSECTION_PROJECT
+  };
+
   virtual vtkMRMLNode* CreateNodeInstance() VTK_OVERRIDE;
 
   /// Get node XML tag name (like Volume, Model)
@@ -115,6 +121,9 @@ public:
   double GetThresholdMin();
   double GetThresholdMax();
 
+  vtkGetMacro(IntersectionMode, int);
+  vtkSetMacro(IntersectionMode, int);
+
 protected:
   vtkMRMLModelDisplayNode();
   ~vtkMRMLModelDisplayNode();
@@ -160,6 +169,8 @@ protected:
   /// scalar values.
   /// \sa ThresholdFilter
   bool ThresholdEnabled;
+
+  int IntersectionMode;
 };
 
 #endif
