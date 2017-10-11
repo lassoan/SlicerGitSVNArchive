@@ -452,12 +452,19 @@ void vtkMRMLModelDisplayNode::SetSliceDisplayModeToProjection()
 };
 
 //-----------------------------------------------------------
+void vtkMRMLModelDisplayNode::SetSliceDisplayModeToColoredProjection()
+{
+  this->SetSliceDisplayMode(SliceDisplayColoredProjection);
+};
+
+//-----------------------------------------------------------
 const char* vtkMRMLModelDisplayNode::GetSliceDisplayModeAsString(int id)
 {
   switch (id)
     {
     case SliceDisplayIntersection: return "intersection";
     case SliceDisplayProjection: return "projection";
+    case SliceDisplayColoredProjection: return "coloredProjection";
     default:
       // invalid id
       return "";

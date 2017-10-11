@@ -55,6 +55,7 @@
 
 // VTK includes: customization
 #include <vtkCutter.h>
+#include <vtkSampleImplicitFunctionFilter.h>
 
 // STD includes
 #include <algorithm>
@@ -77,6 +78,7 @@ public:
     vtkSmartPointer<vtkTransformFilter> ModelWarper;
     vtkSmartPointer<vtkPlane> Plane;
     vtkSmartPointer<vtkCutter> Cutter;
+    vtkSmartPointer<vtkSampleImplicitFunctionFilter> SliceDistance;
     vtkSmartPointer<vtkProp> Actor;
     };
 
@@ -334,6 +336,7 @@ void vtkMRMLModelSliceDisplayableManager::vtkInternal
   Pipeline* pipeline = new Pipeline();
   pipeline->Actor = actor.GetPointer();
   pipeline->Cutter = vtkSmartPointer<vtkCutter>::New();
+  pipeline->SliceDistance = vtkSmartPointer<vtkSampleImplicitFunctionFilter>::New();
   pipeline->TransformToSlice = vtkSmartPointer<vtkTransform>::New();
   pipeline->NodeToWorld = vtkSmartPointer<vtkGeneralTransform>::New();
   pipeline->Transformer = vtkSmartPointer<vtkTransformPolyDataFilter>::New();
@@ -346,6 +349,8 @@ void vtkMRMLModelSliceDisplayableManager::vtkInternal
   pipeline->Cutter->SetCutFunction(pipeline->Plane);
   pipeline->Cutter->SetGenerateCutScalars(0);
   pipeline->Cutter->SetInputConnection(pipeline->ModelWarper->GetOutputPort());
+  pipeline->SliceDistance->SetImplicitFunction(pipeline->Plane);
+  pipeline->SliceDistance->SetInputConnection(pipeline->ModelWarper->GetOutputPort());
   pipeline->Actor->SetVisibility(0);
 
   // Add actor to Renderer and local cache
@@ -432,10 +437,21 @@ void vtkMRMLModelSliceDisplayableManager::vtkInternal
   this->SetSlicePlaneFromMatrix(this->SliceXYToRAS, pipeline->Plane);
   pipeline->Plane->Modified();
 
-  if (modelDisplayNode->GetSliceDisplayMode() == vtkMRMLModelDisplayNode::SliceDisplayProjection)
+  if (modelDisplayNode->GetSliceDisplayMode() == vtkMRMLModelDisplayNode::SliceDisplayProjection
+    || modelDisplayNode->GetSliceDisplayMode() == vtkMRMLModelDisplayNode::SliceDisplayColoredProjection)
     {
-    // remove cutter from the pipeline if projection mode is used, we just need to flatten the model
-    pipeline->Transformer->SetInputConnection(pipeline->ModelWarper->GetOutputPort());
+
+    if (modelDisplayNode->GetSliceDisplayMode() == vtkMRMLModelDisplayNode::SliceDisplayProjection)
+      {
+      // remove cutter from the pipeline if projection mode is used, we just need to flatten the model
+      pipeline->Transformer->SetInputConnection(pipeline->ModelWarper->GetOutputPort());
+      }
+    else
+      {
+      // replace cutter in the pipeline by slice distance computation,
+      // and flattening of the model
+      pipeline->Transformer->SetInputConnection(pipeline->SliceDistance->GetOutputPort());
+      }
 
     //  Set Poly Data Transform that projects model to the slice plane
     vtkNew<vtkMatrix4x4> rasToSliceXY;
@@ -477,7 +493,8 @@ void vtkMRMLModelSliceDisplayableManager::vtkInternal
   if (mapper)
     {
     mapper->SetInputConnection( pipeline->Transformer->GetOutputPort() );
-    mapper->SetScalarVisibility(modelDisplayNode->GetScalarVisibility());
+    mapper->SetScalarVisibility(modelDisplayNode->GetScalarVisibility()
+      || modelDisplayNode->GetSliceDisplayMode() == vtkMRMLModelDisplayNode::SliceDisplayColoredProjection);
     if (mapper->GetScalarVisibility())
       {
       // The renderer uses the lookup table scalar range to
