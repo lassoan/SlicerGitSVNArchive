@@ -10,6 +10,10 @@ set(${KIT}_INCLUDE_DIRECTORIES
 set(${KIT}_SRCS
   vtk${MODULE_NAME}GlyphSource2D.cxx
   vtk${MODULE_NAME}GlyphSource2D.h
+  vtk${MODULE_NAME}CurveWidget.cxx
+  vtk${MODULE_NAME}CurveWidget.h
+  vtk${MODULE_NAME}SplineRepresentation.cxx
+  vtk${MODULE_NAME}SplineRepresentation.h
   )
 
 set(${KIT}_TARGET_LIBRARIES

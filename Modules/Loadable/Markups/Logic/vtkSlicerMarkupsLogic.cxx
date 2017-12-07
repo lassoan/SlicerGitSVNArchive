@@ -22,6 +22,8 @@
 #include "vtkMRMLMarkupsDisplayNode.h"
 #include "vtkMRMLMarkupsFiducialNode.h"
 #include "vtkMRMLMarkupsFiducialStorageNode.h"
+#include "vtkMRMLMarkupsCurveNode.h"
+#include "vtkMRMLMarkupsCurveStorageNode.h"
 #include "vtkMRMLMarkupsNode.h"
 #include "vtkMRMLMarkupsStorageNode.h"
 
@@ -155,6 +157,8 @@ void vtkSlicerMarkupsLogic::ObserveMRMLScene()
     this->GetMRMLScene()->StartState(vtkMRMLScene::BatchProcessState);
 
     selectionNode->AddNewPlaceNodeClassNameToList("vtkMRMLMarkupsFiducialNode", ":/Icons/MarkupsMouseModePlace.png", "Fiducial");
+    //TODO
+    selectionNode->AddNewPlaceNodeClassNameToList("vtkMRMLMarkupsCurveNode", ":/Icons/MarkupsMouseModePlace.png", "Curve");
 
     // trigger an upate on the mouse mode toolbar
     this->GetMRMLScene()->EndState(vtkMRMLScene::BatchProcessState);
@@ -173,6 +177,7 @@ void vtkSlicerMarkupsLogic::RegisterNodes()
   // Nodes
   scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLMarkupsNode>::New());
   scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLMarkupsFiducialNode>::New());
+  scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLMarkupsCurveNode>::New());
 
   // Display nodes
   scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLMarkupsDisplayNode>::New());
@@ -180,6 +185,7 @@ void vtkSlicerMarkupsLogic::RegisterNodes()
   // Storage Nodes
   scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLMarkupsStorageNode>::New());
   scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLMarkupsFiducialStorageNode>::New());
+  scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLMarkupsCurveStorageNode>::New());
 }
 
 //---------------------------------------------------------------------------

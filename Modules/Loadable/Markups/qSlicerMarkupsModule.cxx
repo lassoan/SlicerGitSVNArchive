@@ -130,8 +130,10 @@ void qSlicerMarkupsModule::setup()
   // Register displayable managers
   // 3D
   vtkMRMLThreeDViewDisplayableManagerFactory::GetInstance()->RegisterDisplayableManager("vtkMRMLMarkupsFiducialDisplayableManager3D");
+  vtkMRMLThreeDViewDisplayableManagerFactory::GetInstance()->RegisterDisplayableManager("vtkMRMLMarkupsCurveDisplayableManager3D");
   // 2D
   vtkMRMLSliceViewDisplayableManagerFactory::GetInstance()->RegisterDisplayableManager("vtkMRMLMarkupsFiducialDisplayableManager2D");
+  vtkMRMLSliceViewDisplayableManagerFactory::GetInstance()->RegisterDisplayableManager("vtkMRMLMarkupsCurveDisplayableManager2D");
 
   // Register IO
   qSlicerIOManager* ioManager = qSlicerApplication::application()->ioManager();
@@ -187,5 +189,7 @@ QStringList qSlicerMarkupsModule::associatedNodeTypes() const
     << "vtkMRMLAnnotationFiducialNode"
     << "vtkMRMLMarkupsDisplayNode"
     << "vtkMRMLMarkupsFiducialNode"
-    << "vtkMRMLMarkupsFiducialStorageNode";
+    << "vtkMRMLMarkupsFiducialStorageNode"
+    << "vtkMRMLMarkupsCurveNode"
+    << "vtkMRMLMarkupsCurveStorageNode";
 }
