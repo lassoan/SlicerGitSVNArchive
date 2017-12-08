@@ -97,133 +97,133 @@ public:
       }
     // sanity checks end
 
-    ////
-    //// mark the Node with an attribute to indicate if it is currently being interacted with
-    //// so that other code can respond to changes only when it is not moving
-    //// Markups.MovingInSliceView will be set to the layout name of
-    //// our slice node while it is being actively manipulated
-    //vtkSeedWidget *widget = vtkSeedWidget::SafeDownCast(this->Widget);
-    //if (widget && this->DisplayableManager && this->Node)
-    //  {
-    //  vtkMRMLSliceNode *sliceNode = this->DisplayableManager->GetMRMLSliceNode();
-    //  if (sliceNode)
-    //    {
-    //    int modifiedWasDisabled = this->Node->GetDisableModifiedEvent();
-    //    this->Node->DisableModifiedEventOn();
-    //    if (widget->GetWidgetState() == vtkSeedWidget::MovingSeed)
-    //      {
-    //      this->Node->SetAttribute("Markups.MovingInSliceView", sliceNode->GetLayoutName());
-    //      std::ostringstream seedNumber;
-    //      int *n =  reinterpret_cast<int *>(callData);
-    //      if (n != NULL)
-    //        {
-    //        seedNumber << *n;
-    //        }
-    //      else
-    //        {
-    //        seedNumber << "-1";
-    //        }
-    //      this->Node->SetAttribute("Markups.MovingMarkupIndex", seedNumber.str().c_str());
-    //      }
-    //    else
-    //      {
-    //      const char *movingView = this->Node->GetAttribute("Markups.MovingInSliceView");
-    //      if (movingView && !strcmp(movingView, sliceNode->GetLayoutName()))
-    //        {
-    //        this->Node->RemoveAttribute("Markups.MovingInSliceView");
-    //        }
-    //      }
-    //    this->Node->SetDisableModifiedEvent(modifiedWasDisabled);
-    //    }
-    //  }
+    //
+    // mark the Node with an attribute to indicate if it is currently being interacted with
+    // so that other code can respond to changes only when it is not moving
+    // Markups.MovingInSliceView will be set to the layout name of
+    // our slice node while it is being actively manipulated
+    vtkMarkupsCurveWidget *widget = vtkMarkupsCurveWidget::SafeDownCast(this->Widget);
+    if (widget && this->DisplayableManager && this->Node)
+      {
+      vtkMRMLSliceNode *sliceNode = this->DisplayableManager->GetMRMLSliceNode();
+      if (sliceNode)
+        {
+        int modifiedWasDisabled = this->Node->GetDisableModifiedEvent();
+        this->Node->DisableModifiedEventOn();
+        if (vtkMarkupsSplineRepresentation::SafeDownCast(widget->GetRepresentation())->GetInteractionState() != vtkMarkupsSplineRepresentation::Moving)
+          {
+          this->Node->SetAttribute("Markups.MovingInSliceView", sliceNode->GetLayoutName());
+          std::ostringstream seedNumber;
+          int *n =  reinterpret_cast<int *>(callData);
+          if (n != NULL)
+            {
+            seedNumber << *n;
+            }
+          else
+            {
+            seedNumber << "-1";
+            }
+          this->Node->SetAttribute("Markups.MovingMarkupIndex", seedNumber.str().c_str());
+          }
+        else
+          {
+          const char *movingView = this->Node->GetAttribute("Markups.MovingInSliceView");
+          if (movingView && !strcmp(movingView, sliceNode->GetLayoutName()))
+            {
+            this->Node->RemoveAttribute("Markups.MovingInSliceView");
+            }
+          }
+        this->Node->SetDisableModifiedEvent(modifiedWasDisabled);
+        }
+      }
 
-    //// check which event it is
-    //if (event ==  vtkCommand::PlacePointEvent)
-    //  {
-    //  // std::cout << "Warning: PlacePointEvent not supported" << std::endl;
-    //  }
-    //else if (event == vtkCommand::StartInteractionEvent)
-    //  {
-    //  // If calldata is NULL, invoking an event may cause a crash (e.g., Python observer
-    //  // tries to dereference the NULL pointer), therefore it's important to always pass a valid pointer
-    //  // and indicate invalidity with value (-1).
-    //  this->LastInteractionEventMarkupIndex = (callData ? *(reinterpret_cast<int *>(callData)) : -1);
-    //  this->PointMovedSinceStartInteraction = false;
-    //  this->Node->InvokeEvent(vtkMRMLMarkupsNode::PointStartInteractionEvent, &this->LastInteractionEventMarkupIndex);
-    //  }
-    //else if (event == vtkCommand::EndInteractionEvent)
-    //  {
-    //  // save the state of the node when done moving
-    //  if (this->Node->GetScene())
-    //    {
-    //    this->Node->GetScene()->SaveStateForUndo(this->Node);
-    //    }
-    //  if (callData)
-    //    {
-    //    // Most of the time vtkCommand::EndInteractionEvent does not provide
-    //    // seed index, but in case we get a value then update the markup index.
-    //    this->LastInteractionEventMarkupIndex = *(reinterpret_cast<int *>(callData));
-    //    }
-    //  this->Node->InvokeEvent(vtkMRMLMarkupsNode::PointEndInteractionEvent, &this->LastInteractionEventMarkupIndex);
-    //  if (!this->PointMovedSinceStartInteraction)
-    //    {
-    //    this->Node->InvokeEvent(vtkMRMLMarkupsNode::PointClickedEvent, &this->LastInteractionEventMarkupIndex);
-    //    }
-    //  this->LastInteractionEventMarkupIndex = -1;
-    //  }
-    //else if (event == vtkCommand::InteractionEvent)
-    //  {
-    //  // restrict the widget to the renderer
+    // check which event it is
+    if (event ==  vtkCommand::PlacePointEvent)
+      {
+      // std::cout << "Warning: PlacePointEvent not supported" << std::endl;
+      }
+    else if (event == vtkCommand::StartInteractionEvent)
+      {
+      // If calldata is NULL, invoking an event may cause a crash (e.g., Python observer
+      // tries to dereference the NULL pointer), therefore it's important to always pass a valid pointer
+      // and indicate invalidity with value (-1).
+      this->LastInteractionEventMarkupIndex = (callData ? *(reinterpret_cast<int *>(callData)) : -1);
+      this->PointMovedSinceStartInteraction = false;
+      this->Node->InvokeEvent(vtkMRMLMarkupsNode::PointStartInteractionEvent, &this->LastInteractionEventMarkupIndex);
+      }
+    else if (event == vtkCommand::EndInteractionEvent)
+      {
+      // save the state of the node when done moving
+      if (this->Node->GetScene())
+        {
+        this->Node->GetScene()->SaveStateForUndo(this->Node);
+        }
+      if (callData)
+        {
+        // Most of the time vtkCommand::EndInteractionEvent does not provide
+        // seed index, but in case we get a value then update the markup index.
+        this->LastInteractionEventMarkupIndex = *(reinterpret_cast<int *>(callData));
+        }
+      this->Node->InvokeEvent(vtkMRMLMarkupsNode::PointEndInteractionEvent, &this->LastInteractionEventMarkupIndex);
+      if (!this->PointMovedSinceStartInteraction)
+        {
+        this->Node->InvokeEvent(vtkMRMLMarkupsNode::PointClickedEvent, &this->LastInteractionEventMarkupIndex);
+        }
+      this->LastInteractionEventMarkupIndex = -1;
+      }
+    else if (event == vtkCommand::InteractionEvent)
+      {
+      // restrict the widget to the renderer
 
-    //  // we need the widgetRepresentation
-    //  vtkMarkupsSplineRepresentation * representation = vtkMarkupsSplineRepresentation::SafeDownCast(this->Widget->GetRepresentation());
-    //  if (!representation)
-    //    {
-    //    vtkErrorWithObjectMacro(this->Widget, "Representation is null.");
-    //    return;
-    //    }
+      // we need the widgetRepresentation
+      vtkMarkupsSplineRepresentation * representation = vtkMarkupsSplineRepresentation::SafeDownCast(this->Widget->GetRepresentation());
+      if (!representation)
+        {
+        vtkErrorWithObjectMacro(this->Widget, "Representation is null.");
+        return;
+        }
 
-    //  // It might be possible that in response to a single point interaction event, other points are adjusted as well,
-    //  // so treat this callData separately from start/end interaction's callData and don't update this->LastInteractionEventMarkupIndex.
-    //  int n = -1;
-    //  int* nPtr =  reinterpret_cast<int *>(callData);
-    //  if (nPtr)
-    //    {
-    //    n = *nPtr;
-    //    }
-    //  else if (representation->GetNumberOfSeeds() == 1)
-    //    {
-    //    n = 0;
-    //    }
-    //  if ( n >= 0 )
-    //    {
-    //    // have a single seed that moved
-    //    // first, we get the current displayCoordinates of the points
-    //    double displayCoordinates1[4] = { 0, 0, 0, 1 };
-    //    representation->GetSeedDisplayPosition(n, displayCoordinates1);
+      // It might be possible that in response to a single point interaction event, other points are adjusted as well,
+      // so treat this callData separately from start/end interaction's callData and don't update this->LastInteractionEventMarkupIndex.
+      int n = -1;
+      int* nPtr =  reinterpret_cast<int *>(callData);
+      if (nPtr)
+        {
+        n = *nPtr;
+        }
+      else if (representation->GetNumberOfHandles() == 1)
+        {
+        n = 0;
+        }
+      if ( n >= 0 )
+        {
+        // have a single seed that moved
+        // first, we get the current displayCoordinates of the points
+        double displayCoordinates1[4] = { 0, 0, 0, 1 };
+        representation->GetHandlePosition(n, displayCoordinates1);
 
-    //    // second, we copy these to restrictedDisplayCoordinates
-    //    double restrictedDisplayCoordinates1[4] = {displayCoordinates1[0], displayCoordinates1[1], displayCoordinates1[2], displayCoordinates1[3]};
+        // second, we copy these to restrictedDisplayCoordinates
+        double restrictedDisplayCoordinates1[4] = {displayCoordinates1[0], displayCoordinates1[1], displayCoordinates1[2], displayCoordinates1[3]};
 
-    //    // modify restrictedDisplayCoordinates 1 and 2, if these are outside the viewport of the current renderer
-    //    bool changed = this->DisplayableManager->RestrictDisplayCoordinatesToViewport(restrictedDisplayCoordinates1);
+        // modify restrictedDisplayCoordinates 1 and 2, if these are outside the viewport of the current renderer
+        bool changed = this->DisplayableManager->RestrictDisplayCoordinatesToViewport(restrictedDisplayCoordinates1);
 
-    //    // only if we had to restrict the coordinates aka. if the coordinates changed, we update the positions
-    //    if (changed ||
-    //        this->DisplayableManager->GetDisplayCoordinatesChanged(displayCoordinates1,restrictedDisplayCoordinates1))
-    //      {
-    //      representation->SetSeedDisplayPosition(n,restrictedDisplayCoordinates1);
-    //      }
+        // only if we had to restrict the coordinates aka. if the coordinates changed, we update the positions
+        if (changed ||
+            this->DisplayableManager->GetDisplayCoordinatesChanged(displayCoordinates1,restrictedDisplayCoordinates1))
+          {
+          representation->SetHandlePosition(n, restrictedDisplayCoordinates1);
+          }
 
-    //    // propagate the changes to MRML
-    //    this->DisplayableManager->UpdateNthMarkupPositionFromWidget(n, this->Node, this->Widget);
-    //    this->PointMovedSinceStartInteraction = true;
-    //    }
-    //  else
-    //    {
-    //    std::cout << "Had an interaction event without the seed index!" << std::endl;
-    //    }
-    //  }
+        // propagate the changes to MRML
+        this->DisplayableManager->UpdateNthMarkupPositionFromWidget(n, this->Node, this->Widget);
+        this->PointMovedSinceStartInteraction = true;
+        }
+      else
+        {
+        std::cout << "Had an interaction event without the seed index!" << std::endl;
+        }
+      }
   }
 
   void SetWidget(vtkAbstractWidget *w)
@@ -474,8 +474,6 @@ bool vtkMRMLMarkupsCurveDisplayableManager2D::UpdateNthSeedPositionFromMRML(int 
   pointsNode->GetMarkupPointWorld(n, 0, pointTransformed);
 
   this->GetWorldToDisplayCoordinates(pointTransformed,displayCoordinates1);
-
-  double fidpos[4];
   seedRepresentation->GetHandlePosition(n, displayCoordinatesBuffer1);
 
   if (this->GetDisplayCoordinatesChanged(displayCoordinates1,displayCoordinatesBuffer1))
@@ -539,7 +537,9 @@ void vtkMRMLMarkupsCurveDisplayableManager2D::SetNthSeed(int n, vtkMRMLMarkupsCu
     // create a new handle
     double fidWorldCoord[4];
     curveNode->GetMarkupPointWorld(n, 0, fidWorldCoord);
-    vtkHandleWidget* newhandle = seedWidget->CreateNewHandle(fidWorldCoord);
+    double displayCoord[4];
+    this->GetWorldToDisplayCoordinates(fidWorldCoord, displayCoord);
+    vtkHandleWidget* newhandle = seedWidget->CreateNewHandle(displayCoord);
     if (!newhandle)
       {
       vtkErrorMacro("SetNthSeed: error creaing a new handle!");
