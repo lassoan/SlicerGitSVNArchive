@@ -28,6 +28,7 @@ class vtkMRMLMarkupsCurveNode;
 class vtkSlicerViewerWidget;
 class vtkMRMLMarkupsDisplayNode;
 class vtkTextWidget;
+class vtkMarkupsCurveWidget;
 
 /// \ingroup Slicer_QtModules_Markups
 class VTK_SLICER_MARKUPS_MODULE_MRMLDISPLAYABLEMANAGER_EXPORT vtkMRMLMarkupsCurveDisplayableManager2D :
@@ -69,7 +70,7 @@ protected:
   virtual void OnWidgetCreated(vtkAbstractWidget * widget, vtkMRMLMarkupsNode * node) VTK_OVERRIDE;
 
   /// Update a single seed from MRML
-  void SetNthSeed(int n, vtkMRMLMarkupsCurveNode* fiducialNode, vtkSeedWidget *seedWidget);
+  void SetNthSeed(int n, vtkMRMLMarkupsCurveNode* fiducialNode, vtkMarkupsCurveWidget *seedWidget);
 
   /// Propagate properties of MRML node to widget.
   virtual void PropagateMRMLToWidget(vtkMRMLMarkupsNode* node, vtkAbstractWidget * widget) VTK_OVERRIDE;

@@ -25,6 +25,8 @@
 
 // MarkupsModule/VTKWidgets includes
 #include <vtkMarkupsGlyphSource2D.h>
+#include "vtkMarkupsCurveWidget.h"
+#include "vtkMarkupsSplineRepresentation.h"
 
 // MRMLDisplayableManager includes
 #include <vtkSliceViewInteractorStyle.h>
@@ -49,8 +51,6 @@
 #include <vtkProperty.h>
 #include <vtkRenderer.h>
 #include <vtkRenderWindowInteractor.h>
-#include <vtkSeedWidget.h>
-#include <vtkSeedRepresentation.h>
 #include <vtkSmartPointer.h>
 #include <vtkSphereSource.h>
 
@@ -176,7 +176,7 @@ public:
     //  // restrict the widget to the renderer
 
     //  // we need the widgetRepresentation
-    //  vtkSeedRepresentation * representation = vtkSeedRepresentation::SafeDownCast(this->Widget->GetRepresentation());
+    //  vtkMarkupsSplineRepresentation * representation = vtkMarkupsSplineRepresentation::SafeDownCast(this->Widget->GetRepresentation());
     //  if (!representation)
     //    {
     //    vtkErrorWithObjectMacro(this->Widget, "Representation is null.");
@@ -293,7 +293,7 @@ vtkAbstractWidget * vtkMRMLMarkupsCurveDisplayableManager2D::CreateWidget(vtkMRM
     this->Helper->SetNodeGlyphType(displayNode, vtkMRMLMarkupsDisplayNode::GlyphMin - 1, 0);
     }
 
-  vtkNew<vtkSeedRepresentation> rep;
+  vtkNew<vtkMarkupsSplineRepresentation> rep;
 
   vtkDebugMacro("making handle for curveNode " << curveNode->GetName());
   vtkDebugMacro(" for sliceNode " << this->GetMRMLSliceNode()->GetName());
@@ -310,17 +310,17 @@ vtkAbstractWidget * vtkMRMLMarkupsCurveDisplayableManager2D::CreateWidget(vtkMRM
     glyphSource->Update();
     glyphSource->SetScale(1.0);
     handle->SetHandle(glyphSource->GetOutput());
-    rep->SetHandleRepresentation(handle.GetPointer());
+    //rep->SetHandleRepresentation(handle.GetPointer());
     }
   else
     {
     vtkDebugMacro("CreateWidget: in light box mode, making a 2d handle");
     vtkNew<vtkPointHandleRepresentation2D> handle;
-    rep->SetHandleRepresentation(handle.GetPointer());
+    //rep->SetHandleRepresentation(handle.GetPointer());
     }
 
   //seed widget
-  vtkSeedWidget * seedWidget = vtkSeedWidget::New();
+  vtkMarkupsCurveWidget * seedWidget = vtkMarkupsCurveWidget::New();
   seedWidget->CreateDefaultRepresentation();
 
   seedWidget->SetRepresentation(rep.GetPointer());
@@ -389,180 +389,183 @@ void vtkMRMLMarkupsCurveDisplayableManager2D::OnWidgetCreated(vtkAbstractWidget 
 //---------------------------------------------------------------------------
 bool vtkMRMLMarkupsCurveDisplayableManager2D::UpdateNthMarkupPositionFromWidget(int n, vtkMRMLMarkupsNode* pointsNode, vtkAbstractWidget * widget)
 {
-//  std::cout << "UpdateNthMarkupPositionFromWidget: n = " << n << std::endl;
+  // std::cout << "UpdateNthMarkupPositionFromWidget: n = " << n << std::endl;
 
-  //if (!pointsNode || !widget)
-  //  {
-  //  return false;
-  //  }
-  //if (n > pointsNode->GetNumberOfMarkups())
-  //  {
-  //  return false;
-  //  }
-  //vtkSeedWidget *seedWidget = vtkSeedWidget::SafeDownCast(widget);
-  //if (!seedWidget)
-  //  {
-  //  return false;
-  //  }
-  //vtkSeedRepresentation * seedRepresentation = vtkSeedRepresentation::SafeDownCast(seedWidget->GetRepresentation());
-  //if (!seedRepresentation)
-  //  {
-  //  return false;
-  //  }
+  if (!pointsNode || !widget)
+    {
+    return false;
+    }
+  if (n > pointsNode->GetNumberOfMarkups())
+    {
+    return false;
+    }
+  vtkMarkupsCurveWidget *seedWidget = vtkMarkupsCurveWidget::SafeDownCast(widget);
+  if (!seedWidget)
+    {
+    return false;
+    }
+  vtkMarkupsSplineRepresentation * seedRepresentation = vtkMarkupsSplineRepresentation::SafeDownCast(seedWidget->GetRepresentation());
+  if (!seedRepresentation)
+    {
+    return false;
+    }
 
-  //bool positionChanged = false;
+  bool positionChanged = false;
 
-  //// for 2d managers, compare the display positions
-  //double displayCoordinates1[4];
-  //double displayCoordinatesBuffer1[4];
+  // for 2d managers, compare the display positions
+  double displayCoordinates1[4];
+  double displayCoordinatesBuffer1[4];
 
-  //// get point in world coordinates using parent transforms
-  //double pointTransformed[4];
-  //// always only one point in a fiducial
-  //pointsNode->GetMarkupPointWorld(n, 0, pointTransformed);
+  // get point in world coordinates using parent transforms
+  double pointTransformed[4];
+  // always only one point in a fiducial
+  pointsNode->GetMarkupPointWorld(n, 0, pointTransformed);
 
-  //this->GetWorldToDisplayCoordinates(pointTransformed,displayCoordinates1);
+  this->GetWorldToDisplayCoordinates(pointTransformed,displayCoordinates1);
 
-  //seedRepresentation->GetSeedDisplayPosition(n,displayCoordinatesBuffer1);
+  // TODO: display position?
+  seedRepresentation->GetHandlePosition(n,displayCoordinatesBuffer1);
 
-  //if (this->GetDisplayCoordinatesChanged(displayCoordinates1,displayCoordinatesBuffer1))
-  //  {
-  //  positionChanged = true;
-  //  double worldCoordinates[4] = {0.0, 0.0, 0.0, 0.0};
-  //  this->GetDisplayToWorldCoordinates(displayCoordinatesBuffer1, worldCoordinates);
-  //  pointsNode->SetMarkupPointWorld(n, 0, worldCoordinates[0], worldCoordinates[1], worldCoordinates[2]);
-  //  }
+  if (this->GetDisplayCoordinatesChanged(displayCoordinates1,displayCoordinatesBuffer1))
+    {
+    positionChanged = true;
+    double worldCoordinates[4] = {0.0, 0.0, 0.0, 0.0};
+    this->GetDisplayToWorldCoordinates(displayCoordinatesBuffer1, worldCoordinates);
+    pointsNode->SetMarkupPointWorld(n, 0, worldCoordinates[0], worldCoordinates[1], worldCoordinates[2]);
+    }
 
-  //return positionChanged;
-  return true;
+  return positionChanged;
 }
 
 //---------------------------------------------------------------------------
 bool vtkMRMLMarkupsCurveDisplayableManager2D::UpdateNthSeedPositionFromMRML(int n, vtkAbstractWidget *widget, vtkMRMLMarkupsNode *pointsNode)
 {
-////  vtkWarningMacro("UpdateNthSeedPositionFromMRML: n = " << n);
-//
-//  if (!pointsNode || !widget)
-//    {
-//    return false;
-//    }
-//  if (n > pointsNode->GetNumberOfMarkups())
-//    {
-//    return false;
-//    }
-//  vtkSeedWidget *seedWidget = vtkSeedWidget::SafeDownCast(widget);
-//  if (!seedWidget)
-//    {
-//    return false;
-//    }
-//  vtkSeedRepresentation * seedRepresentation = vtkSeedRepresentation::SafeDownCast(seedWidget->GetRepresentation());
-//  if (!seedRepresentation)
-//    {
-//    return false;
-//    }
-//  bool positionChanged = false;
-//
-////  std::cout << "UpdateNthSeedPositionFromMRML: n = " << n << std::endl;
-//
-//  // for 2d managers, compare the display positions
-//  double displayCoordinates1[4];
-//  double displayCoordinatesBuffer1[4];
-//
-//  // get point in world coordinates using parent transforms
-//  double pointTransformed[4];
-//  // always only one point in a fiducial
-//  pointsNode->GetMarkupPointWorld(n, 0, pointTransformed);
-//
-//  this->GetWorldToDisplayCoordinates(pointTransformed,displayCoordinates1);
-//
-//  seedRepresentation->GetSeedDisplayPosition(n,displayCoordinatesBuffer1);
-//
-//  if (this->GetDisplayCoordinatesChanged(displayCoordinates1,displayCoordinatesBuffer1))
-//    {
-//    // only update when really changed
-//    vtkDebugMacro("UpdateNthSeedPositionFromMRML: " << n << ": "
-//                  << this->GetMRMLSliceNode()->GetName()
-//                  << ": display coordinates changed:\n\tseed display = "
-//                  << displayCoordinatesBuffer1[0] << ", " << displayCoordinatesBuffer1[1]
-//                  << "\n\tfid display =  " << displayCoordinates1[0] << ", " << displayCoordinates1[1] );
-//    if (seedRepresentation->GetRenderer() != NULL &&
-//        seedRepresentation->GetRenderer()->IsActiveCameraCreated())
-//      {
-//      seedRepresentation->SetSeedDisplayPosition(n,displayCoordinates1);
-//      positionChanged = true;
-//      }
-//    else
-//      {
-//      vtkDebugMacro("UpdateNthSeedPositionFromMRML: " <<
-//                    "No active camera on seed representation, " <<
-//                    "delaying updating position");
-//      }
-//    }
-//  else
-//    {
-//    vtkDebugMacro("UpdateNthSeedPositionFromMRML: " <<  this->GetMRMLSliceNode()->GetName() << ": display coordinates unchanged!");
-//    }
-//  return positionChanged;
-  return true;
+  //vtkWarningMacro("UpdateNthSeedPositionFromMRML: n = " << n);
+
+  if (!pointsNode || !widget)
+    {
+    return false;
+    }
+  if (n > pointsNode->GetNumberOfMarkups())
+    {
+    return false;
+    }
+  vtkMarkupsCurveWidget *seedWidget = vtkMarkupsCurveWidget::SafeDownCast(widget);
+  if (!seedWidget)
+    {
+    return false;
+    }
+  vtkMarkupsSplineRepresentation * seedRepresentation = vtkMarkupsSplineRepresentation::SafeDownCast(seedWidget->GetRepresentation());
+  if (!seedRepresentation)
+    {
+    return false;
+    }
+  bool positionChanged = false;
+
+//  std::cout << "UpdateNthSeedPositionFromMRML: n = " << n << std::endl;
+
+  // for 2d managers, compare the display positions
+  double displayCoordinates1[4];
+  double displayCoordinatesBuffer1[4];
+
+  // get point in world coordinates using parent transforms
+  double pointTransformed[4];
+  // always only one point in a fiducial
+  pointsNode->GetMarkupPointWorld(n, 0, pointTransformed);
+
+  this->GetWorldToDisplayCoordinates(pointTransformed,displayCoordinates1);
+
+  double fidpos[4];
+  seedRepresentation->GetHandlePosition(n,fidpos);
+  this->GetWorldToDisplayCoordinates(fidpos, displayCoordinatesBuffer1);
+
+  if (this->GetDisplayCoordinatesChanged(displayCoordinates1,displayCoordinatesBuffer1))
+    {
+    // only update when really changed
+    vtkDebugMacro("UpdateNthSeedPositionFromMRML: " << n << ": "
+                  << this->GetMRMLSliceNode()->GetName()
+                  << ": display coordinates changed:\n\tseed display = "
+                  << displayCoordinatesBuffer1[0] << ", " << displayCoordinatesBuffer1[1]
+                  << "\n\tfid display =  " << displayCoordinates1[0] << ", " << displayCoordinates1[1] );
+    if (seedRepresentation->GetRenderer() != NULL &&
+        seedRepresentation->GetRenderer()->IsActiveCameraCreated())
+      {
+      seedRepresentation->SetHandlePosition(n,displayCoordinates1);
+      positionChanged = true;
+      }
+    else
+      {
+      vtkDebugMacro("UpdateNthSeedPositionFromMRML: " <<
+                    "No active camera on seed representation, " <<
+                    "delaying updating position");
+      }
+    }
+  else
+    {
+    vtkDebugMacro("UpdateNthSeedPositionFromMRML: " <<  this->GetMRMLSliceNode()->GetName() << ": display coordinates unchanged!");
+    }
+  return positionChanged;
 }
 
 //---------------------------------------------------------------------------
-void vtkMRMLMarkupsCurveDisplayableManager2D::SetNthSeed(int n, vtkMRMLMarkupsCurveNode* curveNode, vtkSeedWidget *seedWidget)
+void vtkMRMLMarkupsCurveDisplayableManager2D::SetNthSeed(int n, vtkMRMLMarkupsCurveNode* curveNode, vtkMarkupsCurveWidget *seedWidget)
 {
-  //if (!seedWidget->GetRepresentation())
-  //  {
-  //  vtkErrorMacro("SetNthSeed: no representation in seed widget!");
-  //  return;
-  //  }
-  //vtkSeedRepresentation * seedRepresentation = vtkSeedRepresentation::SafeDownCast(seedWidget->GetRepresentation());
+  if (!seedWidget->GetRepresentation())
+    {
+    vtkErrorMacro("SetNthSeed: no representation in seed widget!");
+    return;
+    }
+  vtkMarkupsSplineRepresentation * seedRepresentation = vtkMarkupsSplineRepresentation::SafeDownCast(seedWidget->GetRepresentation());
 
-  //if (!seedRepresentation)
-  //  {
-  //  vtkErrorMacro("SetNthSeed: no seed representation in widget!");
-  //  return;
-  //  }
+  if (!seedRepresentation)
+    {
+    vtkErrorMacro("SetNthSeed: no seed representation in widget!");
+    return;
+    }
 
-  //vtkMRMLMarkupsDisplayNode *displayNode = curveNode->GetMarkupsDisplayNode();
-  //if (!displayNode)
-  //  {
-  //  vtkDebugMacro("SetNthSeed: Could not get display node for node " << (curveNode->GetID() ? curveNode->GetID() : "null id"));
-  //  return;
-  //  }
+  vtkMRMLMarkupsDisplayNode *displayNode = curveNode->GetMarkupsDisplayNode();
+  if (!displayNode)
+    {
+    vtkDebugMacro("SetNthSeed: Could not get display node for node " << (curveNode->GetID() ? curveNode->GetID() : "null id"));
+    return;
+    }
 
-  //int numberOfHandles = seedRepresentation->GetNumberOfSeeds();
-  //vtkDebugMacro("SetNthSeed, n = " << n << ", number of handles = " << numberOfHandles);
+  int numberOfHandles = seedRepresentation->GetNumberOfHandles();
+  vtkDebugMacro("SetNthSeed, n = " << n << ", number of handles = " << numberOfHandles);
 
-  //// does this handle need to be created?
-  //bool createdNewHandle = false;
-  //if (n >= numberOfHandles)
-  //  {
-  //  // create a new handle
-  //  vtkHandleWidget* newhandle = seedWidget->CreateNewHandle();
-  //  if (!newhandle)
-  //    {
-  //    vtkErrorMacro("SetNthSeed: error creaing a new handle!");
-  //    }
-  //  else
-  //    {
-  //    // std::cout << "SetNthSeed: created a new handle,number of seeds = " << seedRepresentation->GetNumberOfSeeds() << std::endl;
-  //    createdNewHandle = true;
-  //    newhandle->ManagesCursorOff();
-  //    if (newhandle->GetEnabled() == 0)
-  //      {
-  //      // only enable the handle if there is an active camera
-  //      if (newhandle->GetRepresentation() &&
-  //          newhandle->GetRepresentation()->GetRenderer() &&
-  //          newhandle->GetRepresentation()->GetRenderer()->IsActiveCameraCreated())
-  //        {
-  //        newhandle->EnabledOn();
-  //        }
-  //      else
-  //        {
-  //        vtkDebugMacro("SetNthSeed: no active camera, delaying enabling the handle");
-  //        }
-  //      }
-  //    }
-  //  }
+  // does this handle need to be created?
+  bool createdNewHandle = false;
+  if (n >= numberOfHandles)
+    {
+    // create a new handle
+    double fidWorldCoord[4];
+    curveNode->GetMarkupPointWorld(n, 0, fidWorldCoord);
+    vtkHandleWidget* newhandle = seedWidget->CreateNewHandle(fidWorldCoord);
+    if (!newhandle)
+      {
+      vtkErrorMacro("SetNthSeed: error creaing a new handle!");
+      }
+    else
+      {
+      // std::cout << "SetNthSeed: created a new handle,number of seeds = " << seedRepresentation->GetNumberOfSeeds() << std::endl;
+      createdNewHandle = true;
+      newhandle->ManagesCursorOff();
+      if (newhandle->GetEnabled() == 0)
+        {
+        // only enable the handle if there is an active camera
+        if (newhandle->GetRepresentation() &&
+            newhandle->GetRepresentation()->GetRenderer() &&
+            newhandle->GetRepresentation()->GetRenderer()->IsActiveCameraCreated())
+          {
+          newhandle->EnabledOn();
+          }
+        else
+          {
+          vtkDebugMacro("SetNthSeed: no active camera, delaying enabling the handle");
+          }
+        }
+      }
+    }
 
   //// can have a 3d or 2d handle depending on if in light box mode or not
   //vtkOrientedPolygonalHandleRepresentation3D *handleRep =
@@ -571,12 +574,12 @@ void vtkMRMLMarkupsCurveDisplayableManager2D::SetNthSeed(int n, vtkMRMLMarkupsCu
   //vtkPointHandleRepresentation2D *pointHandleRep =
   //  vtkPointHandleRepresentation2D::SafeDownCast(seedRepresentation->GetHandleRepresentation(n));
 
-  //// update the postion
-  //bool positionChanged = this->UpdateNthSeedPositionFromMRML(n, seedWidget, curveNode);
-  //if (!positionChanged)
-  //  {
-  //  vtkDebugMacro("SetNthSeed: Position did not change");
-  //  }
+  // update the postion
+  bool positionChanged = this->UpdateNthSeedPositionFromMRML(n, seedWidget, curveNode);
+  if (!positionChanged)
+    {
+    vtkDebugMacro("SetNthSeed: Position did not change");
+    }
 
   //if (!handleRep && !pointHandleRep)
   //  {
@@ -588,15 +591,15 @@ void vtkMRMLMarkupsCurveDisplayableManager2D::SetNthSeed(int n, vtkMRMLMarkupsCu
   //  return;
   //  }
 
-  //// visibility for this handle, hide it if the whole list is invisible,
-  //// this fid is invisible, or the fid isn't visible on this slice
-  //bool fidVisible = true;
-  //if (displayNode->GetVisibility() == 0 ||
-  //    curveNode->GetNthFiducialVisibility(n) == 0 ||
-  //    !this->IsWidgetDisplayableOnSlice(curveNode, n))
-  //  {
-  //  fidVisible = false;
-  //  }
+  // visibility for this handle, hide it if the whole list is invisible,
+  // this fid is invisible, or the fid isn't visible on this slice
+  bool fidVisible = true;
+  if (displayNode->GetVisibility() == 0 ||
+      curveNode->GetNthFiducialVisibility(n) == 0 ||
+      !this->IsWidgetDisplayableOnSlice(curveNode, n))
+    {
+    fidVisible = false;
+    }
 
   //if (handleRep)
   //  {
@@ -734,7 +737,7 @@ void vtkMRMLMarkupsCurveDisplayableManager2D::SetNthSeed(int n, vtkMRMLMarkupsCu
   //    handleRep->HandleVisibilityOff();
   //    handleRep->LabelVisibilityOff();
   //    handleRep->DisablePicking();
-  //    vtkSeedRepresentation *seedRepresentation = vtkSeedRepresentation::SafeDownCast(seedWidget->GetRepresentation());
+  //    vtkMarkupsSplineRepresentation *seedRepresentation = vtkMarkupsSplineRepresentation::SafeDownCast(seedWidget->GetRepresentation());
   //    if (seedRepresentation)
   //      {
   //      vtkOrientedPolygonalHandleRepresentation3D *orientedHandleRep =
@@ -801,7 +804,7 @@ void vtkMRMLMarkupsCurveDisplayableManager2D::SetNthSeed(int n, vtkMRMLMarkupsCu
   //          vtkNew<vtkPointHandleRepresentation2D> handle;
   //          handle->SetCursorShape(glyph->GetOutput());
 
-  //          vtkNew<vtkSeedRepresentation> rep;
+  //          vtkNew<vtkMarkupsSplineRepresentation> rep;
   //          rep->SetHandleRepresentation(handle.GetPointer());
 
   //          projectionSeed = vtkSeedWidget::New();
@@ -817,8 +820,8 @@ void vtkMRMLMarkupsCurveDisplayableManager2D::SetNthSeed(int n, vtkMRMLMarkupsCu
   //          this->Helper->WidgetPointProjections[curveNode->GetNthMarkupID(n)] = projectionSeed;
   //          }
 
-  //        vtkSeedRepresentation* projectionSeedRep =
-  //          vtkSeedRepresentation::SafeDownCast(projectionSeed->GetRepresentation());
+  //        vtkMarkupsSplineRepresentation* projectionSeedRep =
+  //          vtkMarkupsSplineRepresentation::SafeDownCast(projectionSeed->GetRepresentation());
 
   //        if (projectionSeedRep)
   //          {
@@ -939,183 +942,178 @@ void vtkMRMLMarkupsCurveDisplayableManager2D::SetNthSeed(int n, vtkMRMLMarkupsCu
 void vtkMRMLMarkupsCurveDisplayableManager2D::PropagateMRMLToWidget(vtkMRMLMarkupsNode* node, vtkAbstractWidget * widget)
 {
 
-//  if (!widget)
-//    {
-//    vtkErrorMacro("PropagateMRMLToWidget: Widget was null!")
-//    return;
-//    }
-//
-//  if (!node)
-//    {
-//    vtkErrorMacro("PropagateMRMLToWidget: MRML node was null!")
-//    return;
-//    }
-//
-//  // cast to the specific widget
-//  vtkSeedWidget* seedWidget = vtkSeedWidget::SafeDownCast(widget);
-//
-//  if (!seedWidget)
-//    {
-//    vtkErrorMacro("PropagateMRMLToWidget: Could not get seed widget!")
-//    return;
-//    }
-//
-//  if (seedWidget->GetWidgetState() != vtkSeedWidget::MovingSeed)
-//    {
-//    // ignore events not caused by seed movement
-//    // return;
-//    // std::cout << "2D: Seed widget state is not moving: state = " << seedWidget->GetWidgetState() << " != " << vtkSeedWidget::MovingSeed << std::endl;
-//    }
-//
-//  // cast to the specific mrml node
-//  vtkMRMLMarkupsCurveNode* curveNode = vtkMRMLMarkupsCurveNode::SafeDownCast(node);
-//
-//  if (!curveNode)
-//    {
-//    vtkErrorMacro("PropagateMRMLToWidget: Could not get fiducial node!")
-//    return;
-//    }
-//
-//  // disable processing of modified events
-//  this->Updating = 1;
-//
-//
-//  // now get the widget properties (coordinates, measurement etc.) and if the mrml node has changed, propagate the changes
-//
-//
-//  vtkMRMLMarkupsDisplayNode *displayNode = curveNode->GetMarkupsDisplayNode();
-//
-//  if (!displayNode)
-//    {
-//    vtkDebugMacro("PropagateMRMLToWidget: Could not get display node for node " << (curveNode->GetID() ? curveNode->GetID() : "null id"));
-//    }
-//
-//  vtkSeedRepresentation * seedRepresentation = vtkSeedRepresentation::SafeDownCast(seedWidget->GetRepresentation());
-//  if (!seedRepresentation)
-//    {
-//    vtkErrorMacro("Unable to get the seed representation!");
-//    return;
-//    }
-//
-//  // can have a 3d or 2d handle depending on if in light box mode or not
-//  vtkOrientedPolygonalHandleRepresentation3D *handleRep =
-//    vtkOrientedPolygonalHandleRepresentation3D::SafeDownCast(seedRepresentation->GetHandleRepresentation());
-//  // might be in lightbox mode where using a 2d point handle
-//  vtkPointHandleRepresentation2D *pointHandleRep =
-//    vtkPointHandleRepresentation2D::SafeDownCast(seedRepresentation->GetHandleRepresentation());
-//  // double check that if switch in and out of light box mode, the handle rep
-//  // is updated
-//  bool updateHandleType = false;
-//  if (this->IsInLightboxMode())
-//    {
-//    if (handleRep)
-//      {
-//      vtkDebugMacro("PropagateMRMLToWidget: have a 3d handle representation in 2d light box, resetting it.");
-//      vtkNew<vtkPointHandleRepresentation2D> handle;
-//      seedRepresentation->SetHandleRepresentation(handle.GetPointer());
-//      updateHandleType = true;
-//      handleRep = NULL;
-//      pointHandleRep =
-//        vtkPointHandleRepresentation2D::SafeDownCast(seedRepresentation->GetHandleRepresentation());
-//      }
-//    }
-//  else
-//    {
-//    if (pointHandleRep)
-//      {
-//      vtkDebugMacro("PropagateMRMLToWidget: Not in light box, but have a point handle.");
-//      vtkNew<vtkOrientedPolygonalHandleRepresentation3D> handle;
-//      // default to a sphere glyph, update in propagate mrml to widget
-//      vtkNew<vtkMarkupsGlyphSource2D> glyphSource;
-//      glyphSource->SetGlyphType(vtkMRMLMarkupsDisplayNode::Sphere3D);
-//      glyphSource->Update();
-//      glyphSource->SetScale(1.0);
-//      glyphSource->SetScale2(1.0);
-//      handle->SetHandle(glyphSource->GetOutput());
-//      seedRepresentation->SetHandleRepresentation(handle.GetPointer());
-//      updateHandleType = true;
-//      pointHandleRep = NULL;
-//      handleRep =
-//        vtkOrientedPolygonalHandleRepresentation3D::SafeDownCast(seedRepresentation->GetHandleRepresentation());
-//      }
-//    }
-//  if (updateHandleType)
-//    {
-//    vtkDebugMacro("WARNING: updated the handle type");
-//    seedWidget->CreateDefaultRepresentation();
-//    // need to reset any old handles
-//    int numSeeds = seedRepresentation->GetNumberOfSeeds();
-//    // remove seeds from the end of the list
-//    for (int n = numSeeds - 1; n >= 0; --n)
-//      {
-//      seedWidget->DeleteSeed(n);
-//      }
-//    // set nth seed will recreate the handles
-//    }
-//
-//  // iterate over the fiducials in this markup
-//  int numberOfFiducials = curveNode->GetNumberOfMarkups();
-//
-//  vtkDebugMacro("Fids PropagateMRMLToWidget, node num markups = " << numberOfFiducials);
-//
-//  if (numberOfFiducials == 0)
-//    {
-//    if (handleRep)
-//      {
-//      handleRep->DisablePicking();
-//      }
-//    int seed = 0;
-//    vtkHandleWidget *handleWidget;
-//    while ( (handleWidget = seedWidget->GetSeed(seed)) )
-//      {
-//      vtkHandleRepresentation *handleRepresentation = handleWidget->GetHandleRepresentation();
-//      if (handleRepresentation)
-//        {
-//        vtkOrientedPolygonalHandleRepresentation3D *orientedHandleRep =
-//          vtkOrientedPolygonalHandleRepresentation3D::SafeDownCast(handleRepresentation);
-//        if (orientedHandleRep)
-//          {
-//          orientedHandleRep->DisablePicking();
-//          }
-//        }
-//      seed++;
-//      }
-//    }
-//  else
-//    {
-//    if (handleRep)
-//      {
-//      handleRep->EnablePicking();
-//      }
-//    }
-//
-//  for (int n = 0; n < numberOfFiducials; n++)
-//    {
-//    // std::cout << "Fids PropagateMRMLToWidget: n = " << n << std::endl;
-//    this->SetNthSeed(n, curveNode, seedWidget);
-//    }
-//
-//
-//  // now update the position of all the seeds - done in SetNthSeed now
-//  //this->UpdatePosition(widget, node);
-//
-//  // update lock status
-//  this->Helper->UpdateLocked(node, this->GetInteractionNode());
-//
-//  // update visibility of widget as a whole
-//  // std::cout << "PropagateMRMLToWidget: calling UpdateWidgetVisibility" << std::endl;
-//  this->UpdateWidgetVisibility(node);
-//
-//  if (seedRepresentation)
-//    {
-//    seedRepresentation->NeedToRenderOn();
-//    }
-//  seedWidget->Modified();
-//
-////  seedWidget->CompleteInteraction();
-//
-//  // enable processing of modified events
-//  this->Updating = 0;
+
+  if (!widget)
+    {
+    vtkErrorMacro("PropagateMRMLToWidget: Widget was null!")
+    return;
+    }
+
+  if (!node)
+    {
+    vtkErrorMacro("PropagateMRMLToWidget: MRML node was null!")
+    return;
+    }
+
+  // cast to the specific widget
+  vtkMarkupsCurveWidget* seedWidget = vtkMarkupsCurveWidget::SafeDownCast(widget);
+
+  if (!seedWidget)
+    {
+    vtkErrorMacro("PropagateMRMLToWidget: Could not get seed widget!")
+    return;
+    }
+
+  // cast to the specific mrml node
+  vtkMRMLMarkupsCurveNode* curveNode = vtkMRMLMarkupsCurveNode::SafeDownCast(node);
+
+  if (!curveNode)
+    {
+    vtkErrorMacro("PropagateMRMLToWidget: Could not get fiducial node!")
+    return;
+    }
+
+  // disable processing of modified events
+  this->Updating = 1;
+
+
+  // now get the widget properties (coordinates, measurement etc.) and if the mrml node has changed, propagate the changes
+
+
+  vtkMRMLMarkupsDisplayNode *displayNode = curveNode->GetMarkupsDisplayNode();
+
+  if (!displayNode)
+    {
+    vtkDebugMacro("PropagateMRMLToWidget: Could not get display node for node " << (curveNode->GetID() ? curveNode->GetID() : "null id"));
+    }
+
+  vtkMarkupsSplineRepresentation * seedRepresentation = vtkMarkupsSplineRepresentation::SafeDownCast(seedWidget->GetRepresentation());
+  if (!seedRepresentation)
+    {
+    vtkErrorMacro("Unable to get the seed representation!");
+    return;
+    }
+
+  //// can have a 3d or 2d handle depending on if in light box mode or not
+  //vtkOrientedPolygonalHandleRepresentation3D *handleRep =
+  //  vtkOrientedPolygonalHandleRepresentation3D::SafeDownCast(seedRepresentation->GetHandleRepresentation());
+  //// might be in lightbox mode where using a 2d point handle
+  //vtkPointHandleRepresentation2D *pointHandleRep =
+  //  vtkPointHandleRepresentation2D::SafeDownCast(seedRepresentation->GetHandleRepresentation());
+  //// double check that if switch in and out of light box mode, the handle rep
+  //// is updated
+  //bool updateHandleType = false;
+  //if (this->IsInLightboxMode())
+  //  {
+  //  if (handleRep)
+  //    {
+  //    vtkDebugMacro("PropagateMRMLToWidget: have a 3d handle representation in 2d light box, resetting it.");
+  //    vtkNew<vtkPointHandleRepresentation2D> handle;
+  //    seedRepresentation->SetHandleRepresentation(handle.GetPointer());
+  //    updateHandleType = true;
+  //    handleRep = NULL;
+  //    pointHandleRep =
+  //      vtkPointHandleRepresentation2D::SafeDownCast(seedRepresentation->GetHandleRepresentation());
+  //    }
+  //  }
+  //else
+  //  {
+  //  if (pointHandleRep)
+  //    {
+  //    vtkDebugMacro("PropagateMRMLToWidget: Not in light box, but have a point handle.");
+  //    vtkNew<vtkOrientedPolygonalHandleRepresentation3D> handle;
+  //    // default to a sphere glyph, update in propagate mrml to widget
+  //    vtkNew<vtkMarkupsGlyphSource2D> glyphSource;
+  //    glyphSource->SetGlyphType(vtkMRMLMarkupsDisplayNode::Sphere3D);
+  //    glyphSource->Update();
+  //    glyphSource->SetScale(1.0);
+  //    glyphSource->SetScale2(1.0);
+  //    handle->SetHandle(glyphSource->GetOutput());
+  //    seedRepresentation->SetHandleRepresentation(handle.GetPointer());
+  //    updateHandleType = true;
+  //    pointHandleRep = NULL;
+  //    handleRep =
+  //      vtkOrientedPolygonalHandleRepresentation3D::SafeDownCast(seedRepresentation->GetHandleRepresentation());
+  //    }
+  //  }
+  //if (updateHandleType)
+  //  {
+  //  vtkDebugMacro("WARNING: updated the handle type");
+  //  seedWidget->CreateDefaultRepresentation();
+  //  // need to reset any old handles
+  //  int numSeeds = seedRepresentation->GetNumberOfSeeds();
+  //  // remove seeds from the end of the list
+  //  for (int n = numSeeds - 1; n >= 0; --n)
+  //    {
+  //    //TODO
+  //    //seedWidget->DeleteSeed(n);
+  //    }
+  //  // set nth seed will recreate the handles
+  //  }
+
+  // iterate over the fiducials in this markup
+  int numberOfFiducials = curveNode->GetNumberOfPointsInNthMarkup(0);
+
+  //vtkDebugMacro("Fids PropagateMRMLToWidget, node num markups = " << numberOfFiducials);
+
+  //if (numberOfFiducials == 0)
+  //  {
+  //  if (handleRep)
+  //    {
+  //    handleRep->DisablePicking();
+  //    }
+  //  int seed = 0;
+  //  vtkHandleWidget *handleWidget;
+  //  //while ( (handleWidget = seedWidget->GetSeed(seed)) )
+  //  //  {
+  //  //  vtkHandleRepresentation *handleRepresentation = handleWidget->GetHandleRepresentation();
+  //  //  if (handleRepresentation)
+  //  //    {
+  //  //    vtkOrientedPolygonalHandleRepresentation3D *orientedHandleRep =
+  //  //      vtkOrientedPolygonalHandleRepresentation3D::SafeDownCast(handleRepresentation);
+  //  //    if (orientedHandleRep)
+  //  //      {
+  //  //      orientedHandleRep->DisablePicking();
+  //  //      }
+  //  //    }
+  //  //  seed++;
+  //  //  }
+  //  }
+  //else
+  //  {
+  //  if (handleRep)
+  //    {
+  //    handleRep->EnablePicking();
+  //    }
+  //  }
+
+  for (int n = 0; n < numberOfFiducials; n++)
+    {
+    // std::cout << "Fids PropagateMRMLToWidget: n = " << n << std::endl;
+    this->SetNthSeed(n, curveNode, seedWidget);
+    }
+
+
+  // now update the position of all the seeds - done in SetNthSeed now
+  this->UpdatePosition(widget, node);
+
+  // update lock status
+  this->Helper->UpdateLocked(node, this->GetInteractionNode());
+
+  // update visibility of widget as a whole
+  // std::cout << "PropagateMRMLToWidget: calling UpdateWidgetVisibility" << std::endl;
+  this->UpdateWidgetVisibility(node);
+
+  if (seedRepresentation)
+    {
+    seedRepresentation->NeedToRenderOn();
+    }
+  seedWidget->Modified();
+
+//  seedWidget->CompleteInteraction();
+
+  // enable processing of modified events
+  this->Updating = 0;
 
 
 }
@@ -1124,108 +1122,115 @@ void vtkMRMLMarkupsCurveDisplayableManager2D::PropagateMRMLToWidget(vtkMRMLMarku
 /// Propagate properties of widget to MRML node.
 void vtkMRMLMarkupsCurveDisplayableManager2D::PropagateWidgetToMRML(vtkAbstractWidget * widget, vtkMRMLMarkupsNode* node)
 {
-//  if (!widget)
-//    {
-//    vtkErrorMacro("PropagateWidgetToMRML: Widget was null!")
-//    return;
-//    }
-//
-//  if (!node)
-//    {
-//    vtkErrorMacro("PropagateWidgetToMRML: MRML node was null!")
-//    return;
-//    }
-//
-//  // cast to the specific widget
-//  vtkSeedWidget* seedWidget = vtkSeedWidget::SafeDownCast(widget);
-//
-//  if (!seedWidget)
-//   {
-//   vtkErrorMacro("PropagateWidgetToMRML: Could not get seed widget!")
-//   return;
-//   }
-//
-//  // cast to the specific mrml node
-//  vtkMRMLMarkupsCurveNode* curveNode = vtkMRMLMarkupsCurveNode::SafeDownCast(node);
-//
-//  if (!curveNode)
-//   {
-//   vtkErrorMacro("PropagateWidgetToMRML: Could not get fiducial node!")
-//   return;
-//   }
-//
-//  // disable processing of modified events
-//  this->Updating = 1;
-//  // this was stopping PointModifiedEvent from being invoked, need that to
-//  // update the GUI
-////  int disabledModify = curveNode->StartModify();
-//
-//
-//  // now get the widget properties (coordinates, measurement etc.) and if the mrml node has changed, propagate the changes
-//  vtkSeedRepresentation * seedRepresentation = vtkSeedRepresentation::SafeDownCast(seedWidget->GetRepresentation());
-//  int numberOfSeeds = seedRepresentation->GetNumberOfSeeds();
-//
-//  bool atLeastOnePositionChanged = false;
-//  for (int n = 0; n < numberOfSeeds; n++)
-//    {
-//    double worldCoordinates1[4];
-//    bool thisPositionChanged = false;
-//    // 2D widget was changed
-//
-//    double displayCoordinates1[4];
-//    seedRepresentation->GetSeedDisplayPosition(n,displayCoordinates1);
-//    vtkDebugMacro("PropagateWidgetToMRML: 2d DM: widget display coords = "
-//          << displayCoordinates1[0] << ", " << displayCoordinates1[1]
-//          << ", " << displayCoordinates1[2]);
-//    this->GetDisplayToWorldCoordinates(displayCoordinates1,worldCoordinates1);
-//    vtkDebugMacro("PropagateWidgetToMRML: 2d: widget seed " << n
-//          << " world coords = "
-//          << worldCoordinates1[0] << ", " << worldCoordinates1[1]
-//          << ", "<< worldCoordinates1[2]);
-//
-//    // was there a change?
-//    double currentCoordinates[4];
-//    curveNode->GetNthFiducialWorldCoordinates(n,currentCoordinates);
-//    vtkDebugMacro("PropagateWidgetToMRML: fiducial " << n
-//          << " current world coordinates = "
-//          << currentCoordinates[0] << ", " << currentCoordinates[1]
-//          << ", " << currentCoordinates[2]);
-//
-//    double currentCoords[3];
-//    currentCoords[0] = currentCoordinates[0];
-//    currentCoords[1] = currentCoordinates[1];
-//    currentCoords[2] = currentCoordinates[2];
-//    double newCoords[3];
-//    newCoords[0] = worldCoordinates1[0];
-//    newCoords[1] = worldCoordinates1[1];
-//    newCoords[2] = worldCoordinates1[2];
-//    if (this->GetWorldCoordinatesChanged(currentCoords, newCoords))
-//      {
-//      vtkDebugMacro("PropagateWidgetToMRML: position changed.");
-//      atLeastOnePositionChanged = true;
-//      thisPositionChanged = true;
-//      }
-//
-//    if (thisPositionChanged)
-//      {
-//      vtkDebugMacro("PropagateWidgetToMRML: this position changed, setting fiducial coordinates");
-//      curveNode->SetNthFiducialWorldCoordinates(n,worldCoordinates1);
-//      }
-//    }
-//
-//  // enable processing of modified events
-////  curveNode->EndModify(disabledModify);
-//
-//  // did any of the positions change?
-//  if (atLeastOnePositionChanged)
-//    {
-//    vtkDebugMacro("PropagateWidgetToMRML: position changed, calling point modified on the fiducial node");
-//    curveNode->Modified();
-//    //curveNode->GetScene()->InvokeEvent(vtkCommand::ModifiedEvent,curveNode);
-//    curveNode->GetScene()->InvokeEvent(vtkMRMLMarkupsNode::PointModifiedEvent,curveNode);
-//    }
-//  // This displayableManager should now consider ModifiedEvent again
-//  this->Updating = 0;
+  if (!widget)
+    {
+    vtkErrorMacro("PropagateWidgetToMRML: Widget was null!")
+    return;
+    }
+
+  if (!node)
+    {
+    vtkErrorMacro("PropagateWidgetToMRML: MRML node was null!")
+    return;
+    }
+
+  // cast to the specific widget
+  vtkMarkupsCurveWidget* seedWidget = vtkMarkupsCurveWidget::SafeDownCast(widget);
+
+  if (!seedWidget)
+   {
+   vtkErrorMacro("PropagateWidgetToMRML: Could not get seed widget!")
+   return;
+   }
+
+  // cast to the specific mrml node
+  vtkMRMLMarkupsCurveNode* curveNode = vtkMRMLMarkupsCurveNode::SafeDownCast(node);
+
+  if (!curveNode)
+   {
+   vtkErrorMacro("PropagateWidgetToMRML: Could not get fiducial node!")
+   return;
+   }
+
+  if (vtkMarkupsSplineRepresentation::SafeDownCast(seedWidget->GetRepresentation())->GetInteractionState() != vtkMarkupsSplineRepresentation::Moving)
+  {
+    // ignore events not caused by seed movement
+    return;
+  }
+
+  // disable processing of modified events
+  this->Updating = 1;
+  // this was stopping PointModifiedEvent from being invoked, need that to
+  // update the GUI
+//  int disabledModify = curveNode->StartModify();
+
+
+  // now get the widget properties (coordinates, measurement etc.) and if the mrml node has changed, propagate the changes
+  vtkMarkupsSplineRepresentation * seedRepresentation = vtkMarkupsSplineRepresentation::SafeDownCast(seedWidget->GetRepresentation());
+  int numberOfSeeds = seedRepresentation->GetNumberOfHandles();
+
+  bool atLeastOnePositionChanged = false;
+  for (int n = 0; n < numberOfSeeds; n++)
+    {
+    double worldCoordinates1[4];
+    bool thisPositionChanged = false;
+    // 2D widget was changed
+
+    double displayCoordinates1[4];
+    //TODO: display position?
+    seedRepresentation->GetHandlePosition(n,displayCoordinates1);
+    vtkDebugMacro("PropagateWidgetToMRML: 2d DM: widget display coords = "
+          << displayCoordinates1[0] << ", " << displayCoordinates1[1]
+          << ", " << displayCoordinates1[2]);
+    this->GetDisplayToWorldCoordinates(displayCoordinates1,worldCoordinates1);
+    vtkDebugMacro("PropagateWidgetToMRML: 2d: widget seed " << n
+          << " world coords = "
+          << worldCoordinates1[0] << ", " << worldCoordinates1[1]
+          << ", "<< worldCoordinates1[2]);
+
+    // was there a change?
+    double currentCoordinates[4];
+    curveNode->GetNthFiducialWorldCoordinates(n,currentCoordinates);
+    vtkDebugMacro("PropagateWidgetToMRML: fiducial " << n
+          << " current world coordinates = "
+          << currentCoordinates[0] << ", " << currentCoordinates[1]
+          << ", " << currentCoordinates[2]);
+
+    double currentCoords[3];
+    currentCoords[0] = currentCoordinates[0];
+    currentCoords[1] = currentCoordinates[1];
+    currentCoords[2] = currentCoordinates[2];
+    double newCoords[3];
+    newCoords[0] = worldCoordinates1[0];
+    newCoords[1] = worldCoordinates1[1];
+    newCoords[2] = worldCoordinates1[2];
+    if (this->GetWorldCoordinatesChanged(currentCoords, newCoords))
+      {
+      vtkDebugMacro("PropagateWidgetToMRML: position changed.");
+      atLeastOnePositionChanged = true;
+      thisPositionChanged = true;
+      }
+
+    if (thisPositionChanged)
+      {
+      vtkDebugMacro("PropagateWidgetToMRML: this position changed, setting fiducial coordinates");
+      curveNode->SetNthFiducialWorldCoordinates(n,worldCoordinates1);
+      }
+    }
+
+  // enable processing of modified events
+//  curveNode->EndModify(disabledModify);
+
+  // did any of the positions change?
+  if (atLeastOnePositionChanged)
+    {
+    vtkDebugMacro("PropagateWidgetToMRML: position changed, calling point modified on the fiducial node");
+    curveNode->Modified();
+    //curveNode->GetScene()->InvokeEvent(vtkCommand::ModifiedEvent,curveNode);
+    curveNode->GetScene()->InvokeEvent(vtkMRMLMarkupsNode::PointModifiedEvent,curveNode);
+    }
+  // This displayableManager should now consider ModifiedEvent again
+  this->Updating = 0;
 }
 
 //---------------------------------------------------------------------------
@@ -1403,57 +1408,57 @@ void vtkMRMLMarkupsCurveDisplayableManager2D::OnInteractorStyleEvent(int eventid
 //---------------------------------------------------------------------------
 void vtkMRMLMarkupsCurveDisplayableManager2D::UpdatePosition(vtkAbstractWidget *widget, vtkMRMLNode *node)
 {
-////  vtkWarningMacro("UpdatePosition, node is " << (node == NULL ? "null" : node->GetID()));
-//  if (!node)
-//    {
-//    return;
-//    }
-//  vtkMRMLMarkupsNode *pointsNode = vtkMRMLMarkupsNode::SafeDownCast(node);
-//  if (!pointsNode)
-//    {
-//    vtkErrorMacro("UpdatePosition - Can not access control points node from node with id " << node->GetID());
-//    return;
-//    }
-//  // get the widget
-//  if (!widget)
-//    {
-//    vtkErrorMacro("UpdatePosition: no widget associated with points node " << pointsNode->GetID());
-//    return;
-//    }
-//  // cast to a seed widget
-//  vtkSeedWidget* seedWidget = vtkSeedWidget::SafeDownCast(widget);
-//
-//  if (!seedWidget)
-//   {
-//   vtkErrorMacro("UpdatePosition: Could not get seed widget!")
-//   return;
-//   }
-//
-//  // now get the widget properties (coordinates, measurement etc.) and if the mrml node has changed, propagate the changes
-//
-//
-//  // disable processing of modified events
-//  //this->Updating = 1;
-//  bool positionChanged = false;
-//  int numberOfFiducials = pointsNode->GetNumberOfMarkups();
-//  for (int n = 0; n < numberOfFiducials; n++)
-//    {
-//    if (this->UpdateNthSeedPositionFromMRML(n, seedWidget, pointsNode))
-//      {
-//      positionChanged = true;
-//      }
-//    }
-//  // did any of the positions change?
-//  if (positionChanged && this->Updating == 0)
-//    {
-//    // not already updating from propagate mrml to widget, so trigger a render
-//    vtkSeedRepresentation * seedRepresentation = vtkSeedRepresentation::SafeDownCast(seedWidget->GetRepresentation());
-//    seedRepresentation->NeedToRenderOn();
-//    seedWidget->Modified();
-////    seedWidget->CompleteInteraction();
-//    }
-//  // enable processing of modified events
-//  //this->Updating = 0;
+//  vtkWarningMacro("UpdatePosition, node is " << (node == NULL ? "null" : node->GetID()));
+  if (!node)
+    {
+    return;
+    }
+
+  vtkMRMLMarkupsNode *pointsNode = vtkMRMLMarkupsNode::SafeDownCast(node);
+  if (!pointsNode)
+    {
+    vtkErrorMacro("UpdatePosition - Can not access control points node from node with id " << node->GetID());
+    return;
+    }
+  // get the widget
+  if (!widget)
+    {
+    vtkErrorMacro("UpdatePosition: no widget associated with points node " << pointsNode->GetID());
+    return;
+    }
+
+  // cast to a seed widget
+  vtkMarkupsCurveWidget* seedWidget = vtkMarkupsCurveWidget::SafeDownCast(widget);
+  if (!seedWidget)
+   {
+   vtkErrorMacro("UpdatePosition: Could not get seed widget!")
+   return;
+   }
+
+  // now get the widget properties (coordinates, measurement etc.) and if the mrml node has changed, propagate the changes
+
+  // disable processing of modified events
+  //this->Updating = 1;
+  bool positionChanged = false;
+  int numberOfFiducials = pointsNode->GetNumberOfMarkups();
+  for (int n = 0; n < numberOfFiducials; n++)
+    {
+    if (this->UpdateNthSeedPositionFromMRML(n, seedWidget, pointsNode))
+      {
+      positionChanged = true;
+      }
+    }
+  // did any of the positions change?
+  if (positionChanged && this->Updating == 0)
+    {
+    // not already updating from propagate mrml to widget, so trigger a render
+    vtkMarkupsSplineRepresentation * seedRepresentation = vtkMarkupsSplineRepresentation::SafeDownCast(seedWidget->GetRepresentation());
+    seedRepresentation->NeedToRenderOn();
+    seedWidget->Modified();
+    seedWidget->CompleteInteraction();
+    }
+  // enable processing of modified events
+  this->Updating = 0;
 }
 
 //---------------------------------------------------------------------------
@@ -1469,88 +1474,88 @@ void vtkMRMLMarkupsCurveDisplayableManager2D::OnMRMLSceneEndClose()
 //---------------------------------------------------------------------------
 void vtkMRMLMarkupsCurveDisplayableManager2D::OnMRMLMarkupsNodeNthMarkupModifiedEvent(vtkMRMLMarkupsNode* node, int n)
 {
-  //int numberOfMarkups = node->GetNumberOfMarkups();
-  //if (n < 0 || n >= numberOfMarkups)
-  //  {
-  //  vtkErrorMacro("OnMRMLMarkupsNodeNthMarkupModifiedEvent: n = " << n << " is out of range 0-" << numberOfMarkups);
-  //  return;
-  //  }
+  int numberOfMarkups = node->GetNumberOfMarkups();
+  if (n < 0 || n >= numberOfMarkups)
+    {
+    vtkErrorMacro("OnMRMLMarkupsNodeNthMarkupModifiedEvent: n = " << n << " is out of range 0-" << numberOfMarkups);
+    return;
+    }
 
-  //vtkAbstractWidget *widget = this->Helper->GetWidget(node);
-  //if (!widget)
-  //  {
-  //  vtkErrorMacro("OnMRMLMarkupsNodeNthMarkupModifiedEvent: a markup was added to a node that doesn't already have a widget! Returning..");
-  //  return;
-  //  }
+  vtkAbstractWidget *widget = this->Helper->GetWidget(node);
+  if (!widget)
+    {
+    vtkErrorMacro("OnMRMLMarkupsNodeNthMarkupModifiedEvent: a markup was added to a node that doesn't already have a widget! Returning..");
+    return;
+    }
 
-  //vtkSeedWidget* seedWidget = vtkSeedWidget::SafeDownCast(widget);
-  //if (!seedWidget)
-  // {
-  // vtkErrorMacro("OnMRMLMarkupsNodeNthMarkupModifiedEvent: Could not get seed widget!")
-  // return;
-  // }
-  //this->SetNthSeed(n, vtkMRMLMarkupsCurveNode::SafeDownCast(node), seedWidget);
+  vtkMarkupsCurveWidget* seedWidget = vtkMarkupsCurveWidget::SafeDownCast(widget);
+  if (!seedWidget)
+   {
+   vtkErrorMacro("OnMRMLMarkupsNodeNthMarkupModifiedEvent: Could not get seed widget!")
+   return;
+   }
+  this->SetNthSeed(n, vtkMRMLMarkupsCurveNode::SafeDownCast(node), seedWidget);
 }
 
 //---------------------------------------------------------------------------
 void vtkMRMLMarkupsCurveDisplayableManager2D::OnMRMLMarkupsNodeMarkupAddedEvent(vtkMRMLMarkupsNode * markupsNode, int n)
 {
-  //vtkDebugMacro("OnMRMLMarkupsNodeMarkupAddedEvent");
+  vtkDebugMacro("OnMRMLMarkupsNodeMarkupAddedEvent");
 
-  //if (!markupsNode)
-  //  {
-  //  return;
-  //  }
-  //vtkAbstractWidget *widget = this->Helper->GetWidget(markupsNode);
-  //if (!widget)
-  //  {
-  //  // TBD: create a widget?
-  //  vtkErrorMacro("OnMRMLMarkupsNodeMarkupAddedEvent: a markup was added to a node that doesn't already have a widget! Returning..");
-  //  return;
-  //  }
+  if (!markupsNode)
+    {
+    return;
+    }
+  vtkAbstractWidget *widget = this->Helper->GetWidget(markupsNode);
+  if (!widget)
+    {
+    // TBD: create a widget?
+    vtkErrorMacro("OnMRMLMarkupsNodeMarkupAddedEvent: a markup was added to a node that doesn't already have a widget! Returning..");
+    return;
+    }
 
-  //if (n < 0)
-  //  {
-  //  // batch update, recreate the widget
-  //  this->Helper->RemoveWidgetAndNode(markupsNode);
-  //  this->AddWidget(markupsNode);
-  //  return;
-  //  }
+  if (n < 0)
+    {
+    // batch update, recreate the widget
+    this->Helper->RemoveWidgetAndNode(markupsNode);
+    this->AddWidget(markupsNode);
+    return;
+    }
 
-  //vtkSeedWidget* seedWidget = vtkSeedWidget::SafeDownCast(widget);
-  //if (!seedWidget)
-  // {
-  // vtkErrorMacro("OnMRMLMarkupsNodeMarkupAddedEvent: Could not get seed widget!")
-  // return;
-  // }
+  vtkMarkupsCurveWidget* seedWidget = vtkMarkupsCurveWidget::SafeDownCast(widget);
+  if (!seedWidget)
+   {
+   vtkErrorMacro("OnMRMLMarkupsNodeMarkupAddedEvent: Could not get seed widget!")
+   return;
+   }
 
-  //// this call will create a new handle and set it
-  //// std::cout << "OnMRMLMarkupsNodeMarkupAddedEvent: adding to markups node that currently has " << markupsNode->GetNumberOfMarkups() << std::endl;
-  //this->SetNthSeed(n, vtkMRMLMarkupsCurveNode::SafeDownCast(markupsNode), seedWidget);
+  // this call will create a new handle and set it
+  // std::cout << "OnMRMLMarkupsNodeMarkupAddedEvent: adding to markups node that currently has " << markupsNode->GetNumberOfMarkups() << std::endl;
+  this->SetNthSeed(n, vtkMRMLMarkupsCurveNode::SafeDownCast(markupsNode), seedWidget);
 
-  //vtkSeedRepresentation * seedRepresentation = vtkSeedRepresentation::SafeDownCast(seedWidget->GetRepresentation());
-  //seedRepresentation->NeedToRenderOn();
-  //seedWidget->Modified();
+  vtkMarkupsSplineRepresentation * seedRepresentation = vtkMarkupsSplineRepresentation::SafeDownCast(seedWidget->GetRepresentation());
+  seedRepresentation->NeedToRenderOn();
+  seedWidget->Modified();
 }
 
 //---------------------------------------------------------------------------
 void vtkMRMLMarkupsCurveDisplayableManager2D::OnMRMLMarkupsNodeMarkupRemovedEvent(vtkMRMLMarkupsNode * markupsNode, int vtkNotUsed(n))
 {
-  //vtkDebugMacro("OnMRMLMarkupsNodeMarkupRemovedEvent");
+  vtkDebugMacro("OnMRMLMarkupsNodeMarkupRemovedEvent");
 
-  //if (!markupsNode)
-  //  {
-  //  return;
-  //  }
-  //vtkAbstractWidget *widget = this->Helper->GetWidget(markupsNode);
-  //if (!widget)
-  //  {
-  //  // TBD: create a widget?
-  //  vtkErrorMacro("OnMRMLMarkupsNodeMarkupRemovedEvent: a markup was removed from a node that doesn't already have a widget! Returning..");
-  //  return;
-  //  }
+  if (!markupsNode)
+    {
+    return;
+    }
+  vtkAbstractWidget *widget = this->Helper->GetWidget(markupsNode);
+  if (!widget)
+    {
+    // TBD: create a widget?
+    vtkErrorMacro("OnMRMLMarkupsNodeMarkupRemovedEvent: a markup was removed from a node that doesn't already have a widget! Returning..");
+    return;
+    }
 
-  //// for now, recreate the widget
-  //this->Helper->RemoveWidgetAndNode(markupsNode);
-  //this->AddWidget(markupsNode);
+  // for now, recreate the widget
+  this->Helper->RemoveWidgetAndNode(markupsNode);
+  this->AddWidget(markupsNode);
 }

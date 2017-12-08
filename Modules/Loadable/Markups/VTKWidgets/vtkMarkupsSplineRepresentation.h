@@ -99,6 +99,9 @@ public:
   // are specified.
   virtual void BuildRepresentation();
 
+  // Specialized method to insert a handle outside the poly line.
+  virtual void InsertHandle(double* pos);
+
   // Specialized method to insert a handle on the poly line.
   virtual void InsertHandleOnLine(double* pos);
 

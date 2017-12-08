@@ -93,6 +93,8 @@ vtkMarkupsSplineRepresentation::vtkMarkupsSplineRepresentation()
 
   this->LineActor->SetMapper( lineMapper );
   lineMapper->Delete();
+
+  this->SetNumberOfHandles(0);
 }
 
 //----------------------------------------------------------------------------
@@ -281,7 +283,12 @@ void vtkMarkupsSplineRepresentation::InsertHandleOnLine(double* pos)
   if (this->NumberOfHandles < 2) { return; }
 
   vtkIdType id = this->LinePicker->GetCellId();
-  if (id == -1){ return; }
+  if (id == -1)
+    {
+    // Didn't click on a line segment
+    this->InsertHandle(pos);
+    return;
+    }
 
   vtkIdType subid = this->LinePicker->GetSubId();
 
@@ -303,6 +310,21 @@ void vtkMarkupsSplineRepresentation::InsertHandleOnLine(double* pos)
     {
     newpoints->SetPoint(count++,this->HandleGeometry[i]->GetCenter());
     }
+
+  this->InitializeHandles(newpoints);
+  newpoints->Delete();
+}
+
+void vtkMarkupsSplineRepresentation::InsertHandle(double* pos)
+{
+  vtkPoints* newpoints = vtkPoints::New(VTK_DOUBLE);
+  newpoints->SetNumberOfPoints(this->NumberOfHandles + 1);
+
+  for (int i = 0; i < this->NumberOfHandles; ++i)
+  {
+    newpoints->SetPoint(i, this->HandleGeometry[i]->GetCenter());
+  }
+  newpoints->SetPoint(newpoints->GetNumberOfPoints(), pos);
 
   this->InitializeHandles(newpoints);
   newpoints->Delete();

@@ -265,11 +265,13 @@ vtkHandleWidget * vtkMarkupsCurveWidget::CreateNewHandle(double *pos)
 
   //// Create the handle widget or reuse an old one
   //int currentHandleNumber = static_cast<int>(this->Seeds->size());
-  //vtkHandleWidget *widget = vtkHandleWidget::New();
+  vtkHandleWidget *widget = vtkHandleWidget::New();
 
   //// Configure the handle widget
-  //widget->SetParent(this);
-  //widget->SetInteractor(this->Interactor);
+  widget->SetParent(this);
+  widget->SetInteractor(this->Interactor);
+  rep->InsertHandleOnLine(pos);
+
   //vtkHandleRepresentation *handleRep = rep->GetHandleRepresentation(currentHandleNumber);
   //if (!handleRep)
   //{
@@ -285,11 +287,6 @@ vtkHandleWidget * vtkMarkupsCurveWidget::CreateNewHandle(double *pos)
   //  this->Seeds->push_back(widget);
   //  return widget;
   //}
-
-
-  rep->InsertHandleOnLine(pos);
-
-
 
   //// We are in a static method, cast to ourself
   //vtkMarkupsCurveWidget *self = vtkMarkupsCurveWidget::SafeDownCast(w);

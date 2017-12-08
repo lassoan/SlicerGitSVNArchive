@@ -158,7 +158,7 @@ void vtkSlicerMarkupsLogic::ObserveMRMLScene()
 
     selectionNode->AddNewPlaceNodeClassNameToList("vtkMRMLMarkupsFiducialNode", ":/Icons/MarkupsMouseModePlace.png", "Fiducial");
     //TODO
-    selectionNode->AddNewPlaceNodeClassNameToList("vtkMRMLMarkupsCurveNode", ":/Icons/MarkupsMouseModePlace.png", "Curve");
+    selectionNode->AddNewPlaceNodeClassNameToList("vtkMRMLMarkupsCurveNode", ":/Icons/MarkupsMouseModePlaceCurve.png", "Curve");
 
     // trigger an upate on the mouse mode toolbar
     this->GetMRMLScene()->EndState(vtkMRMLScene::BatchProcessState);
