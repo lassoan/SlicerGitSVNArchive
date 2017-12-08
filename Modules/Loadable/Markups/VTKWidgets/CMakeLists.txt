@@ -14,6 +14,8 @@ set(${KIT}_SRCS
   vtk${MODULE_NAME}CurveWidget.h
   vtk${MODULE_NAME}SplineRepresentation.cxx
   vtk${MODULE_NAME}SplineRepresentation.h
+  #vtk${MODULE_NAME}AngleRepresentation.cxx
+  #vtk${MODULE_NAME}AngleRepresentation.h
   )
 
 set(${KIT}_TARGET_LIBRARIES

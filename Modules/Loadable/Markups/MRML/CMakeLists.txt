@@ -11,9 +11,11 @@ set(${KIT}_SRCS
   vtkMRML${MODULE_NAME}DisplayNode.cxx
   vtkMRML${MODULE_NAME}FiducialNode.cxx
   vtkMRML${MODULE_NAME}CurveNode.cxx
+  #vtkMRML${MODULE_NAME}AngleNode.cxx
   vtkMRML${MODULE_NAME}Node.cxx
   vtkMRML${MODULE_NAME}FiducialStorageNode.cxx
   vtkMRML${MODULE_NAME}CurveStorageNode.cxx
+  #vtkMRML${MODULE_NAME}AngleStorageNode.cxx
   )
 
 set(${KIT}_TARGET_LIBRARIES
