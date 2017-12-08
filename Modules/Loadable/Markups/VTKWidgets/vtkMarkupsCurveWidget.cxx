@@ -306,6 +306,8 @@ vtkHandleWidget * vtkMarkupsCurveWidget::CreateNewHandle(double *pos)
   //self->InvokeEvent(vtkCommand::StartInteractionEvent, NULL);
   //self->Render();
   //self->EndInteraction();
+
+  return widget;
 }
 
 //----------------------------------------------------------------------------

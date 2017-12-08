@@ -476,8 +476,7 @@ bool vtkMRMLMarkupsCurveDisplayableManager2D::UpdateNthSeedPositionFromMRML(int 
   this->GetWorldToDisplayCoordinates(pointTransformed,displayCoordinates1);
 
   double fidpos[4];
-  seedRepresentation->GetHandlePosition(n,fidpos);
-  this->GetWorldToDisplayCoordinates(fidpos, displayCoordinatesBuffer1);
+  seedRepresentation->GetHandlePosition(n, displayCoordinatesBuffer1);
 
   if (this->GetDisplayCoordinatesChanged(displayCoordinates1,displayCoordinatesBuffer1))
     {

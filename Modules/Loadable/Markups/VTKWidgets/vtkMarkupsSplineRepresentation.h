@@ -26,7 +26,7 @@
 #define vtkMarkupsSplineRepresentation_h
 
 #include "vtkSlicerMarkupsModuleVTKWidgetsExport.h"
-#include "vtkCurveRepresentation.h"
+#include "vtkMarkupsCurveRepresentation.h"
 
 class vtkActor;
 class vtkCellPicker;
@@ -41,11 +41,11 @@ class vtkProperty;
 class vtkSphereSource;
 class vtkTransform;
 
-class VTK_SLICER_MARKUPS_MODULE_VTKWIDGETS_EXPORT vtkMarkupsSplineRepresentation : public vtkCurveRepresentation
+class VTK_SLICER_MARKUPS_MODULE_VTKWIDGETS_EXPORT vtkMarkupsSplineRepresentation : public vtkMarkupsCurveRepresentation
 {
 public:
   static vtkMarkupsSplineRepresentation* New();
-  vtkTypeMacro(vtkMarkupsSplineRepresentation, vtkCurveRepresentation);
+  vtkTypeMacro(vtkMarkupsSplineRepresentation, vtkMarkupsCurveRepresentation);
   void PrintSelf(ostream& os, vtkIndent indent);
 
   // Description:

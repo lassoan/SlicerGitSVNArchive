@@ -12,6 +12,8 @@ set(${KIT}_SRCS
   vtk${MODULE_NAME}GlyphSource2D.h
   vtk${MODULE_NAME}CurveWidget.cxx
   vtk${MODULE_NAME}CurveWidget.h
+  vtk${MODULE_NAME}CurveRepresentation.cxx
+  vtk${MODULE_NAME}CurveRepresentation.h
   vtk${MODULE_NAME}SplineRepresentation.cxx
   vtk${MODULE_NAME}SplineRepresentation.h
   #vtk${MODULE_NAME}AngleRepresentation.cxx

@@ -117,6 +117,11 @@ double qSlicerSubjectHierarchyMarkupsPlugin::canAddNodeToSubjectHierarchy(
     // Item is a markup fiducial
     return 0.5;
     }
+  else if (node->IsA("vtkMRMLMarkupsCurveNode"))
+    {
+    // Item is a markup curve
+    return 0.5;
+    }
   return 0.0;
 }
 
