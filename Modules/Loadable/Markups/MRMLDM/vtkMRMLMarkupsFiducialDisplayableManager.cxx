@@ -470,10 +470,12 @@ bool vtkMRMLMarkupsFiducialDisplayableManager::UpdateNthHandlePositionFromMRML(i
 
     if (this->GetDisplayCoordinatesChanged(displayCoordinates1,displayCoordinatesBuffer1))
       {
-      positionChanged = true;
-      double worldCoordinates[4] = {0.0, 0.0, 0.0, 1.0};
-      this->GetDisplayToWorldCoordinates(displayCoordinatesBuffer1, worldCoordinates);
-      pointsNode->SetMarkupPointWorld(n, 0, worldCoordinates[0], worldCoordinates[1], worldCoordinates[2]);
+      if (markupsRepresentation->GetRenderer() != NULL &&
+        markupsRepresentation->GetRenderer()->IsActiveCameraCreated())
+        {
+          markupsRepresentation->SetHandleDisplayPosition(n, displayCoordinates1);
+          positionChanged = true;
+        }
       }
   }
   else
