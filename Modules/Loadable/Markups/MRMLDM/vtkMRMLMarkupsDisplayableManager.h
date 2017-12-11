@@ -1,25 +1,23 @@
-/*==============================================================================
+/*=auto=========================================================================
 
-  Program: 3D Slicer
+ Portions (c) Copyright 2005 Brigham and Women's Hospital (BWH) All Rights Reserved.
 
-  Portions (c) Copyright Brigham and Women's Hospital (BWH) All Rights Reserved.
+ See COPYRIGHT.txt
+ or http://www.slicer.org/copyright/copyright.txt for details.
 
-  See COPYRIGHT.txt
-  or http://www.slicer.org/copyright/copyright.txt for details.
+ Program:   3D Slicer
 
-  Unless required by applicable law or agreed to in writing, software
-  distributed under the License is distributed on an "AS IS" BASIS,
-  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-  See the License for the specific language governing permissions and
-  limitations under the License.
+ =========================================================================auto=*/
 
-==============================================================================*/
-
-#ifndef __vtkMRMLMarkupsDisplayableManager3D_h
-#define __vtkMRMLMarkupsDisplayableManager3D_h
+#ifndef __vtkMRMLMarkupsDisplayableManager_h
+#define __vtkMRMLMarkupsDisplayableManager_h
 
 // MarkupsModule includes
 #include "vtkSlicerMarkupsModuleMRMLDisplayableManagerExport.h"
+
+// MRMLDisplayableManager includes
+#include <vtkMRMLAbstractDisplayableManager.h>
+
 
 // MarkupsModule/MRMLDisplayableManager includes
 #include "vtkMRMLMarkupsClickCounter.h"
@@ -29,23 +27,40 @@
 #include <vtkMRMLAbstractThreeDViewDisplayableManager.h>
 
 // VTK includes
-#include <vtkHandleWidget.h>
-#include <vtkSeedWidget.h>
 
 class vtkMRMLMarkupsNode;
 class vtkSlicerViewerWidget;
 class vtkMRMLMarkupsDisplayNode;
-class vtkAbstractWidget;
 
-/// \ingroup Slicer_QtModules_Markups
-class  VTK_SLICER_MARKUPS_MODULE_MRMLDISPLAYABLEMANAGER_EXPORT vtkMRMLMarkupsDisplayableManager3D :
-    public vtkMRMLAbstractThreeDViewDisplayableManager
+
+
+// Slicer includes
+class vtkMRMLSliceNode;
+class vtkSlicerViewerWidget;
+
+// VTK includes
+class vtkMarkupsWidget;
+class vtkHandleWidget;
+
+/// \ingroup Slicer_QtModules_Annotation
+class VTK_SLICER_MARKUPS_MODULE_MRMLDISPLAYABLEMANAGER_EXPORT
+vtkMRMLMarkupsDisplayableManager
+  : public vtkMRMLAbstractDisplayableManager
 {
 public:
 
-  static vtkMRMLMarkupsDisplayableManager3D *New();
-  vtkTypeMacro(vtkMRMLMarkupsDisplayableManager3D, vtkMRMLAbstractThreeDViewDisplayableManager);
+  //static vtkMRMLMarkupsDisplayableManager *New();
+  vtkTypeMacro(vtkMRMLMarkupsDisplayableManager, vtkMRMLAbstractDisplayableManager);
   void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
+
+  /// Check if this is a 2d SliceView displayable manager, returns true if so,
+  /// false otherwise. Checks return from GetSliceNode for non null, which means
+  /// it's a 2d displayable manager
+  virtual bool Is2DDisplayableManager();
+  /// Get the slice node. If returns non-zero then it is a 2D slice displayable manager.
+  vtkMRMLSliceNode * GetMRMLSliceNode();
+  /// Get the 3D view node. If returns non-zero then it is a 3D displayable manager.
+  vtkMRMLViewNode * GetMRMLViewNode();
 
   /// Hide/Show a widget so that the node's display node visibility setting
   /// matches that of the widget
@@ -53,9 +68,9 @@ public:
 
   // the following functions must be public to be accessible by the callback
   /// Propagate properties of MRML node to widget.
-  virtual void PropagateMRMLToWidget(vtkMRMLMarkupsNode* node, vtkAbstractWidget * widget);
+  virtual void PropagateMRMLToWidget(vtkMRMLMarkupsNode* node, vtkMarkupsWidget * widget);
   /// Propagate properties of widget to MRML node.
-  virtual void PropagateWidgetToMRML(vtkAbstractWidget * widget, vtkMRMLMarkupsNode* node);
+  virtual void PropagateWidgetToMRML(vtkMarkupsWidget * widget, vtkMRMLMarkupsNode* node);
   /// Check if there are real changes between two sets of displayCoordinates
   bool GetDisplayCoordinatesChanged(double * displayCoordinates1, double * displayCoordinates2);
 
@@ -68,26 +83,43 @@ public:
 
   /// Convert world coordinates to local using mrml parent transform
   virtual void GetWorldToLocalCoordinates(vtkMRMLMarkupsNode *node,
-                                  double *worldCoordinates, double *localCoordinates);
+    double *worldCoordinates, double *localCoordinates);
 
   /// Set mrml parent transform to widgets
-  virtual void SetParentTransformToWidget(vtkMRMLMarkupsNode *vtkNotUsed(node), vtkAbstractWidget *vtkNotUsed(widget)){};
+  virtual void SetParentTransformToWidget(vtkMRMLMarkupsNode *vtkNotUsed(node), vtkMarkupsWidget *vtkNotUsed(widget)){};
+
+
+  /// Set/Get the 2d scale factor to divide 3D scale by to show 2D elements appropriately (usually set to 300)
+  vtkSetMacro(ScaleFactor2D, double);
+  vtkGetMacro(ScaleFactor2D, double);
+
+  /// Return true if in lightbox mode - there is a slice node that has layout
+  /// grid columns or rows > 1
+  bool IsInLightboxMode();
+
+  int  GetLightboxIndex(vtkMRMLMarkupsNode *node, int markupIndex, int pointIndex);
+
+  bool IsWidgetDisplayableOnSlice(vtkMRMLMarkupsNode* node, int markupIndex);
+
+  bool RestrictDisplayCoordinatesToViewport(double* displayCoordinates);
 
   /// Create a new widget for this markups node and save it to the helper.
   /// Returns widget on success, null on failure.
-  vtkAbstractWidget *AddWidget(vtkMRMLMarkupsNode *markupsNode);
+  vtkMarkupsWidget *AddWidget(vtkMRMLMarkupsNode *markupsNode);
 
-//  vtkMRMLMarkupsDisplayableManagerHelper *  GetHelper() { return this->Helper; };
+  //  vtkMRMLMarkupsDisplayableManagerHelper *  GetHelper() { return this->Helper; };
   vtkGetObjectMacro(Helper, vtkMRMLMarkupsDisplayableManagerHelper);
+
+  bool UpdateNthMarkupPositionFromWidget(int n, vtkMRMLMarkupsNode* pointsNode, vtkMarkupsWidget * widget);
 
 protected:
 
-  vtkMRMLMarkupsDisplayableManager3D();
-  virtual ~vtkMRMLMarkupsDisplayableManager3D();
+  vtkMRMLMarkupsDisplayableManager();
+  virtual ~vtkMRMLMarkupsDisplayableManager();
 
   virtual void ProcessMRMLNodesEvents(vtkObject *caller, unsigned long event, void *callData) VTK_OVERRIDE;
 
-//  virtual void Create();
+  //  virtual void Create();
 
   /// Wrap the superclass render request in a check for batch processing
   virtual void RequestRender();
@@ -111,6 +143,11 @@ protected:
   /// Called after the corresponding MRML View container was modified
   virtual void OnMRMLDisplayableNodeModifiedEvent(vtkObject* caller) VTK_OVERRIDE;
 
+  virtual void OnMRMLSelectionNodeUnitModifiedEvent(vtkMRMLSelectionNode*) {}
+
+  /// Handler for specific SliceView actions
+  virtual void OnMRMLSliceNodeModifiedEvent();
+
   /// Observe one node
   void SetAndObserveNode(vtkMRMLMarkupsNode *markupsNode);
   /// Observe all associated nodes.
@@ -119,6 +156,14 @@ protected:
   /// Observe the interaction node.
   void AddObserversToInteractionNode();
   void RemoveObserversFromInteractionNode();
+
+  /// Observe the selection node for:
+  ///    * vtkMRMLSelectionNode::UnitModifiedEvent
+  /// events to update the unit of the annotation nodes.
+  /// \sa RemoveObserversFromSelectionNode(), AddObserversToInteractionNode(),
+  /// OnMRMLSelectionNodeUnitModifiedEvent()
+  void AddObserversToSelectionNode();
+  void RemoveObserversFromSelectionNode();
 
   /// Preset functions for certain events.
   void OnMRMLMarkupsNodeModifiedEvent(vtkMRMLNode* node);
@@ -143,23 +188,21 @@ protected:
   /// Counter for clicks in Render Window
   vtkMRMLMarkupsClickCounter* ClickCounter;
 
-  /// Update a single seed from markup position, implemented by the subclasses, return
+  /// Update a single handle from markup position, implemented by the subclasses, return
   /// true if the position changed
-  virtual bool UpdateNthSeedPositionFromMRML(int vtkNotUsed(n),
-                 vtkAbstractWidget *vtkNotUsed(widget),
-                 vtkMRMLMarkupsNode *vtkNotUsed(markupsNode))
-    { return false; }
+  virtual bool UpdateNthHandlePositionFromMRML(int n, vtkMarkupsWidget *widget, vtkMRMLMarkupsNode* markupsNode) = 0;
+
   /// Update just the position for the widget, implemented by subclasses.
-  virtual void UpdatePosition(vtkAbstractWidget *vtkNotUsed(widget), vtkMRMLNode *vtkNotUsed(node)) {}
+  virtual void UpdatePosition(vtkMarkupsWidget *widget, vtkMRMLMarkupsNode* markupsNode) = 0;
 
   //
-  // Seeds for widget placement
+  // Handles for widget placement
   //
 
-  /// Place a seed for widgets
-  virtual void PlaceSeed(double x, double y);
-  /// Return the placed seeds
-  vtkHandleWidget * GetSeed(int index);
+  /// Place a handle for widgets
+  virtual void PlaceHandle(double x, double y);
+  /// Return the placed handles
+  vtkHandleWidget * GetHandle(int index);
 
   //
   // Coordinate Conversions
@@ -178,11 +221,11 @@ protected:
   //
 
   /// Create a widget.
-  virtual vtkAbstractWidget * CreateWidget(vtkMRMLMarkupsNode* node);
+  virtual vtkMarkupsWidget * CreateWidget(vtkMRMLMarkupsNode* node);
   /// Gets called when widget was created
-  virtual void OnWidgetCreated(vtkAbstractWidget * widget, vtkMRMLMarkupsNode * node);
+  virtual void OnWidgetCreated(vtkMarkupsWidget * widget, vtkMRMLMarkupsNode * node);
   /// Get the widget of a node.
-  vtkAbstractWidget * GetWidget(vtkMRMLMarkupsNode * node);
+  vtkMarkupsWidget * GetWidget(vtkMRMLMarkupsNode * node);
 
   /// Check if it is the right displayManager
   virtual bool IsCorrectDisplayableManager();
@@ -216,12 +259,13 @@ protected:
 
 private:
 
-  vtkMRMLMarkupsDisplayableManager3D(const vtkMRMLMarkupsDisplayableManager3D&); /// Not implemented
-  void operator=(const vtkMRMLMarkupsDisplayableManager3D&); /// Not Implemented
+  vtkMRMLMarkupsDisplayableManager(const vtkMRMLMarkupsDisplayableManager&); /// Not implemented
+  void operator=(const vtkMRMLMarkupsDisplayableManager&); /// Not Implemented
 
+  /// Scale factor for 2d windows
+  double ScaleFactor2D;
 
   int DisableInteractorStyleEventsProcessing;
-
 };
 
 #endif

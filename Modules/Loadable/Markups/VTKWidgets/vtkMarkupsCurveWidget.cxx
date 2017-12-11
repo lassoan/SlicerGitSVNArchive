@@ -31,7 +31,7 @@ vtkStandardNewMacro(vtkMarkupsCurveWidget);
 //----------------------------------------------------------------------------
 vtkMarkupsCurveWidget::vtkMarkupsCurveWidget()
 {
-  this->WidgetState = vtkMarkupsCurveWidget::Start;
+  this->WidgetState = vtkMarkupsWidget::Idle;
   this->ManagesCursor = 1;
 
   // Define widget events
@@ -77,7 +77,7 @@ void vtkMarkupsCurveWidget::SelectAction(vtkAbstractWidget *w)
   if (!self->CurrentRenderer ||
     !self->CurrentRenderer->IsInViewport(X, Y))
   {
-    self->WidgetState = vtkMarkupsCurveWidget::Start;
+    self->WidgetState = vtkMarkupsWidget::Idle;
     return;
   }
 
@@ -94,7 +94,7 @@ void vtkMarkupsCurveWidget::SelectAction(vtkAbstractWidget *w)
   }
 
   // We are definitely selected
-  self->WidgetState = vtkMarkupsCurveWidget::Active;
+  self->WidgetState = vtkMarkupsWidget::Active;
   self->GrabFocus(self->EventCallbackCommand);
 
   if (interactionState == vtkMarkupsSplineRepresentation::OnLine &&
@@ -145,7 +145,7 @@ void vtkMarkupsCurveWidget::ScaleAction(vtkAbstractWidget *w)
   if (!self->CurrentRenderer ||
     !self->CurrentRenderer->IsInViewport(X, Y))
   {
-    self->WidgetState = vtkMarkupsCurveWidget::Start;
+    self->WidgetState = vtkMarkupsWidget::Idle;
     return;
   }
 
@@ -162,7 +162,7 @@ void vtkMarkupsCurveWidget::ScaleAction(vtkAbstractWidget *w)
   }
 
   // We are definitely selected
-  self->WidgetState = vtkMarkupsCurveWidget::Active;
+  self->WidgetState = vtkMarkupsWidget::Active;
   self->GrabFocus(self->EventCallbackCommand);
   //Scale
   reinterpret_cast<vtkMarkupsSplineRepresentation*>(self->WidgetRep)->
@@ -181,7 +181,7 @@ void vtkMarkupsCurveWidget::MoveAction(vtkAbstractWidget *w)
   vtkMarkupsCurveWidget *self = reinterpret_cast<vtkMarkupsCurveWidget*>(w);
 
   // See whether we're active
-  if (self->WidgetState == vtkMarkupsCurveWidget::Start)
+  if (self->WidgetState == vtkMarkupsWidget::Idle)
   {
     return;
   }
@@ -206,7 +206,7 @@ void vtkMarkupsCurveWidget::MoveAction(vtkAbstractWidget *w)
 void vtkMarkupsCurveWidget::EndSelectAction(vtkAbstractWidget *w)
 {
   vtkMarkupsCurveWidget *self = reinterpret_cast<vtkMarkupsCurveWidget*>(w);
-  if (self->WidgetState == vtkMarkupsCurveWidget::Start)
+  if (self->WidgetState == vtkMarkupsWidget::Idle)
   {
     return;
   }
@@ -223,7 +223,7 @@ void vtkMarkupsCurveWidget::EndSelectAction(vtkAbstractWidget *w)
   self->WidgetRep->EndWidgetInteraction(e);
 
   // Return state to not active
-  self->WidgetState = vtkMarkupsCurveWidget::Start;
+  self->WidgetState = vtkMarkupsWidget::Idle;
   reinterpret_cast<vtkMarkupsSplineRepresentation*>(self->WidgetRep)->
     SetInteractionState(vtkMarkupsSplineRepresentation::Outside);
   self->ReleaseFocus();
@@ -241,13 +241,6 @@ void vtkMarkupsCurveWidget::CreateDefaultRepresentation()
   {
     this->WidgetRep = vtkMarkupsSplineRepresentation::New();
   }
-}
-
-void vtkMarkupsCurveWidget::CompleteInteraction()
-{
-  this->WidgetState = vtkMarkupsCurveWidget::Active;
-  this->EventCallbackCommand->SetAbortFlag(1);
-  //this->Defining = 0;
 }
 
 //----------------------------------------------------------------------
@@ -270,7 +263,7 @@ vtkHandleWidget * vtkMarkupsCurveWidget::CreateNewHandle(double *pos)
   //// Configure the handle widget
   widget->SetParent(this);
   widget->SetInteractor(this->Interactor);
-  rep->InsertHandleOnLine(pos);
+  rep->InsertHandle(pos);
 
   //vtkHandleRepresentation *handleRep = rep->GetHandleRepresentation(currentHandleNumber);
   //if (!handleRep)
@@ -293,7 +286,7 @@ vtkHandleWidget * vtkMarkupsCurveWidget::CreateNewHandle(double *pos)
 
 
   //// We are definitely selected
-  //self->WidgetState = vtkMarkupsCurveWidget::Active;
+  //self->WidgetState = vtkMarkupsWidget::PlacingHandles;
   //self->GrabFocus(self->EventCallbackCommand);
 
   //  // Add point.

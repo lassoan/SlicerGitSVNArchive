@@ -9,7 +9,10 @@
     <file>Icons/MarkupsDeselectAll.png</file>
     <file>Icons/MarkupsListLock.png</file>
     <file>Icons/MarkupsListUnlock.png</file>
-    <file>Icons/MarkupsMouseModePlace.png</file>
+    <file>Icons/MarkupsMouseModePlaceAngle.png</file>
+    <file>Icons/MarkupsMouseModePlaceCurve.png</file>
+    <file>Icons/MarkupsMouseModePlaceFiducial.png</file>
+    <file>Icons/MarkupsMouseModePlaceRuler.png</file>
     <file>Icons/MarkupsMoveDown.png</file>
     <file>Icons/MarkupsMoveUp.png</file>
     <file>Icons/MarkupsSelected.png</file>

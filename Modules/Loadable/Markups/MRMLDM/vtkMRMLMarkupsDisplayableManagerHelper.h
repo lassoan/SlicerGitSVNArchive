@@ -32,11 +32,11 @@
 
 // MarkupsModule/MRML includes
 #include <vtkMRMLMarkupsNode.h>
+#include <vtkMarkupsWidget.h>
 
 // VTK includes
-#include <vtkAbstractWidget.h>
 #include <vtkHandleWidget.h>
-#include <vtkSeedWidget.h>
+#include <vtkMarkupsWidget.h>
 #include <vtkSmartPointer.h>
 
 // MRML includes
@@ -66,15 +66,15 @@ public:
   void UpdateLocked(vtkMRMLMarkupsNode* node, vtkMRMLInteractionNode *interactionNode = NULL);
 
   /// Keep track of the mapping between widgets and nodes
-  void RecordWidgetForNode(vtkAbstractWidget* widget, vtkMRMLMarkupsNode *node);
+  void RecordWidgetForNode(vtkMarkupsWidget* widget, vtkMRMLMarkupsNode *node);
 
-  /// Get a vtkAbstractWidget* given a node
-  vtkAbstractWidget * GetWidget(vtkMRMLMarkupsNode * node);
-  /// ...and its associated vtkAbstractWidget* for Slice intersection representation
-  vtkAbstractWidget * GetIntersectionWidget(vtkMRMLMarkupsNode * node);
-  /// ...and its associated vtkAbstractWidget* for Slice projection representation. There is one
+  /// Get a vtkMarkupsWidget* given a node
+  vtkMarkupsWidget * GetWidget(vtkMRMLMarkupsNode * node);
+  /// ...and its associated vtkMarkupsWidget* for Slice intersection representation
+  vtkMarkupsWidget * GetIntersectionWidget(vtkMRMLMarkupsNode * node);
+  /// ...and its associated vtkMarkupsWidget* for Slice projection representation. There is one
   /// projection widget per unique point.
-  vtkAbstractWidget * GetPointProjectionWidget(std::string uniqueFiducialID);
+  vtkMarkupsWidget * GetPointProjectionWidget(std::string uniqueFiducialID);
 
   /// Remove all widgets, intersection widgets, nodes
   void RemoveAllWidgetsAndNodes();
@@ -92,22 +92,22 @@ public:
   typedef std::vector<vtkMRMLMarkupsNode*>::iterator MarkupsNodeListIt;
 
   /// Map of vtkWidget indexed using associated node ID
-  std::map<vtkMRMLMarkupsNode*, vtkAbstractWidget*> Widgets;
+  std::map<vtkMRMLMarkupsNode*, vtkMarkupsWidget*> Widgets;
 
   /// .. and its associated convenient typedef
-  typedef std::map<vtkMRMLMarkupsNode*, vtkAbstractWidget*>::iterator WidgetsIt;
+  typedef std::map<vtkMRMLMarkupsNode*, vtkMarkupsWidget*>::iterator WidgetsIt;
 
   /// Map of vtkWidgets to reflect the Slice intersections indexed using associated node ID
-  std::map<vtkMRMLMarkupsNode*, vtkAbstractWidget*> WidgetIntersections;
+  std::map<vtkMRMLMarkupsNode*, vtkMarkupsWidget*> WidgetIntersections;
 
   /// .. and its associated convenient typedef
-  typedef std::map<vtkMRMLMarkupsNode*, vtkAbstractWidget*>::iterator WidgetIntersectionsIt;
+  typedef std::map<vtkMRMLMarkupsNode*, vtkMarkupsWidget*>::iterator WidgetIntersectionsIt;
 
   /// Map of vtkWidgets to reflect the Slice projection indexed using associated point IDs
-  std::map<std::string, vtkAbstractWidget*> WidgetPointProjections;
+  std::map<std::string, vtkMarkupsWidget*> WidgetPointProjections;
 
   /// .. and its associated convenient typedef
-  typedef std::map<std::string, vtkAbstractWidget*>::iterator WidgetPointProjectionsIt;
+  typedef std::map<std::string, vtkMarkupsWidget*>::iterator WidgetPointProjectionsIt;
 
   //
   // End of The Lists!!
@@ -115,16 +115,16 @@ public:
   //----------------------------------------------------------------------------------
 
 
-  /// Placement of seeds for widget placement
-  void PlaceSeed(double x, double y, vtkRenderWindowInteractor * interactor, vtkRenderer * renderer);
+  /// Placement of handles for widget placement
+  void PlaceHandle(double x, double y, vtkRenderWindowInteractor * interactor, vtkRenderer * renderer);
 
-  /// Get a placed seed
-  vtkHandleWidget * GetSeed(int index);
+  /// Get a placed handle
+  vtkHandleWidget * GetHandle(int index);
 
-  /// Remove all placed seeds
-  void RemoveSeeds();
+  /// Remove all placed handles
+  void RemoveHandles();
 
-  /// Get the seed glyph type for the given display node.
+  /// Get the handle glyph type for the given display node.
   /// Returns -1 if not found
   int GetNodeGlyphType(vtkMRMLNode *displayNode, int index);
   /// Set the glyph type for the given display node, making a new entry if the
@@ -148,12 +148,8 @@ private:
   vtkMRMLMarkupsDisplayableManagerHelper(const vtkMRMLMarkupsDisplayableManagerHelper&); /// Not implemented
   void operator=(const vtkMRMLMarkupsDisplayableManagerHelper&); /// Not Implemented
 
-  /// SeedWidget for point placement
-  vtkSmartPointer<vtkSeedWidget> SeedWidget;
-  /// List of Handles for the SeedWidget
-  std::vector<vtkSmartPointer<vtkHandleWidget> > HandleWidgetList;
-  /// Utility typedef iterator for the list of handles for the seed widget
-  typedef std::vector<vtkSmartPointer<vtkHandleWidget> >::iterator HandleWidgetListIt;
+  /// MarkupsWidget for point placement
+  vtkSmartPointer<vtkMarkupsWidget> MarkupsWidget;
 
   /// Keep a record of the current glyph type for the handles in the widget
   /// associated with this node, prevents changing them unnecessarily

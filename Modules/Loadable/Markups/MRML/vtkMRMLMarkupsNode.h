@@ -28,6 +28,7 @@
 #include <vtkSmartPointer.h>
 #include <vtkVector.h>
 
+class vtkMRMLMarkupsDisplayNode;
 class vtkStringArray;
 class vtkMatrix4x4;
 
@@ -340,6 +341,9 @@ public:
   /// Called after an already initialised markup has been added to the
   /// scene. Returns false if n out of bounds, true on success.
   bool ResetNthMarkupID(int n);
+
+    /// Return a cast display node, returns null if none
+  vtkMRMLMarkupsDisplayNode *GetMarkupsDisplayNode();
 
 protected:
   vtkMRMLMarkupsNode();

@@ -111,7 +111,7 @@ protected:
 
   // The spline
   vtkParametricSpline *ParametricSpline;
-  vtkParametricFunctionSource *ParametricFunctionSource;
+  vtkSmartPointer<vtkParametricFunctionSource> ParametricFunctionSource;
 
   // The number of line segments used to represent the spline.
   int Resolution;

@@ -140,8 +140,7 @@ vtkMRMLStorageNode* vtkMRMLMarkupsAngleNode::CreateDefaultStorageNode()
 //-------------------------------------------------------------------------
 void vtkMRMLMarkupsAngleNode::CreateDefaultDisplayNodes()
 {
-  if (this->GetDisplayNode() != NULL &&
-      vtkMRMLMarkupsDisplayNode::SafeDownCast(this->GetDisplayNode()) != NULL)
+  if (this->GetMarkupsDisplayNode() != NULL)
     {
     // display node already exists
     return;
@@ -154,18 +153,6 @@ void vtkMRMLMarkupsAngleNode::CreateDefaultDisplayNodes()
   vtkNew<vtkMRMLMarkupsDisplayNode> dispNode;
   this->GetScene()->AddNode(dispNode.GetPointer());
   this->SetAndObserveDisplayNodeID(dispNode->GetID());
-}
-
-//-------------------------------------------------------------------------
-vtkMRMLMarkupsDisplayNode *vtkMRMLMarkupsAngleNode::GetMarkupsDisplayNode()
-{
-  vtkMRMLDisplayNode *displayNode = this->GetDisplayNode();
-  if (displayNode &&
-      displayNode->IsA("vtkMRMLMarkupsDisplayNode"))
-    {
-    return vtkMRMLMarkupsDisplayNode::SafeDownCast(displayNode);
-    }
-  return NULL;
 }
 
 //-------------------------------------------------------------------------

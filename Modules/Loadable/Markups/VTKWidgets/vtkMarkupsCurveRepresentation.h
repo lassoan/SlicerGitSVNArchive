@@ -12,7 +12,7 @@
      PURPOSE.  See the above copyright notice for more information.
 
 =========================================================================*/
-// .NAME vtkMarkupsCurveRepresentation - vtkWidgetRepresentation
+// .NAME vtkMarkupsCurveRepresentation - vtkMarkupsRepresentation
 // base class for a widget that represents an curve that connects control
 // points.
 // .SECTION Description
@@ -27,9 +27,10 @@
 
 #include "vtkSlicerMarkupsModuleVTKWidgetsExport.h"
 
-#include "vtkWidgetRepresentation.h"
+#include "vtkMarkupsRepresentation.h"
+#include "vtkProperty.h"
 #include "vtkSmartPointer.h"
-#include <vector>
+#include <deque>
 
 class vtkActor;
 class vtkCellPicker;
@@ -43,14 +44,10 @@ class vtkSphereSource;
 class vtkTransform;
 class vtkPlaneSource;
 
-#define VTK_PROJECTION_YZ 0
-#define VTK_PROJECTION_XZ 1
-#define VTK_PROJECTION_XY 2
-#define VTK_PROJECTION_OBLIQUE 3
-class VTK_SLICER_MARKUPS_MODULE_VTKWIDGETS_EXPORT vtkMarkupsCurveRepresentation : public vtkWidgetRepresentation
+class VTK_SLICER_MARKUPS_MODULE_VTKWIDGETS_EXPORT vtkMarkupsCurveRepresentation : public vtkMarkupsRepresentation
 {
 public:
-  vtkTypeMacro(vtkMarkupsCurveRepresentation, vtkWidgetRepresentation);
+  vtkTypeMacro(vtkMarkupsCurveRepresentation, vtkMarkupsRepresentation);
   void PrintSelf(ostream& os, vtkIndent indent);
 
   // Used to manage the InteractionState of the widget
@@ -70,43 +67,6 @@ public:
   vtkSetMacro(InteractionState, int);
 
   // Description:
-  // Force the widget to be projected onto one of the orthogonal
-  // planes.  Remember that when the InteractionState changes, a
-  // ModifiedEvent is invoked.  This can be used to snap the curve to
-  // the plane if it is originally not aligned.  The normal in
-  // SetProjectionNormal is 0,1,2 for YZ,XZ,XY planes respectively and
-  // 3 for arbitrary oblique planes when the widget is tied to a
-  // vtkPlaneSource.
-  vtkSetMacro(ProjectToPlane,int);
-  vtkGetMacro(ProjectToPlane,int);
-  vtkBooleanMacro(ProjectToPlane,int);
-
-  // Description:
-  // Set up a reference to a vtkPlaneSource that could be from another widget
-  // object, e.g. a vtkPolyDataSourceWidget.
-  void SetPlaneSource(vtkPlaneSource* plane);
-
-  vtkSetClampMacro(ProjectionNormal,int,VTK_PROJECTION_YZ,VTK_PROJECTION_OBLIQUE);
-  vtkGetMacro(ProjectionNormal,int);
-  void SetProjectionNormalToXAxes()
-    { this->SetProjectionNormal(0); }
-  void SetProjectionNormalToYAxes()
-    { this->SetProjectionNormal(1); }
-  void SetProjectionNormalToZAxes()
-    { this->SetProjectionNormal(2); }
-  void SetProjectionNormalToOblique()
-    { this->SetProjectionNormal(3); }
-
-  // Description:
-  // Set the position of poly line handles and points in terms of a plane's
-  // position. i.e., if ProjectionNormal is 0, all of the x-coordinate
-  // values of the points are set to position. Any value can be passed (and is
-  // ignored) to update the poly line points when Projection normal is set to 3
-  // for arbritrary plane orientations.
-  void SetProjectionPosition(double position);
-  vtkGetMacro(ProjectionPosition, double);
-
-  // Description:
   // Grab the polydata (including points) that defines the
   // interpolating curve. Points are guaranteed to be up-to-date when
   // either the InteractionEvent or EndInteraction events are
@@ -117,19 +77,14 @@ public:
   // Description:
   // Set/Get the handle properties (the spheres are the handles). The
   // properties of the handles when selected and unselected can be manipulated.
-  vtkGetObjectMacro(HandleProperty, vtkProperty);
-  vtkGetObjectMacro(SelectedHandleProperty, vtkProperty);
+  vtkProperty* GetHandleProperty() { return this->HandleProperty; };
+  vtkProperty* GetSelectedHandleProperty() { return this->SelectedHandleProperty; };
 
   // Description:
   // Set/Get the line properties. The properties of the line when selected
   // and unselected can be manipulated.
-  vtkGetObjectMacro(LineProperty, vtkProperty);
-  vtkGetObjectMacro(SelectedLineProperty, vtkProperty);
-
-  // Description:
-  // Set/Get the number of handles for this widget.
-  virtual void SetNumberOfHandles(int npts) = 0;
-  vtkGetMacro(NumberOfHandles, int);
+  vtkProperty* GetLineProperty() { return this->LineProperty; };
+  vtkProperty* GetSelectedLineProperty() { return this->SelectedLineProperty; };
 
   // Description:
   // Set/Get the position of the handles. Call GetNumberOfHandles
@@ -144,15 +99,9 @@ public:
   // Control whether the curve is open or closed. A closed forms a
   // continuous loop: the first and last points are the same.  A
   // minimum of 3 handles are required to form a closed loop.
-  void SetClosed(int closed);
-  vtkGetMacro(Closed,int);
-  vtkBooleanMacro(Closed,int);
-
-  // Description:
-  // Convenience method to determine whether the curve is
-  // closed in a geometric sense.  The widget may be set "closed" but still
-  // be geometrically open (e.g., a straight line).
-  int IsClosed();
+  void SetClosed(bool closed);
+  vtkGetMacro(Closed, bool);
+  vtkBooleanMacro(Closed, bool);
 
   // Description:
   // Get the approximate vs. the true arc length of the curve. Calculated as
@@ -191,6 +140,11 @@ public:
   // Ideally one should use GetLineProperty()->SetColor().
   void SetLineColor(double r, double g, double b);
 
+  // Projection capabilities
+  void ProjectPointsToPlane();
+  void ProjectPointsToOrthoPlane();
+  void ProjectPointsToObliquePlane();
+
 protected:
   vtkMarkupsCurveRepresentation();
   ~vtkMarkupsCurveRepresentation();
@@ -198,29 +152,14 @@ protected:
   double LastEventPosition[3];
   double Bounds[6];
 
-  // Controlling vars
-  int             ProjectionNormal;
-  double          ProjectionPosition;
-  int             ProjectToPlane;
-  vtkSmartPointer<vtkPlaneSource> PlaneSource;
-
-  // Projection capabilities
-  void ProjectPointsToPlane();
-  void ProjectPointsToOrthoPlane();
-  void ProjectPointsToObliquePlane();
-
-  int NumberOfHandles;
-  int Closed;
+  bool Closed;
 
   // The line segments
   vtkSmartPointer<vtkActor> LineActor;
   void HighlightLine(int highlight);
 
   // Glyphs representing hot spots (e.g., handles)
-  //  vtkActor          **Handle;
-  //  vtkSphereSource   **HandleGeometry;
-  std::vector<vtkSmartPointer<vtkActor>> Handle;
-  std::vector<vtkSmartPointer<vtkSphereSource>> HandleGeometry;
+  std::deque< vtkSmartPointer<vtkSphereSource> > HandleGeometry;
 
   void Initialize();
   int  HighlightHandle(vtkProp *prop); //returns handle index or -1 on fail
@@ -229,8 +168,8 @@ protected:
   void EraseHandle(const int&);
 
   // Do the picking
-  vtkCellPicker *HandlePicker;
-  vtkCellPicker *LinePicker;
+  vtkSmartPointer<vtkCellPicker> HandlePicker;
+  vtkSmartPointer<vtkCellPicker> LinePicker;
   double LastPickPosition[3];
   vtkActor *CurrentHandle;
   int CurrentHandleIndex;
@@ -245,14 +184,14 @@ protected:
   void Spin(double *p1, double *p2, double *vpn);
 
   // Transform the control points (used for spinning)
-  vtkTransform *Transform;
+  vtkSmartPointer<vtkTransform> Transform;
 
   // Properties used to control the appearance of selected objects and
   // the manipulator in general.
-  vtkProperty *HandleProperty;
-  vtkProperty *SelectedHandleProperty;
-  vtkProperty *LineProperty;
-  vtkProperty *SelectedLineProperty;
+  vtkSmartPointer<vtkProperty> HandleProperty;
+  vtkSmartPointer<vtkProperty> SelectedHandleProperty;
+  vtkSmartPointer<vtkProperty> LineProperty;
+  vtkSmartPointer<vtkProperty> SelectedLineProperty;
   void CreateDefaultProperties();
 
   // For efficient spinning

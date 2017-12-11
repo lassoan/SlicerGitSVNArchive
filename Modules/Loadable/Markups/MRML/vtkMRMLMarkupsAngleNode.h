@@ -49,7 +49,7 @@ public:
   /// Print out the node information to the output stream
   void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
 
-  virtual const char* GetIcon() VTK_OVERRIDE {return ":/Icons/MarkupsMouseModePlace.png";}
+  virtual const char* GetIcon() VTK_OVERRIDE {return ":/Icons/MarkupsMouseModePlaceAngle.png";}
 
   //--------------------------------------------------------------------------
   // MRMLNode methods

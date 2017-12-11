@@ -48,7 +48,7 @@ public:
   /// Print out the node information to the output stream
   void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
 
-  virtual const char* GetIcon() VTK_OVERRIDE {return ":/Icons/MarkupsMouseModePlace.png";}
+  virtual const char* GetIcon() VTK_OVERRIDE {return ":/Icons/MarkupsMouseModePlaceFiducial.png";}
 
   //--------------------------------------------------------------------------
   // MRMLNode methods
@@ -81,9 +81,6 @@ public:
 
   /// Create and observe default display node(s)
   virtual void CreateDefaultDisplayNodes() VTK_OVERRIDE;
-
-  /// Return a cast display node, returns null if none
-  vtkMRMLMarkupsDisplayNode *GetMarkupsDisplayNode();
 
   // Wrapping some of the generic markup methods
 

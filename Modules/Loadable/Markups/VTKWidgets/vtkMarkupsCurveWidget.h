@@ -14,7 +14,7 @@
 =========================================================================*/
 // .NAME vtkMarkupsCurveWidget - widget for vtkMarkupsSplineRepresentation.
 // .SECTION Description
-// vtkMarkupsCurveWidget is the vtkAbstractWidget subclass for
+// vtkMarkupsCurveWidget is the vtkMarkupsWidget subclass for
 // vtkMarkupsSplineRepresentation which manages the interactions with
 // vtkMarkupsSplineRepresentation. This is based on vtkSplineWidget.
 // .SECTION See Also
@@ -24,18 +24,18 @@
 #define vtkMarkupsCurveWidget_h
 
 #include "vtkInteractionWidgetsModule.h" // For export macro
-#include "vtkAbstractWidget.h"
+#include "vtkMarkupsWidget.h"
 
 #include "vtkSlicerMarkupsModuleVTKWidgetsExport.h"
 
 class vtkMarkupsSplineRepresentation;
 class vtkHandleWidget;
 
-class VTK_SLICER_MARKUPS_MODULE_VTKWIDGETS_EXPORT vtkMarkupsCurveWidget : public vtkAbstractWidget
+class VTK_SLICER_MARKUPS_MODULE_VTKWIDGETS_EXPORT vtkMarkupsCurveWidget : public vtkMarkupsWidget
 {
 public:
   static vtkMarkupsCurveWidget* New();
-  vtkTypeMacro(vtkMarkupsCurveWidget, vtkAbstractWidget);
+  vtkTypeMacro(vtkMarkupsCurveWidget, vtkMarkupsWidget);
   void PrintSelf(ostream& os, vtkIndent indent);
 
   // Description:
@@ -53,16 +53,11 @@ public:
   // this is an instance of the vtkMarkupsSplineRepresentation class.
   void CreateDefaultRepresentation();
 
-  void CompleteInteraction();
-
   vtkHandleWidget * CreateNewHandle(double* pos);
 
 protected:
   vtkMarkupsCurveWidget();
   ~vtkMarkupsCurveWidget();
-
-  int WidgetState;
-  enum _WidgetState {Start=0,Active};
 
   // These methods handle events
   static void SelectAction(vtkAbstractWidget*);

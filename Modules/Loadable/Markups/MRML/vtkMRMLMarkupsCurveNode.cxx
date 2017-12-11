@@ -157,18 +157,6 @@ void vtkMRMLMarkupsCurveNode::CreateDefaultDisplayNodes()
 }
 
 //-------------------------------------------------------------------------
-vtkMRMLMarkupsDisplayNode *vtkMRMLMarkupsCurveNode::GetMarkupsDisplayNode()
-{
-  vtkMRMLDisplayNode *displayNode = this->GetDisplayNode();
-  if (displayNode &&
-      displayNode->IsA("vtkMRMLMarkupsDisplayNode"))
-    {
-    return vtkMRMLMarkupsDisplayNode::SafeDownCast(displayNode);
-    }
-  return NULL;
-}
-
-//-------------------------------------------------------------------------
 int vtkMRMLMarkupsCurveNode::AddFiducial(double x, double y, double z)
 {
   return this->AddFiducial(x, y, z, std::string());

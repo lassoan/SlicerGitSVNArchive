@@ -1277,3 +1277,9 @@ std::string vtkMRMLMarkupsNode::ReplaceListNameInMarkupLabelFormat()
     }
   return newFormatString;
 }
+
+//-------------------------------------------------------------------------
+vtkMRMLMarkupsDisplayNode *vtkMRMLMarkupsNode::GetMarkupsDisplayNode()
+{
+  return vtkMRMLMarkupsDisplayNode::SafeDownCast(this->GetDisplayNode());
+}
