@@ -21,6 +21,7 @@
 #include "vtkHandleRepresentation.h"
 #include "vtkHandleWidget.h"
 #include "vtkMarkupsRepresentation.h"
+#include "vtkMarkupsPointListRepresentation.h"
 #include "vtkObjectFactory.h"
 #include "vtkRenderer.h"
 #include "vtkRenderWindow.h"
@@ -52,8 +53,32 @@ vtkMarkupsWidget::vtkMarkupsWidget()
 //----------------------------------------------------------------------
 int vtkMarkupsWidget::AddHandle(double* worldPosition, double* displayPosition)
 {
-  // Default implementation does not allow adding handles
-  return -1;
+  vtkMarkupsRepresentation *rep = vtkMarkupsRepresentation::SafeDownCast(this->WidgetRep);
+  if (!rep)
+  {
+    vtkErrorMacro(<< "Please set, or create a widget representation "
+      << "before adding requesting creation of a new handle.");
+    return -1;
+  }
+
+  // Add a new handle to the representation
+  int currentHandleNumber = rep->CreateHandle(worldPosition, displayPosition);
+  vtkHandleRepresentation *handleRep = rep->GetHandle(currentHandleNumber);
+  if (!handleRep)
+  {
+    vtkErrorMacro("vtkMarkupsPointListWidget::AddHandle: failed to create a new handle");
+    return NULL;
+  }
+  handleRep->SetRenderer(this->CurrentRenderer);
+
+  // Add a new handle to the widget
+  vtkNew<vtkHandleWidget> widget;
+  widget->SetParent(this);
+  widget->SetInteractor(this->Interactor);
+  widget->SetRepresentation(handleRep);
+  widget->SetEnabled(1);
+  this->Handles.push_back(widget.GetPointer());
+  return currentHandleNumber;
 }
 
 //----------------------------------------------------------------------
@@ -75,6 +100,12 @@ void vtkMarkupsWidget::RemoveHandle(int i)
   (*iter)->RemoveObservers(vtkCommand::InteractionEvent);
   (*iter)->RemoveObservers(vtkCommand::EndInteractionEvent);
   this->Handles.erase(iter);
+
+  vtkMarkupsRepresentation *rep = vtkMarkupsRepresentation::SafeDownCast(this->WidgetRep);
+  if (rep)
+    {
+    rep->RemoveHandle(i);
+    }
 }
 
 //----------------------------------------------------------------------
@@ -270,4 +301,21 @@ void vtkMarkupsWidget::PrintSelf(ostream& os, vtkIndent indent)
   this->Superclass::PrintSelf(os,indent);
 
   os << indent << "WidgetState: " << this->WidgetState << endl;
+}
+
+
+//----------------------------------------------------------------------
+void vtkMarkupsWidget::SetRepresentation(vtkMarkupsRepresentation* widgetRep)
+{
+  this->SetWidgetRepresentation(widgetRep);
+}
+
+//----------------------------------------------------------------------
+void vtkMarkupsWidget::CreateDefaultRepresentation()
+{
+  if (!this->WidgetRep)
+    {
+    vtkNew<vtkMarkupsPointListRepresentation> rep;
+    this->SetWidgetRepresentation(rep.GetPointer());
+    }
 }

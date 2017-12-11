@@ -45,48 +45,12 @@ public:
   void PrintSelf(ostream& os, vtkIndent indent);
 
   // Description:
-  // Specify an instance of vtkWidgetRepresentation used to represent this
-  // widget in the scene. Note that the representation is a subclass of vtkProp
-  // so it can be added to the renderer independent of the widget.
-  void SetRepresentation( vtkMarkupsPointListRepresentation *rep )
-    {
-    this->Superclass::SetWidgetRepresentation(
-      reinterpret_cast<vtkWidgetRepresentation*>(rep) );
-    }
-
-  // Description:
-  // Return the representation as a vtkSeedRepresentation.
-  vtkMarkupsPointListRepresentation *GetMarkupsPointListRepresentation()
-    {
-    return reinterpret_cast<vtkMarkupsPointListRepresentation*>(this->WidgetRep);
-    }
-
-  // Description:
-  // Create the default widget representation if one is not set.
-  void CreateDefaultRepresentation();
-
-  virtual int AddHandle(double* worldPosition, double* displayPosition);
-
-  virtual void RemoveHandle(int i);
-
-  // Description:
-  // Get the nth seed
-  //vtkHandleWidget * GetHandle( int n );
+  // Create and set the default widget representation if one is not set.
+  virtual void CreateDefaultRepresentation();
 
 protected:
   vtkMarkupsPointListWidget();
   ~vtkMarkupsPointListWidget();
-
-  // Callback interface to capture events when
-  // placing the widget.
-  static void AddPointAction( vtkAbstractWidget* );
-  static void CompletedAction( vtkAbstractWidget* );
-  static void MoveAction( vtkAbstractWidget* );
-  static void EndSelectAction( vtkAbstractWidget* );
-  static void DeleteAction( vtkAbstractWidget* );
-
-  // Manipulating or defining ?
-  int Defining;
 
 private:
   vtkMarkupsPointListWidget(const vtkMarkupsPointListWidget&) VTK_DELETE_FUNCTION;

@@ -24,6 +24,7 @@
 
 #include "vtkWidgetRepresentation.h"
 #include "vtkHandleRepresentation.h"
+#include "vtkNew.h"
 #include "vtkSmartPointer.h"
 #include <deque>
 
@@ -71,6 +72,9 @@ public:
   // Handle that is currently being interacted with
   vtkGetMacro(ActiveHandle, int);
 
+  // Returns the id of the handle created, -1 on failure. e is the display position.
+  virtual int CreateHandle(double* worldPosition, double* displayPosition);
+
   // Delete last handle created
   virtual void RemoveLastHandle();
   // Delete the currently active handle
@@ -100,6 +104,13 @@ public:
   // Return the number of handles (or handles) that have been created.
   int GetNumberOfHandles();
 
+  // Description:
+  // The tolerance representing the distance to the widget (in pixels) in
+  // which the cursor is considered near enough to the handle points of
+  // the widget to be active.
+  vtkSetClampMacro(Tolerance, int, 1, 100);
+  vtkGetMacro(Tolerance, int);
+
 protected:
   vtkMarkupsRepresentation();
   ~vtkMarkupsRepresentation();
@@ -116,6 +127,9 @@ protected:
   int ActiveHandle;
 
   vtkHandleRepresentation  *HandleRepresentation;
+
+  // Selection tolerance for the handles
+  int Tolerance;
 
 private:
   vtkMarkupsRepresentation(const vtkMarkupsRepresentation&) VTK_DELETE_FUNCTION;

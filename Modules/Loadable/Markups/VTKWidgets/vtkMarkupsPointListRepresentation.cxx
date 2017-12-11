@@ -32,8 +32,6 @@ vtkStandardNewMacro(vtkMarkupsPointListRepresentation);
 //----------------------------------------------------------------------
 vtkMarkupsPointListRepresentation::vtkMarkupsPointListRepresentation()
 {
-  // The representation for the handles
-  this->Tolerance = 5;
 }
 
 //----------------------------------------------------------------------
@@ -64,27 +62,6 @@ ComputeInteractionState(int vtkNotUsed(X), int vtkNotUsed(Y), int vtkNotUsed(mod
   // Nothing found, so it's outside
   this->InteractionState = vtkMarkupsRepresentation::Outside;
   return this->InteractionState;
-}
-
-//----------------------------------------------------------------------
-int vtkMarkupsPointListRepresentation::CreateHandle(double e[2])
-{
-  double pos[3];
-  pos[0] = e[0];
-  pos[1] = e[1];
-  pos[2] = 0.0;
-
-  vtkHandleRepresentation *rep = this->GetHandleRepresentation(
-    static_cast<int>(this->Handles.size()));
-  if (rep == NULL)
-    {
-    vtkErrorMacro("CreateHandle: no handle representation set yet! Cannot create a new handle.");
-    return -1;
-    }
-  rep->SetDisplayPosition(pos);
-  rep->SetTolerance(this->Tolerance); //needed to ensure that picking is consistent
-  this->ActiveHandle = static_cast<int>(this->Handles.size()) - 1;
-  return this->ActiveHandle;
 }
 
 //----------------------------------------------------------------------

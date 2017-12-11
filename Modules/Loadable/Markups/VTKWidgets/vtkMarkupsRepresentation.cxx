@@ -24,6 +24,7 @@ vtkCxxSetObjectMacro(vtkMarkupsRepresentation, HandleRepresentation, vtkHandleRe
 //----------------------------------------------------------------------------
 vtkMarkupsRepresentation::vtkMarkupsRepresentation()
 {
+  this->Tolerance = 5;
   this->HandleRepresentation = NULL;
   this->ProjectToPlane = 0;  //default off
   this->ProjectionPlaneSource = NULL;
@@ -60,6 +61,32 @@ void vtkMarkupsRepresentation::PrintSelf(ostream& os, vtkIndent indent)
 
   os << indent << "Project To Plane: "
      << (this->ProjectToPlane ? "On" : "Off") << "\n";
+}
+
+//----------------------------------------------------------------------
+int vtkMarkupsRepresentation::CreateHandle(double* worldPosition, double* displayPosition)
+{
+  vtkHandleRepresentation *rep = this->GetHandleRepresentation(
+    static_cast<int>(this->Handles.size()));
+  if (rep == NULL)
+  {
+    vtkErrorMacro("CreateHandle: no handle representation set yet! Cannot create a new handle.");
+    return -1;
+  }
+
+  if (displayPosition)
+  {
+    double pos[3] = { displayPosition[0], displayPosition[1], 0 };
+    rep->SetDisplayPosition(pos);
+    rep->SetTolerance(this->Tolerance); //needed to ensure that picking is consistent
+  }
+  else if (worldPosition)
+  {
+    rep->SetWorldPosition(worldPosition);
+  }
+
+  this->ActiveHandle = static_cast<int>(this->Handles.size()) - 1;
+  return this->ActiveHandle;
 }
 
 //----------------------------------------------------------------------

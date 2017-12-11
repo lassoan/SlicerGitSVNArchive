@@ -72,6 +72,7 @@
 
 class vtkHandleRepresentation;
 class vtkHandleWidget;
+class vtkMarkupsRepresentation;
 
 class VTK_SLICER_MARKUPS_MODULE_VTKWIDGETS_EXPORT vtkMarkupsWidget : public vtkAbstractWidget
 {
@@ -131,6 +132,10 @@ public:
     MovingHandle, // moving handle, will return to Idle state when completed
     Active // for curve
     };
+
+  virtual void SetRepresentation(vtkMarkupsRepresentation* widgetRep);
+
+  virtual void CreateDefaultRepresentation();
 
 protected:
   vtkMarkupsWidget();

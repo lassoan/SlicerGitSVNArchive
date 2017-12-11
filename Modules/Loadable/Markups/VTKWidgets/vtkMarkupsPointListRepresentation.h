@@ -45,18 +45,8 @@ public:
   void PrintSelf(ostream& os, vtkIndent indent);
 
   // Description:
-  // The tolerance representing the distance to the widget (in pixels) in
-  // which the cursor is considered near enough to the handle points of
-  // the widget to be active.
-  vtkSetClampMacro( Tolerance, int, 1, 100 );
-  vtkGetMacro( Tolerance, int );
-
-  // Description:
   // These are methods specific to vtkMarkupsPointListRepresentation and which are
   // invoked from vtkMarkupsPointListWidget.
-
-  // Returns the id of the handle created, -1 on failure. e is the display position.
-  virtual int CreateHandle( double e[2] );
 
   // Description:
   // These are methods that satisfy vtkWidgetRepresentation's API.
@@ -66,9 +56,6 @@ public:
 protected:
   vtkMarkupsPointListRepresentation();
   ~vtkMarkupsPointListRepresentation();
-
-  // Selection tolerance for the handles
-  int Tolerance;
 
 private:
   vtkMarkupsPointListRepresentation(const vtkMarkupsPointListRepresentation&) VTK_DELETE_FUNCTION;
