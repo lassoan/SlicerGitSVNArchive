@@ -241,6 +241,9 @@ protected:
   /// \sa IsManageable(vtkMRMLNode*), IsCorrectDisplayableManager()
   virtual bool IsManageable(const char* nodeClassName);
 
+  /// Helper function to return active place node from selection node
+  const char* GetActivePlaceNodeClassName();
+
   /// Focus of this displayableManager is set to a specific markups type when inherited
   const char* Focus;
 

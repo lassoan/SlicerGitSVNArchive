@@ -34,7 +34,6 @@
 #include "vtkRenderWindow.h"
 #include "vtkRenderWindowInteractor.h"
 #include "vtkSphereSource.h"
-#include "vtkTransform.h"
 
 //----------------------------------------------------------------------------
 vtkMarkupsCurveRepresentation::vtkMarkupsCurveRepresentation()
@@ -50,18 +49,10 @@ vtkMarkupsCurveRepresentation::vtkMarkupsCurveRepresentation()
   this->Bounds[4] =  VTK_DOUBLE_MAX;
   this->Bounds[5] = -VTK_DOUBLE_MAX;
 
-  this->HandleSize = 5.0;
-
-  this->InteractionState = vtkMarkupsCurveRepresentation::Outside;
   this->Closed = 0;
 
   // Default bounds to get started
   double bounds[6] = { -0.5, 0.5, -0.5, 0.5, -0.5, 0.5 };
-
-  // Manage the picking stuff
-  this->HandlePicker = vtkSmartPointer<vtkCellPicker>::New();
-  this->HandlePicker->SetTolerance(0.005);
-  this->HandlePicker->PickFromListOn();
 
   this->LineActor = vtkSmartPointer<vtkActor>::New();
   this->LinePicker = vtkSmartPointer<vtkCellPicker>::New();
@@ -72,9 +63,6 @@ vtkMarkupsCurveRepresentation::vtkMarkupsCurveRepresentation()
   this->LastPickPosition[0] = VTK_DOUBLE_MAX;
   this->LastPickPosition[1] = VTK_DOUBLE_MAX;
   this->LastPickPosition[2] = VTK_DOUBLE_MAX;
-
-  this->CurrentHandle = NULL;
-  this->CurrentHandleIndex = -1;
 
   this->Transform = vtkSmartPointer<vtkTransform>::New();
 
@@ -242,31 +230,6 @@ void vtkMarkupsCurveRepresentation::ProjectPointsToOrthoPlane()
 }
 
 //----------------------------------------------------------------------------
-int vtkMarkupsCurveRepresentation::HighlightHandle(vtkProp *prop)
-{
-  // First unhighlight anything picked
-  if ( this->CurrentHandle )
-    {
-    this->CurrentHandle->SetProperty(this->HandleProperty);
-    }
-
-  this->CurrentHandle = static_cast<vtkActor *>(prop);
-
-  if ( this->CurrentHandle )
-    {
-    for ( int i = 0; i < this->Handles.size(); ++i ) // find handle
-      {
-      if ( this->CurrentHandle == this->Handles[i] )
-        {
-        this->CurrentHandle->SetProperty(this->SelectedHandleProperty);
-        return i;
-        }
-      }
-    }
-  return -1;
-}
-
-//----------------------------------------------------------------------------
 void vtkMarkupsCurveRepresentation::HighlightLine(int highlight)
 {
   if ( highlight )
@@ -276,176 +239,6 @@ void vtkMarkupsCurveRepresentation::HighlightLine(int highlight)
   else
     {
     this->LineActor->SetProperty(this->LineProperty);
-    }
-}
-
-//----------------------------------------------------------------------------
-void vtkMarkupsCurveRepresentation::MovePoint(double *p1, double *p2)
-{
-  if ( this->CurrentHandleIndex < 0 || this->CurrentHandleIndex >= this->Handles.size() )
-    {
-    vtkGenericWarningMacro(<<"Poly line handle index out of range.");
-    return;
-    }
-  // Get the motion vector
-  double v[3];
-  v[0] = p2[0] - p1[0];
-  v[1] = p2[1] - p1[1];
-  v[2] = p2[2] - p1[2];
-
-  double *ctr = this->HandleGeometry[this->CurrentHandleIndex]->GetCenter();
-
-  double newCtr[3];
-  newCtr[0] = ctr[0] + v[0];
-  newCtr[1] = ctr[1] + v[1];
-  newCtr[2] = ctr[2] + v[2];
-
-  this->HandleGeometry[this->CurrentHandleIndex]->SetCenter(newCtr);
-  this->HandleGeometry[this->CurrentHandleIndex]->Update();
-}
-
-//----------------------------------------------------------------------------
-void vtkMarkupsCurveRepresentation::Translate(double *p1, double *p2)
-{
-  // Get the motion vector
-  double v[3];
-  v[0] = p2[0] - p1[0];
-  v[1] = p2[1] - p1[1];
-  v[2] = p2[2] - p1[2];
-
-  double newCtr[3];
-  for ( int i = 0; i < this->Handles.size(); ++i )
-    {
-    double* ctr =  this->HandleGeometry[i]->GetCenter();
-    for ( int j = 0; j < 3; ++j )
-      {
-      newCtr[j] = ctr[j] + v[j];
-      }
-     this->HandleGeometry[i]->SetCenter(newCtr);
-     this->HandleGeometry[i]->Update();
-    }
-}
-
-//----------------------------------------------------------------------------
-void vtkMarkupsCurveRepresentation::Scale(double *p1, double *p2, int vtkNotUsed(X), int Y)
-{
-  // Get the motion vector
-  double v[3];
-  v[0] = p2[0] - p1[0];
-  v[1] = p2[1] - p1[1];
-  v[2] = p2[2] - p1[2];
-
-  double center[3] = {0.0,0.0,0.0};
-  double avgdist = 0.0;
-  double *prevctr = this->HandleGeometry[0]->GetCenter();
-  double *ctr;
-
-  center[0] += prevctr[0];
-  center[1] += prevctr[1];
-  center[2] += prevctr[2];
-
-  int i;
-  for ( i = 1; i < this->Handles.size(); ++i )
-    {
-    ctr = this->HandleGeometry[i]->GetCenter();
-    center[0] += ctr[0];
-    center[1] += ctr[1];
-    center[2] += ctr[2];
-    avgdist += sqrt(vtkMath::Distance2BetweenPoints(ctr,prevctr));
-    prevctr = ctr;
-    }
-
-  avgdist /= this->Handles.size();
-
-  center[0] /= this->Handles.size();
-  center[1] /= this->Handles.size();
-  center[2] /= this->Handles.size();
-
-  // Compute the scale factor
-  double sf = vtkMath::Norm(v) / avgdist;
-  if ( Y > this->LastEventPosition[1] )
-    {
-    sf = 1.0 + sf;
-    }
-  else
-    {
-    sf = 1.0 - sf;
-    }
-
-  // Move the handle points
-  double newCtr[3];
-  for ( i = 0; i < this->Handles.size(); ++i )
-    {
-    ctr = this->HandleGeometry[i]->GetCenter();
-    for ( int j = 0; j < 3; ++j )
-      {
-      newCtr[j] = sf * (ctr[j] - center[j]) + center[j];
-      }
-    this->HandleGeometry[i]->SetCenter(newCtr);
-    this->HandleGeometry[i]->Update();
-    }
-}
-
-//----------------------------------------------------------------------------
-void vtkMarkupsCurveRepresentation::Spin(double *p1, double *p2, double *vpn)
-{
-  // Mouse motion vector in world space
-  double v[3];
-  v[0] = p2[0] - p1[0];
-  v[1] = p2[1] - p1[1];
-  v[2] = p2[2] - p1[2];
-
-  // Axis of rotation
-  double axis[3] = {0.0,0.0,0.0};
-
-  if (this->ProjectToPlane && this->ProjectionPlaneSource != NULL)
-    {
-    double* normal = this->ProjectionPlaneSource->GetNormal();
-    axis[0] = normal[0];
-    axis[1] = normal[1];
-    axis[2] = normal[2];
-    vtkMath::Normalize( axis );
-    }
-  else
-    {
-  // Create axis of rotation and angle of rotation
-    vtkMath::Cross(vpn,v,axis);
-    if ( vtkMath::Normalize(axis) == 0.0 )
-      {
-      return;
-      }
-    }
-
-  // Radius vector (from mean center to cursor position)
-  double rv[3] = {p2[0] - this->Centroid[0],
-                  p2[1] - this->Centroid[1],
-                  p2[2] - this->Centroid[2]};
-
-  // Distance between center and cursor location
-  double rs = vtkMath::Normalize(rv);
-
-  // Spin direction
-  double ax_cross_rv[3];
-  vtkMath::Cross(axis,rv,ax_cross_rv);
-
-  // Spin angle
-  double theta = 360.0 * vtkMath::Dot(v,ax_cross_rv) / rs;
-
-  // Manipulate the transform to reflect the rotation
-  this->Transform->Identity();
-  this->Transform->Translate(this->Centroid[0],this->Centroid[1],this->Centroid[2]);
-  this->Transform->RotateWXYZ(theta,axis);
-  this->Transform->Translate(-this->Centroid[0],-this->Centroid[1],-this->Centroid[2]);
-
-  // Set the handle points
-  double newCtr[3];
-  double ctr[3];
-  for ( int i = 0; i < this->Handles.size(); ++i )
-    {
-    this->HandleGeometry[i]->GetCenter(ctr);
-    this->Transform->TransformPoint(ctr,newCtr);
-    this->HandleGeometry[i]->SetCenter(newCtr);
-    this->HandleGeometry[i]->Update();
     }
 }
 
@@ -465,18 +258,6 @@ void vtkMarkupsCurveRepresentation::CreateDefaultProperties()
   this->SelectedLineProperty->SetAmbient(1.0);
   this->SelectedLineProperty->SetAmbientColor(0.0,1.0,0.0);
   this->SelectedLineProperty->SetLineWidth(2.0);
-}
-
-//----------------------------------------------------------------------------
-void vtkMarkupsCurveRepresentation::Initialize(void)
-{
-  for (int i = 0; i < this->Handles.size(); ++i )
-    {
-    this->HandlePicker->DeletePickList(this->Handles[i]);
-    }
-
-  this->Handles.clear();
-  this->HandleGeometry.clear();
 }
 
 //----------------------------------------------------------------------------
@@ -546,28 +327,6 @@ void vtkMarkupsCurveRepresentation::InsertHandleOnLine(double* pos)
   for (int i = istop; i < this->Handles.size(); ++i )
     {
     newpoints->SetPoint(count++,this->HandleGeometry[i]->GetCenter());
-    }
-
-  this->InitializeHandles(newpoints);
-}
-
-//----------------------------------------------------------------------------
-void vtkMarkupsCurveRepresentation::EraseHandle(const int& index)
-{
-  if ( index < 0 || index >= this->Handles.size() )
-    {
-    return;
-    }
-
-  vtkSmartPointer<vtkPoints> newpoints = vtkSmartPointer<vtkPoints>::Take(vtkPoints::New(VTK_DOUBLE));
-  newpoints->SetNumberOfPoints(this->Handles.size()-1);
-  int count = 0;
-  for (int i = 0; i < this->Handles.size(); ++i )
-    {
-    if ( i != index )
-      {
-      newpoints->SetPoint(count++,this->HandleGeometry[i]->GetCenter());
-      }
     }
 
   this->InitializeHandles(newpoints);

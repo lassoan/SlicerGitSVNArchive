@@ -26,6 +26,7 @@
 // MarkupsModule/VTKWidgets includes
 #include <vtkMRMLMarkupsDisplayNode.h>
 #include <vtkMarkupsGlyphSource2D.h>
+#include <vtkMarkupsCurveWidget.h>
 #include <vtkMarkupsPointListWidget.h>
 #include <vtkMarkupsPointListRepresentation.h>
 
@@ -1529,11 +1530,23 @@ void vtkMRMLMarkupsFiducialDisplayableManager::OnMRMLMarkupsNodeMarkupRemovedEve
 //---------------------------------------------------------------------------
 vtkMarkupsWidget* vtkMRMLMarkupsFiducialDisplayableManager::CreateWidgetInstance()
 {
+  const char* activePlaceNodeClassName = this->GetActivePlaceNodeClassName();
+  if (strcmp(activePlaceNodeClassName, "vtkMRMLMarkupsCurveNode") == 0)
+  {
+    return vtkMarkupsCurveWidget::New();
+  }
+  // default
   return vtkMarkupsPointListWidget::New();
 }
 
 //---------------------------------------------------------------------------
 vtkMarkupsWidget* vtkMRMLMarkupsFiducialDisplayableManager::CreateProjectionWidgetInstance()
 {
+  const char* activePlaceNodeClassName = this->GetActivePlaceNodeClassName();
+  if (strcmp(activePlaceNodeClassName, "vtkMRMLMarkupsCurveNode") == 0)
+  {
+    return vtkMarkupsCurveWidget::New();
+  }
+  // default
   return vtkMarkupsPointListWidget::New();
 }

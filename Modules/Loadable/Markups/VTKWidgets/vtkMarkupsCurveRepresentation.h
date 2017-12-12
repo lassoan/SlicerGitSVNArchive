@@ -50,22 +50,6 @@ public:
   vtkTypeMacro(vtkMarkupsCurveRepresentation, vtkMarkupsRepresentation);
   void PrintSelf(ostream& os, vtkIndent indent);
 
-  // Used to manage the InteractionState of the widget
-  enum _InteractionState {
-    Outside=0,
-    OnHandle,
-    OnLine,
-    Moving,
-    Scaling,
-    Spinning,
-    Inserting,
-    Erasing
-  };
-
-  // Description:
-  // Set the interaction state
-  vtkSetMacro(InteractionState, int);
-
   // Description:
   // Grab the polydata (including points) that defines the
   // interpolating curve. Points are guaranteed to be up-to-date when
@@ -158,9 +142,6 @@ protected:
   vtkSmartPointer<vtkActor> LineActor;
   void HighlightLine(int highlight);
 
-  // Glyphs representing hot spots (e.g., handles)
-  std::deque< vtkSmartPointer<vtkSphereSource> > HandleGeometry;
-
   void Initialize();
   int  HighlightHandle(vtkProp *prop); //returns handle index or -1 on fail
   virtual void SizeHandles();
@@ -168,28 +149,15 @@ protected:
   void EraseHandle(const int&);
 
   // Do the picking
-  vtkSmartPointer<vtkCellPicker> HandlePicker;
   vtkSmartPointer<vtkCellPicker> LinePicker;
   double LastPickPosition[3];
-  vtkActor *CurrentHandle;
-  int CurrentHandleIndex;
 
   // Register internal Pickers within PickingManager
   virtual void RegisterPickers();
 
-  // Methods to manipulate the curve.
-  void MovePoint(double *p1, double *p2);
-  void Scale(double *p1, double *p2, int X, int Y);
-  void Translate(double *p1, double *p2);
-  void Spin(double *p1, double *p2, double *vpn);
-
-  // Transform the control points (used for spinning)
-  vtkSmartPointer<vtkTransform> Transform;
 
   // Properties used to control the appearance of selected objects and
   // the manipulator in general.
-  vtkSmartPointer<vtkProperty> HandleProperty;
-  vtkSmartPointer<vtkProperty> SelectedHandleProperty;
   vtkSmartPointer<vtkProperty> LineProperty;
   vtkSmartPointer<vtkProperty> SelectedLineProperty;
   void CreateDefaultProperties();

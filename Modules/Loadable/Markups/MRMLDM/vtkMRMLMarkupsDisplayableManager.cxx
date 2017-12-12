@@ -1652,38 +1652,46 @@ bool vtkMRMLMarkupsDisplayableManager::GetWorldCoordinatesChanged(double * world
   return changed;
 }
 
+
+
 //---------------------------------------------------------------------------
 /// Check if it is the correct displayableManager
 //---------------------------------------------------------------------------
-bool vtkMRMLMarkupsDisplayableManager::IsCorrectDisplayableManager()
+const char* vtkMRMLMarkupsDisplayableManager::GetActivePlaceNodeClassName()
 {
-
   vtkMRMLSelectionNode *selectionNode = this->GetMRMLApplicationLogic()->GetSelectionNode();
   if (selectionNode == 0)
   {
     vtkErrorMacro("IsCorrectDisplayableManager: No selection node in the scene.");
-    return false;
+    return NULL;
   }
   if (selectionNode->GetActivePlaceNodeClassName() == 0)
   {
-    //vtkErrorMacro ( "IsCorrectDisplayableManager: no active markups");
-    return false;
+    return NULL;
   }
+  return selectionNode->GetActivePlaceNodeClassName();
+}
+
+//---------------------------------------------------------------------------
+bool vtkMRMLMarkupsDisplayableManager::IsCorrectDisplayableManager()
+{
+  const char* activePlaceNodeClassName = this->GetActivePlaceNodeClassName();
   // the purpose of the displayableManager is hardcoded
-  return this->IsManageable(selectionNode->GetActivePlaceNodeClassName());
+  return this->IsManageable(activePlaceNodeClassName);
 }
 
 //---------------------------------------------------------------------------
 bool vtkMRMLMarkupsDisplayableManager::IsManageable(vtkMRMLNode* node)
 {
-  //return node->IsA(this->Focus);
-  return !strcmp(node->GetClassName(), this->Focus);
+  return node->IsA(this->Focus);
 }
 
 //---------------------------------------------------------------------------
 bool vtkMRMLMarkupsDisplayableManager::IsManageable(const char* nodeClassName)
 {
-  return nodeClassName && !strcmp(nodeClassName, this->Focus);
+  //return nodeClassName && !strcmp(nodeClassName, this->Focus);
+  return nodeClassName && (!strcmp(nodeClassName, "vtkMRMLMarkupsFiducialNode")
+    || !strcmp(nodeClassName, "vtkMRMLMarkupsCurveNode"));
 }
 
 //---------------------------------------------------------------------------

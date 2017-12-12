@@ -39,9 +39,7 @@
 // class's vtkWidgetEventTranslator. This class translates VTK events
 // into the vtkMarkupsWidget's widget events:
 // <pre>
-//   vtkWidgetEvent::AddPoint -- add one point; depending on the state
-//                               it may the first or second point added. Or,
-//                               if near handle, select handle.
+//   vtkWidgetEvent::Select -- if near handle, select handle on click.
 //   vtkWidgetEvent::Completed -- finished adding handles.
 //   vtkWidgetEvent::Move -- move the second point or handle depending on the state.
 //   vtkWidgetEvent::EndSelect -- the handle manipulation process has completed.
@@ -148,11 +146,12 @@ protected:
   // There may be NULL handles in the list, which indicates an undefined (non-placed) handle.
   HandleWidgetList Handles;
 
-  // Callback interface to capture events when
-  // placing the widget.
-  static void AddPointAction( vtkAbstractWidget* );
+  // Callback interface to capture events when interacting with the widget.
+  static void SelectAction( vtkAbstractWidget* );
+  static void EndSelectAction(vtkAbstractWidget*);
   static void MoveAction( vtkAbstractWidget* );
-  static void EndSelectAction( vtkAbstractWidget* );
+  static void TranslateAction(vtkAbstractWidget*);
+  static void ScaleAction(vtkAbstractWidget*);
 
 private:
   vtkMarkupsWidget(const vtkMarkupsWidget&) VTK_DELETE_FUNCTION;

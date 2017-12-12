@@ -29,6 +29,7 @@
 #include "vtkSmartPointer.h"
 #include "vtkWidgetCallbackMapper.h"
 #include "vtkWidgetEvent.h"
+#include "vtkWidgetEventTranslator.h"
 #include <iterator>
 #include <list>
 
@@ -40,14 +41,26 @@ vtkMarkupsWidget::vtkMarkupsWidget()
 
   // These are the event callbacks supported by this widget
   this->CallbackMapper->SetCallbackMethod(vtkCommand::LeftButtonPressEvent,
-                                          vtkWidgetEvent::AddPoint,
-                                          this, vtkMarkupsWidget::AddPointAction);
-  this->CallbackMapper->SetCallbackMethod(vtkCommand::MouseMoveEvent,
-                                          vtkWidgetEvent::Move,
-                                          this, vtkMarkupsWidget::MoveAction);
+                                          vtkWidgetEvent::Select,
+                                          this, vtkMarkupsWidget::SelectAction);
   this->CallbackMapper->SetCallbackMethod(vtkCommand::LeftButtonReleaseEvent,
                                           vtkWidgetEvent::EndSelect,
                                           this, vtkMarkupsWidget::EndSelectAction);
+  this->CallbackMapper->SetCallbackMethod(vtkCommand::MiddleButtonPressEvent,
+                                          vtkWidgetEvent::Translate,
+                                          this, vtkMarkupsWidget::TranslateAction);
+  this->CallbackMapper->SetCallbackMethod(vtkCommand::MiddleButtonReleaseEvent,
+                                          vtkWidgetEvent::EndTranslate,
+                                          this, vtkMarkupsWidget::EndSelectAction);
+  this->CallbackMapper->SetCallbackMethod(vtkCommand::RightButtonPressEvent,
+                                          vtkWidgetEvent::Scale,
+                                          this, vtkMarkupsWidget::ScaleAction);
+  this->CallbackMapper->SetCallbackMethod(vtkCommand::RightButtonReleaseEvent,
+                                          vtkWidgetEvent::EndScale,
+                                          this, vtkMarkupsWidget::EndSelectAction);
+  this->CallbackMapper->SetCallbackMethod(vtkCommand::MouseMoveEvent,
+                                          vtkWidgetEvent::Move,
+                                          this, vtkMarkupsWidget::MoveAction);
 }
 
 //----------------------------------------------------------------------
@@ -152,7 +165,7 @@ void vtkMarkupsWidget::SetEnabled(int enabling)
 
 // The following methods are the callbacks that the markups widget responds to.
 //-------------------------------------------------------------------------
-void vtkMarkupsWidget::AddPointAction(vtkAbstractWidget *w)
+void vtkMarkupsWidget::SelectAction(vtkAbstractWidget *w)
 {
   vtkMarkupsWidget *self = reinterpret_cast<vtkMarkupsWidget*>(w);
 
@@ -166,27 +179,94 @@ void vtkMarkupsWidget::AddPointAction(vtkAbstractWidget *w)
   int x = self->Interactor->GetEventPosition()[0];
   int y = self->Interactor->GetEventPosition()[1];
 
-  // When a handle is placed, a new handle widget must be created and enabled.
-  int state = self->WidgetRep->ComputeInteractionState(x,y);
-  if (state == vtkMarkupsRepresentation::NearHandle)
-    {
-    self->WidgetState = vtkMarkupsWidget::MovingHandle;
+  // make sure that the pick is in the current renderer
+  if (!self->CurrentRenderer ||
+    !self->CurrentRenderer->IsInViewport(x, y))
+  {
+    self->WidgetState = vtkMarkupsWidget::Idle;
+    return;
+  }
 
+  // When a handle is placed, a new handle widget must be created and enabled.
+  int interactionState = self->WidgetRep->ComputeInteractionState(x,y);
+  if (interactionState == vtkMarkupsRepresentation::Outside)
+  {
+    return;
+  }
+
+  // Something is selected
+  self->WidgetState = vtkMarkupsWidget::Active;
+  self->GrabFocus(self->EventCallbackCommand);
+
+  vtkMarkupsRepresentation *widgetRep = vtkMarkupsRepresentation::SafeDownCast(self->WidgetRep);
+
+  if (interactionState == vtkMarkupsRepresentation::OnLine && self->Interactor->GetControlKey())
+  {
+    // Add point.
+    widgetRep->SetInteractionState(vtkMarkupsRepresentation::Inserting);
+    self->EventCallbackCommand->SetAbortFlag(1);
+    self->StartInteraction();
+    self->InvokeEvent(vtkCommand::StartInteractionEvent, NULL);
+    self->Render();
+  }
+  else if (interactionState == vtkMarkupsRepresentation::OnHandle &&
+    self->Interactor->GetShiftKey())
+  {
+    // remove point.
+    widgetRep->SetInteractionState(vtkMarkupsRepresentation::Erasing);
+    self->EventCallbackCommand->SetAbortFlag(1);
+    self->StartInteraction();
+    self->InvokeEvent(vtkCommand::StartInteractionEvent, NULL);
+    self->Render();
+  }
+  else if (interactionState == vtkMarkupsRepresentation::OnHandle)
+  {
+    widgetRep->SetInteractionState(vtkMarkupsRepresentation::Moving);
+
+    self->WidgetState = vtkMarkupsWidget::MovingHandle;
     // Invoke an event on ourself for the handles
-    self->InvokeEvent(vtkCommand::LeftButtonPressEvent,NULL);
+    self->InvokeEvent(vtkCommand::LeftButtonPressEvent, NULL);
     self->Superclass::StartInteraction();
     vtkMarkupsRepresentation *rep = static_cast<
-      vtkMarkupsRepresentation * >(self->WidgetRep);
+      vtkMarkupsRepresentation *>(self->WidgetRep);
     int handleIdx = rep->GetActiveHandle();
     self->InvokeEvent(vtkCommand::StartInteractionEvent, &handleIdx);
     self->EventCallbackCommand->SetAbortFlag(1);
-    self->Render();
-    }
 
-  // Point placement is managed externally, using vtkMRMLMarkupsDisplayableManager::OnClickInRenderWindowGetCoordinates()
-  // the widget does not have point placement mode.
+    self->Render();
+  }
 
 }
+
+//----------------------------------------------------------------------
+void vtkMarkupsWidget::TranslateAction(vtkAbstractWidget *w)
+{
+  // Not sure this should be any different that SelectAction
+  vtkMarkupsWidget::SelectAction(w);
+}
+
+/*
+
+  // Begin the widget interaction which has the side effect of setting the
+  // interaction state.
+  double e[2];
+  e[0] = static_cast<double>(X);
+  e[1] = static_cast<double>(Y);
+  self->WidgetRep->StartWidgetInteraction(e);
+  int interactionState = self->WidgetRep->GetInteractionState();
+  if (interactionState == vtkMarkupsSplineRepresentation::Outside)
+  {
+    return;
+  }
+
+
+  //Scale
+  reinterpret_cast<vtkMarkupsSplineRepresentation*>(self->WidgetRep)->
+    SetInteractionState(vtkMarkupsSplineRepresentation::Scaling);
+
+  // start the interaction
+}
+*/
 
 //-------------------------------------------------------------------------
 void vtkMarkupsWidget::MoveAction(vtkAbstractWidget *w)
@@ -200,6 +280,13 @@ void vtkMarkupsWidget::MoveAction(vtkAbstractWidget *w)
     return;
     }*/
 
+/*
+  // See whether we're active
+  if (self->WidgetState == vtkMarkupsWidget::Idle)
+  {
+    return;
+  }*/
+
   // else we are moving a handle
 
   self->InvokeEvent(vtkCommand::MouseMoveEvent, NULL);
@@ -211,7 +298,7 @@ void vtkMarkupsWidget::MoveAction(vtkAbstractWidget *w)
 
   // Change the cursor shape to a hand and invoke an interaction event if we
   // are near the handle
-  if (state == vtkMarkupsRepresentation::NearHandle)
+  if (state == vtkMarkupsRepresentation::OnHandle)
     {
     self->RequestCursorShape(VTK_CURSOR_HAND);
 
@@ -239,6 +326,14 @@ void vtkMarkupsWidget::EndSelectAction(vtkAbstractWidget *w)
     {
     return;
     }*/
+
+/*
+  if (self->WidgetState == vtkMarkupsWidget::Idle)
+  {
+    return;
+  }
+*/
+
   if (self->WidgetState != vtkMarkupsWidget::MovingHandle)
     {
     return;
@@ -246,6 +341,10 @@ void vtkMarkupsWidget::EndSelectAction(vtkAbstractWidget *w)
 
   // Revert back to the mode we were in prior to selection.
   self->WidgetState = vtkMarkupsWidget::Idle;
+reinterpret_cast<vtkMarkupsSplineRepresentation*>(self->WidgetRep)->
+    SetInteractionState(vtkMarkupsSplineRepresentation::Outside);
+
+  self->ReleaseFocus();
 
   // Invoke event for handle
   self->InvokeEvent(vtkCommand::LeftButtonReleaseEvent,NULL);

@@ -26,6 +26,7 @@
 #include "vtkHandleRepresentation.h"
 #include "vtkNew.h"
 #include "vtkSmartPointer.h"
+#include "vtkTransform.h"
 #include <deque>
 
 class vtkHandleRepresentation;
@@ -65,7 +66,13 @@ public:
   enum
   {
     Outside = 0,
-    NearHandle
+    OnHandle,
+    OnLine,
+    Moving,
+    Scaling,
+    Spinning,
+    Inserting,
+    Erasing
   };
 
   // Description:
@@ -111,9 +118,39 @@ public:
   vtkSetClampMacro(Tolerance, int, 1, 100);
   vtkGetMacro(Tolerance, int);
 
+    // Description:
+  // These are methods specific to vtkMarkupsPointListRepresentation and which are
+  // invoked from vtkMarkupsPointListWidget.
+
+  // Description:
+  // These are methods that satisfy vtkWidgetRepresentation's API.
+  virtual void BuildRepresentation();
+  virtual int ComputeInteractionState( int X, int Y, int modify = 0 );
+
+  // Description:
+  // Set the interaction state
+  vtkSetMacro(InteractionState, int);
+
+  // Last event position in display coordinates
+  vtkSetVector3Macro(LastEventPosition, double);
+  vtkGetVector3Macro(LastEventPosition, double);
+
 protected:
   vtkMarkupsRepresentation();
   ~vtkMarkupsRepresentation();
+
+  // Methods to manipulate the curve.
+  void MovePoint(double *p1, double *p2);
+  void Scale(double *p1, double *p2, int X, int Y);
+  void Translate(double *p1, double *p2);
+  void Spin(double *p1, double *p2, double *vpn);
+
+  // For efficient spinning
+  double Centroid[3];
+  virtual void CalculateCentroid();
+
+  // Transform the control points (used for spinning)
+  vtkSmartPointer<vtkTransform> Transform;
 
   // Controlling vars
   bool ProjectToPlane;
@@ -123,8 +160,11 @@ protected:
 
   HandleListType Handles;
 
-  // The active handle (handle) based on the last ComputeInteractionState()
+  // The active handle based on the last ComputeInteractionState()
   int ActiveHandle;
+
+  // Support picking
+  double LastEventPosition[3]; // in display coordinates
 
   vtkHandleRepresentation  *HandleRepresentation;
 
