@@ -66,7 +66,7 @@ int vtkMarkupsWidget::AddHandle(double* worldPosition, double* displayPosition)
   vtkHandleRepresentation *handleRep = rep->GetHandle(currentHandleNumber);
   if (!handleRep)
   {
-    vtkErrorMacro("vtkMarkupsPointListWidget::AddHandle: failed to create a new handle");
+    vtkErrorMacro("vtkMarkupsWidget::AddHandle: failed to create a new handle");
     return NULL;
   }
   handleRep->SetRenderer(this->CurrentRenderer);

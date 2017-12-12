@@ -105,17 +105,15 @@ void vtkMarkupsRepresentation::RemoveLastHandle()
 void vtkMarkupsRepresentation::RemoveHandle(int n)
 {
   // Remove nth handle
+  if (n<0 || static_cast<int>(this->Handles.size()) <= n)
+  {
+    return;
+  }
 
   if (n == this->ActiveHandle)
-  {
-    this->RemoveActiveHandle();
-    return;
-  }
-
-  if (static_cast<int>(this->Handles.size()) <= n)
-  {
-    return;
-  }
+    {
+    this->ActiveHandle = -1;
+    }
 
   HandleListType::iterator iter = this->Handles.begin();
   std::advance(iter, n);

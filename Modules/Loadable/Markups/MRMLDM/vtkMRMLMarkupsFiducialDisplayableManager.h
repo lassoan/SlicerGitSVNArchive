@@ -84,6 +84,11 @@ protected:
   // Clean up when scene closes
   virtual void OnMRMLSceneEndClose() VTK_OVERRIDE;
 
+protected:
+
+  virtual vtkMarkupsWidget * CreateWidgetInstance();
+  virtual vtkMarkupsWidget * CreateProjectionWidgetInstance();
+
 private:
 
   vtkMRMLMarkupsFiducialDisplayableManager(const vtkMRMLMarkupsFiducialDisplayableManager&); /// Not implemented

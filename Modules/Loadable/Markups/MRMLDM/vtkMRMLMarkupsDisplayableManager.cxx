@@ -1676,7 +1676,8 @@ bool vtkMRMLMarkupsDisplayableManager::IsCorrectDisplayableManager()
 //---------------------------------------------------------------------------
 bool vtkMRMLMarkupsDisplayableManager::IsManageable(vtkMRMLNode* node)
 {
-  return node->IsA(this->Focus);
+  //return node->IsA(this->Focus);
+  return !strcmp(node->GetClassName(), this->Focus);
 }
 
 //---------------------------------------------------------------------------

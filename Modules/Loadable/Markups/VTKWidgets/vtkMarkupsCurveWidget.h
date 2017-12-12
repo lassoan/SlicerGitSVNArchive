@@ -53,8 +53,6 @@ public:
   // this is an instance of the vtkMarkupsSplineRepresentation class.
   void CreateDefaultRepresentation();
 
-  vtkHandleWidget * CreateNewHandle(double* pos);
-
 protected:
   vtkMarkupsCurveWidget();
   ~vtkMarkupsCurveWidget();

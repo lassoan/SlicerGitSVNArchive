@@ -362,8 +362,7 @@ vtkMarkupsWidget * vtkMRMLMarkupsFiducialDisplayableManager::CreateWidget(vtkMRM
     }
 
   // widget
-  vtkMarkupsPointListWidget * markupsWidget = vtkMarkupsPointListWidget::New();
-  //markupsWidget->CreateDefaultRepresentation();
+  vtkMarkupsWidget * markupsWidget = this->CreateWidgetInstance();
 
   markupsWidget->SetRepresentation(rep.GetPointer());
 
@@ -828,8 +827,8 @@ void vtkMRMLMarkupsFiducialDisplayableManager::SetNthHandle(int n, vtkMRMLMarkup
         double displayP1[4];
         this->GetWorldToDisplayCoordinates(transformedP1, displayP1);
 
-        vtkMarkupsPointListWidget* projectionSeed =
-          vtkMarkupsPointListWidget::SafeDownCast(this->Helper->GetPointProjectionWidget(markupsNode->GetNthMarkupID(n)));
+        vtkMarkupsWidget* projectionSeed =
+          vtkMarkupsWidget::SafeDownCast(this->Helper->GetPointProjectionWidget(markupsNode->GetNthMarkupID(n)));
 
         vtkMRMLMarkupsDisplayNode* pointDisplayNode = markupsNode->GetMarkupsDisplayNode();
 
@@ -876,7 +875,7 @@ void vtkMRMLMarkupsFiducialDisplayableManager::SetNthHandle(int n, vtkMRMLMarkup
             vtkNew<vtkMarkupsPointListRepresentation> rep;
             rep->SetHandleRepresentation(handle.GetPointer());
 
-            projectionSeed = vtkMarkupsPointListWidget::New();
+            projectionSeed = this->CreateProjectionWidgetInstance();
             projectionSeed->CreateDefaultRepresentation();
             projectionSeed->SetRepresentation(rep.GetPointer());
             projectionSeed->SetInteractor(this->GetInteractor());
@@ -1525,4 +1524,16 @@ void vtkMRMLMarkupsFiducialDisplayableManager::OnMRMLMarkupsNodeMarkupRemovedEve
   // for now, recreate the widget
   this->Helper->RemoveWidgetAndNode(markupsNode);
   this->AddWidget(markupsNode);
+}
+
+//---------------------------------------------------------------------------
+vtkMarkupsWidget* vtkMRMLMarkupsFiducialDisplayableManager::CreateWidgetInstance()
+{
+  return vtkMarkupsPointListWidget::New();
+}
+
+//---------------------------------------------------------------------------
+vtkMarkupsWidget* vtkMRMLMarkupsFiducialDisplayableManager::CreateProjectionWidgetInstance()
+{
+  return vtkMarkupsPointListWidget::New();
 }

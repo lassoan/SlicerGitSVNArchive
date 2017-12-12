@@ -239,68 +239,9 @@ void vtkMarkupsCurveWidget::CreateDefaultRepresentation()
 {
   if (!this->WidgetRep)
   {
-    this->WidgetRep = vtkMarkupsSplineRepresentation::New();
+    vtkNew<vtkMarkupsSplineRepresentation> rep;
+    this->SetWidgetRepresentation(rep.GetPointer());
   }
-}
-
-//----------------------------------------------------------------------
-// Programmatically create a new handle.
-vtkHandleWidget * vtkMarkupsCurveWidget::CreateNewHandle(double *pos)
-{
-  vtkMarkupsSplineRepresentation *rep =
-    vtkMarkupsSplineRepresentation::SafeDownCast(this->WidgetRep);
-  if (!rep)
-  {
-    vtkErrorMacro(<< "Please set, or create a default seed representation "
-      << "before adding requesting creation of a new handle.");
-    return NULL;
-  }
-
-  //// Create the handle widget or reuse an old one
-  //int currentHandleNumber = static_cast<int>(this->Seeds->size());
-  vtkHandleWidget *widget = vtkHandleWidget::New();
-
-  //// Configure the handle widget
-  widget->SetParent(this);
-  widget->SetInteractor(this->Interactor);
-  rep->InsertHandle(pos);
-
-  //vtkHandleRepresentation *handleRep = rep->GetHandleRepresentation(currentHandleNumber);
-  //if (!handleRep)
-  //{
-  //  widget->Delete();
-  //  return NULL;
-  //}
-  //else
-  //{
-  //  handleRep->SetRenderer(this->CurrentRenderer);
-  //  widget->SetRepresentation(handleRep);
-
-  //  // Now place the widget into the list of handle widgets (if not already there)
-  //  this->Seeds->push_back(widget);
-  //  return widget;
-  //}
-
-  //// We are in a static method, cast to ourself
-  //vtkMarkupsCurveWidget *self = vtkMarkupsCurveWidget::SafeDownCast(w);
-
-
-  //// We are definitely selected
-  //self->WidgetState = vtkMarkupsWidget::PlacingHandles;
-  //self->GrabFocus(self->EventCallbackCommand);
-
-  //  // Add point.
-  //  reinterpret_cast<vtkMarkupsSplineRepresentation*>(self->WidgetRep)->
-  //    SetInteractionState(vtkMarkupsSplineRepresentation::Inserting);
-
-  //// start the interaction
-  //self->EventCallbackCommand->SetAbortFlag(1);
-  //self->StartInteraction();
-  //self->InvokeEvent(vtkCommand::StartInteractionEvent, NULL);
-  //self->Render();
-  //self->EndInteraction();
-
-  return widget;
 }
 
 //----------------------------------------------------------------------------
