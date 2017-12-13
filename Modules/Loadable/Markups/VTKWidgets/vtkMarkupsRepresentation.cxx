@@ -32,6 +32,7 @@ vtkMarkupsRepresentation::vtkMarkupsRepresentation()
   this->ProjectToPlane = 0;  //default off
   this->ProjectionPlaneSource = NULL;
   this->ActiveHandle = -1;
+  this->InsertBeforeHandle = -1;
   this->InteractionState = vtkMarkupsRepresentation::Outside;
   this->LastEventPosition[0] = VTK_DOUBLE_MAX;
   this->LastEventPosition[1] = VTK_DOUBLE_MAX;
@@ -60,11 +61,11 @@ void vtkMarkupsRepresentation::PrintSelf(ostream& os, vtkIndent indent)
 //----------------------------------------------------------------------
 int vtkMarkupsRepresentation::CreateHandle(double* position)
 {
-  return this->InsertHandle(this->Handles.size(), position);
+  return this->InsertHandle(position, -1);
 }
 
 //----------------------------------------------------------------------
-int vtkMarkupsRepresentation::InsertHandle(int n, double* position)
+int vtkMarkupsRepresentation::InsertHandle(double* position, int insertBeforeHandle)
 {
   // Add a new handle at the end
   int insertedHandleIndex = this->Handles.size();
@@ -75,13 +76,19 @@ int vtkMarkupsRepresentation::InsertHandle(int n, double* position)
     return -1;
   }
 
+  if (insertBeforeHandle < 0)
+  {
+    // negative n means push to the back
+    insertBeforeHandle = insertedHandleIndex;
+  }
+
   // TODO: clean this up. It is not nice that we create new handle representation at the end and then
   // we reorder
-  if (n != insertedHandleIndex)
+  if (insertBeforeHandle != insertedHandleIndex)
   {
     vtkSmartPointer<vtkHandleRepresentation> tmp = this->Handles[insertedHandleIndex];
     this->Handles.pop_back();
-    this->Handles.insert(this->Handles.begin()+n, tmp);
+    this->Handles.insert(this->Handles.begin() + insertBeforeHandle, tmp);
   }
 
   if (this->UseDisplayPosition)
@@ -95,7 +102,7 @@ int vtkMarkupsRepresentation::InsertHandle(int n, double* position)
     rep->SetWorldPosition(position);
   }
 
-  this->ActiveHandle = n;
+  this->ActiveHandle = insertBeforeHandle;
   return this->ActiveHandle;
 }
 

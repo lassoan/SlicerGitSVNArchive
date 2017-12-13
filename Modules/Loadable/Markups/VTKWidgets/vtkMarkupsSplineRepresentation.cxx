@@ -52,9 +52,6 @@ vtkMarkupsSplineRepresentation::vtkMarkupsSplineRepresentation()
   this->ParametricSpline = NULL;
   this->ParametricFunctionSource = vtkSmartPointer<vtkParametricFunctionSource>::New();
 
-  // Define the points and line segments representing the spline
-  this->Resolution = 100;
-
   this->ParametricFunctionSource = vtkParametricFunctionSource::New();
   //this->ParametricFunctionSource->SetParametricFunction(parametricSpline.GetPointer());
   this->ParametricFunctionSource->SetScalarModeToNone();
@@ -140,12 +137,11 @@ void vtkMarkupsSplineRepresentation::BuildRepresentation()
 //----------------------------------------------------------------------------
 void vtkMarkupsSplineRepresentation::SetResolution(int resolution)
 {
+  Superclass::SetResolution(resolution);
   if (this->Resolution == resolution || resolution < (this->Handles.size()-1))
     {
     return;
     }
-
-  this->Resolution = resolution;
   this->ParametricFunctionSource->SetUResolution(this->Resolution);
   this->ParametricFunctionSource->Modified();
 }
@@ -190,19 +186,17 @@ double vtkMarkupsSplineRepresentation::GetSummedLength()
 }
 
 //----------------------------------------------------------------------------
-void vtkMarkupsSplineRepresentation::InsertHandleOnLine(double* pos)
+int vtkMarkupsSplineRepresentation::GetHandleIndexOfLastPickPositionOnLine()
 {
-  if (this->Handles.size() < 2)
+  if (this->Handles.size() <= 1)
     {
-    return;
+    return -1;
     }
 
   vtkIdType id = this->LinePicker->GetCellId();
-  if (id == -1)
+  if (id < 0)
     {
-    // Didn't click on a line segment
-    this->CreateHandle(pos);
-    return;
+    return -1;
     }
 
   vtkIdType subid = this->LinePicker->GetSubId();
@@ -210,9 +204,7 @@ void vtkMarkupsSplineRepresentation::InsertHandleOnLine(double* pos)
   int istart = vtkMath::Floor(subid*(this->Handles.size() + this->Closed - 1.0)/
     static_cast<double>(this->Resolution));
 
-  this->InsertHandle(istart, pos);
-
-  this->BuildRepresentation();
+  return istart;
 }
 
 //----------------------------------------------------------------------------

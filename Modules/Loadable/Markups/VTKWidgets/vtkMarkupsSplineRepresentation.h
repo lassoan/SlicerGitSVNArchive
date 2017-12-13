@@ -57,12 +57,6 @@ public:
   void GetPolyData(vtkPolyData *pd);
 
   // Description:
-  // Set/Get the number of line segments representing the spline for
-  // this widget.
-  void SetResolution(int resolution);
-  vtkGetMacro(Resolution,int);
-
-  // Description:
   // Set the parametric spline object. Through vtkParametricSpline's API, the
   // user can supply and configure one of two types of spline:
   // vtkCardinalSpline, vtkKochanekSpline. The widget controls the open
@@ -89,7 +83,9 @@ public:
   virtual void BuildRepresentation();
 
   // Specialized method to insert a handle on the poly line.
-  virtual void InsertHandleOnLine(double* pos);
+  virtual int GetHandleIndexOfLastPickPositionOnLine();
+
+  virtual void SetResolution(int resolution);
 
 protected:
   vtkMarkupsSplineRepresentation();
@@ -98,9 +94,6 @@ protected:
   // The spline
   vtkParametricSpline *ParametricSpline;
   vtkSmartPointer<vtkParametricFunctionSource> ParametricFunctionSource;
-
-  // The number of line segments used to represent the spline.
-  int Resolution;
 
 private:
   vtkMarkupsSplineRepresentation(const vtkMarkupsSplineRepresentation&) VTK_DELETE_FUNCTION;

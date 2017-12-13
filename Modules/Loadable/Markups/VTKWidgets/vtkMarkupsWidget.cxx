@@ -68,6 +68,12 @@ vtkMarkupsWidget::vtkMarkupsWidget()
 //----------------------------------------------------------------------
 int vtkMarkupsWidget::AddHandle(double* position)
 {
+  return this->InsertHandle(position, -1);
+}
+
+//----------------------------------------------------------------------
+int vtkMarkupsWidget::InsertHandle(double* position, int insertBeforeHandleIndex)
+{
   vtkMarkupsRepresentation *rep = vtkMarkupsRepresentation::SafeDownCast(this->WidgetRep);
   if (!rep)
   {
@@ -77,7 +83,7 @@ int vtkMarkupsWidget::AddHandle(double* position)
   }
 
   // Add a new handle to the representation
-  int currentHandleNumber = rep->CreateHandle(position);
+  int currentHandleNumber = rep->InsertHandle(position, insertBeforeHandleIndex);
   vtkHandleRepresentation *handleRep = rep->GetHandle(currentHandleNumber);
   if (!handleRep)
   {
@@ -92,7 +98,15 @@ int vtkMarkupsWidget::AddHandle(double* position)
   widget->SetInteractor(this->Interactor);
   widget->SetRepresentation(handleRep);
   widget->SetEnabled(1);
-  this->Handles.push_back(widget.GetPointer());
+  if (insertBeforeHandleIndex < 0)
+  {
+    this->Handles.push_back(widget.GetPointer());
+  }
+  else
+  {
+    this->Handles.insert(this->Handles.begin() + insertBeforeHandleIndex, widget.GetPointer());
+  }
+
   return currentHandleNumber;
 }
 
@@ -206,7 +220,9 @@ void vtkMarkupsWidget::SelectAction(vtkAbstractWidget *w)
   {
     // Add point.
     // Add handle widget
-    self->AddHandle(widgetRep->GetLastEventPosition());
+
+    int insertBeforeHandleIndex = widgetRep->GetInsertBeforeHandle();
+    self->InsertHandle(widgetRep->GetLastPickPosition(), insertBeforeHandleIndex);
     widgetRep->SetInteractionState(vtkMarkupsRepresentation::Inserting);
     self->EventCallbackCommand->SetAbortFlag(1);
     self->StartInteraction();

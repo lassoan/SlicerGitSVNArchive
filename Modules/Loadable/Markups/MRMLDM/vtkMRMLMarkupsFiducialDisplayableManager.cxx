@@ -1212,6 +1212,9 @@ void vtkMRMLMarkupsFiducialDisplayableManager::PropagateWidgetToMRML(vtkMarkupsW
   vtkMarkupsRepresentation * markupsRepresentation = vtkMarkupsRepresentation::SafeDownCast(markupsWidget->GetRepresentation());
   int numberOfHandles = markupsRepresentation->GetNumberOfHandles();
 
+  // New handles are added
+  bool newMarkupsAdded = (markupsNode->GetNumberOfMarkups() < numberOfHandles);
+
   // Remove orphan markups (handles were removed)
   while (markupsNode->GetNumberOfMarkups() > numberOfHandles)
   {
@@ -1250,7 +1253,11 @@ void vtkMRMLMarkupsFiducialDisplayableManager::PropagateWidgetToMRML(vtkMarkupsW
       // new markup
       vtkVector3d point(newCoords);
       markupsNode->AddPointWorldToNewMarkup(point);
-      // Update handle style (size, shape, ...)
+    }
+    // We don't know which handle is new, so update style (size, shape, ...)
+    // of all handles
+    if (newMarkupsAdded)
+    {
       this->SetNthHandle(n, markupsNode, markupsWidget);
     }
   }

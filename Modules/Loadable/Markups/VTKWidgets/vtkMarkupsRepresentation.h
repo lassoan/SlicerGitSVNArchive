@@ -86,7 +86,8 @@ public:
 
   // Insert a new a handle in the handle list.
   // Returns the id of the handle created, -1 on failure.
-  virtual int InsertHandle(int n, double* position);
+  // n = -1 means append to tail.
+  virtual int InsertHandle(double* position, int insertBeforeHandle);
 
   // Get/Set handle position. Display or world position depends on UseDisplayPosition value.
   virtual void GetHandlePosition(unsigned int handleNum, double pos[3]);
@@ -150,6 +151,14 @@ public:
   vtkSetVector3Macro(LastEventPosition, double);
   vtkGetVector3Macro(LastEventPosition, double);
 
+  // Last event position in display coordinates
+  vtkSetVector3Macro(LastPickPosition, double);
+  vtkGetVector3Macro(LastPickPosition, double);
+
+  // If we need to place a widget at the last picked location then it should be
+  // inserted before this handle (e.g., when inserting a point into a curve).
+  vtkGetMacro(InsertBeforeHandle, int);
+
 protected:
   vtkMarkupsRepresentation();
   ~vtkMarkupsRepresentation();
@@ -178,8 +187,15 @@ protected:
   // The active handle based on the last ComputeInteractionState()
   int ActiveHandle;
 
+  // When picking a point on a widget, this variable may be set
+  // to indicate which handle a new handle should be inserted before.
+  // This allows inserting a point on a curve at the clicked position.
+  int InsertBeforeHandle;
+
   // Support picking
   double LastEventPosition[3]; // in display coordinates
+
+  double LastPickPosition[3]; // in world coordinates
 
   vtkHandleRepresentation  *HandleRepresentation;
 

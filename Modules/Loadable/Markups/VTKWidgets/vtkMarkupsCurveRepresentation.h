@@ -102,6 +102,12 @@ public:
   // Ideally one should use GetLineProperty()->SetColor().
   void SetLineColor(double r, double g, double b);
 
+  // Description:
+  // Set/Get the number of line segments representing the curve for
+  // this widget.
+  virtual void SetResolution(int resolution);
+  vtkGetMacro(Resolution, int);
+
 protected:
   vtkMarkupsCurveRepresentation();
   ~vtkMarkupsCurveRepresentation();
@@ -116,11 +122,9 @@ protected:
   void HighlightLine(int highlight);
 
   void Initialize();
-  virtual void InsertHandleOnLine(double* pos) = 0;
 
   // Do the picking
   vtkSmartPointer<vtkCellPicker> LinePicker;
-  double LastPickPosition[3];
 
   // Register internal Pickers within PickingManager
   virtual void RegisterPickers();
@@ -135,6 +139,10 @@ protected:
   // For efficient spinning
   double Centroid[3];
   void CalculateCentroid();
+
+  // The number of line segments used to represent the curve.
+  int Resolution;
+
 
 private:
   vtkMarkupsCurveRepresentation(const vtkMarkupsCurveRepresentation&) VTK_DELETE_FUNCTION;

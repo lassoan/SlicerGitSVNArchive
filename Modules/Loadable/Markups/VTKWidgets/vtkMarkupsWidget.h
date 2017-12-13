@@ -105,6 +105,11 @@ public:
   // handle.
   virtual int AddHandle(double* position);
 
+  // If insertAfterHandleIndex is -1 then the handle is appended to the end.
+  // Otherwise new handle is appended after the specified index value
+  virtual int InsertHandle(double* position, int insertBeforeHandleIndex);
+
+
   // Description:
   // Delete the nth handle. Index of all handles after the deleted handle will be decremented.
   // Child class must override this to update representations

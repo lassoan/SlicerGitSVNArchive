@@ -38,6 +38,9 @@
 //----------------------------------------------------------------------------
 vtkMarkupsCurveRepresentation::vtkMarkupsCurveRepresentation()
 {
+  // Define the points and line segments representing the spline
+  this->Resolution = 100;
+
   this->LastEventPosition[0] = VTK_DOUBLE_MAX;
   this->LastEventPosition[1] = VTK_DOUBLE_MAX;
   this->LastEventPosition[2] = VTK_DOUBLE_MAX;
@@ -154,30 +157,6 @@ void vtkMarkupsCurveRepresentation::CalculateCentroid()
 }
 
 //----------------------------------------------------------------------------
-void vtkMarkupsCurveRepresentation::InsertHandleOnLine(double* pos)
-{
-  if (this->Handles.size() < 2)
-  {
-    return;
-  }
-
-  vtkIdType id = this->LinePicker->GetCellId();
-  if (id < 0)
-  {
-    return;
-  }
-
-  vtkIdType subid = this->LinePicker->GetSubId();
-
-  vtkSmartPointer<vtkPoints> newpoints = vtkSmartPointer<vtkPoints>::Take(vtkPoints::New(VTK_DOUBLE));
-  newpoints->SetNumberOfPoints(this->Handles.size() + 1);
-
-  this->InsertHandle(subid, pos); // TODO: test subid index
-
-  this->BuildRepresentation();
-}
-
-//----------------------------------------------------------------------------
 void vtkMarkupsCurveRepresentation::ReleaseGraphicsResources(vtkWindow* win)
 {
   this->LineActor->ReleaseGraphicsResources(win);
@@ -266,6 +245,16 @@ int vtkMarkupsCurveRepresentation::ComputeInteractionState(int x, int y, int mod
     {
       this->ValidPick = 1;
       this->LinePicker->GetPickPosition(this->LastPickPosition);
+      vtkIdType id = this->LinePicker->GetCellId();
+      if (id >= 0)
+      {
+        vtkIdType subid = this->LinePicker->GetSubId();
+        this->InsertBeforeHandle = vtkMath::Floor(subid*(this->Handles.size() + this->Closed - 1.0) / static_cast<double>(this->Resolution)) + 1;
+      }
+      else
+      {
+        this->InsertBeforeHandle = -1;
+      }
       this->HighlightLine(1);
       this->InteractionState = vtkMarkupsCurveRepresentation::OnLine;
     }
@@ -348,7 +337,6 @@ void vtkMarkupsCurveRepresentation::EndWidgetInteraction(double[2])
   switch (this->InteractionState)
   {
   case vtkMarkupsCurveRepresentation::Inserting:
-    this->InsertHandleOnLine(this->LastPickPosition);
     break;
 
   case vtkMarkupsCurveRepresentation::Erasing:
@@ -420,4 +408,14 @@ void vtkMarkupsCurveRepresentation::PrintSelf(ostream& os, vtkIndent indent)
 void vtkMarkupsCurveRepresentation::BuildRepresentation()
 {
   Superclass::BuildRepresentation();
+}
+
+//----------------------------------------------------------------------------
+void vtkMarkupsCurveRepresentation::SetResolution(int resolution)
+{
+  if (this->Resolution == resolution || resolution < (this->Handles.size() - 1))
+  {
+    return;
+  }
+  this->Resolution = resolution;
 }
