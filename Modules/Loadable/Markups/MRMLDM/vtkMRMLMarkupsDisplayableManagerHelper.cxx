@@ -21,6 +21,7 @@
 
 // MarkupsModule/MRMLDisplayableManager includes
 #include "vtkMRMLMarkupsDisplayableManagerHelper.h"
+#include "vtkMarkupsRepresentation.h"
 
 // VTK includes
 #include <vtkMarkupsWidget.h>
@@ -31,8 +32,6 @@
 #include <vtkProperty.h>
 #include <vtkPickingManager.h>
 #include <vtkRenderWindowInteractor.h>
-#include <vtkMarkupsPointListRepresentation.h>
-#include <vtkMarkupsPointListWidget.h>
 #include <vtkSmartPointer.h>
 #include <vtkSphereHandleRepresentation.h>
 
@@ -485,11 +484,12 @@ void vtkMRMLMarkupsDisplayableManagerHelper::PlaceHandle(double x, double y, vtk
     handle->GetProperty()->SetColor(1, 0, 0);
     handle->SetHandleSize(5);
 
-    vtkNew<vtkMarkupsPointListRepresentation> rep;
+    vtkNew<vtkMarkupsRepresentation> rep;
     rep->SetHandleRepresentation(handle.GetPointer());
+    rep->UseDisplayPositionOn(); // TODO: set use display position
 
     //markups widget
-    vtkMarkupsPointListWidget* markupsWidget = vtkMarkupsPointListWidget::New();
+    vtkMarkupsWidget* markupsWidget = vtkMarkupsWidget::New();
     markupsWidget->SetRepresentation(rep.GetPointer());
 
     if (interactor->GetPickingManager())
@@ -518,7 +518,7 @@ void vtkMRMLMarkupsDisplayableManagerHelper::PlaceHandle(double x, double y, vtk
   double p[3] = { x, y, 0.0 };
 
   //vtkNew<vtkHandleWidget, newhandle);
-  this->MarkupsWidget->AddHandle(NULL, p);
+  this->MarkupsWidget->AddHandle(p);
   this->MarkupsWidget->On();
   this->MarkupsWidget->ManagesCursorOff();
   this->MarkupsWidget->ProcessEventsOff();

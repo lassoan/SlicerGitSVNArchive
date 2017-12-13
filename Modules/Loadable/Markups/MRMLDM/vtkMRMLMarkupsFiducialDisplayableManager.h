@@ -24,7 +24,7 @@
 // MarkupsModule/MRMLDisplayableManager includes
 #include "vtkMRMLMarkupsDisplayableManager.h"
 
-class vtkMRMLMarkupsFiducialNode;
+class vtkMRMLMarkupsNode;
 class vtkSlicerViewerWidget;
 class vtkMRMLMarkupsDisplayNode;
 class vtkTextWidget;
@@ -42,8 +42,8 @@ public:
 
 protected:
 
-  vtkMRMLMarkupsFiducialDisplayableManager(){this->Focus="vtkMRMLMarkupsFiducialNode";}
-  virtual ~vtkMRMLMarkupsFiducialDisplayableManager(){}
+  vtkMRMLMarkupsFiducialDisplayableManager();
+  virtual ~vtkMRMLMarkupsFiducialDisplayableManager();
 
   /// Callback for click in RenderWindow
   virtual void OnClickInRenderWindow(double x, double y, const char *associatedNodeID) VTK_OVERRIDE;
@@ -60,7 +60,7 @@ protected:
   virtual void OnWidgetCreated(vtkMarkupsWidget * widget, vtkMRMLMarkupsNode * node) VTK_OVERRIDE;
 
   /// Update a single handle from MRML
-  void SetNthHandle(int n, vtkMRMLMarkupsFiducialNode* fiducialNode, vtkMarkupsWidget *markupsWidget);
+  void SetNthHandle(int n, vtkMRMLMarkupsNode* fiducialNode, vtkMarkupsWidget *markupsWidget);
 
   void SetNthHandleGlyphType(int n, vtkMRMLMarkupsDisplayNode *displayNode, vtkOrientedPolygonalHandleRepresentation3D *handleRep);
 

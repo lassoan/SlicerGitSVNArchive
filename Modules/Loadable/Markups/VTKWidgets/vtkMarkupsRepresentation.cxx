@@ -17,6 +17,8 @@
 #include "vtkHandleRepresentation.h"
 #include "vtkPlaneSource.h"
 
+vtkStandardNewMacro(vtkMarkupsRepresentation);
+
 vtkCxxSetObjectMacro(vtkMarkupsRepresentation, ProjectionPlaneSource, vtkPlaneSource);
 
 vtkCxxSetObjectMacro(vtkMarkupsRepresentation, HandleRepresentation, vtkHandleRepresentation);
@@ -24,6 +26,7 @@ vtkCxxSetObjectMacro(vtkMarkupsRepresentation, HandleRepresentation, vtkHandleRe
 //----------------------------------------------------------------------------
 vtkMarkupsRepresentation::vtkMarkupsRepresentation()
 {
+  this->UseDisplayPosition = false;
   this->Tolerance = 5;
   this->HandleRepresentation = NULL;
   this->ProjectToPlane = 0;  //default off
@@ -45,22 +48,6 @@ vtkMarkupsRepresentation::~vtkMarkupsRepresentation()
   this->SetHandleRepresentation(NULL);
 }
 
-/*
-//----------------------------------------------------------------------------
-void vtkMarkupsRepresentation::ProjectPointsToOrthoPlane()
-{
-  double ctr[3];
-  int numberOfHandles = this->Handles.size();
-  for (int i = 0; i < numberOfHandles; ++i)
-    {
-    this->HandleGeometry[i]->GetCenter(ctr);
-    ctr[this->ProjectionNormal] = this->ProjectionPosition;
-    this->HandleGeometry[i]->SetCenter(ctr);
-    this->HandleGeometry[i]->Update();
-    }
-}
-*/
-
 //----------------------------------------------------------------------------
 void vtkMarkupsRepresentation::PrintSelf(ostream& os, vtkIndent indent)
 {
@@ -71,28 +58,44 @@ void vtkMarkupsRepresentation::PrintSelf(ostream& os, vtkIndent indent)
 }
 
 //----------------------------------------------------------------------
-int vtkMarkupsRepresentation::CreateHandle(double* worldPosition, double* displayPosition)
+int vtkMarkupsRepresentation::CreateHandle(double* position)
 {
-  vtkHandleRepresentation *rep = this->GetHandleRepresentation(
-    static_cast<int>(this->Handles.size()));
+  return this->InsertHandle(this->Handles.size(), position);
+}
+
+//----------------------------------------------------------------------
+int vtkMarkupsRepresentation::InsertHandle(int n, double* position)
+{
+  // Add a new handle at the end
+  int insertedHandleIndex = this->Handles.size();
+  vtkHandleRepresentation *rep = this->GetHandleRepresentation(insertedHandleIndex);
   if (rep == NULL)
   {
-    vtkErrorMacro("CreateHandle: no handle representation set yet! Cannot create a new handle.");
+    vtkErrorMacro("InsertHandle: no handle representation set yet! Cannot create a new handle.");
     return -1;
   }
 
-  if (displayPosition)
+  // TODO: clean this up. It is not nice that we create new handle representation at the end and then
+  // we reorder
+  if (n != insertedHandleIndex)
   {
-    double pos[3] = { displayPosition[0], displayPosition[1], 0 };
+    vtkSmartPointer<vtkHandleRepresentation> tmp = this->Handles[insertedHandleIndex];
+    this->Handles.pop_back();
+    this->Handles.insert(this->Handles.begin()+n, tmp);
+  }
+
+  if (this->UseDisplayPosition)
+  {
+    double pos[3] = { position[0], position[1], 0 };
     rep->SetDisplayPosition(pos);
     rep->SetTolerance(this->Tolerance); //needed to ensure that picking is consistent
   }
-  else if (worldPosition)
+  else
   {
-    rep->SetWorldPosition(worldPosition);
+    rep->SetWorldPosition(position);
   }
 
-  this->ActiveHandle = static_cast<int>(this->Handles.size()) - 1;
+  this->ActiveHandle = n;
   return this->ActiveHandle;
 }
 
@@ -112,10 +115,10 @@ void vtkMarkupsRepresentation::RemoveLastHandle()
 void vtkMarkupsRepresentation::RemoveHandle(int n)
 {
   // Remove nth handle
-  if (n<0 || static_cast<int>(this->Handles.size()) <= n)
-  {
+  if (n < 0 || n >= this->Handles.size())
+    {
     return;
-  }
+    }
 
   if (n == this->ActiveHandle)
     {
@@ -135,62 +138,30 @@ void vtkMarkupsRepresentation::RemoveActiveHandle()
 }
 
 //----------------------------------------------------------------------
-vtkHandleRepresentation *vtkMarkupsRepresentation::GetHandleRepresentation(unsigned int num)
+vtkHandleRepresentation *vtkMarkupsRepresentation::GetHandleRepresentation(unsigned int n)
 {
-  if (num < this->Handles.size())
-  {
-    return this->Handles[num];
-  }
-
-  //create one
-  if (this->HandleRepresentation == NULL)
-  {
-    vtkErrorMacro("GetHandleRepresentation " << num << ", no handle representation has been set yet, cannot create a new handle.");
+  if (n < 0)
+    {
     return NULL;
-  }
-  vtkHandleRepresentation *rep = this->HandleRepresentation->NewInstance();
-  rep->DeepCopy(this->HandleRepresentation);
-  this->Handles.push_back(rep);
-  return rep;
-}
+    }
+  if (n >= this->Handles.size())
+    {
+    //create new handle
+    if (this->HandleRepresentation == NULL)
+      {
+      vtkErrorMacro("GetHandleRepresentation " << n << ", no handle representation has been set yet, cannot create a new handle.");
+      return NULL;
+      }
+    while (n >= this->Handles.size())
+      {
+      vtkSmartPointer<vtkHandleRepresentation> rep = vtkSmartPointer<vtkHandleRepresentation>::Take(this->HandleRepresentation->NewInstance());
+      rep->DeepCopy(this->HandleRepresentation);
+      this->Handles.push_back(rep);
+      }
+    }
 
-//----------------------------------------------------------------------
-void vtkMarkupsRepresentation::GetHandleWorldPosition(unsigned int handleNum, double pos[3])
-{
-  if (handleNum >= this->Handles.size())
-  {
-    vtkErrorMacro("Trying to access non-existent handle");
-    return;
-  }
-  HandleListType::iterator iter = this->Handles.begin();
-  std::advance(iter, handleNum);
-  (*iter)->GetWorldPosition(pos);
-}
-
-//----------------------------------------------------------------------
-void vtkMarkupsRepresentation::SetHandleDisplayPosition(unsigned int handleNum, double pos[3])
-{
-  if (handleNum >= this->Handles.size())
-  {
-    vtkErrorMacro("Trying to access non-existent handle");
-    return;
-  }
-  HandleListType::iterator iter = this->Handles.begin();
-  std::advance(iter, handleNum);
-  (*iter)->SetDisplayPosition(pos);
-}
-
-//----------------------------------------------------------------------
-void vtkMarkupsRepresentation::GetHandleDisplayPosition(unsigned int handleNum, double pos[3])
-{
-  if (handleNum >= this->Handles.size())
-  {
-    vtkErrorMacro("Trying to access non-existent handle");
-    return;
-  }
-  HandleListType::iterator iter = this->Handles.begin();
-  std::advance(iter, handleNum);
-  (*iter)->GetDisplayPosition(pos);
+  // existing handle
+  return this->Handles[n];
 }
 
 //----------------------------------------------------------------------
@@ -208,14 +179,15 @@ ComputeInteractionState(int vtkNotUsed(X), int vtkNotUsed(Y), int vtkNotUsed(mod
   HandleListType::iterator iter;
   for ( i = 0, iter = this->Handles.begin(); iter != this->Handles.end(); ++iter, ++i )
     {
-    if ( *iter != NULL )
+    if (*iter == NULL)
       {
-      if ( (*iter)->GetInteractionState() != vtkHandleRepresentation::Outside )
-        {
-        this->ActiveHandle = i;
-        this->InteractionState = vtkMarkupsRepresentation::OnHandle;
-        return this->InteractionState;
-        }
+      continue;
+      }
+    if ( (*iter)->GetInteractionState() != vtkHandleRepresentation::Outside )
+      {
+      this->ActiveHandle = i;
+      this->InteractionState = vtkMarkupsRepresentation::OnHandle;
+      return this->InteractionState;
       }
     }
 
@@ -247,12 +219,11 @@ void vtkMarkupsRepresentation::Translate(double *p1, double *p2)
   double newCtr[3];
   for ( int i = 0; i < this->Handles.size(); ++i )
     {
-    vtkHandleRepresentation* handleRep = this->GetHandle(i);
-    handleRep->GetWorldPosition(newCtr); // TODO: world or display?
+    this->GetHandlePosition(i, newCtr);
     newCtr[0] += v[0];
     newCtr[1] += v[1];
     newCtr[2] += v[2];
-    handleRep->SetWorldPosition(newCtr);
+    this->SetHandlePosition(i, newCtr);
     }
 }
 
@@ -271,7 +242,7 @@ void vtkMarkupsRepresentation::Scale(double *p1, double *p2, int vtkNotUsed(X), 
   double *prevctr = NULL;
   for (int i = 0; i < numberOfHandles; ++i )
     {
-    double *ctr = this->GetHandle(i)->GetWorldPosition(); // TODO: DisplayPosition?
+    double *ctr = this->GetHandlePosition(i);
     center[0] += ctr[0];
     center[1] += ctr[1];
     center[2] += ctr[2];
@@ -304,7 +275,7 @@ void vtkMarkupsRepresentation::Scale(double *p1, double *p2, int vtkNotUsed(X), 
   double newCtr[3];
   for (int i = 0; i < this->Handles.size(); ++i )
     {
-    double* ctr = this->Handles[i]->GetWorldPosition();
+    double* ctr = GetHandlePosition(i);
     for ( int j = 0; j < 3; ++j )
       {
       newCtr[j] = sf * (ctr[j] - center[j]) + center[j];
@@ -369,9 +340,9 @@ void vtkMarkupsRepresentation::Spin(double *p1, double *p2, double *vpn)
   double ctr[3];
   for ( int i = 0; i < this->Handles.size(); ++i )
     {
-    this->Handles[i]->GetWorldPosition(ctr);
+    this->GetHandlePosition(i, ctr);
     this->Transform->TransformPoint(ctr,newCtr);
-    this->Handles[i]->SetWorldPosition(newCtr);
+    this->SetHandlePosition(i, newCtr);
     }
 }
 
@@ -390,7 +361,7 @@ void vtkMarkupsRepresentation::CalculateCentroid()
 
   for (int i = 0; i < numberOfHandles; ++i)
   {
-    double* ctr = this->Handles[i]->GetWorldPosition();
+    double* ctr = this->GetHandlePosition(i);
     this->Centroid[0] += ctr[0];
     this->Centroid[1] += ctr[1];
     this->Centroid[2] += ctr[2];
@@ -399,4 +370,84 @@ void vtkMarkupsRepresentation::CalculateCentroid()
   this->Centroid[0] /= numberOfHandles;
   this->Centroid[1] /= numberOfHandles;
   this->Centroid[2] /= numberOfHandles;
+}
+
+//----------------------------------------------------------------------------
+void vtkMarkupsRepresentation::GetHandlePosition(unsigned int handleNum, double pos[3])
+{
+  if (this->UseDisplayPosition)
+  {
+    this->Handles[handleNum]->GetDisplayPosition(pos);
+  }
+  else
+  {
+    this->Handles[handleNum]->GetWorldPosition(pos);
+  }
+}
+
+//----------------------------------------------------------------------------
+double* vtkMarkupsRepresentation::GetHandlePosition(unsigned int handleNum)
+{
+  if (this->UseDisplayPosition)
+  {
+    return this->Handles[handleNum]->GetDisplayPosition();
+  }
+  else
+  {
+    return this->Handles[handleNum]->GetWorldPosition();
+  }
+}
+
+//----------------------------------------------------------------------------
+void vtkMarkupsRepresentation::SetHandlePosition(unsigned int handleNum, double pos[3])
+{
+  if (this->UseDisplayPosition)
+  {
+    this->Handles[handleNum]->SetDisplayPosition(pos);
+  }
+  else
+  {
+    this->Handles[handleNum]->SetWorldPosition(pos);
+  }
+}
+
+/*
+//----------------------------------------------------------------------
+void vtkMarkupsRepresentation::GetHandleWorldPosition(unsigned int handleNum, double pos[3])
+{
+  if (handleNum >= this->Handles.size())
+  {
+    vtkErrorMacro("Trying to access non-existent handle");
+    return;
+  }
+  HandleListType::iterator iter = this->Handles.begin();
+  std::advance(iter, handleNum);
+  (*iter)->GetWorldPosition(pos);
+}
+*/
+
+//----------------------------------------------------------------------
+void vtkMarkupsRepresentation::SetHandleDisplayPosition(unsigned int handleNum, double pos[3])
+{
+  if (handleNum >= this->Handles.size())
+  {
+    vtkErrorMacro("Trying to access non-existent handle");
+    return;
+  }
+  HandleListType::iterator iter = this->Handles.begin();
+  std::advance(iter, handleNum);
+  (*iter)->SetDisplayPosition(pos);
+}
+
+//----------------------------------------------------------------------
+void vtkMarkupsRepresentation::GetHandleDisplayPosition(unsigned int handleNum, double pos[3])
+{
+  if (handleNum >= this->Handles.size())
+  {
+    vtkErrorMacro("Trying to access non-existent handle");
+    return;
+  }
+  HandleListType::iterator iter = this->Handles.begin();
+  std::advance(iter, handleNum);
+  (*iter)->GetDisplayPosition(pos);
 }

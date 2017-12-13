@@ -112,6 +112,8 @@ vtkDoubleArray* vtkMarkupsSplineRepresentation::GetHandlePositions()
 //----------------------------------------------------------------------------
 void vtkMarkupsSplineRepresentation::BuildRepresentation()
 {
+  Superclass::BuildRepresentation();
+
   this->ValidPick = 1;
   // TODO: Avoid unnecessary rebuilds.
   // Handles have changed position, re-compute the spline coeffs
@@ -127,89 +129,12 @@ void vtkMarkupsSplineRepresentation::BuildRepresentation()
     points->SetNumberOfPoints(this->Handles.size());
     }
 
-  vtkBoundingBox bbox;
   for (int i = 0; i < this->Handles.size(); ++i)
     {
-    double pt[3];
-    this->HandleGeometry[i]->GetCenter(pt);
-    points->SetPoint(i, pt);
-    bbox.AddPoint(pt);
+    points->SetPoint(i, this->GetHandlePosition(i));
     }
   this->ParametricSpline->SetClosed(this->Closed);
   this->ParametricSpline->Modified();
-
-  double bounds[6];
-  bbox.GetBounds(bounds);
-  this->InitialLength = sqrt((bounds[1]-bounds[0])*(bounds[1]-bounds[0]) +
-                             (bounds[3]-bounds[2])*(bounds[3]-bounds[2]) +
-                             (bounds[5]-bounds[4])*(bounds[5]-bounds[4]));
-  this->SizeHandles();
-}
-
-//----------------------------------------------------------------------------
-void vtkMarkupsSplineRepresentation::SetNumberOfHandles(int npts)
-{
-  if (this->Handles.size() == npts)
-    {
-    return;
-    }
-
-  // Ensure that no handle is current
-  this->HighlightHandle(NULL);
-
-  this->Initialize();
-
-  double radius = 10;
-  vtkSphereHandleRepresentation* sphereHandle = vtkSphereHandleRepresentation::SafeDownCast(this->HandleRepresentation);
-  if (sphereHandle)
-    {
-    radius = sphereHandle->GetSphereRadius();
-    }
-
-  this->Handles.resize(npts);
-
-  // Create the handles
-
-  for (int i = 0; i < this->Handles.size(); ++i)
-    {
-    if (this->HandleGeometry.size() <= i)
-      {
-      this->HandleGeometry.push_back(vtkSmartPointer<vtkSphereSource>::New());
-      }
-    this->HandleGeometry[i]->SetThetaResolution(16);
-    this->HandleGeometry[i]->SetPhiResolution(8);
-    vtkNew<vtkPolyDataMapper> handleMapper;
-    handleMapper->SetInputConnection(
-      this->HandleGeometry[i]->GetOutputPort());
-    if (this->Handles[i].GetPointer() == NULL)
-      {
-      vtkNew<vtkSphereHandleRepresentation> newHandleRep;
-      this->Handles[i] = newHandleRep.GetPointer();
-      }
-    vtkActor* handleActor = vtkActor::SafeDownCast(this->Handles[i]);
-    handleActor->SetMapper(handleMapper.GetPointer());
-    handleActor->SetProperty(this->HandleProperty);
-    /*
-    double u[3], pt[3];
-    u[0] = i/(this->Handles.size() - 1.0);
-    this->ParametricSpline->Evaluate(u, pt, NULL);
-    this->HandleGeometry[i]->SetCenter(pt);*/
-    this->HandleGeometry[i]->SetRadius(radius);
-    this->HandlePicker->AddPickList(this->Handles[i]);
-    }
-
-  if (this->CurrentHandleIndex >= 0 &&
-    this->CurrentHandleIndex < this->Handles.size())
-    {
-    this->CurrentHandleIndex =
-      this->HighlightHandle(this->Handles[this->CurrentHandleIndex]);
-    }
-  else
-    {
-    this->CurrentHandleIndex = this->HighlightHandle(NULL);
-    }
-
-  this->BuildRepresentation();
 }
 
 //----------------------------------------------------------------------------
@@ -267,75 +192,27 @@ double vtkMarkupsSplineRepresentation::GetSummedLength()
 //----------------------------------------------------------------------------
 void vtkMarkupsSplineRepresentation::InsertHandleOnLine(double* pos)
 {
-  if (this->Handles.size() < 2) { return; }
+  if (this->Handles.size() < 2)
+    {
+    return;
+    }
 
   vtkIdType id = this->LinePicker->GetCellId();
   if (id == -1)
     {
     // Didn't click on a line segment
-    this->InsertHandle(pos);
+    this->CreateHandle(pos);
     return;
     }
 
   vtkIdType subid = this->LinePicker->GetSubId();
 
-  //vtkSmartPointer<vtkPoints> newPoints = vtkSmartPointer<vtkPoints>::New();
-  vtkPoints* newPoints = vtkPoints::New();
-  newPoints->SetDataType(VTK_DOUBLE);
-  newPoints->SetNumberOfPoints(this->Handles.size() + 1);
-
   int istart = vtkMath::Floor(subid*(this->Handles.size() + this->Closed - 1.0)/
     static_cast<double>(this->Resolution));
-  int istop = istart + 1;
-  int count = 0;
-  for (int i = 0; i <= istart; ++i)
-    {
-    newPoints->SetPoint(count++,this->HandleGeometry[i]->GetCenter());
-    }
 
-  newPoints->SetPoint(count++, pos);
+  this->InsertHandle(istart, pos);
 
-  for (int i = istop; i < this->Handles.size(); ++i)
-    {
-    newPoints->SetPoint(count++, this->HandleGeometry[i]->GetCenter());
-    }
-
-  this->InitializeHandles(newPoints);
-}
-
-void vtkMarkupsSplineRepresentation::InsertHandle(double* pos)
-{
-  vtkNew<vtkPoints> newPoints;
-  newPoints->SetDataType(VTK_DOUBLE);
-  newPoints->SetNumberOfPoints(this->Handles.size() + 1);
-
-  for (int i = 0; i < this->Handles.size(); ++i)
-    {
-    newPoints->SetPoint(i, this->HandleGeometry[i]->GetCenter());
-    }
-  newPoints->SetPoint(this->Handles.size(), pos);
-
-  this->InitializeHandles(newPoints.GetPointer());
-}
-
-//----------------------------------------------------------------------------
-void vtkMarkupsSplineRepresentation::InitializeHandles(vtkPoints* points)
-{
-  if (!points){ return; }
-
-  int npts = points->GetNumberOfPoints();
-
-  double p0[3];
-  double p1[3];
-
-  points->GetPoint(0,p0);
-  points->GetPoint(npts-1,p1);
-
-  this->SetNumberOfHandles(npts);
-  for (int i = 0; i < npts; ++i)
-    {
-    this->SetHandlePosition(i,points->GetPoint(i));
-    }
+  this->BuildRepresentation();
 }
 
 //----------------------------------------------------------------------------

@@ -7,11 +7,11 @@
   All rights reserved.
   See Copyright.txt or http://www.kitware.com/Copyright.htm for details.
 
-     This software is distributed WITHOUT ANY WARRANTY; without even
-     the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
-     PURPOSE.  See the above copyright notice for more information.
+  This software is distributed WITHOUT ANY WARRANTY; without even
+  the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+  PURPOSE.  See the above copyright notice for more information.
 
-=========================================================================*/
+  =========================================================================*/
 // .NAME vtkMarkupsRepresentation
 // .SECTION Description
 // Base class for all markups representations, providing common
@@ -35,6 +35,7 @@ class vtkPlaneSource;
 class VTK_SLICER_MARKUPS_MODULE_VTKWIDGETS_EXPORT vtkMarkupsRepresentation : public vtkWidgetRepresentation
 {
 public:
+  static vtkMarkupsRepresentation *New();
   vtkTypeMacro(vtkMarkupsRepresentation, vtkWidgetRepresentation);
   void PrintSelf(ostream& os, vtkIndent indent);
 
@@ -46,9 +47,9 @@ public:
   // SetProjectionNormal is 0,1,2 for YZ,XZ,XY planes respectively and
   // 3 for arbitrary oblique planes when the widget is tied to a
   // vtkPlaneSource.
-  vtkSetMacro(ProjectToPlane,bool);
-  vtkGetMacro(ProjectToPlane,bool);
-  vtkBooleanMacro(ProjectToPlane,bool);
+  vtkSetMacro(ProjectToPlane, bool);
+  vtkGetMacro(ProjectToPlane, bool);
+  vtkBooleanMacro(ProjectToPlane, bool);
 
   // Description:
   // Set up a reference to a vtkPlaneSource that could be from another widget
@@ -79,8 +80,31 @@ public:
   // Handle that is currently being interacted with
   vtkGetMacro(ActiveHandle, int);
 
-  // Returns the id of the handle created, -1 on failure. e is the display position.
-  virtual int CreateHandle(double* worldPosition, double* displayPosition);
+  // Create handle at position. Display or world position depends on UseDisplayPosition value.
+  // Returns the id of the handle created, -1 on failure.
+  virtual int CreateHandle(double* position);
+
+  // Insert a new a handle in the handle list.
+  // Returns the id of the handle created, -1 on failure.
+  virtual int InsertHandle(int n, double* position);
+
+  // Get/Set handle position. Display or world position depends on UseDisplayPosition value.
+  virtual void GetHandlePosition(unsigned int handleNum, double pos[3]);
+  virtual double* GetHandlePosition(unsigned int handleNum);
+  virtual void SetHandlePosition(unsigned int handleNum, double pos[3]);
+
+  // Description:
+  // Methods to Set/Get the coordinates of seed points defining
+  // this representation. Note that methods are available for both
+  // display and world coordinates. The seeds are accessed by a seed
+  // number.
+  //virtual void GetHandleWorldPosition(unsigned int handleNum, double pos[3]);
+  virtual void SetHandleDisplayPosition(unsigned int handleNum, double pos[3]);
+  virtual void GetHandleDisplayPosition(unsigned int handleNum, double pos[3]);
+
+  vtkGetMacro(UseDisplayPosition, bool);
+  vtkSetMacro(UseDisplayPosition, bool);
+  vtkBooleanMacro(UseDisplayPosition, bool);
 
   // Delete last handle created
   virtual void RemoveLastHandle();
@@ -99,15 +123,6 @@ public:
   vtkHandleRepresentation* GetHandle(int n) { return this->Handles[n].GetPointer(); };
 
   // Description:
-  // Methods to Set/Get the coordinates of seed points defining
-  // this representation. Note that methods are available for both
-  // display and world coordinates. The seeds are accessed by a seed
-  // number.
-  virtual void GetHandleWorldPosition(unsigned int handleNum, double pos[3]);
-  virtual void SetHandleDisplayPosition(unsigned int handleNum, double pos[3]);
-  virtual void GetHandleDisplayPosition(unsigned int handleNum, double pos[3]);
-
-  // Description:
   // Return the number of handles (or handles) that have been created.
   int GetNumberOfHandles();
 
@@ -118,14 +133,14 @@ public:
   vtkSetClampMacro(Tolerance, int, 1, 100);
   vtkGetMacro(Tolerance, int);
 
-    // Description:
+  // Description:
   // These are methods specific to vtkMarkupsPointListRepresentation and which are
   // invoked from vtkMarkupsPointListWidget.
 
   // Description:
   // These are methods that satisfy vtkWidgetRepresentation's API.
   virtual void BuildRepresentation();
-  virtual int ComputeInteractionState( int X, int Y, int modify = 0 );
+  virtual int ComputeInteractionState(int X, int Y, int modify = 0);
 
   // Description:
   // Set the interaction state
@@ -171,9 +186,11 @@ protected:
   // Selection tolerance for the handles
   int Tolerance;
 
+  bool UseDisplayPosition;
+
 private:
   vtkMarkupsRepresentation(const vtkMarkupsRepresentation&) VTK_DELETE_FUNCTION;
-  void operator=(const vtkMarkupsRepresentation&) VTK_DELETE_FUNCTION;
+  void operator=(const vtkMarkupsRepresentation&)VTK_DELETE_FUNCTION;
 
 };
 

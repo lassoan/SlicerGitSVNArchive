@@ -59,25 +59,10 @@ public:
   virtual void GetPolyData(vtkPolyData *pd) = 0;
 
   // Description:
-  // Set/Get the handle properties (the spheres are the handles). The
-  // properties of the handles when selected and unselected can be manipulated.
-  vtkProperty* GetHandleProperty() { return this->HandleProperty; };
-  vtkProperty* GetSelectedHandleProperty() { return this->SelectedHandleProperty; };
-
-  // Description:
   // Set/Get the line properties. The properties of the line when selected
   // and unselected can be manipulated.
   vtkProperty* GetLineProperty() { return this->LineProperty; };
   vtkProperty* GetSelectedLineProperty() { return this->SelectedLineProperty; };
-
-  // Description:
-  // Set/Get the position of the handles. Call GetNumberOfHandles
-  // to determine the valid range of handle indices.
-  virtual void SetHandlePosition(int handle, double x, double y, double z);
-  virtual void SetHandlePosition(int handle, double xyz[3]);
-  virtual void GetHandlePosition(int handle, double xyz[3]);
-  virtual double* GetHandlePosition(int handle);
-  virtual vtkDoubleArray* GetHandlePositions() = 0;
 
   // Description:
   // Control whether the curve is open or closed. A closed forms a
@@ -94,17 +79,10 @@ public:
   virtual double GetSummedLength() = 0;
 
   // Description:
-  // Convenience method to allocate and set the handles from a
-  // vtkPoints instance.  If the first and last points are the same,
-  // the curve sets Closed to the on InteractionState and disregards
-  // the last point, otherwise Closed remains unchanged.
-  virtual void InitializeHandles(vtkPoints* points) = 0;
-
-  // Description:
   // These are methods that satisfy vtkWidgetRepresentation's
   // API. Note that a version of place widget is available where the
   // center and handle position are specified.
-  virtual void BuildRepresentation() = 0;
+  virtual void BuildRepresentation();
   virtual int ComputeInteractionState(int X, int Y, int modify=0);
   virtual void StartWidgetInteraction(double e[2]);
   virtual void WidgetInteraction(double e[2]);
@@ -124,11 +102,6 @@ public:
   // Ideally one should use GetLineProperty()->SetColor().
   void SetLineColor(double r, double g, double b);
 
-  // Projection capabilities
-  void ProjectPointsToPlane();
-  void ProjectPointsToOrthoPlane();
-  void ProjectPointsToObliquePlane();
-
 protected:
   vtkMarkupsCurveRepresentation();
   ~vtkMarkupsCurveRepresentation();
@@ -143,10 +116,7 @@ protected:
   void HighlightLine(int highlight);
 
   void Initialize();
-  int  HighlightHandle(vtkProp *prop); //returns handle index or -1 on fail
-  virtual void SizeHandles();
   virtual void InsertHandleOnLine(double* pos) = 0;
-  void EraseHandle(const int&);
 
   // Do the picking
   vtkSmartPointer<vtkCellPicker> LinePicker;

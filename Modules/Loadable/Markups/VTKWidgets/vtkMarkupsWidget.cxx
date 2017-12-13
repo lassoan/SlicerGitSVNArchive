@@ -7,11 +7,11 @@
   All rights reserved.
   See Copyright.txt or http://www.kitware.com/Copyright.htm for details.
 
-     This software is distributed WITHOUT ANY WARRANTY; without even
-     the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
-     PURPOSE.  See the above copyright notice for more information.
+  This software is distributed WITHOUT ANY WARRANTY; without even
+  the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+  PURPOSE.  See the above copyright notice for more information.
 
-=========================================================================*/
+  =========================================================================*/
 #include "vtkMarkupsWidget.h"
 
 #include "vtkCallbackCommand.h"
@@ -21,7 +21,7 @@
 #include "vtkHandleRepresentation.h"
 #include "vtkHandleWidget.h"
 #include "vtkMarkupsRepresentation.h"
-#include "vtkMarkupsPointListRepresentation.h"
+#include "vtkNew.h"
 #include "vtkObjectFactory.h"
 #include "vtkRenderer.h"
 #include "vtkRenderWindow.h"
@@ -33,6 +33,8 @@
 #include <iterator>
 #include <list>
 
+vtkStandardNewMacro(vtkMarkupsWidget);
+
 //----------------------------------------------------------------------
 vtkMarkupsWidget::vtkMarkupsWidget()
 {
@@ -41,30 +43,30 @@ vtkMarkupsWidget::vtkMarkupsWidget()
 
   // These are the event callbacks supported by this widget
   this->CallbackMapper->SetCallbackMethod(vtkCommand::LeftButtonPressEvent,
-                                          vtkWidgetEvent::Select,
-                                          this, vtkMarkupsWidget::SelectAction);
+    vtkWidgetEvent::Select,
+    this, vtkMarkupsWidget::SelectAction);
   this->CallbackMapper->SetCallbackMethod(vtkCommand::LeftButtonReleaseEvent,
-                                          vtkWidgetEvent::EndSelect,
-                                          this, vtkMarkupsWidget::EndSelectAction);
+    vtkWidgetEvent::EndSelect,
+    this, vtkMarkupsWidget::EndSelectAction);
   this->CallbackMapper->SetCallbackMethod(vtkCommand::MiddleButtonPressEvent,
-                                          vtkWidgetEvent::Translate,
-                                          this, vtkMarkupsWidget::TranslateAction);
+    vtkWidgetEvent::Translate,
+    this, vtkMarkupsWidget::TranslateAction);
   this->CallbackMapper->SetCallbackMethod(vtkCommand::MiddleButtonReleaseEvent,
-                                          vtkWidgetEvent::EndTranslate,
-                                          this, vtkMarkupsWidget::EndSelectAction);
+    vtkWidgetEvent::EndTranslate,
+    this, vtkMarkupsWidget::EndSelectAction);
   this->CallbackMapper->SetCallbackMethod(vtkCommand::RightButtonPressEvent,
-                                          vtkWidgetEvent::Scale,
-                                          this, vtkMarkupsWidget::ScaleAction);
+    vtkWidgetEvent::Scale,
+    this, vtkMarkupsWidget::ScaleAction);
   this->CallbackMapper->SetCallbackMethod(vtkCommand::RightButtonReleaseEvent,
-                                          vtkWidgetEvent::EndScale,
-                                          this, vtkMarkupsWidget::EndSelectAction);
+    vtkWidgetEvent::EndScale,
+    this, vtkMarkupsWidget::EndSelectAction);
   this->CallbackMapper->SetCallbackMethod(vtkCommand::MouseMoveEvent,
-                                          vtkWidgetEvent::Move,
-                                          this, vtkMarkupsWidget::MoveAction);
+    vtkWidgetEvent::Move,
+    this, vtkMarkupsWidget::MoveAction);
 }
 
 //----------------------------------------------------------------------
-int vtkMarkupsWidget::AddHandle(double* worldPosition, double* displayPosition)
+int vtkMarkupsWidget::AddHandle(double* position)
 {
   vtkMarkupsRepresentation *rep = vtkMarkupsRepresentation::SafeDownCast(this->WidgetRep);
   if (!rep)
@@ -75,7 +77,7 @@ int vtkMarkupsWidget::AddHandle(double* worldPosition, double* displayPosition)
   }
 
   // Add a new handle to the representation
-  int currentHandleNumber = rep->CreateHandle(worldPosition, displayPosition);
+  int currentHandleNumber = rep->CreateHandle(position);
   vtkHandleRepresentation *handleRep = rep->GetHandle(currentHandleNumber);
   if (!handleRep)
   {
@@ -97,17 +99,17 @@ int vtkMarkupsWidget::AddHandle(double* worldPosition, double* displayPosition)
 //----------------------------------------------------------------------
 void vtkMarkupsWidget::RemoveHandle(int i)
 {
-  if (i<0)
-    {
+  if (i < 0)
+  {
     return;
-    }
-  if(static_cast< size_t >(i) >= this->Handles.size())
-    {
+  }
+  if (static_cast<size_t>(i) >= this->Handles.size())
+  {
     return;
-    }
+  }
 
   HandleWidgetList::iterator iter = this->Handles.begin();
-  std::advance(iter,i);
+  std::advance(iter, i);
   (*iter)->SetEnabled(0);
   (*iter)->RemoveObservers(vtkCommand::StartInteractionEvent);
   (*iter)->RemoveObservers(vtkCommand::InteractionEvent);
@@ -116,30 +118,30 @@ void vtkMarkupsWidget::RemoveHandle(int i)
 
   vtkMarkupsRepresentation *rep = vtkMarkupsRepresentation::SafeDownCast(this->WidgetRep);
   if (rep)
-    {
+  {
     rep->RemoveHandle(i);
-    }
+  }
 }
 
 //----------------------------------------------------------------------
 vtkMarkupsWidget::~vtkMarkupsWidget()
 {
   // Loop over all handles releasing their observers and deleting them
-  while(!this->Handles.empty())
-    {
-    this->RemoveHandle(static_cast<int>(this->Handles.size())-1);
-    }
+  while (!this->Handles.empty())
+  {
+    this->RemoveHandle(static_cast<int>(this->Handles.size()) - 1);
+  }
 }
 
 //----------------------------------------------------------------------
 vtkHandleWidget * vtkMarkupsWidget::GetHandle(int i)
 {
- if(this->Handles.size() <= static_cast< size_t >(i))
-   {
-   return NULL;
-   }
+  if (i >= this->Handles.size())
+  {
+    return NULL;
+  }
   HandleWidgetList::iterator iter = this->Handles.begin();
-  std::advance(iter,i);
+  std::advance(iter, i);
   return *iter;
 }
 
@@ -150,15 +152,15 @@ void vtkMarkupsWidget::SetEnabled(int enabling)
 
   HandleWidgetList::iterator iter;
   for (iter = this->Handles.begin(); iter != this->Handles.end(); ++iter)
-    {
+  {
     (*iter)->SetEnabled(enabling);
-    }
+  }
 
   if (!enabling)
-    {
+  {
     this->RequestCursorShape(VTK_CURSOR_DEFAULT);
     this->WidgetState = vtkMarkupsWidget::Idle;
-    }
+  }
 
   this->Render();
 }
@@ -171,9 +173,9 @@ void vtkMarkupsWidget::SelectAction(vtkAbstractWidget *w)
 
   // Need to distinguish between placing handles and manipulating handles
   if (self->WidgetState == vtkMarkupsWidget::MovingHandle)
-    {
+  {
     return;
-    }
+  }
 
   // compute some info we need for all cases
   int x = self->Interactor->GetEventPosition()[0];
@@ -188,7 +190,7 @@ void vtkMarkupsWidget::SelectAction(vtkAbstractWidget *w)
   }
 
   // When a handle is placed, a new handle widget must be created and enabled.
-  int interactionState = self->WidgetRep->ComputeInteractionState(x,y);
+  int interactionState = self->WidgetRep->ComputeInteractionState(x, y);
   if (interactionState == vtkMarkupsRepresentation::Outside)
   {
     return;
@@ -203,6 +205,8 @@ void vtkMarkupsWidget::SelectAction(vtkAbstractWidget *w)
   if (interactionState == vtkMarkupsRepresentation::OnLine && self->Interactor->GetControlKey())
   {
     // Add point.
+    // Add handle widget
+    self->AddHandle(widgetRep->GetLastEventPosition());
     widgetRep->SetInteractionState(vtkMarkupsRepresentation::Inserting);
     self->EventCallbackCommand->SetAbortFlag(1);
     self->StartInteraction();
@@ -245,7 +249,10 @@ void vtkMarkupsWidget::TranslateAction(vtkAbstractWidget *w)
   vtkMarkupsWidget::SelectAction(w);
 }
 
-/*
+//----------------------------------------------------------------------
+void vtkMarkupsWidget::ScaleAction(vtkAbstractWidget *w)
+{
+  /* TODO: find scale action implementation
 
   // Begin the widget interaction which has the side effect of setting the
   // interaction state.
@@ -256,17 +263,18 @@ void vtkMarkupsWidget::TranslateAction(vtkAbstractWidget *w)
   int interactionState = self->WidgetRep->GetInteractionState();
   if (interactionState == vtkMarkupsSplineRepresentation::Outside)
   {
-    return;
+  return;
   }
 
 
   //Scale
   reinterpret_cast<vtkMarkupsSplineRepresentation*>(self->WidgetRep)->
-    SetInteractionState(vtkMarkupsSplineRepresentation::Scaling);
+  SetInteractionState(vtkMarkupsSplineRepresentation::Scaling);
 
   // start the interaction
+  */
 }
-*/
+
 
 //-------------------------------------------------------------------------
 void vtkMarkupsWidget::MoveAction(vtkAbstractWidget *w)
@@ -280,12 +288,12 @@ void vtkMarkupsWidget::MoveAction(vtkAbstractWidget *w)
     return;
     }*/
 
-/*
-  // See whether we're active
-  if (self->WidgetState == vtkMarkupsWidget::Idle)
-  {
+  /*
+    // See whether we're active
+    if (self->WidgetState == vtkMarkupsWidget::Idle)
+    {
     return;
-  }*/
+    }*/
 
   // else we are moving a handle
 
@@ -299,19 +307,19 @@ void vtkMarkupsWidget::MoveAction(vtkAbstractWidget *w)
   // Change the cursor shape to a hand and invoke an interaction event if we
   // are near the handle
   if (state == vtkMarkupsRepresentation::OnHandle)
-    {
+  {
     self->RequestCursorShape(VTK_CURSOR_HAND);
 
-    vtkMarkupsRepresentation *rep = static_cast< vtkMarkupsRepresentation* >(self->WidgetRep);
+    vtkMarkupsRepresentation *rep = static_cast<vtkMarkupsRepresentation*>(self->WidgetRep);
     int handleIdx = rep->GetActiveHandle();
     self->InvokeEvent(vtkCommand::InteractionEvent, &handleIdx);
 
     self->EventCallbackCommand->SetAbortFlag(1);
-    }
+  }
   else
-    {
+  {
     self->RequestCursorShape(VTK_CURSOR_DEFAULT);
-    }
+  }
 
   self->Render();
 }
@@ -321,36 +329,44 @@ void vtkMarkupsWidget::EndSelectAction(vtkAbstractWidget *w)
 {
   vtkMarkupsWidget *self = reinterpret_cast<vtkMarkupsWidget*>(w);
 
-  // Do nothing if outside
-  /*if (self->WidgetState != vtkMarkupsWidget::MovingHandle)
-    {
-    return;
-    }*/
-
-/*
   if (self->WidgetState == vtkMarkupsWidget::Idle)
   {
     return;
   }
-*/
 
-  if (self->WidgetState != vtkMarkupsWidget::MovingHandle)
-    {
-    return;
-    }
+  vtkMarkupsRepresentation *widgetRep = vtkMarkupsRepresentation::SafeDownCast(self->WidgetRep);
 
-  // Revert back to the mode we were in prior to selection.
-  self->WidgetState = vtkMarkupsWidget::Idle;
-reinterpret_cast<vtkMarkupsSplineRepresentation*>(self->WidgetRep)->
-    SetInteractionState(vtkMarkupsSplineRepresentation::Outside);
+  // Do nothing if outside
+  /*if (self->WidgetState != vtkMarkupsWidget::MovingHandle)
+  {
+  return;
+  }*/
+
+  /*
+  if (self->WidgetState == vtkMarkupsWidget::Idle)
+  {
+  return;
+  }*/
 
   self->ReleaseFocus();
 
+  // compute some info we need for all cases
+  int x = self->Interactor->GetEventPosition()[0];
+  int y = self->Interactor->GetEventPosition()[1];
+  double e[2] = { x, y };
+  widgetRep->EndWidgetInteraction(e);
+  widgetRep->SetInteractionState(vtkMarkupsRepresentation::Outside);
+
   // Invoke event for handle
-  self->InvokeEvent(vtkCommand::LeftButtonReleaseEvent,NULL);
+  self->InvokeEvent(vtkCommand::LeftButtonReleaseEvent, NULL);
   self->EventCallbackCommand->SetAbortFlag(1);
-  self->InvokeEvent(vtkCommand::EndInteractionEvent,NULL);
+  self->InvokeEvent(vtkCommand::EndInteractionEvent, NULL);
   self->Superclass::EndInteraction();
+
+  // Revert back to the mode we were in prior to selection.
+  self->WidgetState = vtkMarkupsWidget::Idle;
+  widgetRep->SetInteractionState(vtkMarkupsRepresentation::Outside);
+
   self->Render();
 }
 
@@ -361,9 +377,9 @@ void vtkMarkupsWidget::SetProcessEvents(int pe)
 
   HandleWidgetList::iterator iter = this->Handles.begin();
   for (; iter != this->Handles.end(); ++iter)
-    {
+  {
     (*iter)->SetProcessEvents(pe);
-    }
+  }
 }
 
 //----------------------------------------------------------------------
@@ -372,9 +388,9 @@ void vtkMarkupsWidget::SetInteractor(vtkRenderWindowInteractor *rwi)
   this->Superclass::SetInteractor(rwi);
   HandleWidgetList::iterator iter = this->Handles.begin();
   for (; iter != this->Handles.end(); ++iter)
-    {
+  {
     (*iter)->SetInteractor(rwi);
-    }
+  }
 }
 
 //----------------------------------------------------------------------
@@ -383,21 +399,21 @@ void vtkMarkupsWidget::SetCurrentRenderer(vtkRenderer *ren)
   this->Superclass::SetCurrentRenderer(ren);
   HandleWidgetList::iterator iter = this->Handles.begin();
   for (; iter != this->Handles.end(); ++iter)
-    {
+  {
     if (!ren)
-      {
+    {
       // Disable widget if its being removed from the the renderer
       (*iter)->EnabledOff();
-      }
-    (*iter)->SetCurrentRenderer(ren);
     }
+    (*iter)->SetCurrentRenderer(ren);
+  }
 }
 
 //----------------------------------------------------------------------
 void vtkMarkupsWidget::PrintSelf(ostream& os, vtkIndent indent)
 {
   //Superclass typedef defined in vtkTypeMacro() found in vtkSetGet.h
-  this->Superclass::PrintSelf(os,indent);
+  this->Superclass::PrintSelf(os, indent);
 
   os << indent << "WidgetState: " << this->WidgetState << endl;
 }
@@ -413,8 +429,8 @@ void vtkMarkupsWidget::SetRepresentation(vtkMarkupsRepresentation* widgetRep)
 void vtkMarkupsWidget::CreateDefaultRepresentation()
 {
   if (!this->WidgetRep)
-    {
-    vtkNew<vtkMarkupsPointListRepresentation> rep;
+  {
+    vtkNew<vtkMarkupsRepresentation> rep;
     this->SetWidgetRepresentation(rep.GetPointer());
-    }
+  }
 }

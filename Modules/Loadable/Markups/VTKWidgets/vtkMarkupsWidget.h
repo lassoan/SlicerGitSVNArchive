@@ -77,6 +77,7 @@ class VTK_SLICER_MARKUPS_MODULE_VTKWIDGETS_EXPORT vtkMarkupsWidget : public vtkA
 public:
   // Description:
   // Standard methods for a VTK class.
+  static vtkMarkupsWidget *New();
   vtkTypeMacro(vtkMarkupsWidget,vtkAbstractWidget);
   void PrintSelf(ostream& os, vtkIndent indent);
 
@@ -102,7 +103,7 @@ public:
   // automatically invoked. The method returns the handle created.
   // A valid markups representation must exist for the widget to create a new
   // handle.
-  virtual int AddHandle(double* worldPosition, double* displayPosition);
+  virtual int AddHandle(double* position);
 
   // Description:
   // Delete the nth handle. Index of all handles after the deleted handle will be decremented.

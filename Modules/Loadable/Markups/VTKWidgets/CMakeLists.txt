@@ -16,12 +16,6 @@ set(${KIT}_SRCS
   vtk${MODULE_NAME}Widget.h
   vtk${MODULE_NAME}CurveRepresentation.cxx
   vtk${MODULE_NAME}CurveRepresentation.h
-  vtk${MODULE_NAME}CurveWidget.cxx
-  vtk${MODULE_NAME}CurveWidget.h
-  vtk${MODULE_NAME}PointListRepresentation.cxx
-  vtk${MODULE_NAME}PointListRepresentation.h
-  vtk${MODULE_NAME}PointListWidget.cxx
-  vtk${MODULE_NAME}PointListWidget.h
   vtk${MODULE_NAME}SplineRepresentation.cxx
   vtk${MODULE_NAME}SplineRepresentation.h
   #vtk${MODULE_NAME}AngleRepresentation.cxx

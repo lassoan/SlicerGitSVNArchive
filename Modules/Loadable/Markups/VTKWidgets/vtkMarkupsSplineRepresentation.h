@@ -57,10 +57,6 @@ public:
   void GetPolyData(vtkPolyData *pd);
 
   // Description:
-  // Set the number of handles for this widget.
-  virtual void SetNumberOfHandles(int npts);
-
-  // Description:
   // Set/Get the number of line segments representing the spline for
   // this widget.
   void SetResolution(int resolution);
@@ -86,21 +82,11 @@ public:
   // SetResolution to control the accuracy.
   double GetSummedLength();
 
-  // Description:
-  // Convenience method to allocate and set the handles from a vtkPoints
-  // instance.  If the first and last points are the same, the spline sets
-  // Closed to the on InteractionState and disregards the last point, otherwise Closed
-  // remains unchanged.
-  void InitializeHandles(vtkPoints* points);
-
  // Description:
   // These are methods that satisfy vtkWidgetRepresentation's API. Note that a
   // version of place widget is available where the center and handle position
   // are specified.
   virtual void BuildRepresentation();
-
-  // Specialized method to insert a handle outside the poly line.
-  virtual void InsertHandle(double* pos);
 
   // Specialized method to insert a handle on the poly line.
   virtual void InsertHandleOnLine(double* pos);
