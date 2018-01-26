@@ -290,25 +290,15 @@ void qMRMLPlotViewControllerWidgetPrivate::onPlotDataNodeAdded(vtkMRMLNode *node
     return;
     }
 
+  std::string plotType = this->PlotChartNode->GetPropertyFromAllPlots(vtkMRMLPlotChartNode::PlotType);
+  std::string xColumnName = this->PlotChartNode->GetPropertyFromAllPlots(vtkMRMLPlotChartNode::PlotXColumnName);
+  std::string markerStyle = this->PlotChartNode->GetPropertyFromAllPlots(vtkMRMLPlotChartNode::PlotMarkerStyle);
+
+  plotDataNode->SetType(plotType.c_str());
+  plotDataNode->SetXColumnName(xColumnName);
+  plotDataNode->SetMarkerStyle(plotDataNode->GetMarkersStyleFromString(markerStyle.c_str()));
+
   q->mrmlScene()->AddNode(plotDataNode);
-
-  const char* Type = this->PlotChartNode->GetAttribute("Type");
-  if (strcmp("Custom", Type))
-    {
-    plotDataNode->SetType(plotDataNode->GetPlotTypeFromString(Type));
-    }
-
-  const char* XAxis = this->PlotChartNode->GetAttribute("XAxis");
-  if (strcmp("Custom", XAxis))
-    {
-    plotDataNode->SetXColumnName(XAxis);
-    }
-
-  const char* Markers = this->PlotChartNode->GetAttribute("Markers");
-  if (strcmp("Custom", Markers))
-    {
-    plotDataNode->SetMarkerStyle(plotDataNode->GetMarkersStyleFromString(Markers));
-    }
 
   // Add the reference of the PlotDataNode in the active PlotChartNode
   this->PlotChartNode->AddAndObservePlotDataNodeID(plotDataNode->GetID());
@@ -658,15 +648,13 @@ void qMRMLPlotViewControllerWidget::updateWidgetFromMRML()
     {
     // Set the widgets to default states
     bool wasBlocked = d->plotTypeComboBox->blockSignals(true);
-    // After Qt5 migration, the next line (and similar following lines) can be replaced by this call:
-    // d->plotTypeComboBox->setCurrentText("Custom");
-    d->plotTypeComboBox->setCurrentIndex(d->plotTypeComboBox->findText(QString("Custom")));
+    d->plotTypeComboBox->setCurrentIndex(-1);
     d->plotTypeComboBox->blockSignals(wasBlocked);
     wasBlocked = d->xAxisComboBox->blockSignals(true);
-    d->xAxisComboBox->setCurrentIndex(d->xAxisComboBox->findText(QString("Custom")));
+    d->xAxisComboBox->clear();
     d->xAxisComboBox->blockSignals(wasBlocked);
     wasBlocked = d->markersComboBox->blockSignals(true);
-    d->markersComboBox->setCurrentIndex(d->xAxisComboBox->findText(QString("Custom")));
+    d->markersComboBox->setCurrentIndex(-1);
     d->markersComboBox->blockSignals(wasBlocked);
     d->actionShow_Grid->setChecked(true);
     d->actionShow_Legend->setChecked(true);
@@ -699,7 +687,6 @@ void qMRMLPlotViewControllerWidget::updateWidgetFromMRML()
     }
 
   d->xAxisComboBox->clear();
-  d->xAxisComboBox->addItem("Custom");
   d->xAxisComboBox->addItem("Indexes");
 
   std::vector<std::string> plotDataNodesIDs;
@@ -730,12 +717,7 @@ void qMRMLPlotViewControllerWidget::updateWidgetFromMRML()
       }
     }
 
-  QString xColumnName("Custom");
-  std::string commonXColumnName = mrmlPlotChartNode->GetPropertyFromAllPlots(vtkMRMLPlotChartNode::PlotXColumnName);
-  if (!commonXColumnName.empty())
-    {
-    xColumnName = commonXColumnName.c_str();
-    }
+  QString xColumnName = mrmlPlotChartNode->GetPropertyFromAllPlots(vtkMRMLPlotChartNode::PlotXColumnName).c_str();
   d->xAxisComboBox->setCurrentIndex(d->xAxisComboBox->findText(xColumnName));
 
   d->xAxisComboBox->blockSignals(xAxisComboBoxBlockSignals);
@@ -764,25 +746,14 @@ void qMRMLPlotViewControllerWidget::updateWidgetFromMRML()
   attributeValue = mrmlPlotChartNode->GetAttribute("YAxisLabelName");
   d->yAxisLabelLineEdit->setText(attributeValue ? attributeValue : "");
 
-  // Show plot type, xAxis, marker type if they are the same in all selected plot nodes,
-  // otherwise show "Custom"
+  // Show plot type, xAxis, marker type if they are the same in all selected plot nodes.
 
-  QString plotType("Custom");
-  std::string commonPlotType = mrmlPlotChartNode->GetPropertyFromAllPlots(vtkMRMLPlotChartNode::PlotType);
-  if (!commonPlotType.empty())
-    {
-    plotType = commonPlotType.c_str();
-    }
+  QString plotType = mrmlPlotChartNode->GetPropertyFromAllPlots(vtkMRMLPlotChartNode::PlotType).c_str();
   wasBlocked = d->plotTypeComboBox->blockSignals(true);
   d->plotTypeComboBox->setCurrentIndex(d->plotTypeComboBox->findText(plotType));
   d->plotTypeComboBox->blockSignals(wasBlocked);
 
-  QString markerStyle("Custom");
-  std::string commonMarkerStyle = mrmlPlotChartNode->GetPropertyFromAllPlots(vtkMRMLPlotChartNode::PlotMarkerStyle);
-  if (!commonMarkerStyle.empty())
-    {
-    markerStyle = commonMarkerStyle.c_str();
-    }
+  QString markerStyle = mrmlPlotChartNode->GetPropertyFromAllPlots(vtkMRMLPlotChartNode::PlotMarkerStyle).c_str();
   wasBlocked = d->markersComboBox->blockSignals(true);
   d->markersComboBox->setCurrentIndex(d->markersComboBox->findText(markerStyle));
   d->markersComboBox->blockSignals(wasBlocked);
