@@ -330,36 +330,33 @@ void qMRMLPlotViewControllerWidgetPrivate::onPlotDataNodeEdited(vtkMRMLNode *nod
 }
 
 // --------------------------------------------------------------------------
-void qMRMLPlotViewControllerWidgetPrivate::onPlotTypeChanged(const QString &Type)
+void qMRMLPlotViewControllerWidgetPrivate::onPlotTypeChanged(const QString &type)
 {
   if (!this->PlotChartNode)
     {
     return;
     }
-
-  this->PlotChartNode->SetAttribute("Type", Type.toStdString().c_str());
+  this->PlotChartNode->SetPropertyToAllPlots(vtkMRMLPlotChartNode::PlotType, type.toLatin1().constData());
 }
 
 // --------------------------------------------------------------------------
-void qMRMLPlotViewControllerWidgetPrivate::onXAxisChanged(const QString &Column)
+void qMRMLPlotViewControllerWidgetPrivate::onXAxisChanged(const QString &column)
 {
   if (!this->PlotChartNode)
     {
     return;
     }
-
-  this->PlotChartNode->SetAttribute("XAxis", Column.toStdString().c_str());
+  this->PlotChartNode->SetPropertyToAllPlots(vtkMRMLPlotChartNode::PlotXColumnName, column.toLatin1().constData());
 }
 
 // --------------------------------------------------------------------------
-void qMRMLPlotViewControllerWidgetPrivate::onMarkersChanged(const QString &str)
+void qMRMLPlotViewControllerWidgetPrivate::onMarkersChanged(const QString &markerStyle)
 {
-  if(!this->PlotChartNode)
+  if (!this->PlotChartNode)
     {
     return;
     }
-
-  this->PlotChartNode->SetAttribute("Markers", str.toStdString().c_str());
+  this->PlotChartNode->SetPropertyToAllPlots(vtkMRMLPlotChartNode::PlotMarkerStyle, markerStyle.toLatin1().constData());
 }
 
 // --------------------------------------------------------------------------
@@ -461,7 +458,7 @@ void qMRMLPlotViewControllerWidget::showTitle(bool show)
 {
   Q_D(qMRMLPlotViewControllerWidget);
 
-  if(!d->PlotChartNode)
+  if (!d->PlotChartNode)
     {
     return;
     }
@@ -514,7 +511,7 @@ void qMRMLPlotViewControllerWidget::showYAxisLabel(bool show)
 {
   Q_D(qMRMLPlotViewControllerWidget);
 
-  if(!d->PlotChartNode)
+  if (!d->PlotChartNode)
     {
     return;
     }
@@ -534,7 +531,7 @@ void qMRMLPlotViewControllerWidget::setTitle(const QString &str)
 {
   Q_D(qMRMLPlotViewControllerWidget);
 
-  if(!d->PlotChartNode)
+  if (!d->PlotChartNode)
     {
     return;
     }
@@ -547,7 +544,7 @@ void qMRMLPlotViewControllerWidget::setXAxisLabel(const QString &str)
 {
   Q_D(qMRMLPlotViewControllerWidget);
 
-  if(!d->PlotChartNode)
+  if (!d->PlotChartNode)
     {
     return;
     }
@@ -560,7 +557,7 @@ void qMRMLPlotViewControllerWidget::setYAxisLabel(const QString &str)
 {
   Q_D(qMRMLPlotViewControllerWidget);
 
-  if(!d->PlotChartNode)
+  if (!d->PlotChartNode)
     {
     return;
     }
@@ -653,25 +650,32 @@ void qMRMLPlotViewControllerWidget::updateWidgetFromMRML()
   // PlotChartNode selector
   vtkMRMLPlotChartNode* mrmlPlotChartNode = d->GetPlotChartNodeFromView();
 
+  bool wasBlocked = d->plotChartComboBox->blockSignals(true);
   d->plotChartComboBox->setCurrentNode(mrmlPlotChartNode);
+  d->plotChartComboBox->blockSignals(wasBlocked);
 
   if (!mrmlPlotChartNode)
     {
     // Set the widgets to default states
-    int tindex = d->plotTypeComboBox->findText(QString("Custom"));
-    d->plotTypeComboBox->setCurrentIndex(tindex);
-    tindex = d->xAxisComboBox->findText(QString("Custom"));
-    d->xAxisComboBox->setCurrentIndex(tindex);
-    tindex = d->markersComboBox->findText(QString("Custom"));
-    d->markersComboBox->setCurrentIndex(tindex);
+    bool wasBlocked = d->plotTypeComboBox->blockSignals(true);
+    // After Qt5 migration, the next line (and similar following lines) can be replaced by this call:
+    // d->plotTypeComboBox->setCurrentText("Custom");
+    d->plotTypeComboBox->setCurrentIndex(d->plotTypeComboBox->findText(QString("Custom")));
+    d->plotTypeComboBox->blockSignals(wasBlocked);
+    wasBlocked = d->xAxisComboBox->blockSignals(true);
+    d->xAxisComboBox->setCurrentIndex(d->xAxisComboBox->findText(QString("Custom")));
+    d->xAxisComboBox->blockSignals(wasBlocked);
+    wasBlocked = d->markersComboBox->blockSignals(true);
+    d->markersComboBox->setCurrentIndex(d->xAxisComboBox->findText(QString("Custom")));
+    d->markersComboBox->blockSignals(wasBlocked);
     d->actionShow_Grid->setChecked(true);
     d->actionShow_Legend->setChecked(true);
     d->showTitleCheckBox->setChecked(true);
     d->showXAxisLabelCheckBox->setChecked(true);
     d->showYAxisLabelCheckBox->setChecked(true);
-    d->titleLineEdit->setText("");
-    d->xAxisLabelLineEdit->setText("");
-    d->yAxisLabelLineEdit->setText("");
+    d->titleLineEdit->clear();
+    d->xAxisLabelLineEdit->clear();
+    d->yAxisLabelLineEdit->clear();
 
     bool plotBlockSignals = d->plotDataComboBox->blockSignals(true);
     for (int idx = 0; idx < d->plotDataComboBox->nodeCount(); idx++)
@@ -684,25 +688,24 @@ void qMRMLPlotViewControllerWidget::updateWidgetFromMRML()
     return;
     }
 
-  int plnWasModifying = mrmlPlotChartNode->StartModify();
-
-  // Plot selector
-  std::vector<std::string> plotDataNodesIDs;
-  mrmlPlotChartNode->GetPlotIDs(plotDataNodesIDs);
+  // Plot and x axis selector
+  bool xAxisComboBoxBlockSignals = d->xAxisComboBox->blockSignals(true);
   bool plotBlockSignals = d->plotDataComboBox->blockSignals(true);
+
   for (int idx = 0; idx < d->plotDataComboBox->nodeCount(); idx++)
     {
     vtkMRMLNode* node = d->plotDataComboBox->nodeFromIndex(idx);
     d->plotDataComboBox->setCheckState(node, Qt::Unchecked);
     }
 
-  bool xAxisComboBoxBlockSignals = d->xAxisComboBox->blockSignals(true);
-  QString currentCol = d->xAxisComboBox->itemText(d->xAxisComboBox->currentIndex());
   d->xAxisComboBox->clear();
   d->xAxisComboBox->addItem("Custom");
   d->xAxisComboBox->addItem("Indexes");
-  std::vector<std::string>::iterator it = plotDataNodesIDs.begin();
-  for (; it != plotDataNodesIDs.end(); ++it)
+
+  std::vector<std::string> plotDataNodesIDs;
+  mrmlPlotChartNode->GetPlotIDs(plotDataNodesIDs);
+  for (std::vector<std::string>::iterator it = plotDataNodesIDs.begin();
+    it != plotDataNodesIDs.end(); ++it)
     {
     vtkMRMLPlotDataNode *plotDataNode = vtkMRMLPlotDataNode::SafeDownCast
       (this->mrmlScene()->GetNodeByID((*it).c_str()));
@@ -719,213 +722,70 @@ void qMRMLPlotViewControllerWidget::updateWidgetFromMRML()
     int numCol = mrmlTableNode->GetNumberOfColumns();
     for (int ii = 0; ii < numCol; ++ii)
       {
-      QString ColumnName = QString::fromStdString(mrmlTableNode->GetColumnName(ii));
-      if (d->xAxisComboBox->findText(ColumnName) == -1)
+      QString columnName = QString::fromStdString(mrmlTableNode->GetColumnName(ii));
+      if (d->xAxisComboBox->findText(columnName) == -1)
         {
-        d->xAxisComboBox->addItem(ColumnName);
+        d->xAxisComboBox->addItem(columnName);
         }
       }
     }
 
-  // After Qt5 migration, the next line can be replaced by this call:
-  // d->xAxisComboBox->setCurrentText(currentCol);
-  d->xAxisComboBox->setCurrentIndex(d->xAxisComboBox->findText(currentCol));
+  QString xColumnName("Custom");
+  std::string commonXColumnName = mrmlPlotChartNode->GetPropertyFromAllPlots(vtkMRMLPlotChartNode::PlotXColumnName);
+  if (!commonXColumnName.empty())
+    {
+    xColumnName = commonXColumnName.c_str();
+    }
+  d->xAxisComboBox->setCurrentIndex(d->xAxisComboBox->findText(xColumnName));
 
   d->xAxisComboBox->blockSignals(xAxisComboBoxBlockSignals);
   d->plotDataComboBox->blockSignals(plotBlockSignals);
 
-  const char *AttributeValue;
-  AttributeValue = mrmlPlotChartNode->GetAttribute("ShowGrid");
-  d->actionShow_Grid->setChecked(AttributeValue && !strcmp("on", AttributeValue));
+  const char *attributeValue;
+  attributeValue = mrmlPlotChartNode->GetAttribute("ShowGrid");
+  d->actionShow_Grid->setChecked(attributeValue && !strcmp("on", attributeValue));
 
-  AttributeValue = mrmlPlotChartNode->GetAttribute("ShowLegend");
-  d->actionShow_Legend->setChecked(AttributeValue && !strcmp("on", AttributeValue));
+  attributeValue = mrmlPlotChartNode->GetAttribute("ShowLegend");
+  d->actionShow_Legend->setChecked(attributeValue && !strcmp("on", attributeValue));
 
   // Titles, axis labels (checkboxes AND text widgets)
-  AttributeValue = mrmlPlotChartNode->GetAttribute("ShowTitle");
-  d->showTitleCheckBox->setChecked(AttributeValue && !strcmp("on", AttributeValue));
-  AttributeValue = mrmlPlotChartNode->GetAttribute("TitleName");
-  if (AttributeValue)
-    {
-    d->titleLineEdit->setText(AttributeValue);
-    }
-  else
-    {
-    d->titleLineEdit->clear();
-    }
+  attributeValue = mrmlPlotChartNode->GetAttribute("ShowTitle");
+  d->showTitleCheckBox->setChecked(attributeValue && !strcmp("on", attributeValue));
+  attributeValue = mrmlPlotChartNode->GetAttribute("TitleName");
+  d->titleLineEdit->setText(attributeValue ? attributeValue : "");
 
-  AttributeValue = mrmlPlotChartNode->GetAttribute("ShowXAxisLabel");
-  d->showXAxisLabelCheckBox->setChecked(AttributeValue && !strcmp("on", AttributeValue));
-  AttributeValue = mrmlPlotChartNode->GetAttribute("XAxisLabelName");
-  if (AttributeValue)
-    {
-    d->xAxisLabelLineEdit->setText(AttributeValue);
-    }
-  else
-    {
-    d->xAxisLabelLineEdit->clear();
-    }
+  attributeValue = mrmlPlotChartNode->GetAttribute("ShowXAxisLabel");
+  d->showXAxisLabelCheckBox->setChecked(attributeValue && !strcmp("on", attributeValue));
+  attributeValue = mrmlPlotChartNode->GetAttribute("XAxisLabelName");
+  d->xAxisLabelLineEdit->setText(attributeValue ? attributeValue : "");
 
-  AttributeValue = mrmlPlotChartNode->GetAttribute("ShowYAxisLabel");
-  d->showYAxisLabelCheckBox->setChecked(AttributeValue && !strcmp("on", AttributeValue));
-  AttributeValue = mrmlPlotChartNode->GetAttribute("YAxisLabelName");
-  if (AttributeValue)
-    {
-    d->yAxisLabelLineEdit->setText(AttributeValue);
-    }
-  else
-    {
-    d->yAxisLabelLineEdit->clear();
-    }
+  attributeValue = mrmlPlotChartNode->GetAttribute("ShowYAxisLabel");
+  d->showYAxisLabelCheckBox->setChecked(attributeValue && !strcmp("on", attributeValue));
+  attributeValue = mrmlPlotChartNode->GetAttribute("YAxisLabelName");
+  d->yAxisLabelLineEdit->setText(attributeValue ? attributeValue : "");
 
-  // PlotType selector
-  const char *type;
-  std::string stype("Custom");
-  type = mrmlPlotChartNode->GetAttribute("Type");
-  if (type == NULL)
-    {
-    // no type specified, default to "Custom"
-    type = stype.c_str();
-    }
-  if (type)
-    {
-    QString qtype(type);
-    int tindex = d->plotTypeComboBox->findText(qtype);
-    if (tindex != -1)
-      {
-      d->plotTypeComboBox->setCurrentIndex(tindex);
-      }
-    }
+  // Show plot type, xAxis, marker type if they are the same in all selected plot nodes,
+  // otherwise show "Custom"
 
-  // Handle Modify events for PlotDataNodes
-  std::vector<int> plotDataNodesWasModifying(mrmlPlotChartNode->GetNumberOfPlotDataNodes(), 0);
-  it = plotDataNodesIDs.begin();
-  for (; it != plotDataNodesIDs.end(); ++it)
+  QString plotType("Custom");
+  std::string commonPlotType = mrmlPlotChartNode->GetPropertyFromAllPlots(vtkMRMLPlotChartNode::PlotType);
+  if (!commonPlotType.empty())
     {
-    vtkMRMLPlotDataNode *plotDataNode = vtkMRMLPlotDataNode::SafeDownCast
-      (this->mrmlScene()->GetNodeByID((*it).c_str()));
-    if (!plotDataNode)
-      {
-      continue;
-      }
-    int plotDataNodesIndex = std::distance(plotDataNodesIDs.begin(), it);
-    plotDataNodesWasModifying[plotDataNodesIndex] = plotDataNode->StartModify();
+    plotType = commonPlotType.c_str();
     }
+  wasBlocked = d->plotTypeComboBox->blockSignals(true);
+  d->plotTypeComboBox->setCurrentIndex(d->plotTypeComboBox->findText(plotType));
+  d->plotTypeComboBox->blockSignals(wasBlocked);
 
-  // Update selected Type for all PlotDataNode
-  if (strcmp(type, "Custom"))
+  QString markerStyle("Custom");
+  std::string commonMarkerStyle = mrmlPlotChartNode->GetPropertyFromAllPlots(vtkMRMLPlotChartNode::PlotMarkerStyle);
+  if (!commonMarkerStyle.empty())
     {
-    it = plotDataNodesIDs.begin();
-    for (; it != plotDataNodesIDs.end(); ++it)
-      {
-      vtkMRMLPlotDataNode *plotDataNode = vtkMRMLPlotDataNode::SafeDownCast
-        (this->mrmlScene()->GetNodeByID((*it).c_str()));
-      if (!plotDataNode)
-        {
-        continue;
-        }
-      plotDataNode->SetType(type);
-      }
+    markerStyle = commonMarkerStyle.c_str();
     }
-
-  // XAxis selector
-  const char *xAxis;
-  stype = "Custom";
-  xAxis = mrmlPlotChartNode->GetAttribute("XAxis");
-  if (xAxis == NULL)
-    {
-    // no type specified, default to "Custom"
-    xAxis = stype.c_str();
-    }
-  if (xAxis)
-    {
-    QString qtype(xAxis);
-    int tindex = d->xAxisComboBox->findText(qtype);
-    if (tindex != -1)
-      {
-      d->xAxisComboBox->setCurrentIndex(tindex);
-      }
-    }
-
-  // Update selected XAxis for all PlotDataNode
-  if (strcmp(xAxis, "Custom"))
-    {
-    it = plotDataNodesIDs.begin();
-    for (; it != plotDataNodesIDs.end(); ++it)
-      {
-      vtkMRMLPlotDataNode *plotDataNode = vtkMRMLPlotDataNode::SafeDownCast
-        (this->mrmlScene()->GetNodeByID((*it).c_str()));
-      if (!plotDataNode)
-        {
-        continue;
-        }
-      plotDataNode->SetXColumnName(xAxis);
-      }
-    }
-
-  // UnCheck Markers if Type is Bar
-  if (!strcmp(type, "Bar"))
-    {
-    d->markersComboBox->setEnabled(false);
-    mrmlPlotChartNode->SetAttribute("Markers", "Custom");
-    }
-  else
-    {
-    d->markersComboBox->setEnabled(true);
-    }
-
-  // Markers selector
-  const char *markers;
-  stype = "Custom";
-  markers = mrmlPlotChartNode->GetAttribute("Markers");
-  if (markers == NULL)
-    {
-    // no type specified, default to "Custom"
-    markers = stype.c_str();
-    }
-  if (markers)
-    {
-    QString qtype(markers);
-    int tindex = d->markersComboBox->findText(qtype);
-    if (tindex != -1)
-      {
-      d->markersComboBox->setCurrentIndex(tindex);
-      }
-    }
-
-  // Update selected PlotDataNodes Markers if Type is non-custom
-  if (markers!=NULL && strcmp("Custom", markers))
-    {
-    it = plotDataNodesIDs.begin();
-    for (; it != plotDataNodesIDs.end(); ++it)
-      {
-      vtkMRMLPlotDataNode *plotDataNode = vtkMRMLPlotDataNode::SafeDownCast
-        (this->mrmlScene()->GetNodeByID((*it).c_str()));
-      if (plotDataNode == NULL)
-        {
-        continue;
-        }
-      plotDataNode->SetMarkerStyle(plotDataNode->
-        GetMarkersStyleFromString(markers));
-      }
-    }
-
-  // End MRML Modifications
-  mrmlPlotChartNode->EndModify(plnWasModifying);
-
-  it = plotDataNodesIDs.begin();
-  for (; it != plotDataNodesIDs.end(); ++it)
-    {
-    vtkMRMLPlotDataNode *plotDataNode = vtkMRMLPlotDataNode::SafeDownCast
-      (this->mrmlScene()->GetNodeByID((*it).c_str()));
-    if (!plotDataNode)
-      {
-      continue;
-      }
-    int plotDataNodesIndex = std::distance(plotDataNodesIDs.begin(), it);
-    plotDataNode->EndModify(plotDataNodesWasModifying[plotDataNodesIndex]);
-    }
-
+  wasBlocked = d->markersComboBox->blockSignals(true);
+  d->markersComboBox->setCurrentIndex(d->markersComboBox->findText(markerStyle));
+  d->markersComboBox->blockSignals(wasBlocked);
 }
 
 //---------------------------------------------------------------------------
