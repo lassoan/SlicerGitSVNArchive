@@ -118,9 +118,9 @@ void qMRMLPlotViewControllerWidgetPrivate::setupPopupUi()
 
   // Connect the actions
   QObject::connect(this->actionShow_Grid, SIGNAL(toggled(bool)),
-                   q, SLOT(showGrid(bool)));
+                   q, SLOT(gridVisibility(bool)));
   QObject::connect(this->actionShow_Legend, SIGNAL(toggled(bool)),
-                   q, SLOT(showLegend(bool)));
+                   q, SLOT(legendVisibility(bool)));
   QObject::connect(this->actionFit_to_window, SIGNAL(triggered()),
                    q, SLOT(fitPlotToAxes()));
 
@@ -130,7 +130,7 @@ void qMRMLPlotViewControllerWidgetPrivate::setupPopupUi()
 
   // Connect the checkboxes
   QObject::connect(this->showTitleCheckBox, SIGNAL(toggled(bool)),
-                   q, SLOT(showTitle(bool)));
+                   q, SLOT(TitleVisibility(bool)));
   QObject::connect(this->showXAxisLabelCheckBox, SIGNAL(toggled(bool)),
                    q, SLOT(showXAxisLabel(bool)));
   QObject::connect(this->showYAxisLabelCheckBox, SIGNAL(toggled(bool)),
@@ -236,7 +236,7 @@ void qMRMLPlotViewControllerWidgetPrivate::onPlotDataNodesSelected()
     }
 
   std::vector<std::string> plotDataNodesIDs;
-  this->PlotChartNode->GetPlotIDs(plotDataNodesIDs);
+  this->PlotChartNode->GetPlotDataNodeIDs(plotDataNodesIDs);
 
   // loop over arrays in the widget
   for (int idx = 0; idx < this->plotDataComboBox->nodeCount(); idx++)
@@ -290,13 +290,13 @@ void qMRMLPlotViewControllerWidgetPrivate::onPlotDataNodeAdded(vtkMRMLNode *node
     return;
     }
 
-  std::string plotType = this->PlotChartNode->GetPropertyFromAllPlots(vtkMRMLPlotChartNode::PlotType);
-  std::string xColumnName = this->PlotChartNode->GetPropertyFromAllPlots(vtkMRMLPlotChartNode::PlotXColumnName);
-  std::string markerStyle = this->PlotChartNode->GetPropertyFromAllPlots(vtkMRMLPlotChartNode::PlotMarkerStyle);
+  std::string plotType = this->PlotChartNode->GetPropertyFromAllPlotDataNodes(vtkMRMLPlotChartNode::PlotType);
+  std::string xColumnName = this->PlotChartNode->GetPropertyFromAllPlotDataNodes(vtkMRMLPlotChartNode::PlotXColumnName);
+  std::string markerStyle = this->PlotChartNode->GetPropertyFromAllPlotDataNodes(vtkMRMLPlotChartNode::PlotMarkerStyle);
 
-  plotDataNode->SetType(plotType.c_str());
+  plotDataNode->SetPlotType(plotType.c_str());
   plotDataNode->SetXColumnName(xColumnName);
-  plotDataNode->SetMarkerStyle(plotDataNode->GetMarkersStyleFromString(markerStyle.c_str()));
+  plotDataNode->SetMarkerStyle(plotDataNode->GetMarkerStyleFromString(markerStyle.c_str()));
 
   q->mrmlScene()->AddNode(plotDataNode);
 
@@ -326,7 +326,7 @@ void qMRMLPlotViewControllerWidgetPrivate::onPlotTypeChanged(const QString &type
     {
     return;
     }
-  this->PlotChartNode->SetPropertyToAllPlots(vtkMRMLPlotChartNode::PlotType, type.toLatin1().constData());
+  this->PlotChartNode->SetPropertyToAllPlotDataNodes(vtkMRMLPlotChartNode::PlotType, type.toLatin1().constData());
 }
 
 // --------------------------------------------------------------------------
@@ -336,7 +336,7 @@ void qMRMLPlotViewControllerWidgetPrivate::onXAxisChanged(const QString &column)
     {
     return;
     }
-  this->PlotChartNode->SetPropertyToAllPlots(vtkMRMLPlotChartNode::PlotXColumnName, column.toLatin1().constData());
+  this->PlotChartNode->SetPropertyToAllPlotDataNodes(vtkMRMLPlotChartNode::PlotXColumnName, column.toLatin1().constData());
 }
 
 // --------------------------------------------------------------------------
@@ -346,7 +346,7 @@ void qMRMLPlotViewControllerWidgetPrivate::onMarkersChanged(const QString &marke
     {
     return;
     }
-  this->PlotChartNode->SetPropertyToAllPlots(vtkMRMLPlotChartNode::PlotMarkerStyle, markerStyle.toLatin1().constData());
+  this->PlotChartNode->SetPropertyToAllPlotDataNodes(vtkMRMLPlotChartNode::PlotMarkerStyle, markerStyle.toLatin1().constData());
 }
 
 // --------------------------------------------------------------------------
@@ -404,155 +404,102 @@ void qMRMLPlotViewControllerWidget::setMRMLPlotViewNode(
 }
 
 //---------------------------------------------------------------------------
-void qMRMLPlotViewControllerWidget::showGrid(bool show)
+void qMRMLPlotViewControllerWidget::gridVisibility(bool show)
 {
   Q_D(qMRMLPlotViewControllerWidget);
-
   if(!d->PlotChartNode)
     {
     return;
     }
-
-  if (show)
-    {
-    d->PlotChartNode->SetAttribute("ShowGrid", "on");
-    }
-  else
-    {
-    d->PlotChartNode->SetAttribute("ShowGrid", "off");
-    }
+  d->PlotChartNode->SetGridVisibility(show);
 }
 
 //---------------------------------------------------------------------------
-void qMRMLPlotViewControllerWidget::showLegend(bool show)
+void qMRMLPlotViewControllerWidget::legendVisibility(bool show)
 {
   Q_D(qMRMLPlotViewControllerWidget);
-
   if(!d->PlotChartNode)
     {
     return;
     }
-
-  if (show)
-    {
-    d->PlotChartNode->SetAttribute("ShowLegend", "on");
-    }
-  else
-    {
-    d->PlotChartNode->SetAttribute("ShowLegend", "off");
-    }
+  d->PlotChartNode->SetLegendVisibility(show);
 }
 
 //---------------------------------------------------------------------------
-void qMRMLPlotViewControllerWidget::showTitle(bool show)
+void qMRMLPlotViewControllerWidget::TitleVisibility(bool show)
 {
   Q_D(qMRMLPlotViewControllerWidget);
-
   if (!d->PlotChartNode)
     {
     return;
     }
-
-  if (show)
-    {
-    d->PlotChartNode->SetAttribute("ShowTitle", "on");
-    }
-  else
-    {
-    d->PlotChartNode->SetAttribute("ShowTitle", "off");
-  }
+  d->PlotChartNode->SetTitleVisibility(show);
 }
 
 //---------------------------------------------------------------------------
 void qMRMLPlotViewControllerWidget::fitPlotToAxes()
 {
   Q_D(qMRMLPlotViewControllerWidget);
-
-  if(!d->PlotChartNode)
+  if(!d->PlotView)
     {
     return;
     }
-
-  d->PlotChartNode->SetAttribute("FitPlotToAxes", "on");
+  d->PlotView->fitToContent();
 }
 
 //---------------------------------------------------------------------------
 void qMRMLPlotViewControllerWidget::showXAxisLabel(bool show)
 {
   Q_D(qMRMLPlotViewControllerWidget);
-
   if(!d->PlotChartNode)
     {
     return;
     }
-
-  if (show)
-    {
-    d->PlotChartNode->SetAttribute("ShowXAxisLabel", "on");
-    }
-  else
-    {
-    d->PlotChartNode->SetAttribute("ShowXAxisLabel", "off");
-    }
+  d->PlotChartNode->SetXAxisTitleVisibility(show);
 }
 
 //---------------------------------------------------------------------------
 void qMRMLPlotViewControllerWidget::showYAxisLabel(bool show)
 {
   Q_D(qMRMLPlotViewControllerWidget);
-
   if (!d->PlotChartNode)
     {
     return;
     }
-
-  if (show)
-    {
-    d->PlotChartNode->SetAttribute("ShowYAxisLabel", "on");
-    }
-  else
-    {
-    d->PlotChartNode->SetAttribute("ShowYAxisLabel", "off");
-    }
+  d->PlotChartNode->SetYAxisTitleVisibility(show);
 }
 
 //---------------------------------------------------------------------------
 void qMRMLPlotViewControllerWidget::setTitle(const QString &str)
 {
   Q_D(qMRMLPlotViewControllerWidget);
-
   if (!d->PlotChartNode)
     {
     return;
     }
-
-  d->PlotChartNode->SetAttribute("TitleName", str.toLatin1());
+  d->PlotChartNode->SetTitle(str.toLatin1().constData());
 }
 
 //---------------------------------------------------------------------------
 void qMRMLPlotViewControllerWidget::setXAxisLabel(const QString &str)
 {
   Q_D(qMRMLPlotViewControllerWidget);
-
   if (!d->PlotChartNode)
     {
     return;
     }
-
-  d->PlotChartNode->SetAttribute("XAxisLabelName", str.toLatin1());
+  d->PlotChartNode->SetXAxisTitle(str.toLatin1().constData());
 }
 
 //---------------------------------------------------------------------------
 void qMRMLPlotViewControllerWidget::setYAxisLabel(const QString &str)
 {
   Q_D(qMRMLPlotViewControllerWidget);
-
   if (!d->PlotChartNode)
     {
     return;
     }
-
-  d->PlotChartNode->SetAttribute("YAxisLabelName", str.toLatin1());
+  d->PlotChartNode->SetYAxisTitle(str.toLatin1().constData());
 }
 
 //---------------------------------------------------------------------------
@@ -569,7 +516,7 @@ void qMRMLPlotViewControllerWidget::editTitle()
   bool ok = false;
   QString newTitle = QInputDialog::getText(
     this, "Edit Title", "Title",
-    QLineEdit::Normal, d->PlotChartNode->GetAttribute("TitleName"), &ok);
+    QLineEdit::Normal, d->PlotChartNode->GetTitle() ? d->PlotChartNode->GetTitle() : "", &ok);
   if (!ok)
     {
     return;
@@ -593,7 +540,7 @@ void qMRMLPlotViewControllerWidget::editXAxisLabel()
   bool ok = false;
   QString newXLabel = QInputDialog::getText(
     this, "Edit X-axis label", "X-axis label",
-    QLineEdit::Normal, d->PlotChartNode->GetAttribute("XAxisLabelName"), &ok);
+    QLineEdit::Normal, d->PlotChartNode->GetXAxisTitle() ? d->PlotChartNode->GetXAxisTitle() : "", &ok);
   if (!ok)
     {
     return;
@@ -617,7 +564,7 @@ void qMRMLPlotViewControllerWidget::editYAxisLabel()
   bool ok = false;
   QString newYLabel = QInputDialog::getText(
     this, "Edit Y-axis label", "Y-axis label",
-    QLineEdit::Normal, d->PlotChartNode->GetAttribute("YAxisLabelName"), &ok);
+    QLineEdit::Normal, d->PlotChartNode->GetYAxisTitle() ? d->PlotChartNode->GetYAxisTitle() : "", &ok);
   if (!ok)
     {
     return;
@@ -690,7 +637,7 @@ void qMRMLPlotViewControllerWidget::updateWidgetFromMRML()
   d->xAxisComboBox->addItem("Indexes");
 
   std::vector<std::string> plotDataNodesIDs;
-  mrmlPlotChartNode->GetPlotIDs(plotDataNodesIDs);
+  mrmlPlotChartNode->GetPlotDataNodeIDs(plotDataNodesIDs);
   for (std::vector<std::string>::iterator it = plotDataNodesIDs.begin();
     it != plotDataNodesIDs.end(); ++it)
     {
@@ -717,43 +664,33 @@ void qMRMLPlotViewControllerWidget::updateWidgetFromMRML()
       }
     }
 
-  QString xColumnName = mrmlPlotChartNode->GetPropertyFromAllPlots(vtkMRMLPlotChartNode::PlotXColumnName).c_str();
+  QString xColumnName = mrmlPlotChartNode->GetPropertyFromAllPlotDataNodes(vtkMRMLPlotChartNode::PlotXColumnName).c_str();
   d->xAxisComboBox->setCurrentIndex(d->xAxisComboBox->findText(xColumnName));
 
   d->xAxisComboBox->blockSignals(xAxisComboBoxBlockSignals);
   d->plotDataComboBox->blockSignals(plotBlockSignals);
 
-  const char *attributeValue;
-  attributeValue = mrmlPlotChartNode->GetAttribute("ShowGrid");
-  d->actionShow_Grid->setChecked(attributeValue && !strcmp("on", attributeValue));
-
-  attributeValue = mrmlPlotChartNode->GetAttribute("ShowLegend");
-  d->actionShow_Legend->setChecked(attributeValue && !strcmp("on", attributeValue));
+  d->actionShow_Grid->setChecked(mrmlPlotChartNode->GetGridVisibility());
+  d->actionShow_Legend->setChecked(mrmlPlotChartNode->GetLegendVisibility());
 
   // Titles, axis labels (checkboxes AND text widgets)
-  attributeValue = mrmlPlotChartNode->GetAttribute("ShowTitle");
-  d->showTitleCheckBox->setChecked(attributeValue && !strcmp("on", attributeValue));
-  attributeValue = mrmlPlotChartNode->GetAttribute("TitleName");
-  d->titleLineEdit->setText(attributeValue ? attributeValue : "");
+  d->showTitleCheckBox->setChecked(mrmlPlotChartNode->GetTitleVisibility());
+  d->titleLineEdit->setText(mrmlPlotChartNode->GetTitle() ? mrmlPlotChartNode->GetTitle() : "");
 
-  attributeValue = mrmlPlotChartNode->GetAttribute("ShowXAxisLabel");
-  d->showXAxisLabelCheckBox->setChecked(attributeValue && !strcmp("on", attributeValue));
-  attributeValue = mrmlPlotChartNode->GetAttribute("XAxisLabelName");
-  d->xAxisLabelLineEdit->setText(attributeValue ? attributeValue : "");
+  d->showXAxisLabelCheckBox->setChecked(mrmlPlotChartNode->GetXAxisTitleVisibility());
+  d->xAxisLabelLineEdit->setText(mrmlPlotChartNode->GetXAxisTitle() ? mrmlPlotChartNode->GetXAxisTitle() : "");
 
-  attributeValue = mrmlPlotChartNode->GetAttribute("ShowYAxisLabel");
-  d->showYAxisLabelCheckBox->setChecked(attributeValue && !strcmp("on", attributeValue));
-  attributeValue = mrmlPlotChartNode->GetAttribute("YAxisLabelName");
-  d->yAxisLabelLineEdit->setText(attributeValue ? attributeValue : "");
+  d->showYAxisLabelCheckBox->setChecked(mrmlPlotChartNode->GetYAxisTitleVisibility());
+  d->yAxisLabelLineEdit->setText(mrmlPlotChartNode->GetYAxisTitle() ? mrmlPlotChartNode->GetYAxisTitle() : "");
 
   // Show plot type, xAxis, marker type if they are the same in all selected plot nodes.
 
-  QString plotType = mrmlPlotChartNode->GetPropertyFromAllPlots(vtkMRMLPlotChartNode::PlotType).c_str();
+  QString plotType = mrmlPlotChartNode->GetPropertyFromAllPlotDataNodes(vtkMRMLPlotChartNode::PlotType).c_str();
   wasBlocked = d->plotTypeComboBox->blockSignals(true);
   d->plotTypeComboBox->setCurrentIndex(d->plotTypeComboBox->findText(plotType));
   d->plotTypeComboBox->blockSignals(wasBlocked);
 
-  QString markerStyle = mrmlPlotChartNode->GetPropertyFromAllPlots(vtkMRMLPlotChartNode::PlotMarkerStyle).c_str();
+  QString markerStyle = mrmlPlotChartNode->GetPropertyFromAllPlotDataNodes(vtkMRMLPlotChartNode::PlotMarkerStyle).c_str();
   wasBlocked = d->markersComboBox->blockSignals(true);
   d->markersComboBox->setCurrentIndex(d->markersComboBox->findText(markerStyle));
   d->markersComboBox->blockSignals(wasBlocked);

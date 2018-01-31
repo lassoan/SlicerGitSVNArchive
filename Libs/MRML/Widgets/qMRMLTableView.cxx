@@ -592,10 +592,10 @@ void qMRMLTableView::plotSelection()
       }
 
     // Set the type of the PlotDataNode
-    const char* Type = plotChartNode->GetAttribute("Type");
-    if (strcmp(Type, "Custom"))
+    std::string plotType = plotChartNode->GetPropertyFromAllPlotDataNodes(vtkMRMLPlotChartNode::PlotType);
+    if (!plotType.empty())
       {
-      plotDataNode->SetType(plotDataNode->GetPlotTypeFromString(Type));
+      plotDataNode->SetPlotType(plotDataNode->GetPlotTypeFromString(plotType.c_str()));
       }
 
     // Add the reference of the PlotDataNode in the active PlotChartNode
