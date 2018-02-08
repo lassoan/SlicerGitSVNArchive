@@ -508,18 +508,17 @@ void qMRMLPlotViewPrivate::updateWidgetFromMRML()
 {
   Q_Q(qMRMLPlotView);
 
+  if (!this->MRMLScene || !this->MRMLPlotViewNode
+    || !q->isEnabled() || !q->chart() || !q->chart()->GetLegend())
+    {
+    return;
+    }
+
   if (this->UpdatingWidgetFromMRML)
     {
     return;
     }
   this->UpdatingWidgetFromMRML = true;
-
-  if (!this->MRMLScene || !this->MRMLPlotViewNode
-      || !q->isEnabled() || !q->chart() || !q->chart()->GetLegend())
-    {
-    this->UpdatingWidgetFromMRML = false;
-    return;
-    }
 
   // Set interaction mode
   int interactionMode = this->MRMLPlotViewNode->GetInteractionMode();
@@ -547,13 +546,6 @@ void qMRMLPlotViewPrivate::updateWidgetFromMRML()
     break;
   }
 
-  // Enable moving of data points by drag-and-drop if point moving is enabled
-  // both in the plot chart and view nodes.
-  q->chart()->SetDragPointAlongX(this->MRMLPlotViewNode->GetEnablePointMoveAlongX()
-    && this->MRMLPlotChartNode->GetEnablePointMoveAlongX());
-  q->chart()->SetDragPointAlongY(this->MRMLPlotViewNode->GetEnablePointMoveAlongY()
-    && this->MRMLPlotChartNode->GetEnablePointMoveAlongY());
-
   // Get the PlotChartNode
   const char *plotChartNodeID = this->MRMLPlotViewNode->GetPlotChartNodeID();
   vtkMRMLPlotChartNode* plotChartNode = vtkMRMLPlotChartNode::SafeDownCast(this->MRMLScene->GetNodeByID(plotChartNodeID));
@@ -577,6 +569,13 @@ void qMRMLPlotViewPrivate::updateWidgetFromMRML()
     this->UpdatingWidgetFromMRML = false;
     return;
     }
+
+  // Enable moving of data points by drag-and-drop if point moving is enabled
+  // both in the plot chart and view nodes.
+  q->chart()->SetDragPointAlongX(this->MRMLPlotViewNode->GetEnablePointMoveAlongX()
+    && plotChartNode->GetEnablePointMoveAlongX());
+  q->chart()->SetDragPointAlongY(this->MRMLPlotViewNode->GetEnablePointMoveAlongY()
+    && plotChartNode->GetEnablePointMoveAlongY());
 
   vtkSmartPointer<vtkCollection> allPlotSeriesNodesInScene = vtkSmartPointer<vtkCollection>::Take
     (this->mrmlScene()->GetNodesByClass("vtkMRMLPlotSeriesNode"));
