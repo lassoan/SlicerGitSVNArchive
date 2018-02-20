@@ -92,18 +92,18 @@ void qMRMLPlotViewPrivate::init()
 {
   Q_Q(qMRMLPlotView);
 
-/*  this->PopupWidget = new ctkPopupWidget;
-  QHBoxLayout* popupLayout = new QHBoxLayout;
-  popupLayout->addWidget(new QToolButton);
-  this->PopupWidget->setLayout(popupLayout);
-  */
-
   if (!q->chart())
     {
     return;
     }
 
   qvtkConnect(q->chart(), vtkCommand::SelectionChangedEvent, this, SLOT(emitSelection()));
+  qvtkConnect(q->chart(), vtkCommand::InteractionEvent, q, SLOT(axisRangeChanged()));
+
+  //qvtkConnect(q->chart()->GetAxis(vtkAxis::BOTTOM), vtkChart::UpdateRange, q, SLOT(axisRangeChanged()));
+  //qvtkConnect(q->chart()->GetAxis(vtkAxis::LEFT), vtkChart::UpdateRange, q, SLOT(axisRangeChanged()));
+
+  //connect(q, SIGNAL(extentChanged()), q, SLOT(axisRangeChanged()));
 
   if (!q->chart()->GetBackgroundBrush() ||
       !q->chart()->GetTitleProperties() ||
@@ -701,6 +701,15 @@ void qMRMLPlotViewPrivate::updateWidgetFromMRML()
         {
         axis->SetTitle("");
         }
+      if (plotChartNode->GetXAxisRangeAuto())
+        {
+        axis->SetBehavior(vtkAxis::AUTO);
+        }
+      else
+        {
+        axis->SetBehavior(vtkAxis::FIXED);
+        axis->SetUnscaledRange(plotChartNode->GetXAxisRange());
+        }
       }
     else if (axisID == vtkAxis::LEFT || axisID == vtkAxis::RIGHT)
       {
@@ -711,6 +720,15 @@ void qMRMLPlotViewPrivate::updateWidgetFromMRML()
       else
         {
         axis->SetTitle("");
+        }
+      if (plotChartNode->GetYAxisRangeAuto())
+        {
+        axis->SetBehavior(vtkAxis::AUTO);
+        }
+      else
+        {
+        axis->SetBehavior(vtkAxis::FIXED);
+        axis->SetUnscaledRange(plotChartNode->GetYAxisRange());
         }
       }
     axis->SetGridVisible(plotChartNode->GetGridVisibility());
@@ -845,4 +863,45 @@ void qMRMLPlotView::fitToContent()
   d->RecalculateBounds();
   // Repaint the chart scene
   this->scene()->SetDirty(true);
+}
+
+// --------------------------------------------------------------------------
+void qMRMLPlotView::axisRangeChanged()
+{
+  Q_D(qMRMLPlotView);
+  if (!d->MRMLPlotChartNode)
+    {
+    return;
+    }
+  if (d->UpdatingWidgetFromMRML)
+    {
+    return;
+    }
+  int wasModified = d->MRMLPlotChartNode->StartModify();
+  // Setting Axes
+  const unsigned int numberOfAxisIDs = 4;
+  int axisIDs[numberOfAxisIDs] = { vtkAxis::BOTTOM, vtkAxis::TOP, vtkAxis::LEFT, vtkAxis::RIGHT };
+  for (unsigned int axisIndex = 0; axisIndex < numberOfAxisIDs; ++axisIndex)
+    {
+    int axisID = axisIDs[axisIndex];
+    vtkAxis *axis = this->chart()->GetAxis(axisID);
+    if (!axis)
+      {
+      continue;
+      }
+    // Assuming the the Top and Bottom axes are the "X" axis
+    if (axisID == vtkAxis::BOTTOM /*|| axisID == vtkAxis::TOP*/)
+      {
+      double range[2] = { 0, 1 };
+      axis->GetUnscaledRange(range);
+      d->MRMLPlotChartNode->SetXAxisRange(range);
+      }
+    else if (axisID == vtkAxis::LEFT /*|| axisID == vtkAxis::RIGHT*/)
+      {
+      double range[2] = { 0, 1 };
+      axis->GetUnscaledRange(range);
+      d->MRMLPlotChartNode->SetYAxisRange(range);
+      }
+    }
+  d->MRMLPlotChartNode->EndModify(wasModified);
 }
