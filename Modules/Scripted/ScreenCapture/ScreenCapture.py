@@ -219,7 +219,7 @@ class ScreenCaptureWidget(ScriptedLoadableModuleWidget):
     outputFormLayout.addRow("Video file name:", self.videoFileNameWidget)
 
     self.videoLengthSliderWidget = ctk.ctkSliderWidget()
-    self.videoLengthSliderWidget.singleStep = 0.1
+    self.videoLengthSliderWidget.singleStep = 1.0
     self.videoLengthSliderWidget.minimum = 0.1
     self.videoLengthSliderWidget.maximum = 30
     self.videoLengthSliderWidget.value = 5
@@ -485,9 +485,10 @@ class ScreenCaptureWidget(ScriptedLoadableModuleWidget):
     numberOfSteps = int(self.numberOfStepsSliderWidget.value)
     if self.singleStepButton.checked:
       numberOfSteps = 1
-    if numberOfSteps < 2:
-      # If a single image is selected
-      videoOutputRequested = False
+
+    #if numberOfSteps < 2:
+    #  # If a single image is selected
+    #  videoOutputRequested = False
     outputDir = self.outputDirSelector.currentPath
 
     self.videoExportFfmpegWarning.setVisible(False)
@@ -617,6 +618,9 @@ class ScreenCaptureLogic(ScriptedLoadableModuleLogic):
   def __init__(self):
     self.logCallback = None
     self.cancelRequested = False
+    self.stereoEnabled = True
+    self.stereoInterPupillaryDistanceMm = 5#62
+    self.stereoViewAngleDeg = 180
 
     self.videoFormatPresets = [
       {"name": "H.264",                    "fileExtension": "mp4", "extraVideoOptions": "-codec libx264 -preset slower -pix_fmt yuv420p"},
@@ -792,71 +796,296 @@ class ScreenCaptureLogic(ScriptedLoadableModuleLogic):
 
     return sliceOffsetResolution
 
+  def captureImageFromAllViews(self, filename):
+    # force rendering of all views
+    lm = slicer.app.layoutManager()
+    for viewIndex in range(lm.threeDViewCount):
+      lm.threeDWidget(viewIndex).threeDView().forceRender()
+    for sliceViewName in lm.sliceViewNames():
+      lm.sliceWidget(sliceViewName).sliceView().forceRender()
+
+
+    # Simply using grabwidget on the view layout frame would grab the screen without background:
+    # img = qt.QPixmap.grabWidget(slicer.app.layoutManager().viewport())
+
+    # Grab the main window and use only the viewport's area
+    allViews = slicer.app.layoutManager().viewport()
+    topLeft = allViews.mapTo(slicer.util.mainWindow(),allViews.rect.topLeft())
+    bottomRight = allViews.mapTo(slicer.util.mainWindow(),allViews.rect.bottomRight())
+    imageSize = bottomRight - topLeft
+
+    if imageSize.x()<2 or imageSize.y()<2:
+      # image is too small, most likely it is invalid
+      raise ValueError('Capture image from view failed')
+
+    # Make sure image witdth and height is even, otherwise encoding may fail
+    if (imageSize.x() & 1 == 1):
+      imageSize.setX(imageSize.x()-1)
+    if (imageSize.y() & 1 == 1):
+      imageSize.setY(imageSize.y()-1)
+
+    img = qt.QPixmap.grabWidget(slicer.util.mainWindow(), topLeft.x(), topLeft.y(), imageSize.x(), imageSize.y())
+    img.save(filename)
+    return
+
+  def translateRotateCamera(self, camera, cameraPosition, cameraFocalPoint, cameraViewUp, rotateYdeg, eyeOffset, rotateXdeg):
+    import math
+
+    theta = rotateYdeg * math.pi / 180.0
+    phi = rotateXdeg * math.pi / 180.0
+    # Shift the ray origin onto the circle, either to the left or to the right.
+    ray_origin = [math.cos(theta) * eyeOffset, 0, math.sin(theta) * eyeOffset]
+    # Ray directions are tangent to the circle.
+    ray_direction = [math.sin(theta) * math.cos(phi), math.sin(phi), -math.cos(theta) * math.cos(phi)]
+    viewup_direction = [math.sin(theta) * math.cos(phi-math.pi/2), math.sin(phi-math.pi/2), -math.cos(theta) * math.cos(phi-math.pi/2)]
+    focal_point = [ray_origin[0]+ray_direction[0]*100, ray_origin[1]+ray_direction[1]*100, ray_origin[2]+ray_direction[2]*100]
+
+    # Make camera pose relative to current camera pose
+    cameraTransform = vtk.vtkPerspectiveTransform()
+    cameraTransform.SetupCamera(cameraPosition, cameraFocalPoint, cameraViewUp)
+    cameraTransform.Inverse()
+    cameraTransformMatrix = cameraTransform.GetMatrix()
+    pos = [ray_origin[0], ray_origin[1], ray_origin[2], 1]
+    cameraTransformMatrix.MultiplyPoint(pos, pos)
+    camera.SetPosition(pos[0], pos[1], pos[2])
+    fp = [focal_point[0], focal_point[1], focal_point[2], 1]
+    cameraTransformMatrix.MultiplyPoint(fp, fp)
+    camera.SetFocalPoint(fp[0], fp[1], fp[2])
+    vu = [-viewup_direction[0], -viewup_direction[1], -viewup_direction[2], 0]
+    cameraTransformMatrix.MultiplyPoint(vu, vu)
+    camera.SetViewUp(vu[0], vu[1], vu[2])
+
+  # Renders an ODS image using a rasterization-based renderer (e.g. OpenGL).
+  # This function assumes that `renderer.Render()` will apply a model/view
+  # transformation to render the scene so that the camera is at the origin
+  # and the y axis is vertical.
+  def RenderODSImage(self, view, leftEye, IPD):
+
+    import vtk.util.numpy_support
+    renderWindow = view.renderWindow()
+    renderer = renderWindow.GetRenderers().GetItemAsObject(0)
+    camera = renderer.GetActiveCamera()
+
+    cameraPosition = camera.GetPosition()
+    cameraFocalPoint = camera.GetFocalPoint()
+    cameraViewUp = camera.GetViewUp()
+    cameraViewAngleDeg = camera.GetViewAngle()
+    rendererBackground = renderer.GetBackground()
+    rendererBackground2 = renderer.GetBackground2()
+
+    output_scale_factor = 1.0
+    output_height = int(output_scale_factor * renderWindow.GetSize()[1] * 2) # output is constructed from a top and bottom renderer row
+
+    # The ODS image is equirectangular (spherical), with x ranging from (-180,180)
+    # degrees and y ranging from (-90,90) degrees.
+    output_width = output_height * 2
+
+    ods_image = vtk.vtkImageData()
+    ods_image.SetDimensions(output_width, output_height, 1)
+    ods_image.AllocateScalars(vtk.VTK_UNSIGNED_CHAR, 3)
+
+    # We will render the ODS image one column at a time, since the ray origin
+    # is different for each column. To cover a 180 degree vertical field of view,
+    # each column will be rendered from two 90 degree perspective cameras, one
+    # looking up at 45 degrees, and one looking down at 45 degrees, and then project
+    # back to equirect using the ProjectToODS function below.
+    camera.SetViewAngle(90)
+
+    eyeOffset = -IPD/2.0 if leftEye else IPD/2.0
+
+    nshape = tuple(reversed(ods_image.GetDimensions()))
+    components = ods_image.GetNumberOfScalarComponents()
+    if components > 1:
+      nshape = nshape + (components,)
+    ods_image_array = vtk.util.numpy_support.vtk_to_numpy(ods_image.GetPointData().GetScalars()).reshape(nshape)
+
+    viewportWidthFraction = 3.0/renderWindow.GetSize()[0]
+
+    rendererViewport = [0.5-viewportWidthFraction/2.0, 0.5-output_scale_factor*0.5, 0.5+viewportWidthFraction/2.0, 0.5+output_scale_factor*0.5]
+
+    showSquareViewport = False # slower but may be useful for debugging
+    if showSquareViewport:
+      rendererViewport[0] = rendererViewport[1]
+      rendererViewport[2] = rendererViewport[3]
+
+    renderer.SetViewport(*rendererViewport)
+    renderer.SetBackground(0.2, 0.2, 0.2)
+    renderer.SetBackground2(0.2, 0.2, 0.2)
+
+    # First render the top 90 degrees, then lower 90 degrees.
+    for rotationAngle, outputRow in [(-45, 0), (45, output_height/2)]:
+      for column in range(output_width):
+        x = (column + 0.5) / output_width # Add 0.5 to sample the center of the pixel.
+        self.translateRotateCamera(camera, cameraPosition, cameraFocalPoint, cameraViewUp, -180.0 + x * 360.0, eyeOffset, rotationAngle)
+        renderer.ResetCameraClippingRange()
+        view.forceRender()
+        slicer.app.processEvents()
+        wti = vtk.vtkWindowToImageFilter()
+        wti.SetViewport(*rendererViewport)
+        wti.SetInput(renderWindow)
+        wti.Update()
+        renderedImage = wti.GetOutput()
+
+        nshape = tuple(reversed(renderedImage.GetDimensions()))
+        components = renderedImage.GetNumberOfScalarComponents()
+        if components > 1:
+          nshape = nshape + (components,)
+        renderedImageArray = vtk.util.numpy_support.vtk_to_numpy(renderedImage.GetPointData().GetScalars()).reshape(nshape)
+
+        ods_image_array[0, outputRow:outputRow+output_height/2, column, :] = renderedImageArray[0, 0:output_height/2, nshape[2]/2, :]
+
+    camera.SetPosition(cameraPosition)
+    camera.SetFocalPoint(cameraFocalPoint)
+    camera.SetViewUp(cameraViewUp)
+    camera.SetViewAngle(cameraViewAngleDeg)
+
+    renderer.SetViewport(0,0,1,1)
+    renderer.SetBackground(rendererBackground)
+    renderer.SetBackground2(rendererBackground2)
+
+    #ods_image.Modified()
+    equidirectTransform = self.getPerspectiveToEquidirectTransform(output_width, output_height)
+    warpImage = vtk.vtkImageReslice()
+    warpImage.SetInterpolationModeToCubic()
+    warpImage.SetResliceTransform(equidirectTransform)
+    warpImage.SetInputData(ods_image)
+    warpImage.Update()
+    warped_ods_image = warpImage.GetOutput()
+    #warped_ods_image = ods_image # TODO: just for testing
+
+    return warped_ods_image
+
+  # Creates a transform that projects (warps) a perspective single-column image to an equirect (spherical)
+  # image. Note that this could also be done in the fragment shader.
+  def getPerspectiveToEquidirectTransform(self, width, height):
+    import math
+
+    gridImage = vtk.vtkImageData()
+    #gridImage.SetOrigin(0,0,0)
+    gridImage.SetSpacing(width-1,1,1)
+    gridImage.SetDimensions(2, height, 1)
+    gridImage.AllocateScalars(vtk.VTK_DOUBLE, 3)
+    halfHeight = height/2
+    for row in range(halfHeight):
+      # Our camera FOV is pi/2, so map y to (-pi/4, pi/4).
+      # row = equirect_position
+      phi = (row + 0.5) / height * math.pi / 2 - math.pi / 4
+      # Map from angle to perspective y coordinate.
+      perspective_position = (math.tan(phi) * 0.5 + 0.5) * height
+      displacement = perspective_position - row
+      # top image
+      # x, y, z, component, value
+      gridImage.SetScalarComponentFromDouble(0, row, 0, 0, 0) # x displacement
+      gridImage.SetScalarComponentFromDouble(0, row, 0, 1, displacement) # y displacement
+      gridImage.SetScalarComponentFromDouble(0, row, 0, 2, 0) # z displacement
+      gridImage.SetScalarComponentFromDouble(1, row, 0, 0, 0) # x displacement
+      gridImage.SetScalarComponentFromDouble(1, row, 0, 1, displacement) # y displacement
+      gridImage.SetScalarComponentFromDouble(1, row, 0, 2, 0) # z displacement
+      # bottom image
+      # x, y, z, component, value
+      row2 = row + halfHeight
+      gridImage.SetScalarComponentFromDouble(0, row2, 0, 0, 0) # x displacement
+      gridImage.SetScalarComponentFromDouble(0, row2, 0, 1, displacement) # y displacement
+      gridImage.SetScalarComponentFromDouble(0, row2, 0, 2, 0) # z displacement
+      gridImage.SetScalarComponentFromDouble(1, row2, 0, 0, 0) # x displacement
+      gridImage.SetScalarComponentFromDouble(1, row2, 0, 1, displacement) # y displacement
+      gridImage.SetScalarComponentFromDouble(1, row2, 0, 2, 0) # z displacement
+
+    transform = vtk.vtkGridTransform()
+    transform.SetDisplacementGridData(gridImage)
+    return transform
+
+
   def captureImageFromView(self, view, filename):
 
     slicer.app.processEvents()
-    if view:
-      view.forceRender()
-    else:
-      # force rendering of all views
-      lm = slicer.app.layoutManager()
-      for viewIndex in range(lm.threeDViewCount):
-        lm.threeDWidget(0).threeDView().forceRender()
-      for sliceViewName in lm.sliceViewNames():
-        lm.sliceWidget(sliceViewName).sliceView().forceRender()
 
     if view is None:
       # no view is specified, capture the entire view layout
-
-      # Simply using grabwidget on the view layout frame would grab the screen without background:
-      # img = qt.QPixmap.grabWidget(slicer.app.layoutManager().viewport())
-
-      # Grab the main window and use only the viewport's area
-      allViews = slicer.app.layoutManager().viewport()
-      topLeft = allViews.mapTo(slicer.util.mainWindow(),allViews.rect.topLeft())
-      bottomRight = allViews.mapTo(slicer.util.mainWindow(),allViews.rect.bottomRight())
-      imageSize = bottomRight - topLeft
-
-      if imageSize.x()<2 or imageSize.y()<2:
-        # image is too small, most likely it is invalid
-        raise ValueError('Capture image from view failed')
-
-      # Make sure image witdth and height is even, otherwise encoding may fail
-      if (imageSize.x() & 1 == 1):
-        imageSize.setX(imageSize.x()-1)
-      if (imageSize.y() & 1 == 1):
-        imageSize.setY(imageSize.y()-1)
-
-      img = qt.QPixmap.grabWidget(slicer.util.mainWindow(), topLeft.x(), topLeft.y(), imageSize.x(), imageSize.y())
-      img.save(filename)
+      self.captureImageFromAllViews()
       return
 
-    rw = view.renderWindow()
-    wti = vtk.vtkWindowToImageFilter()
-    wti.SetInput(rw)
-    wti.Update()
+    stereoEnabled = self.stereoEnabled and (type(view) is slicer.qMRMLThreeDView)
+    cameraNode = None
+    if stereoEnabled:
+
+      outputImageL = self.RenderODSImage(view, True, self.stereoInterPupillaryDistanceMm)
+      outputImageR = self.RenderODSImage(view, False, self.stereoInterPupillaryDistanceMm)
+
+      # cameraNodes = slicer.util.getNodesByClass('vtkMRMLCameraNode')
+      # viewNode = view.mrmlViewNode()
+      # for cameraNode in cameraNodes:
+        # if cameraNode.GetActiveTag() == viewNode.GetID():
+          # # found camera for view
+          # break
+      # originalCameraPosition = [0,0,0]
+      # cameraNode.GetPosition(originalCameraPosition)
+      # originalViewAngle = cameraNode.GetViewAngle()
+      # originalParallelProjection = cameraNode.GetParallelProjection()
+
+      # rw = view.renderWindow()
+      # wti = vtk.vtkWindowToImageFilter()
+      # wti.SetViewport(0.49,0,0.51,1)
+      # wti.SetInput(rw)
+
+      # cameraNode.SetPosition(originalCameraPosition[0]-self.stereoInterPupillaryDistanceMm/2.0, originalCameraPosition[1], originalCameraPosition[2])
+      # view.forceRender()
+      # wti.Update()
+      # outputImageL = vtk.vtkImageData()
+      # outputImageL.DeepCopy(wti.GetOutput())
+
+      # cameraNode.SetPosition(originalCameraPosition[0]+self.stereoInterPupillaryDistanceMm/2.0, originalCameraPosition[1], originalCameraPosition[2])
+      # view.forceRender()
+      # rw2 = view.renderWindow()
+      # wti2 = vtk.vtkWindowToImageFilter()
+      # wti2.SetViewport(0.49,0,0.51,1)
+      # wti2.SetInput(rw2)
+      # wti2.Update()
+      # outputImageR = vtk.vtkImageData()
+      # outputImageR.DeepCopy(wti2.GetOutput())
+
+      appendImage = vtk.vtkImageAppend()
+      appendImage.SetAppendAxis(1) # over/under
+      appendImage.AddInputData(outputImageL)
+      appendImage.AddInputData(outputImageR)
+      appendImage.Update()
+      outputImage = appendImage.GetOutput()
+
+      # cameraNode.SetPosition(originalCameraPosition)
+      # cameraNode.SetViewAngle(originalViewAngle)
+      # cameraNode.SetParallelProjection(originalParallelProjection)
+
+    else:
+      view.forceRender()
+
+      rw = view.renderWindow()
+      wti = vtk.vtkWindowToImageFilter()
+      wti.SetInput(rw)
+      wti.Update()
+      outputImage = wti.GetOutput()
+
     writer = vtk.vtkPNGWriter()
     writer.SetFileName(filename)
-    outputImage = wti.GetOutput()
+
+    # Make sure image width and height is even, otherwise encoding may fail
     imageSize = outputImage.GetDimensions()
 
     if imageSize[0]<2 or imageSize[1]<2:
       # image is too small, most likely it is invalid
       raise ValueError('Capture image from view failed')
 
-    # Make sure image witdth and height is even, otherwise encoding may fail
     imageWidthOdd = (imageSize[0] & 1 == 1)
     imageHeightOdd = (imageSize[1] & 1 == 1)
     if imageWidthOdd or imageHeightOdd:
       imageClipper = vtk.vtkImageClip()
-      imageClipper.SetInputConnection(wti.GetOutputPort())
+      imageClipper.SetInputData(outputImage)
       extent = outputImage.GetExtent()
       imageClipper.SetOutputWholeExtent(extent[0], extent[1]-1 if imageWidthOdd else extent[1],
                                         extent[2], extent[3]-1 if imageHeightOdd else extent[3],
                                         extent[4], extent[5])
       writer.SetInputConnection(imageClipper.GetOutputPort())
     else:
-      writer.SetInputConnection(wti.GetOutputPort())
+      writer.SetInputData(outputImage)
 
     writer.Write()
 
@@ -912,7 +1141,7 @@ class ScreenCaptureLogic(ScriptedLoadableModuleLogic):
                         outputFilenamePattern, captureAllViews = None):
 
     self.cancelRequested = False
-    
+
     if not captureAllViews and not sliceNode.IsMappedInLayout():
       raise ValueError('Selected slice view is not visible in the current layout.')
 
@@ -1047,6 +1276,7 @@ class ScreenCaptureLogic(ScriptedLoadableModuleLogic):
                     "-r", str(frameRate),
                     "-start_number", "0",
                     "-i", str(filePathPattern)]
+    # if slice is too big then maybe add -vf scale=2048:2048
     ffmpegParams += filter(None, extraOptions.split(' '))
     ffmpegParams.append(outputVideoFilePath)
 
