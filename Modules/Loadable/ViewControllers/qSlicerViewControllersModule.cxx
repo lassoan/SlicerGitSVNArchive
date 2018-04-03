@@ -197,6 +197,10 @@ void qSlicerViewControllersModule::readDefaultSliceViewSettings(vtkMRMLSliceNode
   QSettings settings;
   settings.beginGroup("DefaultSliceView");
   readCommonViewSettings(defaultViewNode, settings);
+  if (settings.contains("DesiredRefreshRate"))
+    {
+    defaultViewNode->SetDesiredRefreshRate(settings.value("DesiredRefreshRate").toDouble());
+    }
 }
 
 //-----------------------------------------------------------------------------
@@ -210,6 +214,7 @@ void qSlicerViewControllersModule::writeDefaultSliceViewSettings(vtkMRMLSliceNod
   QSettings settings;
   settings.beginGroup("DefaultSliceView");
   writeCommonViewSettings(defaultViewNode, settings);
+  settings.setValue("DesiredRefreshRate", defaultViewNode->GetDesiredRefreshRate());
 }
 
 //-----------------------------------------------------------------------------

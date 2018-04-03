@@ -45,6 +45,7 @@ vtkMRMLAbstractViewNode::vtkMRMLAbstractViewNode()
 , OrientationMarkerSize(OrientationMarkerSizeMedium)
 , RulerEnabled(false)
 , RulerType(RulerTypeNone)
+, DesiredRefreshRate(-1.0)
 {
   this->BackgroundColor[0] = 0.0;
   this->BackgroundColor[1] = 0.0;
@@ -96,6 +97,10 @@ void vtkMRMLAbstractViewNode::WriteXML(ostream& of, int nIndent)
     {
     vtkMRMLWriteXMLEnumMacro(rulerType, RulerType);
     }
+  if (this->DesiredRefreshRate > 0)
+    {
+    vtkMRMLWriteXMLFloatMacro(desiredRefreshRate, DesiredRefreshRate);
+    }
   vtkMRMLWriteXMLEndMacro();
 
   of << " AxisLabels=\"";
@@ -140,6 +145,7 @@ void vtkMRMLAbstractViewNode::ReadXMLAttributes(const char** atts)
   vtkMRMLReadXMLEnumMacro(orientationMarkerType, OrientationMarkerType);
   vtkMRMLReadXMLEnumMacro(orientationMarkerSize, OrientationMarkerSize);
   vtkMRMLReadXMLEnumMacro(rulerType, RulerType);
+  vtkMRMLReadXMLFloatMacro(desiredRefreshRate, DesiredRefreshRate);
   vtkMRMLReadXMLEndMacro();
 
 
@@ -221,6 +227,7 @@ void vtkMRMLAbstractViewNode::Copy(vtkMRMLNode *anode)
     {
     vtkMRMLCopyEnumMacro(RulerType);
     }
+  vtkMRMLCopyFloatMacro(DesiredRefreshRate);
   vtkMRMLCopyEndMacro();
 
   vtkMRMLAbstractViewNode *node = (vtkMRMLAbstractViewNode *) anode;
@@ -273,6 +280,10 @@ void vtkMRMLAbstractViewNode::PrintSelf(ostream& os, vtkIndent indent)
   if (this->RulerEnabled)
     {
     vtkMRMLPrintEnumMacro(RulerType);
+    }
+  if (this->DesiredRefreshRate > 0)
+    {
+    vtkMRMLPrintFloatMacro(DesiredRefreshRate);
     }
   vtkMRMLPrintEndMacro();
 

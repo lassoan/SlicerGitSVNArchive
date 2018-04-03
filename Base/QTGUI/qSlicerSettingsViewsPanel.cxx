@@ -100,6 +100,12 @@ void qSlicerSettingsViewsPanelPrivate::init()
                       "sliceRulerType", SIGNAL(currentSliceRulerTypeChanged(QString)),
                       "Slice view ruler type",
                       ctkSettingsPanel::OptionRequireRestart);
+  QObject::connect(this->SliceDesiredRefreshRateSpinBox, SIGNAL(valueChanged(double)),
+                   q, SIGNAL(currentSliceDesiredRefreshRateChanged(double)));
+  q->registerProperty("DefaultSliceView/DesiredRefreshRate", q,
+                      "sliceDesiredRefreshRate", SIGNAL(currentSliceDesiredRefreshRateChanged(double)),
+                      "Slice view refresh rate",
+                      ctkSettingsPanel::OptionRequireRestart);
 
   q->registerProperty("Default3DView/BoxVisibility", this->ThreeDBoxVisibilityCheckBox,
                       "checked", SIGNAL(toggled(bool)),
@@ -131,7 +137,6 @@ void qSlicerSettingsViewsPanelPrivate::init()
   q->registerProperty("Default3DView/UseOrthographicProjection", this->ThreeDUseOrthographicProjectionCheckBox,
                       "checked", SIGNAL(toggled(bool)),
                       "Orthographic projection");
-
 }
 
 // --------------------------------------------------------------------------
@@ -230,6 +235,20 @@ void qSlicerSettingsViewsPanel::setSliceRulerType(const QString& text)
   Q_D(qSlicerSettingsViewsPanel);
   // default to first item if conversion fails
   d->SliceRulerTypeComboBox->setCurrentIndex(qMax(d->SliceRulerTypeComboBox->findText(text), 0));
+}
+
+// --------------------------------------------------------------------------
+double qSlicerSettingsViewsPanel::sliceDesiredRefreshRate() const
+{
+  Q_D(const qSlicerSettingsViewsPanel);
+  return d->SliceDesiredRefreshRateSpinBox->value();
+}
+
+// --------------------------------------------------------------------------
+void qSlicerSettingsViewsPanel::setSliceDesiredRefreshRate(double fps)
+{
+  Q_D(qSlicerSettingsViewsPanel);
+  d->SliceDesiredRefreshRateSpinBox->setValue(fps);
 }
 
 

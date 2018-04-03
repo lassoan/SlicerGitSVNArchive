@@ -237,6 +237,14 @@ public:
   /// Total number of coordinate system axis labels
   static const int AxisLabelsCount;
 
+  ///
+  /// Desired refresh rate for this view, specified as frame per second.
+  /// Update requests that arrive with higher frequency than the desired refresh rate
+  /// may be ignored to reduce processing workload and potentially reduce latency.
+  /// By default it is set to a negative value, which means there is no specific rquirement.
+  vtkGetMacro(DesiredRefreshRate, double);
+  vtkSetMacro(DesiredRefreshRate, double);
+
 protected:
   vtkMRMLAbstractViewNode();
   ~vtkMRMLAbstractViewNode();
@@ -287,6 +295,8 @@ protected:
   vtkSmartPointer<vtkStringArray> AxisLabels;
 
   static const char* ParentLayoutNodeReferenceRole;
+
+  double DesiredRefreshRate;
 };
 
 //------------------------------------------------------------------------------

@@ -41,6 +41,7 @@ class Q_SLICER_BASE_QTGUI_EXPORT qSlicerSettingsViewsPanel
   Q_PROPERTY(QString sliceOrientationMarkerType READ sliceOrientationMarkerType WRITE setSliceOrientationMarkerType NOTIFY currentSliceOrientationMarkerTypeChanged)
   Q_PROPERTY(QString sliceOrientationMarkerSize READ sliceOrientationMarkerSize WRITE setSliceOrientationMarkerSize NOTIFY currentSliceOrientationMarkerSizeChanged)
   Q_PROPERTY(QString sliceRulerType READ sliceRulerType WRITE setSliceRulerType NOTIFY currentSliceRulerTypeChanged)
+  Q_PROPERTY(double sliceDesiredRefreshRate READ sliceDesiredRefreshRate WRITE setSliceDesiredRefreshRate NOTIFY currentSliceDesiredRefreshRateChanged)
   Q_PROPERTY(QString threeDOrientationMarkerType READ threeDOrientationMarkerType WRITE setThreeDOrientationMarkerType NOTIFY currentThreeDOrientationMarkerTypeChanged)
   Q_PROPERTY(QString threeDOrientationMarkerSize READ threeDOrientationMarkerSize WRITE setThreeDOrientationMarkerSize NOTIFY currentThreeDOrientationMarkerSizeChanged)
   Q_PROPERTY(QString threeDRulerType READ threeDRulerType WRITE setThreeDRulerType NOTIFY currentThreeDRulerTypeChanged)
@@ -59,6 +60,7 @@ public:
   QString sliceOrientationMarkerType() const;
   QString sliceOrientationMarkerSize() const;
   QString sliceRulerType() const;
+  double sliceDesiredRefreshRate() const;
   QString threeDOrientationMarkerType() const;
   QString threeDOrientationMarkerSize() const;
   QString threeDRulerType() const;
@@ -72,6 +74,7 @@ public slots:
   void setThreeDOrientationMarkerType(const QString&);
   void setThreeDOrientationMarkerSize(const QString&);
   void setThreeDRulerType(const QString&);
+  void setSliceDesiredRefreshRate(double);
 
 signals:
   /// Signal emitted when the current value is changed
@@ -79,6 +82,7 @@ signals:
   void currentSliceOrientationMarkerTypeChanged(const QString&);
   void currentSliceOrientationMarkerSizeChanged(const QString&);
   void currentSliceRulerTypeChanged(const QString&);
+  void currentSliceDesiredRefreshRateChanged(double);
   void currentThreeDOrientationMarkerTypeChanged(const QString&);
   void currentThreeDOrientationMarkerSizeChanged(const QString&);
   void currentThreeDRulerTypeChanged(const QString&);

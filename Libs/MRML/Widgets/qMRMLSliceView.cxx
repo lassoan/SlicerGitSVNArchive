@@ -250,6 +250,14 @@ void qMRMLSliceViewPrivate::updateWidgetFromMRML()
     this->MRMLSliceNode->GetLayoutGridRows() != 1 ||
     this->MRMLSliceNode->GetLayoutGridColumns() != 1;
   q->lightBoxRendererManager()->SetHighlighted(0, 0, displayLightboxBorders);
+  double desiredUpdateRate = this->MRMLSliceNode->GetDesiredRefreshRate();
+  if (desiredUpdateRate > 0
+    && q->renderWindow() && q->renderWindow()->GetDesiredUpdateRate() != desiredUpdateRate)
+    {
+    q->interactor()->GetRenderWindow()->SetDesiredUpdateRate(desiredUpdateRate);
+    q->interactor()->SetDesiredUpdateRate(desiredUpdateRate);
+    q->interactor()->SetStillUpdateRate(desiredUpdateRate);
+    }
 }
 
 // --------------------------------------------------------------------------

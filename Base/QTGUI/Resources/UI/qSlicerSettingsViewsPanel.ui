@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>469</width>
-    <height>593</height>
+    <width>382</width>
+    <height>312</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -24,8 +24,8 @@
        <rect>
         <x>0</x>
         <y>0</y>
-        <width>449</width>
-        <height>573</height>
+        <width>593</width>
+        <height>600</height>
        </rect>
       </property>
       <property name="sizePolicy">
@@ -34,8 +34,8 @@
         <verstretch>0</verstretch>
        </sizepolicy>
       </property>
-      <layout class="QVBoxLayout" name="verticalLayout">
-       <item>
+      <layout class="QFormLayout" name="formLayout">
+       <item row="0" column="0" colspan="2">
         <widget class="ctkCollapsibleGroupBox" name="CollapsibleGroupBox">
          <property name="title">
           <string>Slice viewer defaults</string>
@@ -127,10 +127,42 @@
             </item>
            </widget>
           </item>
+          <item row="2" column="0">
+           <widget class="QLabel" name="SliceDesiredRefreshRateLabel">
+            <property name="text">
+             <string>Desired refresh rate: </string>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="1">
+           <widget class="ctkDoubleSpinBox" name="SliceDesiredRefreshRateSpinBox">
+            <property name="toolTip">
+             <string>Set maximum number of view updates per second set by default for new slice views. Lower number may decrase computational load but lower view refresh rate.</string>
+            </property>
+            <property name="suffix">
+             <string> fps</string>
+            </property>
+            <property name="decimals">
+             <number>1</number>
+            </property>
+            <property name="minimum">
+             <double>0.000010000000000</double>
+            </property>
+            <property name="maximum">
+             <double>300.000000000000000</double>
+            </property>
+            <property name="singleStep">
+             <double>5.000000000000000</double>
+            </property>
+            <property name="value">
+             <double>30.000000000000000</double>
+            </property>
+           </widget>
+          </item>
          </layout>
         </widget>
        </item>
-       <item>
+       <item row="1" column="0" colspan="2">
         <widget class="ctkCollapsibleGroupBox" name="CollapsibleGroupBox_2">
          <property name="title">
           <string>3D viewer defaults</string>
@@ -283,35 +315,31 @@
          </layout>
         </widget>
        </item>
-       <item>
-        <layout class="QHBoxLayout" name="horizontalLayout">
-         <item>
-          <widget class="QLabel" name="MSAALabel">
-           <property name="text">
-            <string>Multi-sampling (MSAA):</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QComboBox" name="MSAAComboBox">
-           <property name="sizePolicy">
-            <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-             <horstretch>0</horstretch>
-             <verstretch>0</verstretch>
-            </sizepolicy>
-           </property>
-           <property name="toolTip">
-            <string>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
+       <item row="3" column="0">
+        <widget class="QLabel" name="MSAALabel">
+         <property name="text">
+          <string>Multi-sampling (MSAA):</string>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="1">
+        <widget class="QComboBox" name="MSAAComboBox">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="toolTip">
+          <string>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
 &lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
 p, li { white-space: pre-wrap; }
 &lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'MS Shell Dlg 2'; font-size:8.25pt; font-weight:400; font-style:normal;&quot;&gt;
 &lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-size:8pt;&quot;&gt;Use multisampling for full-screen anti-aliasing.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-           </property>
-          </widget>
-         </item>
-        </layout>
+         </property>
+        </widget>
        </item>
-       <item>
+       <item row="5" column="0" colspan="2">
         <spacer name="verticalSpacer">
          <property name="orientation">
           <enum>Qt::Vertical</enum>
@@ -349,6 +377,11 @@ p, li { white-space: pre-wrap; }
    <class>ctkComboBox</class>
    <extends>QComboBox</extends>
    <header>ctkComboBox.h</header>
+  </customwidget>
+  <customwidget>
+   <class>ctkDoubleSpinBox</class>
+   <extends>QWidget</extends>
+   <header>ctkDoubleSpinBox.h</header>
   </customwidget>
   <customwidget>
    <class>ctkSettingsPanel</class>
