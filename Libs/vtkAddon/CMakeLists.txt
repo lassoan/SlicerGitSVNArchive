@@ -61,6 +61,10 @@ set(vtkAddon_SRCS
   vtkOrientedGridTransform.h
   vtkAddonMathUtilities.h
   vtkAddonMathUtilities.cxx
+  vtkImageAlphaLogic.cxx
+  vtkImageAlphaLogic.h
+  vtkStaticOpacityTexture.cxx
+  vtkStaticOpacityTexture.h
   )
 
 # Abstract/pure virtual classes

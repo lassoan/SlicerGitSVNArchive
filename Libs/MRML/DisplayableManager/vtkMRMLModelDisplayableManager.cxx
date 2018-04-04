@@ -66,6 +66,7 @@
 #include <vtkProperty.h>
 #include <vtkRenderWindowInteractor.h>
 #include <vtkSmartPointer.h>
+#include <vtkStaticOpacityTexture.h>
 #include <vtkTexture.h>
 #include <vtkTransformFilter.h>
 #include <vtkVersion.h>
@@ -186,7 +187,7 @@ void vtkMRMLModelDisplayableManager::vtkInternal::CreateClipSlices()
   this->ClippingMethod = vtkMRMLClipModelsNode::Straight;
 
   this->ClippingOn = false;
-}
+    }
 
 //---------------------------------------------------------------------------
 void vtkMRMLModelDisplayableManager::vtkInternal::ResetPick()
@@ -535,19 +536,19 @@ void vtkMRMLModelDisplayableManager::ProcessMRMLNodesEvents(vtkObject *caller,
       {
       this->SetUpdateFromMRMLRequested(1);
       }
-    if (!isUpdating)
-      {
-      this->RequestRender();
+      if (!isUpdating)
+        {
+        this->RequestRender();
+        }
       }
-    }
   else if (vtkMRMLSliceNode::SafeDownCast(caller))
-    {
+      {
     bool requestRender = true;
     if (event == vtkCommand::ModifiedEvent)
       {
       if (this->UpdateClipSlicesFromMRML() || this->Internal->ClippingOn)
         {
-        this->SetUpdateFromMRMLRequested(1);
+      this->SetUpdateFromMRMLRequested(1);
         }
       else
         {
@@ -555,7 +556,7 @@ void vtkMRMLModelDisplayableManager::ProcessMRMLNodesEvents(vtkObject *caller,
         }
       }
     if (!isUpdating && requestRender)
-      {
+    {
       this->RequestRender();
       }
     }
@@ -644,8 +645,8 @@ void vtkMRMLModelDisplayableManager::OnMRMLSceneNodeAdded(vtkMRMLNode* node)
     }
   else if (node->IsA("vtkMRMLClipModelsNode"))
     {
-    vtkSetAndObserveMRMLNodeMacro(this->Internal->ClipModelsNode, node);
-    }
+      vtkSetAndObserveMRMLNodeMacro(this->Internal->ClipModelsNode, node);
+      }
 
   this->RequestRender();
 }
@@ -682,7 +683,7 @@ void vtkMRMLModelDisplayableManager::OnMRMLSceneNodeRemoved(vtkMRMLNode* node)
   else if (node->IsA("vtkMRMLClipModelsNode"))
     {
     vtkSetMRMLNodeMacro(this->Internal->ClipModelsNode, 0);
-    }
+        }
 
   this->RequestRender();
 }
@@ -1625,9 +1626,14 @@ void vtkMRMLModelDisplayableManager::SetModelDisplayProperty(vtkMRMLDisplayableN
           {
           if (actor->GetTexture() == 0)
             {
-            vtkTexture *texture = vtkTexture::New();
-            actor->SetTexture(texture);
-            texture->Delete();
+            // Use a texture with a fixed opacity status.
+            // Computation of opacity status (if the texture is translucent or not) is a very expensive
+            // operation in vtkTexture, therefore setting it to a fixed value makes the rendering much faster
+            // in case the image contents changes frequently.
+            vtkNew<vtkStaticOpacityTexture> texture;
+            //vtkNew<vtkTexture> texture;
+            //texture->SetOpacityToAlwaysOpaque();
+            actor->SetTexture(texture.GetPointer());
             }
           actor->GetTexture()->SetInputConnection(modelDisplayNode->GetTextureImageDataConnection());
           actor->GetTexture()->SetInterpolate(modelDisplayNode->GetInterpolateTexture());
@@ -2020,7 +2026,7 @@ vtkAlgorithm* vtkMRMLModelDisplayableManager
     if (this->Internal->ClipType == vtkMRMLClipModelsNode::ClipIntersection)
       {
       slicePlanes->SetOperationTypeToIntersection();
-      }
+    }
     else if (this->Internal->ClipType == vtkMRMLClipModelsNode::ClipUnion)
       {
       slicePlanes->SetOperationTypeToUnion();

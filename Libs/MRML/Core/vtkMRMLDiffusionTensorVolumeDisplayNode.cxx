@@ -23,11 +23,9 @@ Version:   $Revision: 1.2 $
 #include <vtkDiffusionTensorMathematics.h>
 
 // VTK includes
-#include <vtkImageAppendComponents.h>
+#include <vtkImageAlphaLogic.h>
 #include <vtkImageCast.h>
 #include <vtkImageData.h>
-#include <vtkImageExtractComponents.h>
-#include <vtkImageLogic.h>
 #include <vtkImageMathematics.h>
 #include <vtkImageMapToWindowLevelColors.h>
 #include <vtkImageShiftScale.h>
@@ -197,13 +195,12 @@ void vtkMRMLDiffusionTensorVolumeDisplayNode::UpdateImageDataPipeline()
       this->ShiftScale->SetShift ( -min );
       this->ShiftScale->SetScale ( 255. / (this->GetWindow()) );
 
-      this->ExtractRGB->SetInputConnection(this->ShiftScale->GetOutputPort());
-      if (this->AppendComponents->GetInputConnection(0, 0) != this->ExtractRGB->GetOutputPort() ||
-          this->AppendComponents->GetInputConnection(0, 1) != this->Threshold->GetOutputPort())
+      if (this->AlphaLogic->GetInputConnection(0, 0) != this->ShiftScale->GetOutputPort() ||
+          this->AlphaLogic->GetInputConnection(0, 1) != this->Threshold->GetOutputPort())
         {
-        this->AppendComponents->RemoveAllInputs();
-        this->AppendComponents->SetInputConnection(0, this->ExtractRGB->GetOutputPort());
-        this->AppendComponents->AddInputConnection(0, this->Threshold->GetOutputPort() );
+        this->AlphaLogic->RemoveAllInputs();
+        this->AlphaLogic->SetInputConnection(0, this->ShiftScale->GetOutputPort());
+        this->AlphaLogic->SetInputConnection(1, this->Threshold->GetOutputPort());
         }
       break;
       }
@@ -211,13 +208,12 @@ void vtkMRMLDiffusionTensorVolumeDisplayNode::UpdateImageDataPipeline()
       this->DTIMathematics->SetScaleFactor(1.0);
       this->Threshold->SetInputConnection( this->DTIMathematics->GetOutputPort());
       this->MapToWindowLevelColors->SetInputConnection( this->DTIMathematics->GetOutputPort());
-      this->ExtractRGB->SetInputConnection(this->MapToColors->GetOutputPort());
-      if (this->AppendComponents->GetInputConnection(0, 0) != this->ExtractRGB->GetOutputPort() ||
-          this->AppendComponents->GetInputConnection(0, 1) != this->AlphaLogic->GetOutputPort())
+      if (this->AlphaLogic->GetInputConnection(0, 0) != this->MapToColors->GetOutputPort() ||
+          this->AlphaLogic->GetInputConnection(0, 1) != this->Threshold->GetOutputPort())
         {
-        this->AppendComponents->RemoveAllInputs();
-        this->AppendComponents->SetInputConnection(0, this->ExtractRGB->GetOutputPort() );
-        this->AppendComponents->AddInputConnection(0, this->AlphaLogic->GetOutputPort() );
+        this->AlphaLogic->RemoveAllInputs();
+        this->AlphaLogic->SetInputConnection(0, this->MapToColors->GetOutputPort());
+        this->AlphaLogic->SetInputConnection(1, this->Threshold->GetOutputPort());
         }
       break;
     }

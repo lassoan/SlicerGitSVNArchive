@@ -17,7 +17,7 @@ Version:   $Revision: 1.2 $
 
 // VTK includes
 #include <vtkObjectFactory.h>
-#include <vtkImageAppendComponents.h>
+#include <vtkImageAlphaLogic.h>
 #include <vtkImageCast.h>
 #include <vtkImageData.h>
 #include <vtkImageExtractComponents.h>
@@ -51,12 +51,9 @@ vtkMRMLVectorVolumeDisplayNode::vtkMRMLVectorVolumeDisplayNode()
 
  this->Threshold->SetInputConnection( this->ExtractIntensity->GetOutputPort() );
 
- this->AppendComponents->RemoveAllInputs();
- this->AppendComponents->AddInputConnection(0, this->ShiftScale->GetOutputPort());
- this->AppendComponents->AddInputConnection(0, this->MultiplyAlpha->GetOutputPort());
-
- this->MultiplyAlpha->RemoveAllInputs();
- this->MultiplyAlpha->SetInputConnection(0, this->Threshold->GetOutputPort() );
+ this->AlphaLogic->RemoveAllInputs();
+ this->AlphaLogic->SetImageConnection(this->ShiftScale->GetOutputPort());
+ this->AlphaLogic->SetMaskConnection(this->Threshold->GetOutputPort());
 }
 
 //----------------------------------------------------------------------------

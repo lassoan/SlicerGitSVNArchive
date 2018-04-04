@@ -52,10 +52,13 @@
 /// Macro for writing enum node property to XML.
 /// Requires Get(propertyName)AsString method to convert from numeric value to code string.
 #define vtkMRMLWriteXMLEnumMacro(xmlAttributeName, propertyName) \
+  vtkMRMLWriteXMLTypedEnumMacro(xmlAttributeName, propertyName, int)
+
+#define vtkMRMLWriteXMLTypedEnumMacro(xmlAttributeName, propertyName, enumType) \
   xmlWriteOutputStream << " " #xmlAttributeName "=\""; \
-  if (Get##propertyName##AsString(Get##propertyName()) != NULL) \
+  if (Get##propertyName##AsString((enumType)Get##propertyName()) != NULL) \
     { \
-    xmlWriteOutputStream << vtkMRMLNode::XMLAttributeEncodeString(Get##propertyName##AsString(Get##propertyName())); \
+    xmlWriteOutputStream << vtkMRMLNode::XMLAttributeEncodeString(Get##propertyName##AsString((enumType)Get##propertyName())); \
     } \
   xmlWriteOutputStream << "\"";
 
@@ -144,12 +147,18 @@
 /// Requires Get(propertyName)FromString method to convert from string to numeric value.
 /// XML decoding is not needed as attribute values are already decoded by the XML parser.
 #define vtkMRMLReadXMLEnumMacro(xmlAttributeName, propertyName) \
+  vtkMRMLReadXMLTypedEnumMacro(xmlAttributeName, propertyName, int)
+
+/// Macro for reading enum node property from XML.
+/// Requires Get(propertyName)FromString method to convert from string to numeric value.
+/// XML decoding is not needed as attribute values are already decoded by the XML parser.
+#define vtkMRMLReadXMLTypedEnumMacro(xmlAttributeName, propertyName, enumType) \
   if (!strcmp(xmlReadAttName, #xmlAttributeName)) \
     { \
     int propertyValue = this->Get##propertyName##FromString(xmlReadAttValue); \
     if (propertyValue >= 0) \
       { \
-      this->Set##propertyName(propertyValue); \
+      this->Set##propertyName((enumType)propertyValue); \
       } \
     else \
       { \
@@ -254,6 +263,9 @@
 #define vtkMRMLCopyEnumMacro(propertyName) \
   this->Set##propertyName(this->SafeDownCast(copySourceNode)->Get##propertyName());
 
+#define vtkMRMLCopyTypedEnumMacro(propertyName, enumType) \
+  this->Set##propertyName((enumType)this->SafeDownCast(copySourceNode)->Get##propertyName());
+
 /// Macro for copying floating-point (float or double) node property value.
 #define vtkMRMLCopyFloatMacro(propertyName) \
   this->Set##propertyName(this->SafeDownCast(copySourceNode)->Get##propertyName());
@@ -311,6 +323,10 @@
 /// Macro for printing enum node property value.
 #define vtkMRMLPrintEnumMacro(propertyName) \
   printOutputStream << printOutputIndent << #propertyName ": " << (Get##propertyName##AsString(Get##propertyName()))  << "\n";
+
+/// Macro for printing typed enum node property value.
+#define vtkMRMLPrintTypedEnumMacro(propertyName, enumType) \
+  printOutputStream << printOutputIndent << #propertyName ": " << (Get##propertyName##AsString((enumType)Get##propertyName()))  << "\n";
 
 /// Macro for printing int node property value.
 #define vtkMRMLPrintIntMacro(propertyName) \

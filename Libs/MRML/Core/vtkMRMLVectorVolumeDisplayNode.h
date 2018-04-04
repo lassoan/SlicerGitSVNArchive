@@ -116,7 +116,7 @@ class VTK_MRML_EXPORT vtkMRMLVectorVolumeDisplayNode : public vtkMRMLGlyphableVo
   vtkGetObjectMacro (ShiftScale, vtkImageShiftScale);
   vtkGetObjectMacro (RGBToHSI, vtkImageRGBToHSI);
   vtkGetObjectMacro (ExtractIntensity, vtkImageExtractComponents);
-  vtkGetObjectMacro (AppendComponents, vtkImageAppendComponents);
+  vtkGetObjectMacro (AlphaLogic, vtkImageAlphaLogic);
   vtkGetObjectMacro (Threshold, vtkImageThreshold);
 
 protected:

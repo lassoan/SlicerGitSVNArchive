@@ -153,6 +153,7 @@ set(libs
   MRMLCore
   MRMLLogic
   FreeSurfer
+  vtkAddon
   )
 
 if(MRMLDisplayableManager_USE_PYTHON)
