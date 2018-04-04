@@ -17,6 +17,11 @@
 
 #include "vtkMRMLNode.h"
 
+class vtkImplicitBoolean;
+class vtkMatrix4x4;
+class vtkPlane;
+class vtkMRMLSliceNode;
+
 /// \brief MRML node to represent three clipping planes.
 ///
 /// The vtkMRMLClipModelsNode MRML node stores
@@ -29,6 +34,13 @@ public:
   static vtkMRMLClipModelsNode *New();
   vtkTypeMacro(vtkMRMLClipModelsNode,vtkMRMLNode);
   void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
+
+  ///
+  /// TableModifiedEvent is send when the parent table is modified
+  enum
+  {
+    ClipPlanePoseModifiedEvent = 19000
+  };
 
   //--------------------------------------------------------------------------
   /// MRMLNode methods
@@ -44,7 +56,6 @@ public:
   /// Write this node's information to a MRML file in XML format.
   virtual void WriteXML(ostream& of, int indent) VTK_OVERRIDE;
 
-
   ///
   /// Copy the node's attributes to this object
   virtual void Copy(vtkMRMLNode *node) VTK_OVERRIDE;
@@ -57,7 +68,7 @@ public:
   /// Indicates the type of clipping
   /// "Intersection" or "Union"
   vtkGetMacro(ClipType, int);
-  vtkSetMacro(ClipType, int);
+  void SetClipType(int clipType);
 
   enum
     {
@@ -68,20 +79,20 @@ public:
   ///
   /// Indicates if the Red slice clipping is Off,
   /// Positive space, or Negative space
-  vtkGetMacro(RedSliceClipState, int);
-  vtkSetMacro(RedSliceClipState, int);
+  int GetRedSliceClipState();
+  void SetRedSliceClipState(int state);
 
   ///
   /// Indicates if the Yellow slice clipping is Off,
   /// Positive space, or Negative space
-  vtkGetMacro(YellowSliceClipState, int);
-  vtkSetMacro(YellowSliceClipState, int);
+  int GetYellowSliceClipState();
+  void SetYellowSliceClipState(int state);
 
   ///
   /// Indicates if the Green slice clipping is Off,
   /// Positive space, or Negative space
-  vtkGetMacro(GreenSliceClipState, int);
-  vtkSetMacro(GreenSliceClipState, int);
+  int GetGreenSliceClipState();
+  void SetGreenSliceClipState(int state);
 
   enum
     {
@@ -107,21 +118,49 @@ public:
   static int GetClippingMethodFromString(const char* name);
   static const char* GetClippingMethodAsString(ClippingMethodType id);
 
+  void SetAndObserveRedSliceNodeID(const char* nodeID);
+  void SetAndObserveYellowSliceNodeID(const char* nodeID);
+  void SetAndObserveGreenSliceNodeID(const char* nodeID);
+
+  const char* GetRedSliceNodeID();
+  const char* GetYellowSliceNodeID();
+  const char* GetGreenSliceNodeID();
+
+  vtkMRMLSliceNode* GetRedSliceNode();
+  vtkMRMLSliceNode* GetYellowSliceNode();
+  vtkMRMLSliceNode* GetGreenSliceNode();
+
+  vtkImplicitBoolean* GetClippingFunction();
+  void GetTransformedClippingFunction(vtkMatrix4x4* transformToWorld, vtkImplicitBoolean* clippingFunction);
+
+  /// Returns true if any clipping is enabled.
+  bool IsClipping();
+
+  void ProcessMRMLEvents(vtkObject *caller, unsigned long event, void *callData) VTK_OVERRIDE;
+
 protected:
   vtkMRMLClipModelsNode();
   ~vtkMRMLClipModelsNode();
   vtkMRMLClipModelsNode(const vtkMRMLClipModelsNode&);
   void operator=(const vtkMRMLClipModelsNode&);
 
+  void SetSliceClipState(int sliceIndex, int state);
+  void UpdateClipPlanePose(vtkPlane* slicePlane, vtkMatrix4x4* sliceMatrix, int clipState);
+  vtkMRMLSliceNode* GetSliceNode(int sliceIndex);
+
   int ClipType;
-
-  int RedSliceClipState;
-  int YellowSliceClipState;
-  int GreenSliceClipState;
-
   ClippingMethodType ClippingMethod;
 
-
+  enum
+  {
+    RED_SLICE,
+    YELLOW_SLICE,
+    GREEN_SLICE,
+    NUMBER_OF_SLICE_PLANES // this line must be last
+  };
+  int SliceClipStates[NUMBER_OF_SLICE_PLANES];
+  vtkPlane* SlicePlanes[NUMBER_OF_SLICE_PLANES];
+  vtkImplicitBoolean* SlicePlanesFunction;
 };
 
 #endif

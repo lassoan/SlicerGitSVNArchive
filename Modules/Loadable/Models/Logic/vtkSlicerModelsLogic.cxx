@@ -79,7 +79,7 @@ void vtkSlicerModelsLogic::ObserveMRMLScene()
     this->GetMRMLScene()->GetFirstNodeByClass("vtkMRMLClipModelsNode") == 0)
     {
     // vtkMRMLClipModelsNode is a singleton
-    this->GetMRMLScene()->AddNode(vtkSmartPointer<vtkMRMLClipModelsNode>::New());
+    this->GetMRMLScene()->AddNewNodeByClass("vtkMRMLClipModelsNode");
     }
   this->Superclass::ObserveMRMLScene();
 }

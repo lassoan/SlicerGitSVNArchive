@@ -130,10 +130,6 @@ public:
   /// Get/Set vtkMRMLModelHierarchyLogic
   vtkMRMLModelHierarchyLogic* GetModelHierarchyLogic();
 
-  void SetClipPlaneFromMatrix(vtkMatrix4x4 *sliceMatrix,
-                             int planeDirection,
-                             vtkPlane *plane);
-
   /// Return true if the node can be represented as a model
   bool IsModelDisplayable(vtkMRMLDisplayableNode* node)const;
   /// Return true if the display node is a model
@@ -194,8 +190,6 @@ protected:
   const char* GetActiveScalarName(vtkMRMLDisplayNode* displayNode,
                                   vtkMRMLModelNode* model = 0);
 
-  /// Returns not null if modified
-  int UpdateClipSlicesFromMRML();
   vtkAlgorithm *CreateTransformedClipper(vtkMRMLTransformNode *tnode,
                                          vtkMRMLModelNode::MeshTypeHint type);
 
