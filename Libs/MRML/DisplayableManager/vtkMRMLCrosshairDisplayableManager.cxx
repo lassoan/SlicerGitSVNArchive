@@ -32,6 +32,8 @@
 #include <vtkMRMLSliceCompositeNode.h>
 #include <vtkMRMLSliceLogic.h>
 #include <vtkMRMLSliceNode.h>
+#include <vtkSliceIntersectionWidget.h>
+#include <vtkSliceIntersectionRepresentation2D.h>
 
 // VTK includes
 #include <vtkActor2D.h>
@@ -107,6 +109,8 @@ public:
   int CrosshairMode;
   int CrosshairThickness;
   double CrosshairPosition[3];
+
+  vtkSmartPointer<vtkSliceIntersectionWidget> SliceIntersectionWidget;
 };
 
 
@@ -127,6 +131,7 @@ vtkMRMLCrosshairDisplayableManager::vtkInternal
   this->CrosshairPosition[0] = 0.0;
   this->CrosshairPosition[1] = 0.0;
   this->CrosshairPosition[2] = 0.0;
+  this->SliceIntersectionWidget = vtkSmartPointer<vtkSliceIntersectionWidget>::New();
 }
 
 //---------------------------------------------------------------------------
@@ -311,6 +316,7 @@ void vtkMRMLCrosshairDisplayableManager::vtkInternal::BuildCrosshair()
 
   if (!this->CrosshairNode.GetPointer())
     {
+    this->SliceIntersectionWidget->Off();
     return;
     }
 
@@ -414,15 +420,33 @@ void vtkMRMLCrosshairDisplayableManager::vtkInternal::BuildCrosshair()
   actor->GetProperty()->SetColor(1.0, 0.8, 0.1);
   actor->GetProperty()->SetOpacity(1.0);
 
+  if (!this->SliceIntersectionWidget->GetRepresentation())
+    {
+    this->SliceIntersectionWidget->CreateDefaultRepresentation();
+    vtkSliceIntersectionRepresentation2D* rep = vtkSliceIntersectionRepresentation2D::SafeDownCast(this->SliceIntersectionWidget->GetRepresentation());
+    if (rep)
+      {
+      rep->SetBoxWidth(100);
+      rep->SetCircleWidth(75);
+      rep->SetAxesWidth(60);
+      rep->DisplayTextOn();
+      double bounds[] = { -10, 10, -20, 20, -30, 30 };
+      rep->PlaceWidget(bounds);
+      }
+    }
+
+  this->SliceIntersectionWidget->SetInteractor(this->External->GetInteractor());
 
   // Set the visibility
   if (this->CrosshairNode->GetCrosshairMode() == vtkMRMLCrosshairNode::NoCrosshair)
     {
     actor->VisibilityOff();
+    this->SliceIntersectionWidget->Off();
     }
   else
     {
     actor->VisibilityOn();
+    this->SliceIntersectionWidget->On();
     }
 
   this->CrosshairMode = this->CrosshairNode->GetCrosshairMode();
