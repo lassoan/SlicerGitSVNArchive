@@ -32,6 +32,7 @@
 #include <vtkMRMLSliceCompositeNode.h>
 #include <vtkMRMLSliceLogic.h>
 #include <vtkMRMLSliceNode.h>
+#include <vtkSliceIntersectionWidget.h>
 
 // VTK includes
 #include <vtkActor2D.h>
@@ -40,6 +41,7 @@
 #include <vtkMatrix4x4.h>
 #include <vtkNew.h>
 #include <vtkObjectFactory.h>
+#include <vtkPickingManager.h>
 #include <vtkPoints.h>
 #include <vtkPolyData.h>
 #include <vtkPolyDataMapper2D.h>
@@ -72,6 +74,7 @@ public:
   // Slice
   vtkMRMLSliceNode* GetSliceNode();
   void UpdateSliceNode();
+  void UpdateIntersectingSliceNodes();
   // Slice Composite
   vtkMRMLSliceCompositeNode* FindSliceCompositeNode();
   void SetSliceCompositeNode(vtkMRMLSliceCompositeNode* compositeNode);
@@ -107,6 +110,8 @@ public:
   int CrosshairMode;
   int CrosshairThickness;
   double CrosshairPosition[3];
+
+  vtkSmartPointer<vtkSliceIntersectionWidget> SliceIntersectionWidget;
 };
 
 
@@ -127,6 +132,7 @@ vtkMRMLCrosshairDisplayableManager::vtkInternal
   this->CrosshairPosition[0] = 0.0;
   this->CrosshairPosition[1] = 0.0;
   this->CrosshairPosition[2] = 0.0;
+  this->SliceIntersectionWidget = vtkSmartPointer<vtkSliceIntersectionWidget>::New();
 }
 
 //---------------------------------------------------------------------------
@@ -220,6 +226,44 @@ void vtkMRMLCrosshairDisplayableManager::vtkInternal::UpdateSliceNode()
   // search for the Crosshair node
   vtkMRMLCrosshairNode* crosshairNode = vtkMRMLCrosshairDisplayableManager::FindCrosshairNode(this->External->GetMRMLScene());
   this->SetCrosshairNode(crosshairNode);
+}
+
+//---------------------------------------------------------------------------
+void vtkMRMLCrosshairDisplayableManager::vtkInternal::UpdateIntersectingSliceNodes()
+{
+  if (this->External->GetMRMLScene() == 0)
+    {
+    this->SliceIntersectionWidget->SetSliceNode(NULL);
+    return;
+    }
+
+  if (!this->SliceIntersectionWidget->GetInteractor())
+    {
+    // not initialized yet
+    if (this->External->GetInteractor()->GetPickingManager())
+      {
+      if (!(this->External->GetInteractor()->GetPickingManager()->GetEnabled()))
+        {
+        // Managed picking is on by default on the seed widget, but the interactor
+        // will need to have it's picking manager turned on once seed widgets are
+        // going to be used to avoid dragging seeds that are behind others.
+        // Enabling it before setting the interactor on the seed widget seems to
+        // work better with tests of two fiducial lists.
+        this->External->GetInteractor()->GetPickingManager()->EnabledOn();
+        }
+      }
+    vtkMRMLApplicationLogic *mrmlAppLogic = this->External->GetMRMLApplicationLogic();
+    this->SliceIntersectionWidget->SetMRMLApplicationLogic(mrmlAppLogic);
+    this->SliceIntersectionWidget->CreateDefaultRepresentation();
+    this->SliceIntersectionWidget->SetInteractor(this->External->GetInteractor());
+    this->SliceIntersectionWidget->SetCurrentRenderer(this->External->GetRenderer());
+    this->SliceIntersectionWidget->SetSliceNode(this->GetSliceNode());
+    this->SliceIntersectionWidget->On();
+    }
+  else
+    {
+    this->SliceIntersectionWidget->SetSliceNode(this->GetSliceNode());
+    }
 }
 
 //---------------------------------------------------------------------------
@@ -473,11 +517,13 @@ void vtkMRMLCrosshairDisplayableManager::ObserveMRMLScene()
 void vtkMRMLCrosshairDisplayableManager::UpdateFromMRMLScene()
 {
   this->Internal->UpdateSliceNode();
+  this->Internal->UpdateIntersectingSliceNodes();
 }
 
 //---------------------------------------------------------------------------
 void vtkMRMLCrosshairDisplayableManager::UnobserveMRMLScene()
 {
+  this->Internal->SliceIntersectionWidget->SetSliceNode(NULL);
   this->Internal->SetSliceCompositeNode(0);
   this->Internal->SetCrosshairNode(0);
 }

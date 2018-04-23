@@ -580,6 +580,7 @@ void vtkMRMLSliceLogic::OnMRMLNodeModified(vtkMRMLNode* node)
   else if (node == this->SliceCompositeNode)
     {
     this->UpdatePipeline();
+    this->InvokeEvent(CompositeModifiedEvent);
     }
 }
 
