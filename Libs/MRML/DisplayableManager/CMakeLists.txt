@@ -71,6 +71,10 @@ endif()
 # --------------------------------------------------------------------------
 set(DisplayableManager_SRCS
 
+  # VTK widgets
+  vtkSliceIntersectionRepresentation2D.cxx
+  vtkSliceIntersectionWidget.cxx
+
   # DisplayableManager associated with ThreeDView
   vtkMRMLCameraDisplayableManager.cxx
   vtkMRMLModelDisplayableManager.cxx
