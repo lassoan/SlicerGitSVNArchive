@@ -42,6 +42,7 @@
 #include <vtkMatrix4x4.h>
 #include <vtkNew.h>
 #include <vtkObjectFactory.h>
+#include <vtkPickingManager.h>
 #include <vtkPoints.h>
 #include <vtkPolyData.h>
 #include <vtkPolyDataMapper2D.h>
@@ -74,6 +75,7 @@ public:
   // Slice
   vtkMRMLSliceNode* GetSliceNode();
   void UpdateSliceNode();
+  void UpdateIntersectingSliceNodes();
   // Slice Composite
   vtkMRMLSliceCompositeNode* FindSliceCompositeNode();
   void SetSliceCompositeNode(vtkMRMLSliceCompositeNode* compositeNode);
@@ -225,6 +227,55 @@ void vtkMRMLCrosshairDisplayableManager::vtkInternal::UpdateSliceNode()
   // search for the Crosshair node
   vtkMRMLCrosshairNode* crosshairNode = vtkMRMLCrosshairDisplayableManager::FindCrosshairNode(this->External->GetMRMLScene());
   this->SetCrosshairNode(crosshairNode);
+}
+
+//---------------------------------------------------------------------------
+void vtkMRMLCrosshairDisplayableManager::vtkInternal::UpdateIntersectingSliceNodes()
+{
+  if (this->External->GetMRMLScene() == 0)
+  {
+    this->SliceIntersectionWidget->GetSliceIntersectionRepresentation()->SetSliceNode(NULL);
+    this->SliceIntersectionWidget->GetSliceIntersectionRepresentation()->RemoveAllIntersectingSliceNodes();
+    return;
+  }
+
+
+  if (!this->SliceIntersectionWidget->GetRepresentation())
+  {
+    this->SliceIntersectionWidget->CreateDefaultRepresentation();
+    if (this->External->GetInteractor()->GetPickingManager())
+    {
+      if (!(this->External->GetInteractor()->GetPickingManager()->GetEnabled()))
+      {
+        // Managed picking is on by default on the seed widget, but the interactor
+        // will need to have it's picking manager turned on once seed widgets are
+        // going to be used to avoid dragging seeds that are behind others.
+        // Enabling it before setting the interactor on the seed widget seems to
+        // work better with tests of two fiducial lists.
+        this->External->GetInteractor()->GetPickingManager()->EnabledOn();
+      }
+    }
+    this->SliceIntersectionWidget->SetInteractor(this->External->GetInteractor());
+    this->SliceIntersectionWidget->SetCurrentRenderer(this->External->GetRenderer());
+  }
+
+  this->SliceIntersectionWidget->GetSliceIntersectionRepresentation()->SetSliceNode(this->GetSliceNode());
+
+  if (this->GetSliceNode())
+  {
+    vtkMRMLNode* node;
+    vtkCollectionSimpleIterator it;
+    vtkCollection* scene = this->External->GetMRMLScene()->GetNodes();
+    for (scene->InitTraversal(it);
+      (node = vtkMRMLNode::SafeDownCast(scene->GetNextItemAsObject(it)));)
+    {
+      vtkMRMLSliceNode* sliceNode = vtkMRMLSliceNode::SafeDownCast(node);
+      if (sliceNode)
+      {
+        this->SliceIntersectionWidget->GetSliceIntersectionRepresentation()->AddIntersectingSliceNode(sliceNode);
+      }
+    }
+  }
 }
 
 //---------------------------------------------------------------------------
@@ -420,20 +471,14 @@ void vtkMRMLCrosshairDisplayableManager::vtkInternal::BuildCrosshair()
   actor->GetProperty()->SetColor(1.0, 0.8, 0.1);
   actor->GetProperty()->SetOpacity(1.0);
 
-  if (!this->SliceIntersectionWidget->GetRepresentation())
-    {
-    this->SliceIntersectionWidget->CreateDefaultRepresentation();
-    vtkSliceIntersectionRepresentation2D* rep = vtkSliceIntersectionRepresentation2D::SafeDownCast(this->SliceIntersectionWidget->GetRepresentation());
-    if (rep)
-      {
-      rep->SetBoxWidth(100);
-      rep->SetCircleWidth(75);
-      rep->SetAxesWidth(60);
-      rep->DisplayTextOn();
-      double bounds[] = { -10, 10, -20, 20, -30, 30 };
-      rep->PlaceWidget(bounds);
-      }
-    }
+  /*
+  vtkSliceIntersectionRepresentation2D* rep = vtkSliceIntersectionRepresentation2D::SafeDownCast(this->SliceIntersectionWidget->GetRepresentation());
+  if (rep)
+  {
+    double bounds[] = { -10, 10, -20, 20, -30, 30 };
+    rep->PlaceWidget(bounds);
+  }
+  */
 
   this->SliceIntersectionWidget->SetInteractor(this->External->GetInteractor());
 
@@ -497,13 +542,43 @@ void vtkMRMLCrosshairDisplayableManager::ObserveMRMLScene()
 void vtkMRMLCrosshairDisplayableManager::UpdateFromMRMLScene()
 {
   this->Internal->UpdateSliceNode();
+
+  this->Internal->UpdateIntersectingSliceNodes();
 }
 
 //---------------------------------------------------------------------------
 void vtkMRMLCrosshairDisplayableManager::UnobserveMRMLScene()
 {
+  this->Internal->SliceIntersectionWidget->GetSliceIntersectionRepresentation()->SetSliceNode(NULL);
+  this->Internal->SliceIntersectionWidget->GetSliceIntersectionRepresentation()->RemoveAllIntersectingSliceNodes();
   this->Internal->SetSliceCompositeNode(0);
   this->Internal->SetCrosshairNode(0);
+}
+
+//---------------------------------------------------------------------------
+void vtkMRMLCrosshairDisplayableManager
+::OnMRMLSceneNodeAdded(vtkMRMLNode* nodeAdded)
+{
+  if (this->GetMRMLScene()->IsBatchProcessing() ||
+    !nodeAdded->IsA("vtkMRMLSliceNode"))
+  {
+    return;
+  }
+  this->Internal->SliceIntersectionWidget->GetSliceIntersectionRepresentation()
+    ->AddIntersectingSliceNode(vtkMRMLSliceNode::SafeDownCast(nodeAdded));
+}
+
+//---------------------------------------------------------------------------
+void vtkMRMLCrosshairDisplayableManager
+::OnMRMLSceneNodeRemoved(vtkMRMLNode* nodeRemoved)
+{
+  if (!nodeRemoved->IsA("vtkMRMLSliceNode"))
+  {
+    return;
+  }
+
+  this->Internal->SliceIntersectionWidget->GetSliceIntersectionRepresentation()
+    ->RemoveIntersectingSliceNode(vtkMRMLSliceNode::SafeDownCast(nodeRemoved));
 }
 
 //---------------------------------------------------------------------------

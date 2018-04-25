@@ -76,33 +76,13 @@ void vtkSliceIntersectionWidget::SetCursor(int cState)
 {
   switch (cState)
   {
-    case vtkSliceIntersectionRepresentation2D::ScaleNE: case vtkSliceIntersectionRepresentation2D::ScaleSW:
-      this->RequestCursorShape(VTK_CURSOR_SIZESW);
-      break;
-    case vtkSliceIntersectionRepresentation2D::ScaleNW: case vtkSliceIntersectionRepresentation2D::ScaleSE:
-      this->RequestCursorShape(VTK_CURSOR_SIZENW);
-      break;
-    case vtkSliceIntersectionRepresentation2D::ScaleNEdge: case vtkSliceIntersectionRepresentation2D::ScaleSEdge:
-    case vtkSliceIntersectionRepresentation2D::ShearWEdge: case vtkSliceIntersectionRepresentation2D::ShearEEdge:
-      this->RequestCursorShape(VTK_CURSOR_SIZENS);
-      break;
-    case vtkSliceIntersectionRepresentation2D::ScaleWEdge: case vtkSliceIntersectionRepresentation2D::ScaleEEdge:
-    case vtkSliceIntersectionRepresentation2D::ShearNEdge: case vtkSliceIntersectionRepresentation2D::ShearSEdge:
-      this->RequestCursorShape(VTK_CURSOR_SIZEWE);
-      break;
-    case vtkSliceIntersectionRepresentation2D::RotateState:
+    case vtkSliceIntersectionRepresentation2D::StateRotate:
       this->RequestCursorShape(VTK_CURSOR_HAND);
       break;
-    case vtkSliceIntersectionRepresentation2D::TranslateX: case vtkSliceIntersectionRepresentation2D::MoveOriginX:
-      this->RequestCursorShape(VTK_CURSOR_SIZEWE);
-      break;
-    case vtkSliceIntersectionRepresentation2D::TranslateY: case vtkSliceIntersectionRepresentation2D::MoveOriginY:
-      this->RequestCursorShape(VTK_CURSOR_SIZENS);
-      break;
-    case vtkSliceIntersectionRepresentation2D::TranslateState: case vtkSliceIntersectionRepresentation2D::MoveOrigin:
+    case vtkSliceIntersectionRepresentation2D::StateTranslate:
       this->RequestCursorShape(VTK_CURSOR_SIZEALL);
       break;
-    case vtkSliceIntersectionRepresentation2D::Outside:
+    case vtkSliceIntersectionRepresentation2D::StateOutside:
     default:
       this->RequestCursorShape(VTK_CURSOR_DEFAULT);
   }
@@ -116,12 +96,11 @@ void vtkSliceIntersectionWidget::SelectAction(vtkAbstractWidget *w)
   int X = self->Interactor->GetEventPosition()[0];
   int Y = self->Interactor->GetEventPosition()[1];
 
-  self->ModifierActive = self->Interactor->GetShiftKey() |
-                         self->Interactor->GetControlKey();
+  self->ModifierActive = self->Interactor->GetControlKey();
   reinterpret_cast<vtkSliceIntersectionRepresentation2D*>(self->WidgetRep)->
     ComputeInteractionState(X, Y, self->ModifierActive);
 
-  if ( self->WidgetRep->GetInteractionState() == vtkSliceIntersectionRepresentation2D::Outside )
+  if ( self->WidgetRep->GetInteractionState() == vtkSliceIntersectionRepresentation2D::StateOutside )
   {
     return;
   }
@@ -157,8 +136,7 @@ void vtkSliceIntersectionWidget::MoveAction(vtkAbstractWidget *w)
   // Set the cursor appropriately
   if ( self->WidgetState == vtkSliceIntersectionWidget::Start )
   {
-    self->ModifierActive = self->Interactor->GetShiftKey() |
-                           self->Interactor->GetControlKey();
+    self->ModifierActive = self->Interactor->GetControlKey();
     int state = self->WidgetRep->GetInteractionState();
     reinterpret_cast<vtkSliceIntersectionRepresentation2D*>(self->WidgetRep)->
       ComputeInteractionState(X, Y, self->ModifierActive );
@@ -167,6 +145,11 @@ void vtkSliceIntersectionWidget::MoveAction(vtkAbstractWidget *w)
     {
       self->Render();
     }
+    return;
+  }
+
+  if (!self->Interactor->GetControlKey())
+  {
     return;
   }
 
@@ -188,8 +171,7 @@ void vtkSliceIntersectionWidget::ModifyEventAction(vtkAbstractWidget *w)
   vtkSliceIntersectionWidget *self = reinterpret_cast<vtkSliceIntersectionWidget*>(w);
   if ( self->WidgetState == vtkSliceIntersectionWidget::Start )
   {
-    int modifierActive = self->Interactor->GetShiftKey() |
-                         self->Interactor->GetControlKey();
+    int modifierActive = self->Interactor->GetControlKey();
     if ( self->ModifierActive != modifierActive )
     {
       self->ModifierActive = modifierActive;

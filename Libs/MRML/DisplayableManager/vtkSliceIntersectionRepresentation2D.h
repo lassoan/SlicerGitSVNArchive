@@ -61,6 +61,8 @@
 #include "vtkMRMLDisplayableManagerExport.h" // For export macro
 #include "vtkWidgetRepresentation.h"
 
+#include "vtkMRMLSliceNode.h"
+
 class vtkProperty2D;
 class vtkActor2D;
 class vtkPolyDataMapper2D;
@@ -72,6 +74,8 @@ class vtkLeaderActor2D;
 class vtkTextMapper;
 class vtkTransform;
 class vtkActor2D;
+
+class SliceIntersectionDisplayPipeline;
 
 
 class VTK_MRML_DISPLAYABLEMANAGER_EXPORT vtkSliceIntersectionRepresentation2D : public vtkWidgetRepresentation
@@ -105,33 +109,17 @@ public:
   // widget.
   enum _InteractionState
   {
-    Outside=0, RotateState, TranslateState, TranslateX, TranslateY, ScaleWEdge, ScaleEEdge,
-    ScaleNEdge, ScaleSEdge, ScaleNE, ScaleSW, ScaleNW, ScaleSE,
-    ShearEEdge, ShearWEdge, ShearNEdge, ShearSEdge,
-    MoveOriginX, MoveOriginY, MoveOrigin
+    StateOutside=0,
+    StateJump,
+    StateTranslate, // move origin (all slices are centered on mouse pointer)
+    StateRotate     // all slices are rotated around origin
   };
 
   //@{
   /**
-   * Specify the width of the various parts of the representation (in
-   * pixels).  The three parts are of the representation are the translation
-   * axes, the rotation circle, and the scale/shear box. Note that since the
-   * widget resizes itself so that the width and height are always the
-   * same, only the width needs to be specified.
-   */
-  vtkSetClampMacro(BoxWidth,int,10,VTK_INT_MAX);
-  vtkGetMacro(BoxWidth,int);
-  vtkSetClampMacro(CircleWidth,int,10,VTK_INT_MAX);
-  vtkGetMacro(CircleWidth,int);
-  vtkSetClampMacro(AxesWidth,int,10,VTK_INT_MAX);
-  vtkGetMacro(AxesWidth,int);
-  //@}
-
-  //@{
-  /**
    * Specify the origin of the widget (in world coordinates). The origin
-   * is the point where the widget places itself. Note that rotations and
-   * scaling occurs around the origin.
+   * is the point where the widget places itself. Note that rotations
+   * occurs around the origin.
    */
   void SetOrigin(const double o[3]) {this->SetOrigin(o[0],o[1],o[2]);}
   void SetOrigin(double ox, double oy, double oz);
@@ -146,7 +134,12 @@ public:
    * scale, translate, rotate, shear) are concatenated with the internal
    * transform.
    */
-  virtual void GetTransform(vtkTransform *t);
+  void SetSliceNode(vtkMRMLSliceNode* sliceNode);
+  vtkMRMLSliceNode* GetSliceNode();
+
+  void AddIntersectingSliceNode(vtkMRMLSliceNode* sliceNode);
+  void RemoveIntersectingSliceNode(vtkMRMLSliceNode* sliceNode);
+  void RemoveAllIntersectingSliceNodes();
 
   //@{
   /**
@@ -154,21 +147,8 @@ public:
    */
   void SetProperty(vtkProperty2D*);
   void SetSelectedProperty(vtkProperty2D*);
-  void SetTextProperty(vtkTextProperty*);
   vtkGetObjectMacro(Property,vtkProperty2D);
   vtkGetObjectMacro(SelectedProperty,vtkProperty2D);
-  vtkGetObjectMacro(TextProperty,vtkTextProperty);
-  //@}
-
-  //@{
-  /**
-   * Enable the display of text with numeric values characterizing the
-   * transformation. Rotation and shear are expressed in degrees; translation
-   * the distance in world coordinates; and scale normalized (sx,sy) values.
-   */
-  vtkSetMacro(DisplayText,vtkTypeBool);
-  vtkGetMacro(DisplayText,vtkTypeBool);
-  vtkBooleanMacro(DisplayText,vtkTypeBool);
   //@}
 
   //@{
@@ -201,33 +181,22 @@ protected:
   vtkSliceIntersectionRepresentation2D();
   ~vtkSliceIntersectionRepresentation2D() override;
 
-  // Methods to manipulate the cursor
-  void Translate(double eventPos[2]);
-  void Scale(double eventPos[2]);
-  void Rotate(double eventPos[2]);
-  void Shear(double eventPos[2]);
-  void Highlight(int highlight) override;
-  void UpdateText(const char *text, double eventPos[2]);
+  SliceIntersectionDisplayPipeline* GetDisplayPipelineFromSliceNode(vtkMRMLSliceNode* sliceNode);
 
+  static void SliceNodeModifiedCallback(vtkObject* caller, unsigned long eid, void* clientData, void* callData);
+  void SliceNodeModified(vtkMRMLSliceNode* sliceNode);
+
+  void UpdateSliceIntersectionDisplay(SliceIntersectionDisplayPipeline *pipeline);
+
+  double* GetSliceIntersectionPoint();
+
+  // Methods to manipulate the cursor
+  void Jump(double eventPos[2]);
+  void Translate(double eventPos[2]);
+  void Rotate(double eventPos[2]);
 
   // The tolerance for selecting different parts of the widget.
-  int Tolerance;
-
-  // The internal transformation matrix
-  vtkTransform *Transform;
-
-  // The width of the widget in normalized viewport coordinates.
-  int BoxWidth;
-  int CircleWidth;
-  int AxesWidth;
-
-  // Display text
-  vtkTypeBool DisplayText;
-
-  // Internal variables for bookkeeping (in display coordinates unless noted)
-  double CurrentWidth;
-  double CurrentRadius;
-  double CurrentAxesWidth;
+  double Tolerance;
 
   // The internal transformation matrix
   vtkTransform *CurrentTransform;
@@ -236,17 +205,20 @@ protected:
   double DisplayOrigin[3]; //the current origin in display coordinates
   double CurrentTranslation[3]; //translation this movement
   double StartWorldPosition[4]; //Start event position converted to world
-  double StartAngle; //The starting angle (always positive)
+
+  double PreviousRotationAngleRad;
+  double PreviousEventPosition[2];
+  double StartRotationCenter[2];
+  double StartRotationCenter_RAS[4];
+
   double CurrentAngle;
   double CurrentScale[2];
   double CurrentShear[2];
-  void   ApplyShear(); //helper method to apply shear to matrix
 
   // Properties used to control the appearance of selected objects and
   // the manipulator in general.
   vtkProperty2D   *Property;
   vtkProperty2D   *SelectedProperty;
-  vtkTextProperty *TextProperty;
   void             CreateDefaultProperties();
   double           Opacity;
   double           SelectedOpacity;
@@ -254,42 +226,12 @@ protected:
   // Support picking
   double LastEventPosition[2];
 
-  // These are the classes that form the geometric representation -----------
-  // The label
-  vtkTextMapper *TextMapper;
-  vtkActor2D    *TextActor;
+  // Slice intersection point in XY
+  double SliceIntersectionPoint[4];
 
-  // The outer box
-  vtkPoints           *BoxPoints;
-  vtkCellArray        *BoxCellArray;
-  vtkPolyData         *Box;
-  vtkPolyDataMapper2D *BoxMapper;
-  vtkActor2D          *BoxActor;
 
-  vtkPoints           *HBoxPoints;
-  vtkCellArray        *HBoxCellArray;
-  vtkPolyData         *HBox;
-  vtkPolyDataMapper2D *HBoxMapper;
-  vtkActor2D          *HBoxActor;
-
-  // The circle
-  vtkPoints           *CirclePoints;
-  vtkCellArray        *CircleCellArray;
-  vtkPolyData         *Circle;
-  vtkPolyDataMapper2D *CircleMapper;
-  vtkActor2D          *CircleActor;
-
-  vtkPoints           *HCirclePoints;
-  vtkCellArray        *HCircleCellArray;
-  vtkPolyData         *HCircle;
-  vtkPolyDataMapper2D *HCircleMapper;
-  vtkActor2D          *HCircleActor;
-
-  // The translation axes
-  vtkLeaderActor2D    *XAxis;
-  vtkLeaderActor2D    *YAxis;
-  vtkLeaderActor2D    *HXAxis;
-  vtkLeaderActor2D    *HYAxis;
+  class vtkInternal;
+  vtkInternal * Internal;
 
 private:
   vtkSliceIntersectionRepresentation2D(const vtkSliceIntersectionRepresentation2D&) = delete;

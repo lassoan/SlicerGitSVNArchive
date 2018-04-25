@@ -61,7 +61,7 @@
 #include "vtkMRMLDisplayableManagerExport.h" // For export macro
 #include "vtkAbstractWidget.h"
 
-class vtkSliceIntersectionRepresentation;
+class vtkSliceIntersectionRepresentation2D;
 
 
 class VTK_MRML_DISPLAYABLEMANAGER_EXPORT vtkSliceIntersectionWidget : public vtkAbstractWidget
@@ -85,14 +85,14 @@ public:
    * widget in the scene. Note that the representation is a subclass of vtkProp
    * so it can be added to the renderer independent of the widget.
    */
-  void SetRepresentation(vtkSliceIntersectionRepresentation *r)
+  void SetRepresentation(vtkSliceIntersectionRepresentation2D *r)
     {this->Superclass::SetWidgetRepresentation(reinterpret_cast<vtkWidgetRepresentation*>(r));}
 
   /**
-   * Return the representation as a vtkSliceIntersectionRepresentation.
+   * Return the representation as a vtkSliceIntersectionRepresentation2D.
    */
-  vtkSliceIntersectionRepresentation *GetSliceIntersectionRepresentation()
-    {return reinterpret_cast<vtkSliceIntersectionRepresentation*>(this->WidgetRep);}
+  vtkSliceIntersectionRepresentation2D *GetSliceIntersectionRepresentation()
+    {return reinterpret_cast<vtkSliceIntersectionRepresentation2D*>(this->WidgetRep);}
 
   /**
    * Create the default widget representation if one is not set.

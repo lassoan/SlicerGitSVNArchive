@@ -64,6 +64,8 @@ private:
   virtual void UnobserveMRMLScene() VTK_OVERRIDE;
   virtual void ObserveMRMLScene() VTK_OVERRIDE;
   virtual void UpdateFromMRMLScene() VTK_OVERRIDE;
+  virtual void OnMRMLSceneNodeAdded(vtkMRMLNode* node) VTK_OVERRIDE;
+  virtual void OnMRMLSceneNodeRemoved(vtkMRMLNode* node) VTK_OVERRIDE;
   virtual void OnMRMLNodeModified(vtkMRMLNode* node) VTK_OVERRIDE;
 
   class vtkInternal;

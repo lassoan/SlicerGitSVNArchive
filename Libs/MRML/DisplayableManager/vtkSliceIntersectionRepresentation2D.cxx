@@ -13,7 +13,17 @@
 
 =========================================================================*/
 #include "vtkSliceIntersectionRepresentation2D.h"
+
+
+#include <deque>
+
+#include "vtkMRMLSliceNode.h"
+
+#include "vtkCallbackCommand.h"
+#include "vtkCommand.h"
 #include "vtkPolyDataMapper2D.h"
+#include "vtkPlane.h"
+#include "vtkSphereSource.h"
 #include "vtkActor2D.h"
 #include "vtkRenderer.h"
 #include "vtkObjectFactory.h"
@@ -23,6 +33,7 @@
 #include "vtkMath.h"
 #include "vtkInteractorObserver.h"
 #include "vtkLine.h"
+#include "vtkLineSource.h"
 #include "vtkCoordinate.h"
 #include "vtkGlyph2D.h"
 #include "vtkCursor2D.h"
@@ -40,393 +51,330 @@ vtkStandardNewMacro(vtkSliceIntersectionRepresentation2D);
 
 vtkCxxSetObjectMacro(vtkSliceIntersectionRepresentation2D,Property,vtkProperty2D);
 vtkCxxSetObjectMacro(vtkSliceIntersectionRepresentation2D,SelectedProperty,vtkProperty2D);
-vtkCxxSetObjectMacro(vtkSliceIntersectionRepresentation2D,TextProperty,vtkTextProperty);
 
-#define VTK_CIRCLE_RESOLUTION 64
+class SliceIntersectionDisplayPipeline
+{
+public:
+
+  //----------------------------------------------------------------------
+  SliceIntersectionDisplayPipeline()
+  {
+    this->LineSource = vtkSmartPointer<vtkLineSource>::New();
+    this->Mapper = vtkSmartPointer<vtkPolyDataMapper2D>::New();
+    this->Property = vtkSmartPointer<vtkProperty2D>::New();
+    this->Actor = vtkSmartPointer<vtkActor2D>::New();
+    this->Actor->SetVisibility(false); // invisible until slice node is set
+
+    this->Mapper->SetInputConnection(this->LineSource->GetOutputPort());
+    this->Actor->SetMapper(this->Mapper);
+    this->Actor->SetProperty(this->Property);
+  }
+
+  //----------------------------------------------------------------------
+  virtual ~SliceIntersectionDisplayPipeline()
+  {
+    this->SetAndObserveSliceNode(NULL, NULL);
+  }
+
+  //----------------------------------------------------------------------
+  void SetAndObserveSliceNode(vtkMRMLSliceNode* sliceNode, vtkCallbackCommand* callback)
+  {
+    if (sliceNode == this->SliceNode)
+    {
+      // no change
+      return;
+    }
+    if (this->SliceNode && this->Callback)
+    {
+      this->SliceNode->RemoveObserver(this->Callback);
+    }
+    if (sliceNode)
+    {
+      sliceNode->AddObserver(vtkCommand::ModifiedEvent, callback);
+    }
+    this->SliceNode = sliceNode;
+    this->Callback = callback;
+  }
+
+  //----------------------------------------------------------------------
+  void GetActors2D(vtkPropCollection *pc)
+  {
+    pc->AddItem(this->Actor);
+  }
+
+  //----------------------------------------------------------------------
+  void AddActors(vtkRenderer* renderer)
+  {
+    if (!renderer)
+    {
+      return;
+    }
+    renderer->AddViewProp(this->Actor);
+  }
+
+  //----------------------------------------------------------------------
+  void ReleaseGraphicsResources(vtkWindow *win)
+  {
+    this->Actor->ReleaseGraphicsResources(win);
+  }
+
+  //----------------------------------------------------------------------
+  int RenderOverlay(vtkViewport *viewport)
+  {
+    int count = 0;
+    if (this->Actor->GetVisibility())
+    {
+      count += this->Actor->RenderOverlay(viewport);
+    }
+    return count;
+  }
+
+
+  //----------------------------------------------------------------------
+  void RemoveActors(vtkRenderer* renderer)
+  {
+    if (!renderer)
+    {
+      return;
+    }
+    renderer->RemoveViewProp(this->Actor);
+  }
+
+  //----------------------------------------------------------------------
+  void SetVisibility(bool visibility)
+  {
+    this->Actor->SetVisibility(visibility);
+  }
+
+  //----------------------------------------------------------------------
+  bool GetVisibility()
+  {
+    return this->Actor->GetVisibility();
+  }
+
+  vtkSmartPointer<vtkLineSource> LineSource;
+  vtkSmartPointer<vtkPolyDataMapper2D> Mapper;
+  vtkSmartPointer<vtkProperty2D> Property;
+  vtkSmartPointer<vtkActor2D> Actor;
+  vtkWeakPointer<vtkMRMLSliceNode> SliceNode;
+  vtkWeakPointer<vtkCallbackCommand> Callback;
+};
+
+class vtkSliceIntersectionRepresentation2D::vtkInternal
+{
+public:
+  vtkInternal(vtkSliceIntersectionRepresentation2D * external);
+  ~vtkInternal();
+
+  static int IntersectWithFinitePlane(double n[3], double o[3], double pOrigin[3], double px[3], double py[3], double x0[3], double x1[3]);
+
+  vtkSliceIntersectionRepresentation2D* External;
+
+  vtkSmartPointer<vtkMRMLSliceNode> SliceNode;
+
+  vtkNew<vtkLineSource> CenterOfRotationSource;
+  vtkNew<vtkPolyDataMapper2D> CenterOfRotationMapper;
+  vtkNew<vtkActor2D> CenterOfRotationActor;
+
+  std::deque<SliceIntersectionDisplayPipeline*> SliceIntersectionDisplayPipelines;
+  vtkNew<vtkCallbackCommand> SliceNodeModifiedCommand;
+};
+
+//---------------------------------------------------------------------------
+// vtkInternal methods
+
+//---------------------------------------------------------------------------
+vtkSliceIntersectionRepresentation2D::vtkInternal
+::vtkInternal(vtkSliceIntersectionRepresentation2D * external)
+{
+  this->External = external;
+}
+
+//---------------------------------------------------------------------------
+vtkSliceIntersectionRepresentation2D::vtkInternal::~vtkInternal()
+{
+}
+
+//---------------------------------------------------------------------------
+int vtkSliceIntersectionRepresentation2D::vtkInternal::IntersectWithFinitePlane(double n[3], double o[3],
+  double pOrigin[3], double px[3], double py[3],
+  double x0[3], double x1[3])
+{
+  // Since we are dealing with convex shapes, if there is an intersection a
+  // single line is produced as output. So all this is necessary is to
+  // intersect the four bounding lines of the finite line and find the two
+  // intersection points.
+  int numInts = 0;
+  double t, *x = x0;
+  double xr0[3], xr1[3];
+
+  // First line
+  xr0[0] = pOrigin[0];
+  xr0[1] = pOrigin[1];
+  xr0[2] = pOrigin[2];
+  xr1[0] = px[0];
+  xr1[1] = px[1];
+  xr1[2] = px[2];
+  if (vtkPlane::IntersectWithLine(xr0, xr1, n, o, t, x))
+  {
+    numInts++;
+    x = x1;
+  }
+
+  // Second line
+  xr1[0] = py[0];
+  xr1[1] = py[1];
+  xr1[2] = py[2];
+  if (vtkPlane::IntersectWithLine(xr0, xr1, n, o, t, x))
+  {
+    numInts++;
+    x = x1;
+  }
+  if (numInts == 2)
+  {
+    return 1;
+  }
+
+  // Third line
+  xr0[0] = -pOrigin[0] + px[0] + py[0];
+  xr0[1] = -pOrigin[1] + px[1] + py[1];
+  xr0[2] = -pOrigin[2] + px[2] + py[2];
+  if (vtkPlane::IntersectWithLine(xr0, xr1, n, o, t, x))
+  {
+    numInts++;
+    x = x1;
+  }
+  if (numInts == 2)
+  {
+    return 1;
+  }
+
+  // Fourth and last line
+  xr1[0] = px[0];
+  xr1[1] = px[1];
+  xr1[2] = px[2];
+  if (vtkPlane::IntersectWithLine(xr0, xr1, n, o, t, x))
+  {
+    numInts++;
+  }
+  if (numInts == 2)
+  {
+    return 1;
+  }
+
+  // No intersection has occurred, or a single degenerate point
+  return 0;
+}
+
 
 //----------------------------------------------------------------------
 vtkSliceIntersectionRepresentation2D::vtkSliceIntersectionRepresentation2D()
 {
-  this->InteractionState = vtkSliceIntersectionRepresentation2D::Outside;
-  this->Transform = vtkTransform::New();
+  this->Internal = new vtkInternal(this);
+  this->Internal->SliceNodeModifiedCommand->SetClientData(this);
+  this->Internal->SliceNodeModifiedCommand->SetCallback(vtkSliceIntersectionRepresentation2D::SliceNodeModifiedCallback);
 
-  // It's best to have a small tolerance
-  this->Tolerance = 3;
+  this->SliceIntersectionPoint[0] = 0.0;
+  this->SliceIntersectionPoint[1] = 0.0;
+  this->SliceIntersectionPoint[2] = 0.0;
+  this->SliceIntersectionPoint[3] = 1.0; // to allow easy homogeneous tranformations
+
+  this->StartRotationCenter_RAS[0] = 0.0;
+  this->StartRotationCenter_RAS[1] = 0.0;
+  this->StartRotationCenter_RAS[2] = 0.0;
+  this->StartRotationCenter_RAS[3] = 1.0; // to allow easy homogeneous tranformations
+
+  this->Tolerance = 5.0;
 
   // Initialize state
-  this->InteractionState = vtkSliceIntersectionRepresentation2D::Outside;
-
-  // The width of the widget
-  this->DisplayText = 1;
-  this->BoxWidth = 100;
-  this->CircleWidth = static_cast<int>(0.75 * this->BoxWidth);
-  this->AxesWidth = static_cast<int>(0.60 * this->BoxWidth);
-  this->CurrentWidth = 0.0;
-  this->CurrentRadius = 0.0;
-  this->CurrentAxesWidth = 0.0;
+  this->InteractionState = vtkSliceIntersectionRepresentation2D::StateOutside;
 
   // Keep track of transformations
-  this->DisplayOrigin[0] = this->DisplayOrigin[1] = this->DisplayOrigin[2] = 0.0;
-  this->Origin[0] = this->Origin[1] = this->Origin[2] = 0.0;
+  //this->DisplayOrigin[0] = this->DisplayOrigin[1] = this->DisplayOrigin[2] = 0.0;
+  //this->Origin[0] = this->Origin[1] = this->Origin[2] = 0.0;
+
+  this->Internal->CenterOfRotationActor->SetVisibility(false); // invisible until slice node is set
+  this->Internal->CenterOfRotationMapper->SetInputConnection(this->Internal->CenterOfRotationSource->GetOutputPort());
+  this->Internal->CenterOfRotationActor->SetMapper(this->Internal->CenterOfRotationMapper);
+  //this->Actor->SetProperty(this->Property);
+
 
   // Create properties
   this->CreateDefaultProperties();
-
-  // Text label
-  this->TextMapper = vtkTextMapper::New();
-  this->TextMapper->SetTextProperty(this->TextProperty);
-  this->TextMapper->SetInput("foo");
-  this->TextActor = vtkActor2D::New();
-  this->TextActor->SetMapper(this->TextMapper);
-  this->TextActor->VisibilityOff();
-
-  // Box
-  this->BoxPoints = vtkPoints::New();
-  this->BoxPoints->SetNumberOfPoints(4);
-  this->BoxCellArray = vtkCellArray::New();
-  this->BoxCellArray->EstimateSize(1,4);
-  this->BoxCellArray->InsertNextCell(5);
-  this->BoxCellArray->InsertCellPoint(0);
-  this->BoxCellArray->InsertCellPoint(1);
-  this->BoxCellArray->InsertCellPoint(2);
-  this->BoxCellArray->InsertCellPoint(3);
-  this->BoxCellArray->InsertCellPoint(0);
-  this->Box = vtkPolyData::New();
-  this->Box->SetPoints(this->BoxPoints);
-  this->Box->SetLines(this->BoxCellArray);
-  this->BoxMapper = vtkPolyDataMapper2D::New();
-  this->BoxMapper->SetInputData(this->Box);
-  this->BoxActor = vtkActor2D::New();
-  this->BoxActor->SetMapper(this->BoxMapper);
-  this->BoxActor->SetProperty(this->Property);
-
-  this->HBoxPoints = vtkPoints::New();
-  this->HBoxPoints->SetNumberOfPoints(4);
-  this->HBoxCellArray = vtkCellArray::New();
-  this->HBoxCellArray->EstimateSize(1,4);
-  this->HBoxCellArray->InsertNextCell(5);
-  this->HBoxCellArray->InsertCellPoint(0);
-  this->HBoxCellArray->InsertCellPoint(1);
-  this->HBoxCellArray->InsertCellPoint(2);
-  this->HBoxCellArray->InsertCellPoint(3);
-  this->HBoxCellArray->InsertCellPoint(0);
-  this->HBox = vtkPolyData::New();
-  this->HBox->SetPoints(this->HBoxPoints);
-  this->HBox->SetLines(this->HBoxCellArray);
-  this->HBoxMapper = vtkPolyDataMapper2D::New();
-  this->HBoxMapper->SetInputData(this->HBox);
-  this->HBoxActor = vtkActor2D::New();
-  this->HBoxActor->SetMapper(this->HBoxMapper);
-  this->HBoxActor->VisibilityOff();
-  this->HBoxActor->SetProperty(this->SelectedProperty);
-
-  // Circle
-  this->CirclePoints = vtkPoints::New();
-  this->CirclePoints->SetNumberOfPoints(VTK_CIRCLE_RESOLUTION);
-  this->CircleCellArray = vtkCellArray::New();
-  this->CircleCellArray->EstimateSize(1,VTK_CIRCLE_RESOLUTION+1);
-  this->Circle = vtkPolyData::New();
-  this->Circle->SetPoints(this->CirclePoints);
-  this->Circle->SetLines(this->CircleCellArray);
-  this->CircleMapper = vtkPolyDataMapper2D::New();
-  this->CircleMapper->SetInputData(this->Circle);
-  this->CircleActor = vtkActor2D::New();
-  this->CircleActor->SetMapper(this->CircleMapper);
-  this->CircleActor->SetProperty(this->Property);
-
-  this->HCirclePoints = vtkPoints::New();
-  this->HCircleCellArray = vtkCellArray::New();
-  this->HCircleCellArray->EstimateSize(1,VTK_CIRCLE_RESOLUTION+1);
-  this->HCircle = vtkPolyData::New();
-  this->HCircle->SetPoints(this->HCirclePoints);
-  this->HCircle->SetLines(this->HCircleCellArray);
-  this->HCircleMapper = vtkPolyDataMapper2D::New();
-  this->HCircleMapper->SetInputData(this->HCircle);
-  this->HCircleActor = vtkActor2D::New();
-  this->HCircleActor->SetMapper(this->HCircleMapper);
-  this->HCircleActor->VisibilityOff();
-  this->HCircleActor->SetProperty(this->SelectedProperty);
-
-  // Translation axes
-  this->XAxis = vtkLeaderActor2D::New();
-  this->XAxis->GetPositionCoordinate()->SetCoordinateSystemToDisplay();
-  this->XAxis->GetPosition2Coordinate()->SetCoordinateSystemToDisplay();
-  this->XAxis->SetArrowStyleToFilled();
-  this->XAxis->SetProperty(this->Property);
-  this->XAxis->SetMaximumArrowSize(12);
-
-  this->YAxis = vtkLeaderActor2D::New();
-  this->YAxis->GetPositionCoordinate()->SetCoordinateSystemToDisplay();
-  this->YAxis->GetPosition2Coordinate()->SetCoordinateSystemToDisplay();
-  this->YAxis->SetArrowStyleToFilled();
-  this->YAxis->SetProperty(this->Property);
-  this->YAxis->SetMaximumArrowSize(12);
-
-  this->HXAxis = vtkLeaderActor2D::New();
-  this->HXAxis->GetPositionCoordinate()->SetCoordinateSystemToDisplay();
-  this->HXAxis->GetPosition2Coordinate()->SetCoordinateSystemToDisplay();
-  this->HXAxis->SetArrowStyleToFilled();
-  this->HXAxis->SetProperty(this->SelectedProperty);
-  this->HXAxis->SetMaximumArrowSize(12);
-  this->HXAxis->VisibilityOff();
-
-  this->HYAxis = vtkLeaderActor2D::New();
-  this->HYAxis->GetPositionCoordinate()->SetCoordinateSystemToDisplay();
-  this->HYAxis->GetPosition2Coordinate()->SetCoordinateSystemToDisplay();
-  this->HYAxis->SetArrowStyleToFilled();
-  this->HYAxis->SetProperty(this->SelectedProperty);
-  this->HYAxis->SetMaximumArrowSize(12);
-  this->HYAxis->VisibilityOff();
-
-  // Transformation matrix
-  this->CurrentTransform = vtkTransform::New();
-  this->TotalTransform = vtkTransform::New();
-
-  this->CurrentTranslation[0] = 0.0;
-  this->CurrentTranslation[1] = 0.0;
-  this->CurrentTranslation[2] = 0.0;
-  this->CurrentAngle = 0.0;
-  this->CurrentScale[0] = 1.0;
-  this->CurrentScale[1] = 1.0;
-  this->CurrentShear[0] = 0.0;
-  this->CurrentShear[1] = 0.0;
 }
 
 //----------------------------------------------------------------------
 vtkSliceIntersectionRepresentation2D::~vtkSliceIntersectionRepresentation2D()
 {
-  this->Property->Delete();
-  this->SelectedProperty->Delete();
-  this->TextProperty->Delete();
-
-  this->TextMapper->Delete();
-  this->TextActor->Delete();
-
-  this->BoxPoints->Delete();
-  this->BoxCellArray->Delete();
-  this->Box->Delete();
-  this->BoxMapper->Delete();
-  this->BoxActor->Delete();
-
-  this->HBoxPoints->Delete();
-  this->HBoxCellArray->Delete();
-  this->HBox->Delete();
-  this->HBoxMapper->Delete();
-  this->HBoxActor->Delete();
-
-  this->CirclePoints->Delete();
-  this->CircleCellArray->Delete();
-  this->Circle->Delete();
-  this->CircleMapper->Delete();
-  this->CircleActor->Delete();
-
-  this->HCirclePoints->Delete();
-  this->HCircleCellArray->Delete();
-  this->HCircle->Delete();
-  this->HCircleMapper->Delete();
-  this->HCircleActor->Delete();
-
-  this->XAxis->Delete();
-  this->YAxis->Delete();
-  this->HXAxis->Delete();
-  this->HYAxis->Delete();
-
-  this->CurrentTransform->Delete();
-  this->TotalTransform->Delete();
-
-  this->Transform->Delete();
-}
-
-//-------------------------------------------------------------------------
-void vtkSliceIntersectionRepresentation2D::GetTransform(vtkTransform *t)
-{
-  this->CurrentTransform->Identity();
-  this->CurrentTransform->Translate(this->Origin[0],this->Origin[1],this->Origin[2]);
-  if ( this->InteractionState != vtkSliceIntersectionRepresentation2D::MoveOrigin &&
-       this->InteractionState != vtkSliceIntersectionRepresentation2D::MoveOriginX &&
-       this->InteractionState != vtkSliceIntersectionRepresentation2D::MoveOriginY )
-  {
-    this->CurrentTransform->Translate(this->CurrentTranslation[0],
-                                      this->CurrentTranslation[1],
-                                      this->CurrentTranslation[2]);
-  }
-
-  this->ApplyShear();
-  this->CurrentTransform->RotateZ( vtkMath::DegreesFromRadians( this->CurrentAngle ) );
-  this->CurrentTransform->Scale(this->CurrentScale[0], this->CurrentScale[1], 1.0);
-  this->CurrentTransform->Translate(-this->Origin[0],-this->Origin[1],-this->Origin[2]);
-
-  t->DeepCopy(this->CurrentTransform);
-  t->Concatenate(this->TotalTransform);
+  this->SetSliceNode(NULL);
+  delete this->Internal;
 }
 
 //-------------------------------------------------------------------------
 void vtkSliceIntersectionRepresentation2D::PlaceWidget(double bounds[6])
 {
-  this->Origin[0] = (bounds[1] + bounds[0]) / 2.0;
-  this->Origin[1] = (bounds[3] + bounds[2]) / 2.0;
-  this->Origin[2] = (bounds[5] + bounds[4]) / 2.0;
-
-  this->TotalTransform->Identity();
+  // no action is needed, widget position is determined from slice positions
 }
 
 //-------------------------------------------------------------------------
 void vtkSliceIntersectionRepresentation2D::SetOrigin(double ox, double oy, double oz)
 {
-  if ( this->Origin[0] != ox || this->Origin[1] != oy ||
-       this->Origin[2] != oz )
-  {
-    this->Origin[0] = ox;
-    this->Origin[1] = oy;
-    this->Origin[2] = oz;
-
-    this->BuildRepresentation();
-    this->Modified();
-  }
+  this->Internal->SliceNode->JumpAllSlices(ox, oy, oz);
 }
 
 //-------------------------------------------------------------------------
 int vtkSliceIntersectionRepresentation2D::ComputeInteractionState(int X, int Y, int modify)
 {
-  double p[3], tol=static_cast<double>(this->Tolerance);
-  p[0] = static_cast<double>(X);
-  p[1] = static_cast<double>(Y);
-  p[2] = 0.0;
-  this->InteractionState = vtkSliceIntersectionRepresentation2D::Outside;
-
-  // Box---------------------------------------------------------------
-  double p1[3], p2[3], p3[3], p4[3];
-  this->BoxPoints->GetPoint(0,p1); //min corner
-  this->BoxPoints->GetPoint(2,p3); //max corner
-
-  int e0 = (p[1] >= (p1[1] - tol) && p[1] <= (p1[1] + tol));
-  int e1 = (p[0] >= (p3[0] - tol) && p[0] <= (p3[0] + tol));
-  int e2 = (p[1] >= (p3[1] - tol) && p[1] <= (p3[1] + tol));
-  int e3 = (p[0] >= (p1[0] - tol) && p[0] <= (p1[0] + tol));
-
-  // Points
-  if ( e0 && e1 )
-  {
-    this->InteractionState = vtkSliceIntersectionRepresentation2D::ScaleSE;
-  }
-  else if ( e1 && e2 )
-  {
-    this->InteractionState = vtkSliceIntersectionRepresentation2D::ScaleNE;
-  }
-  else if ( e2 && e3 )
-  {
-    this->InteractionState = vtkSliceIntersectionRepresentation2D::ScaleNW;
-  }
-  else if ( e3 && e0 )
-  {
-    this->InteractionState = vtkSliceIntersectionRepresentation2D::ScaleSW;
-  }
-
-  // Edges
-  else if ( e0 )
-  {
-    if ( ! modify )
-    {
-      this->InteractionState = vtkSliceIntersectionRepresentation2D::ScaleSEdge;
-    }
-    else
-    {
-      this->InteractionState = vtkSliceIntersectionRepresentation2D::ShearSEdge;
-    }
-  }
-  else if ( e1 )
-  {
-    if ( ! modify )
-    {
-      this->InteractionState = vtkSliceIntersectionRepresentation2D::ScaleEEdge;
-    }
-    else
-    {
-      this->InteractionState = vtkSliceIntersectionRepresentation2D::ShearEEdge;
-    }
-  }
-  else if ( e2 )
-  {
-    if ( ! modify )
-    {
-      this->InteractionState = vtkSliceIntersectionRepresentation2D::ScaleNEdge;
-    }
-    else
-    {
-      this->InteractionState = vtkSliceIntersectionRepresentation2D::ShearNEdge;
-    }
-  }
-  else if ( e3 )
-  {
-    if ( ! modify )
-    {
-      this->InteractionState = vtkSliceIntersectionRepresentation2D::ScaleWEdge;
-    }
-    else
-    {
-      this->InteractionState = vtkSliceIntersectionRepresentation2D::ShearWEdge;
-    }
-  }
-
-  // Return if necessary
-  if ( this->InteractionState != vtkSliceIntersectionRepresentation2D::Outside )
+  this->InteractionState = vtkSliceIntersectionRepresentation2D::StateOutside;
+  if (!this->Internal->SliceNode || !modify)
   {
     return this->InteractionState;
   }
+  double interactionPosition[4] = { static_cast<double>(X), static_cast<double>(Y), 0.0, 1.0 };
 
-  // Circle---------------------------------------------------------------
-  double radius = sqrt((p[0]-this->DisplayOrigin[0])*(p[0]-this->DisplayOrigin[0]) +
-                       (p[1]-this->DisplayOrigin[1])*(p[1]-this->DisplayOrigin[1]));
-  if ( radius >= (this->CurrentRadius - tol) &&
-       radius <= (this->CurrentRadius + tol) )
+  double pixelSize = this->Internal->SliceNode->GetXYToSlice()->GetElement(0, 0);
+
+
+  for (std::deque<SliceIntersectionDisplayPipeline*>::iterator sliceIntersectionIt = this->Internal->SliceIntersectionDisplayPipelines.begin();
+    sliceIntersectionIt != this->Internal->SliceIntersectionDisplayPipelines.end(); ++sliceIntersectionIt)
   {
-    this->InteractionState = vtkSliceIntersectionRepresentation2D::RotateState;
+    if (!(*sliceIntersectionIt)->SliceNode)
+    {
+      continue;
+    }
+    double parametricCoordinate = 0;
+    double distanceSquared = vtkLine::DistanceToLine(interactionPosition,
+      (*sliceIntersectionIt)->LineSource->GetPoint1(), (*sliceIntersectionIt)->LineSource->GetPoint2(), parametricCoordinate);
+
+    if (distanceSquared <= this->Tolerance*this->Tolerance)
+    {
+      this->InteractionState = vtkSliceIntersectionRepresentation2D::StateRotate;
+      break;
+    }
+  }
+  if (this->InteractionState == vtkSliceIntersectionRepresentation2D::StateOutside)
+  {
+    // not near any slice intersections
+
+    // TODO:
+    this->InteractionState = vtkSliceIntersectionRepresentation2D::StateJump;
+
     return this->InteractionState;
   }
 
-  // Translation Arrows----------------------------------------------------
-  this->XAxis->GetPositionCoordinate()->GetValue(p1);
-  this->XAxis->GetPosition2Coordinate()->GetValue(p2);
-  this->YAxis->GetPositionCoordinate()->GetValue(p3);
-  this->YAxis->GetPosition2Coordinate()->GetValue(p4);
+  double* sliceIntersectionPoint = this->GetSliceIntersectionPoint();
 
-  e0 = (p[0] >= (p1[0] - tol) && p[0] <= (p2[0] + tol));
-  e1 = (p[1] >= (p1[1] - tol) && p[1] <= (p1[1] + tol));
-  e2 = (p[1] >= (p3[1] - tol) && p[1] <= (p4[1] + tol));
-  e3 = (p[0] >= (p3[0] - tol) && p[0] <= (p3[0] + tol));
+  /*
+    vtkNew<vtkMatrix4x4> rasToXY;
+  vtkMatrix4x4::Invert(this->Internal->SliceNode->GetXYToRAS(), rasToXY);
+  double sliceIntersectionPoint[4] = { 0.0,0.0,0.0,1.0 };
+  rasToXY->MultiplyPoint(sliceIntersectionPoint_RAS, sliceIntersectionPoint);
+  */
 
-  if ( e0 && e1 && e2 && e3 )
+  double centerPickTolerance = this->Tolerance * 3.0;
+  if (vtkMath::Distance2BetweenPoints(interactionPosition, sliceIntersectionPoint) <= centerPickTolerance * centerPickTolerance)
   {
-    if ( ! modify )
-    {
-      this->InteractionState = vtkSliceIntersectionRepresentation2D::TranslateState;
-    }
-    else
-    {
-      this->InteractionState = vtkSliceIntersectionRepresentation2D::MoveOrigin;
-    }
-  }
-  else if ( e0 && e1 )
-  {
-    if ( ! modify )
-    {
-      this->InteractionState = vtkSliceIntersectionRepresentation2D::TranslateX;
-    }
-    else
-    {
-      this->InteractionState = vtkSliceIntersectionRepresentation2D::MoveOriginX;
-    }
-  }
-  else if ( e2 && e3 )
-  {
-    if ( ! modify )
-    {
-      this->InteractionState = vtkSliceIntersectionRepresentation2D::TranslateY;
-    }
-    else
-    {
-      this->InteractionState = vtkSliceIntersectionRepresentation2D::MoveOriginY;
-    }
+    this->InteractionState = vtkSliceIntersectionRepresentation2D::StateTranslate;
   }
 
   return this->InteractionState;
@@ -440,11 +388,26 @@ void vtkSliceIntersectionRepresentation2D::StartWidgetInteraction(double startEv
   this->StartEventPosition[0] = startEventPos[0];
   this->StartEventPosition[1] = startEventPos[1];
   this->StartEventPosition[2] = 0.0;
+
+  double* sliceIntersectionPoint = this->GetSliceIntersectionPoint();
+  this->PreviousRotationAngleRad = atan2(startEventPos[1] - sliceIntersectionPoint[1],
+    startEventPos[0] - sliceIntersectionPoint[0]);
+  this->PreviousEventPosition[0] = startEventPos[0];
+  this->PreviousEventPosition[1] = startEventPos[1];
+  this->StartRotationCenter[0] = sliceIntersectionPoint[0];
+  this->StartRotationCenter[1] = sliceIntersectionPoint[1];
+
+  double startRotationCenterXY[4] = { sliceIntersectionPoint[0] , sliceIntersectionPoint[1], 0.0, 1.0 };
+  this->Internal->SliceNode->GetXYToRAS()->MultiplyPoint(startRotationCenterXY, this->StartRotationCenter_RAS);
+
+
+  /*
   vtkInteractorObserver::ComputeDisplayToWorld(this->Renderer,
                                                startEventPos[0], startEventPos[1], 0.0,
                                                this->StartWorldPosition);
 
   this->StartAngle = VTK_FLOAT_MAX;
+  */
 
   this->WidgetInteraction(startEventPos);
 }
@@ -461,27 +424,14 @@ void vtkSliceIntersectionRepresentation2D::WidgetInteraction(double eventPos[2])
   // Dispatch to the correct method
   switch (this->InteractionState)
   {
-    case vtkSliceIntersectionRepresentation2D::ShearWEdge: case vtkSliceIntersectionRepresentation2D::ShearEEdge:
-    case vtkSliceIntersectionRepresentation2D::ShearNEdge: case vtkSliceIntersectionRepresentation2D::ShearSEdge:
-      this->Shear(eventPos);
-      break;
-
-    case vtkSliceIntersectionRepresentation2D::ScaleNE: case vtkSliceIntersectionRepresentation2D::ScaleSW:
-    case vtkSliceIntersectionRepresentation2D::ScaleNW: case vtkSliceIntersectionRepresentation2D::ScaleSE:
-    case vtkSliceIntersectionRepresentation2D::ScaleNEdge: case vtkSliceIntersectionRepresentation2D::ScaleSEdge:
-    case vtkSliceIntersectionRepresentation2D::ScaleWEdge: case vtkSliceIntersectionRepresentation2D::ScaleEEdge:
-      this->Scale(eventPos);
-      break;
-
-    case vtkSliceIntersectionRepresentation2D::RotateState:
+    case vtkSliceIntersectionRepresentation2D::StateRotate:
       this->Rotate(eventPos);
       break;
-
-    case vtkSliceIntersectionRepresentation2D::TranslateX: case vtkSliceIntersectionRepresentation2D::TranslateY:
-    case vtkSliceIntersectionRepresentation2D::TranslateState:
-    case vtkSliceIntersectionRepresentation2D::MoveOriginX: case vtkSliceIntersectionRepresentation2D::MoveOriginY:
-    case vtkSliceIntersectionRepresentation2D::MoveOrigin:
+    case vtkSliceIntersectionRepresentation2D::StateTranslate:
       this->Translate(eventPos);
+      break;
+    case vtkSliceIntersectionRepresentation2D::StateJump:
+      this->Jump(eventPos);
       break;
   }
 
@@ -495,6 +445,7 @@ void vtkSliceIntersectionRepresentation2D::WidgetInteraction(double eventPos[2])
 //----------------------------------------------------------------------
 void vtkSliceIntersectionRepresentation2D::EndWidgetInteraction(double vtkNotUsed(eventPos) [2])
 {
+  /*
   // Have to play games here because of the "pipelined" nature of the
   // transformations.
   this->GetTransform(this->TempTransform);
@@ -517,368 +468,75 @@ void vtkSliceIntersectionRepresentation2D::EndWidgetInteraction(double vtkNotUse
 
   this->CurrentShear[0] = 0.0;
   this->CurrentShear[1] = 0.0;
+  */
 }
 
 //----------------------------------------------------------------------
-// Translate everything
+void vtkSliceIntersectionRepresentation2D::Jump(double eventPos[2])
+{
+  double eventPos_RAS[4] = { eventPos[0], eventPos[1], 0, 1 };
+  vtkMatrix4x4* xyToRas = this->Internal->SliceNode->GetXYToRAS();
+  xyToRas->MultiplyPoint(eventPos_RAS, eventPos_RAS);
+  this->Internal->SliceNode->JumpAllSlices(eventPos_RAS[0], eventPos_RAS[1], eventPos_RAS[2]);
+}
+
+//----------------------------------------------------------------------
 void vtkSliceIntersectionRepresentation2D::Translate(double eventPos[2])
 {
-  double x1[3], x2[3], y1[3], y2[3], dpos[3];
-  dpos[0] = dpos[1] = dpos[2] = 0.0;
-
-  this->XAxis->GetPositionCoordinate()->GetValue(x1);
-  this->XAxis->GetPosition2Coordinate()->GetValue(x2);
-  this->YAxis->GetPositionCoordinate()->GetValue(y1);
-  this->YAxis->GetPosition2Coordinate()->GetValue(y2);
-
-  switch (this->InteractionState)
-  {
-    case vtkSliceIntersectionRepresentation2D::TranslateX:
-    case vtkSliceIntersectionRepresentation2D::MoveOriginX:
-      dpos[0] = eventPos[0] - this->StartEventPosition[0];
-      break;
-
-    case vtkSliceIntersectionRepresentation2D::TranslateY:
-    case vtkSliceIntersectionRepresentation2D::MoveOriginY:
-      dpos[1] = eventPos[1] - this->StartEventPosition[1];
-      break;
-
-    case vtkSliceIntersectionRepresentation2D::TranslateState:
-    case vtkSliceIntersectionRepresentation2D::MoveOrigin:
-      dpos[0] = eventPos[0] - this->StartEventPosition[0];
-      dpos[1] = eventPos[1] - this->StartEventPosition[1];
-      break;
-  }
-
-  x1[0] += dpos[0]; x2[0] += dpos[0];
-  y1[0] += dpos[0]; y2[0] += dpos[0];
-  x1[1] += dpos[1]; x2[1] += dpos[1];
-  y1[1] += dpos[1]; y2[1] += dpos[1];
-
-  this->HXAxis->GetPositionCoordinate()->SetValue(x1);
-  this->HXAxis->GetPosition2Coordinate()->SetValue(x2);
-  this->HYAxis->GetPositionCoordinate()->SetValue(y1);
-  this->HYAxis->GetPosition2Coordinate()->SetValue(y2);
-
-  // Update the transform
-  double wxyz[4];
-  vtkInteractorObserver::ComputeDisplayToWorld(this->Renderer,
-                                               this->StartEventPosition[0]+dpos[0],
-                                               this->StartEventPosition[1]+dpos[1], 0.0,
-                                               wxyz);
-
-  this->CurrentTranslation[0] = wxyz[0]-this->StartWorldPosition[0];
-  this->CurrentTranslation[1] = wxyz[1]-this->StartWorldPosition[1];
-  this->CurrentTranslation[2] = wxyz[2]-this->StartWorldPosition[2];
-
-  // Draw the text if necessary
-  if ( this->DisplayText )
-  {
-    char str[256];
-    snprintf(str,sizeof(str),"(%0.2g, %0.2g)", this->CurrentTranslation[0], this->CurrentTranslation[1]);
-    this->UpdateText(str,eventPos);
-  }
-}
-
-//----------------------------------------------------------------------
-void vtkSliceIntersectionRepresentation2D::Scale(double eventPos[2])
-{
-  // Determine the relative motion
-  double d[3];
-  d[0] = eventPos[0] - this->StartEventPosition[0];
-  d[1] = eventPos[1] - this->StartEventPosition[1];
-
-  double x0[3], x1[3], x2[3], x3[3];
-  double p0[3], p1[3], p2[3], p3[3];
-  this->BoxPoints->GetPoint(0,x0);
-  this->BoxPoints->GetPoint(1,x1);
-  this->BoxPoints->GetPoint(2,x2);
-  this->BoxPoints->GetPoint(3,x3);
-
-  double xChange=0.0, yChange=0.0;
-  switch (this->InteractionState)
-  {
-    case vtkSliceIntersectionRepresentation2D::ScaleEEdge:
-      xChange = 1.0;
-      break;
-
-    case vtkSliceIntersectionRepresentation2D::ScaleWEdge:
-      xChange = -1.0;
-      break;
-
-    case vtkSliceIntersectionRepresentation2D::ScaleNEdge:
-      yChange = 1.0;
-      break;
-
-    case vtkSliceIntersectionRepresentation2D::ScaleSEdge:
-      yChange = -1.0;
-      break;
-
-    case vtkSliceIntersectionRepresentation2D::ScaleNE:
-      xChange = 1.0;
-      yChange = 1.0;
-      break;
-
-    case vtkSliceIntersectionRepresentation2D::ScaleSW:
-      xChange = -1.0;
-      yChange = -1.0;
-      break;
-
-    case vtkSliceIntersectionRepresentation2D::ScaleNW:
-      xChange = -1.0;
-      yChange =  1.0;
-      break;
-
-    case vtkSliceIntersectionRepresentation2D::ScaleSE:
-      xChange =  1.0;
-      yChange = -1.0;
-      break;
-  }
-
-  p0[0] = x0[0] - xChange*d[0];
-  p1[0] = x1[0] + xChange*d[0];
-  p2[0] = x2[0] + xChange*d[0];
-  p3[0] = x3[0] - xChange*d[0];
-
-  p0[1] = x0[1] - yChange*d[1];
-  p1[1] = x1[1] - yChange*d[1];
-  p2[1] = x2[1] + yChange*d[1];
-  p3[1] = x3[1] + yChange*d[1];
-
-  p0[2] = x0[2];
-  p1[2] = x1[2];
-  p2[2] = x2[2];
-  p3[2] = x3[2];
-
-  this->HBoxPoints->SetPoint(0,p0);
-  this->HBoxPoints->SetPoint(1,p1);
-  this->HBoxPoints->SetPoint(2,p2);
-  this->HBoxPoints->SetPoint(3,p3);
-  this->HBoxPoints->Modified();
-
-  this->CurrentScale[0] = (p1[0]-p0[0]) / (x1[0]-x0[0]);
-  this->CurrentScale[1] = (p2[1]-p1[1]) / (x2[1]-x1[1]);
-
-  if ( this->DisplayText )
-  {
-    char str[256];
-    snprintf(str,sizeof(str),"(%0.2g, %0.2g)", this->CurrentScale[0], this->CurrentScale[1]);
-    this->UpdateText(str,eventPos);
-  }
+  double eventPos_RAS[4] = { eventPos[0], eventPos[1], 0, 1 };
+  vtkMatrix4x4* xyToRas = this->Internal->SliceNode->GetXYToRAS();
+  xyToRas->MultiplyPoint(eventPos_RAS, eventPos_RAS);
+  this->Internal->SliceNode->JumpAllSlices(eventPos_RAS[0], eventPos_RAS[1], eventPos_RAS[2]);
 }
 
 //----------------------------------------------------------------------
 void vtkSliceIntersectionRepresentation2D::Rotate(double eventPos[2])
 {
-  double deltaAngle;
-  // Compute the initial selection angle, and then the change in angle between
-  // the starting point and subsequent points. The angle is constrained so that
-  // it is in the range (-Pi < deltaAngle <= Pi).
-  if ( this->StartAngle >= VTK_FLOAT_MAX )
+  double sliceRotationAngleRad = atan2(eventPos[1] - this->StartRotationCenter[1],
+    eventPos[0] - this->StartRotationCenter[0]);
+
+  vtkMatrix4x4* sliceToRAS = this->Internal->SliceNode->GetSliceToRAS();
+  vtkNew<vtkTransform> rotatedSliceToSliceTransform;
+
+  rotatedSliceToSliceTransform->Translate(this->StartRotationCenter_RAS[0], this->StartRotationCenter_RAS[1], this->StartRotationCenter_RAS[2]);
+  double rotationDirection = vtkMath::Determinant3x3(sliceToRAS->Element[0], sliceToRAS->Element[1], sliceToRAS->Element[2]) >= 0 ? 1.0 : -1.0;
+  rotatedSliceToSliceTransform->RotateWXYZ(rotationDirection*vtkMath::DegreesFromRadians(sliceRotationAngleRad- this->PreviousRotationAngleRad),
+    sliceToRAS->GetElement(0, 2), sliceToRAS->GetElement(1, 2), sliceToRAS->GetElement(2, 2));
+  rotatedSliceToSliceTransform->Translate(-this->StartRotationCenter_RAS[0], -this->StartRotationCenter_RAS[1], -this->StartRotationCenter_RAS[2]);
+
+  this->PreviousRotationAngleRad = sliceRotationAngleRad;
+  this->PreviousEventPosition[0] = eventPos[0];
+  this->PreviousEventPosition[1] = eventPos[1];
+
+  std::deque<int> wasModified;
+  for (std::deque<SliceIntersectionDisplayPipeline*>::iterator sliceIntersectionIt = this->Internal->SliceIntersectionDisplayPipelines.begin();
+    sliceIntersectionIt != this->Internal->SliceIntersectionDisplayPipelines.end(); ++sliceIntersectionIt)
   {
-    double delX = this->StartEventPosition[0] - this->DisplayOrigin[0];
-    double delY = this->StartEventPosition[1] - this->DisplayOrigin[1];
-    this->StartAngle = atan2( delY, delX );
-    deltaAngle = 0.0;
-  }
-  else
-  {
-    double delEX = eventPos[0] - this->DisplayOrigin[0];
-    double delEY = eventPos[1] - this->DisplayOrigin[1];
-    double angle2 = atan2(delEY,delEX);
-    // Compute difference in angle
-    deltaAngle = angle2 - this->StartAngle;
-    if ( fabs(deltaAngle) > vtkMath::Pi() ) //angle always less than Pi
+    if (!(*sliceIntersectionIt)->GetVisibility())
     {
-      if ( deltaAngle > 0 )
-      {
-        deltaAngle = -2.0*vtkMath::Pi() + deltaAngle;
-      }
-      else
-      {
-        deltaAngle =  2.0*vtkMath::Pi() + deltaAngle;
-      }
+      continue;
     }
+    wasModified.push_back((*sliceIntersectionIt)->SliceNode->StartModify());
+    vtkMatrix4x4::Multiply4x4(rotatedSliceToSliceTransform->GetMatrix(), (*sliceIntersectionIt)->SliceNode->GetSliceToRAS(),
+      (*sliceIntersectionIt)->SliceNode->GetSliceToRAS());
+    (*sliceIntersectionIt)->SliceNode->UpdateMatrices();
   }
-
-  // Update the angle
-  this->CurrentAngle = deltaAngle;
-
-  // Create the arc
-  vtkIdType pid;
-  this->HCirclePoints->Reset();
-  this->HCircleCellArray->Reset();
-  this->HCircleCellArray->InsertNextCell(0);
-  double p[3]; p[2] = 0.0;
-  double theta, delTheta = 2.0 * vtkMath::Pi() / VTK_CIRCLE_RESOLUTION;
-  int numDivs = static_cast<int>(fabs(deltaAngle)/delTheta) + 1;
-  delTheta = deltaAngle / numDivs;
-  for ( int i=0;  i <= numDivs; i++ )
+  for (std::deque<SliceIntersectionDisplayPipeline*>::iterator sliceIntersectionIt = this->Internal->SliceIntersectionDisplayPipelines.begin();
+    sliceIntersectionIt != this->Internal->SliceIntersectionDisplayPipelines.end(); ++sliceIntersectionIt)
   {
-    theta = this->StartAngle + i*delTheta;
-    p[0] = this->DisplayOrigin[0] + this->CurrentRadius * cos(theta);
-    p[1] = this->DisplayOrigin[1] + this->CurrentRadius * sin(theta);
-    pid = this->HCirclePoints->InsertNextPoint(p);
-    this->HCircleCellArray->InsertCellPoint(pid);
-  }
-  pid = this->HCirclePoints->InsertNextPoint(this->DisplayOrigin);
-  this->HCircleCellArray->InsertCellPoint(pid);
-  this->HCircleCellArray->InsertCellPoint(0);
-  this->HCircleCellArray->UpdateCellCount(this->HCirclePoints->GetNumberOfPoints()+1);
-  this->HCirclePoints->Modified();
-
-  if ( this->DisplayText )
-  {
-    char str[256];
-    double angle = vtkMath::DegreesFromRadians( deltaAngle );
-    snprintf(str,sizeof(str),"(%1.1f)", angle);
-    this->UpdateText(str,eventPos);
-  }
-}
-
-//----------------------------------------------------------------------
-// Fiddle with matrix to apply shear
-void vtkSliceIntersectionRepresentation2D::ApplyShear()
-{
-}
-
-
-//----------------------------------------------------------------------
-void vtkSliceIntersectionRepresentation2D::Shear(double eventPos[2])
-{
-  // Determine the relative motion
-  double d[3];
-  d[0] = eventPos[0] - this->StartEventPosition[0];
-  d[1] = eventPos[1] - this->StartEventPosition[1];
-
-  double x0[3], x1[3], x2[3], x3[3];
-  double p0[3], p1[3], p2[3], p3[3];
-  this->BoxPoints->GetPoint(0,x0);
-  this->BoxPoints->GetPoint(1,x1);
-  this->BoxPoints->GetPoint(2,x2);
-  this->BoxPoints->GetPoint(3,x3);
-
-  double xChange=0.0, yChange=0.0;
-  switch (this->InteractionState)
-  {
-    case vtkSliceIntersectionRepresentation2D::ShearSEdge:
-      xChange = 1.0;
-      break;
-
-    case vtkSliceIntersectionRepresentation2D::ShearNEdge:
-      xChange = -1.0;
-      break;
-
-    case vtkSliceIntersectionRepresentation2D::ShearEEdge:
-      yChange = 1.0;
-      break;
-
-    case vtkSliceIntersectionRepresentation2D::ShearWEdge:
-      yChange = -1.0;
-      break;
-  }
-
-  p0[0] = x0[0] + xChange*d[0];
-  p1[0] = x1[0] + xChange*d[0];
-  p2[0] = x2[0] - xChange*d[0];
-  p3[0] = x3[0] - xChange*d[0];
-
-  p0[1] = x0[1] - yChange*d[1];
-  p1[1] = x1[1] + yChange*d[1];
-  p2[1] = x2[1] + yChange*d[1];
-  p3[1] = x3[1] - yChange*d[1];
-
-  p0[2] = x0[2];
-  p1[2] = x1[2];
-  p2[2] = x2[2];
-  p3[2] = x3[2];
-
-  this->HBoxPoints->SetPoint(0,p0);
-  this->HBoxPoints->SetPoint(1,p1);
-  this->HBoxPoints->SetPoint(2,p2);
-  this->HBoxPoints->SetPoint(3,p3);
-  this->HBoxPoints->Modified();
-
-  // Update the current shear
-  double sx = (x2[1] - x1[1]) / 2.0;
-  double sy = ((p0[0]-x0[0]) + (p0[1]-x0[1]));
-  double angle = vtkMath::DegreesFromRadians( atan2(sy,sx) );
-  if ( this->InteractionState == vtkSliceIntersectionRepresentation2D::ShearNEdge ||
-       this->InteractionState == vtkSliceIntersectionRepresentation2D::ShearSEdge )
-  {
-    this->CurrentShear[0] = angle;
-  }
-  else
-  {
-    this->CurrentShear[1] = angle;
-  }
-
-  // Display text if requested
-  if ( this->DisplayText )
-  {
-    char str[256];
-    snprintf(str,sizeof(str),"(%0.2g)", angle);
-    this->UpdateText(str,eventPos);
-  }
-}
-
-//----------------------------------------------------------------------
-void vtkSliceIntersectionRepresentation2D::Highlight(int highlight)
-{
-  if ( highlight ) //enable appropriate highlight actor
-  {
-    // Make the text visible
-    if ( this->DisplayText )
+    if (!(*sliceIntersectionIt)->GetVisibility())
     {
-      this->TextActor->VisibilityOn();
+      continue;
     }
-
-    // The existing widget is set translucent
-    this->Opacity = this->Property->GetOpacity();
-    this->Property->SetOpacity(0.33);
-    this->SelectedOpacity = this->SelectedProperty->GetOpacity();
-    this->SelectedProperty->SetOpacity(1.0);
-
-    switch (this->InteractionState)
-    {
-      case vtkSliceIntersectionRepresentation2D::ShearWEdge: case vtkSliceIntersectionRepresentation2D::ShearEEdge:
-      case vtkSliceIntersectionRepresentation2D::ShearNEdge: case vtkSliceIntersectionRepresentation2D::ShearSEdge:
-      case vtkSliceIntersectionRepresentation2D::ScaleNE: case vtkSliceIntersectionRepresentation2D::ScaleSW:
-      case vtkSliceIntersectionRepresentation2D::ScaleNW: case vtkSliceIntersectionRepresentation2D::ScaleSE:
-      case vtkSliceIntersectionRepresentation2D::ScaleNEdge: case vtkSliceIntersectionRepresentation2D::ScaleSEdge:
-      case vtkSliceIntersectionRepresentation2D::ScaleWEdge: case vtkSliceIntersectionRepresentation2D::ScaleEEdge:
-        this->HBoxActor->VisibilityOn();
-        break;
-
-      case vtkSliceIntersectionRepresentation2D::RotateState:
-        this->HCircleActor->VisibilityOn();
-        break;
-
-      case vtkSliceIntersectionRepresentation2D::TranslateX: case vtkSliceIntersectionRepresentation2D::TranslateY:
-      case vtkSliceIntersectionRepresentation2D::TranslateState:
-      case vtkSliceIntersectionRepresentation2D::MoveOriginX: case vtkSliceIntersectionRepresentation2D::MoveOriginY:
-      case vtkSliceIntersectionRepresentation2D::MoveOrigin:
-        this->HXAxis->VisibilityOn();
-        this->HYAxis->VisibilityOn();
-        break;
-    }
-  }
-
-  else // turn off highlight actor
-  {
-    this->TextActor->VisibilityOff();
-    this->Property->SetOpacity(this->Opacity);
-    this->SelectedProperty->SetOpacity(this->SelectedOpacity);
-    this->HBoxActor->VisibilityOff();
-    this->HCircleActor->VisibilityOff();
-    this->HXAxis->VisibilityOff();
-    this->HYAxis->VisibilityOff();
+    (*sliceIntersectionIt)->SliceNode->EndModify(wasModified.front());
+    wasModified.pop_front();
   }
 }
 
 //----------------------------------------------------------------------
 void vtkSliceIntersectionRepresentation2D::CreateDefaultProperties()
 {
+/*
   this->Property = vtkProperty2D::New();
   this->Property->SetColor(0.0,1.0,0.0);
   this->Property->SetLineWidth(0.5);
@@ -886,27 +544,13 @@ void vtkSliceIntersectionRepresentation2D::CreateDefaultProperties()
   this->SelectedProperty = vtkProperty2D::New();
   this->SelectedProperty->SetColor(1.0,0.0,0.0);
   this->SelectedProperty->SetLineWidth(1.0);
-
-  this->TextProperty = vtkTextProperty::New();
-  this->TextProperty->SetFontSize(12);
-  this->TextProperty->SetColor(1.0,0.0,0.0);
-  this->TextProperty->SetBold(1);
-  this->TextProperty->SetFontFamilyToArial();
-  this->TextProperty->SetJustificationToLeft();
-  this->TextProperty->SetVerticalJustificationToBottom();
+  */
 }
-
-//----------------------------------------------------------------------
-void vtkSliceIntersectionRepresentation2D::UpdateText(const char *text, double eventPos[2])
-{
-  this->TextMapper->SetInput(text);
-  this->TextActor->SetPosition(eventPos[0]+7, eventPos[1]+7);
-}
-
 
 //----------------------------------------------------------------------
 void vtkSliceIntersectionRepresentation2D::BuildRepresentation()
 {
+  /*
   if ( this->GetMTime() > this->BuildTime ||
        (this->Renderer && this->Renderer->GetVTKWindow() &&
         this->Renderer->GetVTKWindow()->GetMTime() > this->BuildTime) )
@@ -970,6 +614,7 @@ void vtkSliceIntersectionRepresentation2D::BuildRepresentation()
 
     this->BuildTime.Modified();
   }
+  */
 }
 
 //----------------------------------------------------------------------
@@ -977,21 +622,12 @@ void vtkSliceIntersectionRepresentation2D::ShallowCopy(vtkProp *prop)
 {
   vtkSliceIntersectionRepresentation2D *rep =
     vtkSliceIntersectionRepresentation2D::SafeDownCast(prop);
-  if ( rep )
+  if (rep)
   {
     this->SetTolerance(rep->GetTolerance());
-
     this->SetProperty(rep->GetProperty());
     this->SetSelectedProperty(rep->GetSelectedProperty());
-    this->SetTextProperty(rep->GetTextProperty());
-    this->BoxActor->SetProperty(this->Property);
-    this->HBoxActor->SetProperty(this->SelectedProperty);
-    this->CircleActor->SetProperty(this->Property);
-    this->HCircleActor->SetProperty(this->SelectedProperty);
-    this->XAxis->SetProperty(this->Property);
-    this->YAxis->SetProperty(this->Property);
-    this->HXAxis->SetProperty(this->SelectedProperty);
-    this->HYAxis->SetProperty(this->SelectedProperty);
+    this->Internal->SliceIntersectionDisplayPipelines = rep->Internal->SliceIntersectionDisplayPipelines;
   }
   this->Superclass::ShallowCopy(prop);
 }
@@ -999,63 +635,40 @@ void vtkSliceIntersectionRepresentation2D::ShallowCopy(vtkProp *prop)
 //----------------------------------------------------------------------
 void vtkSliceIntersectionRepresentation2D::GetActors2D(vtkPropCollection *pc)
 {
-  this->BoxActor->GetActors2D(pc);
-  this->HBoxActor->GetActors2D(pc);
-  this->CircleActor->GetActors2D(pc);
-  this->HCircleActor->GetActors2D(pc);
-  this->XAxis->GetActors2D(pc);
-  this->YAxis->GetActors2D(pc);
-  this->HXAxis->GetActors2D(pc);
-  this->HYAxis->GetActors2D(pc);
+  for (std::deque<SliceIntersectionDisplayPipeline*>::iterator sliceIntersectionIt = this->Internal->SliceIntersectionDisplayPipelines.begin();
+    sliceIntersectionIt != this->Internal->SliceIntersectionDisplayPipelines.end(); ++sliceIntersectionIt)
+  {
+    (*sliceIntersectionIt)->GetActors2D(pc);
+  }
+  pc->AddItem(this->Internal->CenterOfRotationActor);
 }
 
 //----------------------------------------------------------------------
 void vtkSliceIntersectionRepresentation2D::ReleaseGraphicsResources(vtkWindow *win)
 {
-  this->TextActor->ReleaseGraphicsResources(win);
-  this->BoxActor->ReleaseGraphicsResources(win);
-  this->HBoxActor->ReleaseGraphicsResources(win);
-  this->CircleActor->ReleaseGraphicsResources(win);
-  this->HCircleActor->ReleaseGraphicsResources(win);
-  this->XAxis->ReleaseGraphicsResources(win);
-  this->YAxis->ReleaseGraphicsResources(win);
-  this->HXAxis->ReleaseGraphicsResources(win);
-  this->HYAxis->ReleaseGraphicsResources(win);
+  for (std::deque<SliceIntersectionDisplayPipeline*>::iterator sliceIntersectionIt = this->Internal->SliceIntersectionDisplayPipelines.begin();
+    sliceIntersectionIt != this->Internal->SliceIntersectionDisplayPipelines.end(); ++sliceIntersectionIt)
+  {
+    (*sliceIntersectionIt)->ReleaseGraphicsResources(win);
+  }
+
+  this->Internal->CenterOfRotationActor->ReleaseGraphicsResources(win);
 }
 
 //----------------------------------------------------------------------
 int vtkSliceIntersectionRepresentation2D::RenderOverlay(vtkViewport *viewport)
 {
-  this->BuildRepresentation();
+  //this->BuildRepresentation();
 
   int count = 0;
-  if ( this->TextActor->GetVisibility() )
+
+  for (std::deque<SliceIntersectionDisplayPipeline*>::iterator sliceIntersectionIt = this->Internal->SliceIntersectionDisplayPipelines.begin();
+    sliceIntersectionIt != this->Internal->SliceIntersectionDisplayPipelines.end(); ++sliceIntersectionIt)
   {
-    count += this->TextActor->RenderOverlay(viewport);
+    count += (*sliceIntersectionIt)->RenderOverlay(viewport);
   }
 
-  count += this->BoxActor->RenderOverlay(viewport);
-  if ( this->HBoxActor->GetVisibility() )
-  {
-    count += this->HBoxActor->RenderOverlay(viewport);
-  }
-
-  count += this->CircleActor->RenderOverlay(viewport);
-  if ( this->HCircleActor->GetVisibility() )
-  {
-    count += this->HCircleActor->RenderOverlay(viewport);
-  }
-
-  count += this->XAxis->RenderOverlay(viewport);
-  count += this->YAxis->RenderOverlay(viewport);
-  if ( this->HXAxis->GetVisibility() )
-  {
-    count += this->HXAxis->RenderOverlay(viewport);
-  }
-  if ( this->HYAxis->GetVisibility() )
-  {
-    count += this->HYAxis->RenderOverlay(viewport);
-  }
+  count += this->Internal->CenterOfRotationActor->RenderOverlay(viewport);
 
   return count;
 }
@@ -1068,24 +681,6 @@ void vtkSliceIntersectionRepresentation2D::PrintSelf(ostream& os, vtkIndent inde
   this->Superclass::PrintSelf(os,indent);
 
   os << indent << "Tolerance: " << this->Tolerance << "\n";
-
-  os << indent << "Display Text: " << (this->DisplayText ? "On\n" : "Off\n");
-
-  os << indent << "Origin: (" << this->Origin[0] << ","
-     << this->Origin[1] << "," << this->Origin[2] << ")\n";
-  os << indent << "Box Width: " << this->BoxWidth << "\n";
-  os << indent << "Circle Width: " << this->CircleWidth << "\n";
-  os << indent << "Axes Width: " << this->AxesWidth << "\n";
-
-  if ( this->TextProperty )
-  {
-    os << indent << "Text Property:\n";
-    this->TextProperty->PrintSelf(os,indent.GetNextIndent());
-  }
-  else
-  {
-    os << indent << "Property: (none)\n";
-  }
 
   if ( this->Property )
   {
@@ -1107,14 +702,262 @@ void vtkSliceIntersectionRepresentation2D::PrintSelf(ostream& os, vtkIndent inde
     os << indent << "Selected Property: (none)\n";
   }
 
-  if ( this->TextProperty )
+}
+
+
+//----------------------------------------------------------------------
+void vtkSliceIntersectionRepresentation2D::SliceNodeModifiedCallback(
+  vtkObject* caller, unsigned long eid, void* clientData, void* callData)
+{
+  vtkMRMLSliceNode* sliceNode = vtkMRMLSliceNode::SafeDownCast(caller);
+  vtkSliceIntersectionRepresentation2D* self = vtkSliceIntersectionRepresentation2D::SafeDownCast((vtkObject*)clientData);
+  self->SliceNodeModified(sliceNode);
+}
+
+//----------------------------------------------------------------------
+void vtkSliceIntersectionRepresentation2D::SliceNodeModified(vtkMRMLSliceNode* sliceNode)
+{
+  if (!sliceNode)
   {
-    os << indent << "Text Property:\n";
-    this->TextProperty->PrintSelf(os,indent.GetNextIndent());
+    return;
+  }
+  if (sliceNode == this->Internal->SliceNode)
+  {
+    // update all slice intersection
+    for (std::deque<SliceIntersectionDisplayPipeline*>::iterator sliceIntersectionIt = this->Internal->SliceIntersectionDisplayPipelines.begin();
+      sliceIntersectionIt != this->Internal->SliceIntersectionDisplayPipelines.end(); ++sliceIntersectionIt)
+    {
+      this->UpdateSliceIntersectionDisplay(*sliceIntersectionIt);
+    }
   }
   else
   {
-    os << indent << "Text Property: (none)\n";
+    // update one slice intersection
+    this->UpdateSliceIntersectionDisplay(this->GetDisplayPipelineFromSliceNode(sliceNode));
   }
 
+  if (this->Internal->SliceNode)
+  {
+    // Update centerline position
+    double* sliceIntersectionPoint = this->GetSliceIntersectionPoint();
+    //this->Internal->CenterOfRotationSource->SetCenter(sliceIntersectionPoint[0], sliceIntersectionPoint[1], 0);
+    this->Internal->CenterOfRotationSource->SetPoint1(sliceIntersectionPoint[0], sliceIntersectionPoint[1], 0);
+    this->Internal->CenterOfRotationSource->SetPoint2(sliceIntersectionPoint[0] - 50, sliceIntersectionPoint[1] - 50, 0);
+    this->Internal->CenterOfRotationActor->SetVisibility(true);
+  }
+  else
+  {
+    this->Internal->CenterOfRotationActor->SetVisibility(false);
+  }
+}
+
+//----------------------------------------------------------------------
+SliceIntersectionDisplayPipeline* vtkSliceIntersectionRepresentation2D::GetDisplayPipelineFromSliceNode(vtkMRMLSliceNode* sliceNode)
+{
+  for (std::deque<SliceIntersectionDisplayPipeline*>::iterator sliceIntersectionIt = this->Internal->SliceIntersectionDisplayPipelines.begin();
+    sliceIntersectionIt != this->Internal->SliceIntersectionDisplayPipelines.end(); ++sliceIntersectionIt)
+  {
+    if (sliceNode == (*sliceIntersectionIt)->SliceNode)
+    {
+      // found it
+      return *sliceIntersectionIt;
+    }
+  }
+  return NULL;
+}
+
+//----------------------------------------------------------------------
+void vtkSliceIntersectionRepresentation2D::UpdateSliceIntersectionDisplay(SliceIntersectionDisplayPipeline *pipeline)
+{
+  if (!pipeline || !this->Internal->SliceNode)
+    {
+    return;
+    }
+  if (!pipeline->SliceNode || !this->GetVisibility()
+    || this->Internal->SliceNode->GetViewGroup() != pipeline->SliceNode->GetViewGroup())
+  {
+    pipeline->SetVisibility(false);
+    return;
+  }
+
+
+
+  pipeline->Property->SetColor(pipeline->SliceNode->GetLayoutColor());
+
+  vtkMatrix4x4* intersectingXYToRAS = pipeline->SliceNode->GetXYToRAS();
+  vtkMatrix4x4* xyToRAS = this->Internal->SliceNode->GetXYToRAS();
+
+  //double slicePlaneAngleDifference = vtkMath::AngleBetweenVectors()
+
+  vtkNew<vtkMatrix4x4> rasToXY;
+  vtkMatrix4x4::Invert(xyToRAS, rasToXY);
+  vtkNew<vtkMatrix4x4> intersectingXYToXY;
+  vtkMatrix4x4::Multiply4x4(rasToXY, intersectingXYToRAS, intersectingXYToXY);
+
+  double slicePlaneNormal[3] = { 0.,0.,1. };
+  double slicePlaneOrigin[3] = { 0., 0., 0. };
+
+  int* intersectingSliceSizeDimensions = pipeline->SliceNode->GetDimensions();
+  double intersectingPlaneOrigin[4] = { 0, 0, 0, 1 };
+  double intersectingPlaneX[4] = { double(intersectingSliceSizeDimensions[0]), 0., 0., 1. };
+  double intersectingPlaneY[4] = { 0., double(intersectingSliceSizeDimensions[1]), 0., 1. };
+  intersectingXYToXY->MultiplyPoint(intersectingPlaneOrigin, intersectingPlaneOrigin);
+  intersectingXYToXY->MultiplyPoint(intersectingPlaneX, intersectingPlaneX);
+  intersectingXYToXY->MultiplyPoint(intersectingPlaneY, intersectingPlaneY);
+
+  double intersectionPoint1[4] = { 0.0, 0.0, 0.0, 1.0 };
+  double intersectionPoint2[4] = { 0.0, 0.0, 0.0, 1.0 };
+
+  int intersectionFound = vtkSliceIntersectionRepresentation2D::vtkInternal::IntersectWithFinitePlane(slicePlaneNormal, slicePlaneOrigin,
+    intersectingPlaneOrigin, intersectingPlaneX, intersectingPlaneY,
+    intersectionPoint1, intersectionPoint2);
+  if (!intersectionFound)
+  {
+    pipeline->SetVisibility(false);
+    return;
+  }
+
+  pipeline->LineSource->SetPoint1(intersectionPoint1);
+  pipeline->LineSource->SetPoint2(intersectionPoint2);
+
+  pipeline->SetVisibility(true);
+}
+
+//----------------------------------------------------------------------
+void vtkSliceIntersectionRepresentation2D::SetSliceNode(vtkMRMLSliceNode* sliceNode)
+{
+  if (sliceNode == this->Internal->SliceNode)
+  {
+    // no change
+    return;
+  }
+  if (this->Internal->SliceNode)
+  {
+    this->Internal->SliceNode->RemoveObserver(this->Internal->SliceNodeModifiedCommand);
+  }
+  if (sliceNode)
+  {
+    sliceNode->AddObserver(vtkCommand::ModifiedEvent, this->Internal->SliceNodeModifiedCommand.GetPointer());
+  }
+  this->Internal->SliceNode = sliceNode;
+}
+
+//----------------------------------------------------------------------
+vtkMRMLSliceNode* vtkSliceIntersectionRepresentation2D::GetSliceNode()
+{
+  return this->Internal->SliceNode;
+}
+
+//----------------------------------------------------------------------
+void vtkSliceIntersectionRepresentation2D::AddIntersectingSliceNode(vtkMRMLSliceNode* sliceNode)
+{
+  if (!sliceNode)
+  {
+    return;
+  }
+  if (sliceNode == this->Internal->SliceNode)
+  {
+    return;
+  }
+  if (this->GetDisplayPipelineFromSliceNode(sliceNode))
+  {
+    // slice node already added
+    return;
+  }
+  SliceIntersectionDisplayPipeline* pipeline = new SliceIntersectionDisplayPipeline;
+  pipeline->SetAndObserveSliceNode(sliceNode, this->Internal->SliceNodeModifiedCommand);
+  pipeline->AddActors(this->Renderer);
+  this->Internal->SliceIntersectionDisplayPipelines.push_back(pipeline);
+  this->UpdateSliceIntersectionDisplay(pipeline);
+}
+
+//----------------------------------------------------------------------
+void vtkSliceIntersectionRepresentation2D::RemoveIntersectingSliceNode(vtkMRMLSliceNode* sliceNode)
+{
+  if (!sliceNode)
+  {
+    return;
+  }
+  for (std::deque<SliceIntersectionDisplayPipeline*>::iterator sliceIntersectionIt = this->Internal->SliceIntersectionDisplayPipelines.begin();
+    sliceIntersectionIt != this->Internal->SliceIntersectionDisplayPipelines.end(); ++sliceIntersectionIt)
+  {
+    if (sliceNode == (*sliceIntersectionIt)->SliceNode)
+    {
+      // found it
+      (*sliceIntersectionIt)->RemoveActors(this->Renderer);
+      delete (*sliceIntersectionIt);
+      this->Internal->SliceIntersectionDisplayPipelines.erase(sliceIntersectionIt);
+      break;
+    }
+  }
+}
+
+//----------------------------------------------------------------------
+void vtkSliceIntersectionRepresentation2D::RemoveAllIntersectingSliceNodes()
+{
+  for (std::deque<SliceIntersectionDisplayPipeline*>::iterator sliceIntersectionIt = this->Internal->SliceIntersectionDisplayPipelines.begin();
+    sliceIntersectionIt != this->Internal->SliceIntersectionDisplayPipelines.end(); ++sliceIntersectionIt)
+  {
+    (*sliceIntersectionIt)->RemoveActors(this->Renderer);
+    delete (*sliceIntersectionIt);
+  }
+  this->Internal->SliceIntersectionDisplayPipelines.clear();
+}
+
+//----------------------------------------------------------------------
+double* vtkSliceIntersectionRepresentation2D::GetSliceIntersectionPoint()
+{
+  size_t numberOfIntersections = this->Internal->SliceIntersectionDisplayPipelines.size();
+  int numberOfFoundIntersectionPoints = 0;
+  this->SliceIntersectionPoint[0] = 0.0;
+  this->SliceIntersectionPoint[1] = 0.0;
+  this->SliceIntersectionPoint[2] = 0.0;
+  if (!this->Internal->SliceNode)
+  {
+    return this->SliceIntersectionPoint;
+  }
+  for (int slice1Index = 0; slice1Index < numberOfIntersections-1; slice1Index++)
+  {
+    if (!this->Internal->SliceIntersectionDisplayPipelines[slice1Index]->GetVisibility())
+    {
+      continue;
+    }
+    vtkLineSource* line1 = this->Internal->SliceIntersectionDisplayPipelines[slice1Index]->LineSource;
+    double* line1Point1 = line1->GetPoint1();
+    double* line1Point2 = line1->GetPoint2();
+    for (int slice2Index = slice1Index + 1; slice2Index < numberOfIntersections; slice2Index++)
+    {
+      if (!this->Internal->SliceIntersectionDisplayPipelines[slice2Index]->GetVisibility())
+      {
+        continue;
+      }
+      vtkLineSource* line2 = this->Internal->SliceIntersectionDisplayPipelines[slice2Index]->LineSource;
+      double line1ParametricPosition = 0;
+      double line2ParametricPosition = 0;
+      if (vtkLine::Intersection(line1Point1, line1Point2,
+        line2->GetPoint1(), line2->GetPoint2(),
+        line1ParametricPosition, line2ParametricPosition))
+      {
+        this->SliceIntersectionPoint[0] += line1Point1[0] + line1ParametricPosition * (line1Point2[0] - line1Point1[0]);
+        this->SliceIntersectionPoint[1] += line1Point1[1] + line1ParametricPosition * (line1Point2[1] - line1Point1[1]);
+        this->SliceIntersectionPoint[2] += line1Point1[2] + line1ParametricPosition * (line1Point2[2] - line1Point1[2]);
+        numberOfFoundIntersectionPoints++;
+      }
+    }
+  }
+  if (numberOfFoundIntersectionPoints > 0)
+  {
+    this->SliceIntersectionPoint[0] /= numberOfFoundIntersectionPoints;
+    this->SliceIntersectionPoint[1] /= numberOfFoundIntersectionPoints;
+    this->SliceIntersectionPoint[2] /= numberOfFoundIntersectionPoints;
+  }
+  else
+  {
+    // No slice intersections, use slice centerpoint
+    int* sliceDimension = this->Internal->SliceNode->GetDimensions();
+    this->SliceIntersectionPoint[0] = sliceDimension[0] / 2.0;
+    this->SliceIntersectionPoint[0] = sliceDimension[1] / 2.0;
+    this->SliceIntersectionPoint[0] = 0.0;
+  }
+  return this->SliceIntersectionPoint;
 }
