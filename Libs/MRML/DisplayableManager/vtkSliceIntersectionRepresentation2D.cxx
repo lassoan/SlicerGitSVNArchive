@@ -1,15 +1,15 @@
 /*=========================================================================
 
-  Program:   Visualization Toolkit
-  Module:    vtkSliceIntersectionRepresentation2D.cxx
+Program:   Visualization Toolkit
+Module:    vtkSliceIntersectionRepresentation2D.cxx
 
-  Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
-  All rights reserved.
-  See Copyright.txt or http://www.kitware.com/Copyright.htm for details.
+Copyright (c) Ken Martin, Will Schroeder, Bill Lorensen
+All rights reserved.
+See Copyright.txt or http://www.kitware.com/Copyright.htm for details.
 
-     This software is distributed WITHOUT ANY WARRANTY; without even
-     the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
-     PURPOSE.  See the above copyright notice for more information.
+This software is distributed WITHOUT ANY WARRANTY; without even
+the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+PURPOSE.  See the above copyright notice for more information.
 
 =========================================================================*/
 #include "vtkSliceIntersectionRepresentation2D.h"
@@ -69,6 +69,7 @@ public:
     this->Property = vtkSmartPointer<vtkProperty2D>::New();
     this->Actor = vtkSmartPointer<vtkActor2D>::New();
     this->Actor->SetVisibility(false); // invisible until slice node is set
+    this->StartSliceToRAS = vtkSmartPointer<vtkMatrix4x4>::New();
 
     this->Mapper->SetInputConnection(this->LineSource->GetOutputPort());
     this->Actor->SetMapper(this->Mapper);
@@ -161,6 +162,7 @@ public:
   vtkSmartPointer<vtkPolyDataMapper2D> Mapper;
   vtkSmartPointer<vtkProperty2D> Property;
   vtkSmartPointer<vtkActor2D> Actor;
+  vtkSmartPointer<vtkMatrix4x4> StartSliceToRAS; // SliceToRAS at the beginning of interaction
   vtkWeakPointer<vtkMRMLSliceLogic> SliceLogic;
   vtkWeakPointer<vtkCallbackCommand> Callback;
 };
@@ -172,6 +174,14 @@ public:
   ~vtkInternal();
 
   static int IntersectWithFinitePlane(double n[3], double o[3], double pOrigin[3], double px[3], double py[3], double x0[3], double x1[3]);
+
+  /// Only position and normal of unalignedSliceToRAS is used.
+  /// Set slice pose from the provided plane normal and position.View up direction is determined automatically,
+  /// to make view up point towards S(patient head) direction.
+  /// \param defaultViewUpDirection Slice view will be spinned in - plane to match point approximately this direction
+  /// \param backupViewRightDirection Slice view will be spinned in - plane to match point approximately this direction
+  ///   if defaultViewUpDirection is too similar to sliceNormal.
+  static void AlignSliceToRAS(vtkMatrix4x4* unalignedSliceToRAS, vtkMatrix4x4* alignedSliceToRAS, const double viewRightUpDirections[6][3]);
 
   vtkSliceIntersectionRepresentation2D* External;
 
@@ -267,6 +277,84 @@ int vtkSliceIntersectionRepresentation2D::vtkInternal::IntersectWithFinitePlane(
   return 0;
 }
 
+//----------------------------------------------------------------------
+void vtkSliceIntersectionRepresentation2D::vtkInternal::AlignSliceToRAS(vtkMatrix4x4* unalignedSliceToRAS,
+  vtkMatrix4x4* alignedSliceToRAS, const double viewRightUpDirections[6][3])
+{
+  // Find which axis is the closest to the slice normal direction (that preset will be used to set view up and right directions)
+  double sliceNormal[3] = { unalignedSliceToRAS->GetElement(0,2), unalignedSliceToRAS->GetElement(1,2), unalignedSliceToRAS->GetElement(2,2) };
+  double closestAxisAngleDifferenceRad = 10.0;
+  int closestAxisIndex = 0;
+  int closestAxisDirection = 0; // 0 = positive, 1=negative
+  for (int normalAxisIndex = 0; normalAxisIndex < 3; normalAxisIndex++)
+  {
+    for (int directionIndex = 0; directionIndex < 2; directionIndex++)
+    {
+      double directionValue = (directionIndex == 0 ? 1 : -1);
+      double normalDirection[3] =
+      {
+        normalAxisIndex == 0 ? directionValue : 0.0,
+        normalAxisIndex == 1 ? directionValue : 0.0,
+        normalAxisIndex == 2 ? directionValue : 0.0
+      };
+      double angleDifferenceRad = vtkMath::AngleBetweenVectors(sliceNormal, normalDirection);
+      if (angleDifferenceRad < closestAxisAngleDifferenceRad)
+      {
+        closestAxisAngleDifferenceRad = angleDifferenceRad;
+        closestAxisIndex = normalAxisIndex;
+        closestAxisDirection = directionIndex;
+      }
+    }
+  }
+  const double* preferredX = viewRightUpDirections[closestAxisIndex * 4 + closestAxisDirection * 2];
+  const double* preferredY = viewRightUpDirections[closestAxisIndex * 4 + closestAxisDirection * 2 + 1];
+
+  // Force view up axis to be preferred Y direction
+  double sliceAxisX[3];
+  double sliceAxisY[3];
+  double sliceAxisZ[3];
+  vtkMath::Cross(preferredY, sliceNormal, sliceAxisX);
+  vtkMath::Cross(sliceNormal, sliceAxisX, sliceAxisY);
+  vtkMath::Normalize(sliceAxisX);
+  vtkMath::Normalize(sliceAxisY);
+
+  if (vtkMath::Dot(sliceAxisX, preferredX) < 0)
+  {
+    sliceAxisX[0] = -sliceAxisX[0];
+    sliceAxisX[1] = -sliceAxisX[1];
+    sliceAxisX[2] = -sliceAxisX[2];
+  }
+  vtkMath::Cross(sliceAxisX, sliceAxisY, sliceAxisZ);
+
+  // Make view right axis point towards preferred Y direction
+  double* alignedSliceToRASMatrix = alignedSliceToRAS->GetData();
+  //if (vtkMath::Dot(sliceAxisX, preferredX) >= 0)
+  {
+    int matrixElementIndex = 0;
+    for (int row = 0; row < 3; ++row)
+    {
+      alignedSliceToRASMatrix[matrixElementIndex++] = sliceAxisX[row];
+      alignedSliceToRASMatrix[matrixElementIndex++] = sliceAxisY[row];
+      alignedSliceToRASMatrix[matrixElementIndex++] = sliceAxisZ[row];
+      alignedSliceToRASMatrix[matrixElementIndex++] = unalignedSliceToRAS->GetElement(row, 3);
+    }
+  }
+  /*
+  else
+  {
+    // flip the x axis to point towards preferred direction
+    int matrixElementIndex = 0;
+    for (int row = 0; row < 3; ++row)
+    {
+      alignedSliceToRASMatrix[matrixElementIndex++] = -sliceAxisX[row];
+      alignedSliceToRASMatrix[matrixElementIndex++] = sliceAxisY[row];
+      alignedSliceToRASMatrix[matrixElementIndex++] = -sliceAxisZ[row];
+      alignedSliceToRASMatrix[matrixElementIndex++] = unalignedSliceToRAS->GetElement(row, 3);
+    }
+  }
+  */
+  alignedSliceToRAS->Modified();
+}
 
 //----------------------------------------------------------------------
 vtkSliceIntersectionRepresentation2D::vtkSliceIntersectionRepresentation2D()
@@ -388,6 +476,18 @@ void vtkSliceIntersectionRepresentation2D::StartWidgetInteraction(double startEv
   double startRotationCenterXY[4] = { sliceIntersectionPoint[0] , sliceIntersectionPoint[1], 0.0, 1.0 };
   this->Internal->SliceNode->GetXYToRAS()->MultiplyPoint(startRotationCenterXY, this->StartRotationCenter_RAS);
 
+  for (std::deque<SliceIntersectionDisplayPipeline*>::iterator sliceIntersectionIt = this->Internal->SliceIntersectionDisplayPipelines.begin();
+    sliceIntersectionIt != this->Internal->SliceIntersectionDisplayPipelines.end(); ++sliceIntersectionIt)
+  {
+    if (!(*sliceIntersectionIt)
+      || !(*sliceIntersectionIt)->GetVisibility())
+    {
+      continue;
+    }
+    vtkMRMLSliceNode* sliceNode = (*sliceIntersectionIt)->SliceLogic->GetSliceNode();
+    (*sliceIntersectionIt)->StartSliceToRAS->DeepCopy(sliceNode->GetSliceToRAS());
+  }
+
   this->WidgetInteraction(startEventPos);
 }
 
@@ -403,15 +503,15 @@ void vtkSliceIntersectionRepresentation2D::WidgetInteraction(double eventPos[2])
   // Dispatch to the correct method
   switch (this->InteractionState)
   {
-    case vtkSliceIntersectionRepresentation2D::StateRotate:
-      this->Rotate(eventPos);
-      break;
-    case vtkSliceIntersectionRepresentation2D::StateTranslate:
-      this->Translate(eventPos);
-      break;
-    case vtkSliceIntersectionRepresentation2D::StateJump:
-      this->Jump(eventPos);
-      break;
+  case vtkSliceIntersectionRepresentation2D::StateRotate:
+    this->Rotate(eventPos);
+    break;
+  case vtkSliceIntersectionRepresentation2D::StateTranslate:
+    this->Translate(eventPos);
+    break;
+  case vtkSliceIntersectionRepresentation2D::StateJump:
+    this->Jump(eventPos);
+    break;
   }
 
   // Book keeping
@@ -422,7 +522,7 @@ void vtkSliceIntersectionRepresentation2D::WidgetInteraction(double eventPos[2])
 }
 
 //----------------------------------------------------------------------
-void vtkSliceIntersectionRepresentation2D::EndWidgetInteraction(double vtkNotUsed(eventPos) [2])
+void vtkSliceIntersectionRepresentation2D::EndWidgetInteraction(double vtkNotUsed(eventPos)[2])
 {
 }
 
@@ -455,7 +555,7 @@ void vtkSliceIntersectionRepresentation2D::Rotate(double eventPos[2])
 
   rotatedSliceToSliceTransform->Translate(this->StartRotationCenter_RAS[0], this->StartRotationCenter_RAS[1], this->StartRotationCenter_RAS[2]);
   double rotationDirection = vtkMath::Determinant3x3(sliceToRAS->Element[0], sliceToRAS->Element[1], sliceToRAS->Element[2]) >= 0 ? 1.0 : -1.0;
-  rotatedSliceToSliceTransform->RotateWXYZ(rotationDirection*vtkMath::DegreesFromRadians(sliceRotationAngleRad- this->PreviousRotationAngleRad),
+  rotatedSliceToSliceTransform->RotateWXYZ(rotationDirection*vtkMath::DegreesFromRadians(sliceRotationAngleRad - this->PreviousRotationAngleRad),
     sliceToRAS->GetElement(0, 2), sliceToRAS->GetElement(1, 2), sliceToRAS->GetElement(2, 2));
   rotatedSliceToSliceTransform->Translate(-this->StartRotationCenter_RAS[0], -this->StartRotationCenter_RAS[1], -this->StartRotationCenter_RAS[2]);
 
@@ -474,9 +574,64 @@ void vtkSliceIntersectionRepresentation2D::Rotate(double eventPos[2])
     }
     vtkMRMLSliceNode* sliceNode = (*sliceIntersectionIt)->SliceLogic->GetSliceNode();
     wasModified.push_back(sliceNode->StartModify());
+
+    vtkNew<vtkMatrix4x4> rotatedSliceToRAS;
     vtkMatrix4x4::Multiply4x4(rotatedSliceToSliceTransform->GetMatrix(), sliceNode->GetSliceToRAS(),
-      sliceNode->GetSliceToRAS());
-    sliceNode->UpdateMatrices();
+      rotatedSliceToRAS);
+
+    bool constrainToAnatomicalDirections = true;
+    if (!constrainToAnatomicalDirections)
+    {
+      sliceNode->GetSliceToRAS()->DeepCopy(rotatedSliceToRAS);
+    }
+    else
+    {
+      /*
+      // Slicer default
+      static const double viewRightUpDirections[12][3] = {
+        // sagittal
+        { 0.0, -1.0, 0.0 }, // right: patient posterior
+        { 0.0, 0.0, 1.0 },  // up: patient Superior
+        { 0.0, -1.0, 0.0 }, // right: patient posterior
+        { 0.0, 0.0, 1.0 },  // up: patient Superior
+        // coronal
+        { -1.0, 0.0, 0.0 }, // right: patient left
+        { 0.0, 0.0, 1.0 }, // up: patient superior
+        { -1.0, 0.0, 0.0 }, // right: patient left
+        { 0.0, 0.0, 1.0 }, // up: patient superior
+        // axial
+        { -1.0, 0.0, 0.0 }, // right: patient left
+        { 0.0, 1.0, 0.0 },  // up: patient anterior
+        { -1.0, 0.0, 0.0 }, // right: patient left
+        { 0.0, 1.0, 0.0 }  // up: patient anterior
+      };
+      */
+
+      // Fluoro default
+      static const double viewRightUpDirections[12][3] = {
+        // sagittal +R
+        { 0.0, 1.0, 0.0 }, // right: patient posterior
+        { 0.0, 0.0, 1.0 },  // up: patient Superior
+        // sagittal -R
+        { 0.0, -1.0, 0.0 }, // right: patient anterior
+        { 0.0, 0.0, 1.0 },  // up: patient Superior
+        // coronal +A
+        { -1.0, 0.0, 0.0 }, // right: patient left
+        { 0.0, 0.0, 1.0 }, // up: patient superior
+        // coronal -A (inverts normal)
+        { -1.0, 0.0, 0.0 }, // right: patient left
+        { 0.0, 0.0, 1.0 }, // up: patient superior
+        // axial +S
+        { -1.0, 0.0, 0.0 }, // right: patient left
+        { 0.0, -1.0, 0.0 },  // up: patient posterior
+        // axial -S
+        { -1.0, 0.0, 0.0 }, // right: patient left
+        { 0.0, 1.0, 0.0 }  // up: patient anterior
+      };
+
+      vtkSliceIntersectionRepresentation2D::vtkInternal::AlignSliceToRAS(rotatedSliceToRAS, sliceNode->GetSliceToRAS(), viewRightUpDirections);
+    }
+
   }
   for (std::deque<SliceIntersectionDisplayPipeline*>::iterator sliceIntersectionIt = this->Internal->SliceIntersectionDisplayPipelines.begin();
     sliceIntersectionIt != this->Internal->SliceIntersectionDisplayPipelines.end(); ++sliceIntersectionIt)
@@ -487,6 +642,7 @@ void vtkSliceIntersectionRepresentation2D::Rotate(double eventPos[2])
       continue;
     }
     vtkMRMLSliceNode* sliceNode = (*sliceIntersectionIt)->SliceLogic->GetSliceNode();
+    sliceNode->UpdateMatrices();
     sliceNode->EndModify(wasModified.front());
     wasModified.pop_front();
   }
@@ -551,24 +707,24 @@ int vtkSliceIntersectionRepresentation2D::RenderOverlay(vtkViewport *viewport)
 void vtkSliceIntersectionRepresentation2D::PrintSelf(ostream& os, vtkIndent indent)
 {
   //Superclass typedef defined in vtkTypeMacro() found in vtkSetGet.h
-  this->Superclass::PrintSelf(os,indent);
+  this->Superclass::PrintSelf(os, indent);
 
   os << indent << "Tolerance: " << this->Tolerance << "\n";
 
-  if ( this->Property )
+  if (this->Property)
   {
     os << indent << "Property:\n";
-    this->Property->PrintSelf(os,indent.GetNextIndent());
+    this->Property->PrintSelf(os, indent.GetNextIndent());
   }
   else
   {
     os << indent << "Property: (none)\n";
   }
 
-  if ( this->SelectedProperty )
+  if (this->SelectedProperty)
   {
     os << indent << "Selected Property:\n";
-    this->SelectedProperty->PrintSelf(os,indent.GetNextIndent());
+    this->SelectedProperty->PrintSelf(os, indent.GetNextIndent());
   }
   else
   {
@@ -640,9 +796,9 @@ SliceIntersectionDisplayPipeline* vtkSliceIntersectionRepresentation2D::GetDispl
 void vtkSliceIntersectionRepresentation2D::UpdateSliceIntersectionDisplay(SliceIntersectionDisplayPipeline *pipeline)
 {
   if (!pipeline || !this->Internal->SliceNode || pipeline->SliceLogic == NULL)
-    {
+  {
     return;
-    }
+  }
   vtkMRMLSliceNode* intersectingSliceNode = pipeline->SliceLogic->GetSliceNode();
   if (!pipeline->SliceLogic || !this->GetVisibility()
     || this->Internal->SliceNode->GetViewGroup() != intersectingSliceNode->GetViewGroup())
@@ -793,16 +949,21 @@ void vtkSliceIntersectionRepresentation2D::RemoveIntersectingSliceNode(vtkMRMLSl
 void vtkSliceIntersectionRepresentation2D::UpdateIntersectingSliceNodes()
 {
   this->RemoveAllIntersectingSliceNodes();
-  if (this->GetSliceNode() && this->MRMLApplicationLogic)
+  if (!this->GetSliceNode() || !this->MRMLApplicationLogic)
   {
-    vtkMRMLSliceLogic* sliceLogic;
-    vtkCollectionSimpleIterator it;
-    vtkCollection* sliceLogics = this->MRMLApplicationLogic->GetSliceLogics();
-    for (sliceLogics->InitTraversal(it);
-      (sliceLogic = vtkMRMLSliceLogic::SafeDownCast(sliceLogics->GetNextItemAsObject(it)));)
-    {
-      this->AddIntersectingSliceLogic(sliceLogic);
-    }
+    return;
+  }
+  vtkCollection* sliceLogics = this->MRMLApplicationLogic->GetSliceLogics();
+  if (!sliceLogics)
+  {
+    return;
+  }
+  vtkMRMLSliceLogic* sliceLogic;
+  vtkCollectionSimpleIterator it;
+  for (sliceLogics->InitTraversal(it);
+    (sliceLogic = vtkMRMLSliceLogic::SafeDownCast(sliceLogics->GetNextItemAsObject(it)));)
+  {
+    this->AddIntersectingSliceLogic(sliceLogic);
   }
 }
 
@@ -830,7 +991,7 @@ double* vtkSliceIntersectionRepresentation2D::GetSliceIntersectionPoint()
   {
     return this->SliceIntersectionPoint;
   }
-  for (int slice1Index = 0; slice1Index < numberOfIntersections-1; slice1Index++)
+  for (int slice1Index = 0; slice1Index < numberOfIntersections - 1; slice1Index++)
   {
     if (!this->Internal->SliceIntersectionDisplayPipelines[slice1Index]->GetVisibility())
     {
