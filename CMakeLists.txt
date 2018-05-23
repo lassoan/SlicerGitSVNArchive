@@ -1171,12 +1171,12 @@ endif()
 ExternalData_Add_Target(${Slicer_ExternalData_DATA_MANAGEMENT_TARGET})
 
 #-----------------------------------------------------------------------------
-# Create targets CopySlicerPython{Resource, Script}Files, CompileSlicerPythonFiles
+# Create targets CopyPythonSlicer{Resource, Script}Files, CompilePythonSlicerFiles
 if(Slicer_USE_PYTHONQT)
-  slicerFunctionAddPythonQtResourcesTargets(SlicerPythonResources)
+  slicerFunctionAddPythonQtResourcesTargets(PythonSlicerResources)
   ctkFunctionAddCompilePythonScriptTargets(
     ${CTK_COMPILE_PYTHON_SCRIPTS_GLOBAL_TARGET_NAME}
-    DEPENDS SlicerPythonResources
+    DEPENDS PythonSlicerResources
     )
 endif()
 
