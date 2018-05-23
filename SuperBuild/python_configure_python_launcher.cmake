@@ -77,6 +77,7 @@ set(PYTHONLAUNCHER_PYTHONPATH_BUILD
   "${PYTHONHOME}/${PYTHON_STDLIB_SUBDIR}"
   "${PYTHONHOME}/${PYTHON_STDLIB_SUBDIR}/lib-dynload"
   "${PYTHONHOME}/${PYTHON_SITE_PACKAGES_SUBDIR}"
+  "${VTKv9_PYTHONPATH_LAUNCHER_BUILD}"
   )
 
 #
@@ -122,19 +123,24 @@ set(PYTHONLAUNCHER_ADDITIONAL_PATH_ENVVARS_INSTALLED
 set(PYTHONLAUNCHER_PYTHONPATH_INSTALLED
   "${PYTHONHOME}/lib/Python/${PYTHON_STDLIB_SUBDIR}"
   "${PYTHONHOME}/lib/Python/${PYTHON_STDLIB_SUBDIR}/lib-dynload"
-  "${PYTHONHOME}/lib/Python/${PYTHON_SITE_PACKAGES_SUBDIR}"
   "<APPLAUNCHER_DIR>/../${Slicer_BIN_DIR}/Python"
   )
+
+if(UNIX)
+  list(APPEND PYTHONLAUNCHER_PYTHONPATH_INSTALLED "${PYTHONHOME}/lib/Python/${PYTHON_SITE_PACKAGES_SUBDIR}")
+else()
+  list(APPEND PYTHONLAUNCHER_PYTHONPATH_INSTALLED "<APPLAUNCHER_DIR>/../${Slicer_BIN_DIR}/Lib/${PYTHON_SITE_PACKAGES_SUBDIR}")
+endif()
 
 #
 # Notes:
 #
-#  * Install rules for SlicerPythonLauncherSettingsToInstall.ini and SlicerPython executable
+#  * Install rules for PythonSlicerLauncherSettingsToInstall.ini and PythonSlicer executable
 #  are specified in SlicerBlockInstallPython.cmake
 #
 
 ctkAppLauncherConfigureForExecutable(
-  APPLICATION_NAME SlicerPython
+  APPLICATION_NAME PythonSlicer
   SPLASHSCREEN_DISABLED
 
   # Additional path envars prefix
