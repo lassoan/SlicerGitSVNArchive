@@ -17,6 +17,9 @@ class SegmentEditorThresholdEffect(AbstractScriptedSegmentEditorEffect):
     scriptedEffect.name = 'Threshold'
 
     # Effect-specific members
+    import vtkITK
+    self.autoThresholdCalculator = vtkITK.vtkITKImageThresholdCalculator()
+
     self.timer = qt.QTimer()
     self.previewState = 0
     self.previewStep = 1
@@ -85,6 +88,35 @@ class SegmentEditorThresholdEffect(AbstractScriptedSegmentEditorEffect):
     self.thresholdSlider.spinBoxAlignment = qt.Qt.AlignTop
     self.thresholdSlider.singleStep = 0.01
     self.scriptedEffect.addOptionsWidget(self.thresholdSlider)
+
+    self.autoThresholdMethodSelectorComboBox = qt.QComboBox()
+    self.autoThresholdMethodSelectorComboBox.addItem("Otsu", METHOD_OTSU)
+    self.autoThresholdMethodSelectorComboBox.addItem("Huang", METHOD_HUANG)
+    self.autoThresholdMethodSelectorComboBox.addItem("IsoData", METHOD_ISO_DATA)
+    self.autoThresholdMethodSelectorComboBox.addItem("Kittler-Illingworth", METHOD_KITTLER_ILLINGWORTH)
+    self.autoThresholdMethodSelectorComboBox.addItem("Li", METHOD_LI)
+    self.autoThresholdMethodSelectorComboBox.addItem("Maximum entropy", METHOD_MAXIMUM_ENTROPY)
+    self.autoThresholdMethodSelectorComboBox.addItem("Moments", METHOD_MOMENTS)
+    self.autoThresholdMethodSelectorComboBox.addItem("Renyi entropy", METHOD_RENYI_ENTROPY)
+    self.autoThresholdMethodSelectorComboBox.addItem("Shanbhag", METHOD_SHANBHAG)
+    self.autoThresholdMethodSelectorComboBox.addItem("Triangle", METHOD_TRIANGLE)
+    self.autoThresholdMethodSelectorComboBox.addItem("Yen", METHOD_YEN)
+    self.autoThresholdMethodSelectorComboBox.setToolTip('Select method to compute threshold value automatically.'
+      +' Click <dfn>Show details</dfn> link above for description of each method.')
+
+    self.autoThresholdLimitSelectorComboBox = qt.QComboBox()
+    self.autoThresholdLimitSelectorComboBox.addItem("lower limit", LIMIT_LOWER)
+    self.autoThresholdLimitSelectorComboBox.addItem("upper limit", LIMIT_UPPER)
+
+    self.setAutoThresholdButton = qt.QPushButton("Set")
+    self.setAutoThresholdButton.objectName = self.__class__.__name__ + 'Set'
+    self.setAutoThresholdButton.setToolTip("Compute automatic threshold and set as threshold limit.")
+
+    autoThresholdFrame = qt.QHBoxLayout()
+    autoThresholdFrame.addWidget(self.autoThresholdMethodSelectorComboBox)
+    autoThresholdFrame.addWidget(self.autoThresholdLimitSelectorComboBox)
+    autoThresholdFrame.addWidget(self.setAutoThresholdButton)
+    self.scriptedEffect.addLabeledOptionsWidget("Automatic threshold:", autoThresholdFrame)
 
     self.useForPaintButton = qt.QPushButton("Use for masking")
     self.useForPaintButton.setToolTip("Use specified intensity range for masking and switch to Paint effect.")
@@ -282,3 +314,23 @@ class PreviewPipeline:
     # Setup pipeline
     self.colorMapper.SetInputConnection(self.thresholdFilter.GetOutputPort())
     self.mapper.SetInputConnection(self.colorMapper.GetOutputPort())
+
+###
+
+METHOD_HUANG = 'HUANG'
+METHOD_INTERMODES = 'INTERMODES'
+METHOD_ISO_DATA = 'ISO_DATA'
+METHOD_KITTLER_ILLINGWORTH = 'KITTLER_ILLINGWORTH'
+METHOD_LI = 'LI'
+METHOD_MAXIMUM_ENTROPY = 'MAXIMUM_ENTROPY'
+METHOD_MOMENTS = 'MOMENTS'
+METHOD_OTSU = 'OTSU'
+METHOD_RENYI_ENTROPY = 'RENYI_ENTROPY'
+METHOD_SHANBHAG = 'SHANBHAG'
+METHOD_TRIANGLE = 'TRIANGLE'
+METHOD_YEN = 'YEN'
+
+MODE_SET_UPPER = 'SET_UPPER'
+MODE_SET_LOWER = 'SET_LOWER'
+MODE_SET_MIN_UPPER = 'SET_MIN_UPPER'
+MODE_SET_LOWER_MAX = 'SET_LOWER_MAX'
