@@ -2105,18 +2105,6 @@ void vtkMRMLSliceNode::SetSliceOffset(double offset)
 //----------------------------------------------------------------------------
 void vtkMRMLSliceNode::RotateToVolumePlane(vtkMRMLVolumeNode *volumeNode)
 {
-
-  //
-  // unfortunately, I can't think of a simpler way to calculate this, since
-  // the definition of something like "Coronal of an axial oblique" doesn't reduce down to
-  // just a rotation -- could include flips etc.
-  //
-  // instead:
-  // - calculate world space vectors for array axes
-  // - find the closest match to patient coordinate to define 'Right' in image space
-  // - pick the right vectors to put in the slice matrix to match existing orientation
-  //
-
   if ( volumeNode == NULL )
     {
     return;
@@ -2141,150 +2129,39 @@ void vtkMRMLSliceNode::RotateToVolumePlane(vtkMRMLVolumeNode *volumeNode)
       }
     }
 
-  // calculate vectors indicating transformed axis directions in RAS space (normalized)
-  // e.g. toRAS[0] is the three-vector in RAS space that points along the row axis in ijk space
-  // (toRAS[1] is the column, and toRAS[2] is slice)
-  double toRAS[3][3];
+  for (int axisIndex = 0; axisIndex < 3; axisIndex++)
+  {
+    double sliceAxisDirection[] = {
+      this->SliceToRAS->GetElement(0, axisIndex),
+      this->SliceToRAS->GetElement(1, axisIndex),
+      this->SliceToRAS->GetElement(2, axisIndex) };
 
-  double len[3]; // length of each column vector
-  double ele;
-  int col, row;
-  for (col = 0; col < 3; col++)
-    {
-    len[col] = 0;
-    for (row = 0; row < 3; row++)
+    // Find closest axis direction
+    double testedDirections[6][4] = {
+      {  1,  0,  0, 0 },   // right
+      { -1,  0,  0, 0 },   // left
+      {  0,  1,  0, 0 },   // anterior
+      {  0, -1,  0, 0 },   // posterior
+      {  0,  0,  1, 0 },   // superior
+      {  0,  0, -1, 0 } }; // inferior
+    double minAngleDiff = -1;
+    for (int testedDirectionIndex = 0; testedDirectionIndex < 6; testedDirectionIndex++)
       {
-      ele = ijkToRAS->GetElement(row, col);
-      len[col] += ele*ele;
-      }
-    len[col] = sqrt(len[col]);
-    for (row = 0; row < 3; row++)
-      {
-      toRAS[col][row] = ijkToRAS->GetElement( row, col ) / len[col];
-      }
-    }
-
-  //
-  // find the closest direction for each of the major axes
-  //
-
-  // define major directions
-  double directions [6][3] = {
-                   {  1,  0,  0 },   // right
-                   { -1,  0,  0 },   // left
-                   {  0,  1,  0 },   // anterior
-                   {  0, -1,  0 },   // posterior
-                   {  0,  0,  1 },   // superior
-                   {  0,  0, -1 } }; // inferior
-
-  int closestAxis[3] = {0, 0, 0};
-  double closestDot[3] = {-1., -1., -1.};
-
-  int direction;
-  for (direction = 0; direction < 6; direction++)
-    {
-    double dot[3];
-    for (col = 0; col < 3; col++)
-      {
-      dot[col] = 0;
-      int i;
-      for (i = 0; i < 3; i++)
+      double volumeAxisDirection[4] = { 0.0, 0.0, 0.0, 0.0 };
+      ijkToRAS->MultiplyPoint(testedDirections[testedDirectionIndex], volumeAxisDirection);
+      double angleDiff = vtkMath::AngleBetweenVectors(volumeAxisDirection, sliceAxisDirection);
+      if (angleDiff < minAngleDiff || minAngleDiff < 0.)
         {
-        dot[col] += toRAS[col][i] * directions[direction][i];
-        }
-      if (dot[col] > closestDot[col])
-        {
-        closestDot[col] = dot[col];
-        closestAxis[col] = direction;
+        minAngleDiff = angleDiff;
+        vtkMath::Normalize(volumeAxisDirection);
+        for (int component = 0; component < 3; component++)
+          {
+          this->SliceToRAS->SetElement(component, axisIndex, volumeAxisDirection[component]);
+          }
         }
       }
-    }
+  }
 
-  //
-  // assign the vectors that correspond to each major direction
-  //
-  double alignedRAS[6][3] = {{0., 0., 0.},{0., 0., 0.},{0., 0., 0.},
-                             {0., 0., 0.},{0., 0., 0.},{0., 0., 0.}};
-  for (col = 0; col < 3; col++)
-    {
-    for (row = 0; row < 3; row++)
-      {
-      switch (closestAxis[col])
-        {
-        default:
-        case 0:  // R
-          alignedRAS[0][row] =  toRAS[col][row];
-          alignedRAS[1][row] = -toRAS[col][row];
-          break;
-        case 1:  // L
-          alignedRAS[0][row] = -toRAS[col][row];
-          alignedRAS[1][row] =  toRAS[col][row];
-          break;
-        case 2:  // A
-          alignedRAS[2][row] =  toRAS[col][row];
-          alignedRAS[3][row] = -toRAS[col][row];
-          break;
-        case 3:  // P
-          alignedRAS[2][row] = -toRAS[col][row];
-          alignedRAS[3][row] =  toRAS[col][row];
-          break;
-        case 4:  // S
-          alignedRAS[4][row] =  toRAS[col][row];
-          alignedRAS[5][row] = -toRAS[col][row];
-          break;
-        case 5:  // I
-          alignedRAS[4][row] = -toRAS[col][row];
-          alignedRAS[5][row] =  toRAS[col][row];
-          break;
-        }
-      }
-    }
-
-  //
-  // plug vectors into slice matrix to best approximate requested orientation
-  //
-
-  for (row = 0; row < 3; row++)
-    {
-    if ( !strcmp(this->GetOrientationReference(), "Sagittal") )
-      {
-      // first column is 'Posterior'
-      this->SliceToRAS->SetElement(row, 0, alignedRAS[3][row]);
-      // second column is 'Superior'
-      this->SliceToRAS->SetElement(row, 1, alignedRAS[4][row]);
-      // third column is 'Right'
-      this->SliceToRAS->SetElement(row, 2, alignedRAS[0][row]);
-      }
-    else if ( !strcmp(this->GetOrientationReference(), "Coronal") )
-      {
-      // first column is 'Left'
-      this->SliceToRAS->SetElement(row, 0, alignedRAS[1][row]);
-      // second column is 'Superior'
-      this->SliceToRAS->SetElement(row, 1, alignedRAS[4][row]);
-      // third column is 'Anterior'
-      this->SliceToRAS->SetElement(row, 2, alignedRAS[2][row]);
-      }
-    else if ( !strcmp(this->GetOrientationReference(), "Axial") )
-      {
-      // first column is 'Left'
-      this->SliceToRAS->SetElement(row, 0, alignedRAS[1][row]);
-      // second column is 'Anterior'
-      this->SliceToRAS->SetElement(row, 1, alignedRAS[2][row]);
-      // third column is 'Superior'
-      this->SliceToRAS->SetElement(row, 2, alignedRAS[4][row]);
-      }
-    else
-      {
-      // if not Axial, Sagittal, or Coronal, then assume it is Axial (could also be 'Reformat')
-      // but since we don't have a plan for that, map it to Axial
-      // first column is 'Left'
-      this->SliceToRAS->SetElement(row, 0, alignedRAS[1][row]);
-      // second column is 'Anterior'
-      this->SliceToRAS->SetElement(row, 1, alignedRAS[2][row]);
-      // third column is 'Superior'
-      this->SliceToRAS->SetElement(row, 2, alignedRAS[4][row]);
-      }
-    }
 
   //
   // If two colums project to the same axis, then there will be
@@ -2292,7 +2169,7 @@ void vtkMRMLSliceNode::RotateToVolumePlane(vtkMRMLVolumeNode *volumeNode)
   // with the cross product of the other columns
   //
   int nullColumn = -1;
-  for (col = 0; col < 3; col++)
+  for (int col = 0; col < 3; col++)
     {
     int row;
     bool isNull = true;
