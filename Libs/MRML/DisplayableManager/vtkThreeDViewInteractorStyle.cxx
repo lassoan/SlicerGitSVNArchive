@@ -553,6 +553,33 @@ void vtkThreeDViewInteractorStyle::OnMouseWheelBackward()
 }
 
 //----------------------------------------------------------------------------
+void vtkThreeDViewInteractorStyle::OnStartPinch()
+{
+  /*
+  this->FindPokedRenderer(this->Interactor->GetEventPosition()[0], this->Interactor->GetEventPosition()[1]);
+  if (this->CurrentRenderer == 0)
+  {
+    vtkDebugMacro("OnLeftButtonDown: couldn't find the poked renderer at event position "
+      << this->Interactor->GetEventPosition()[0] << ", "
+      << this->Interactor->GetEventPosition()[1]);
+    return;
+  }
+  */
+  this->GrabFocus(this->EventCallbackCommand);
+  this->StartPinch();
+}
+
+//----------------------------------------------------------------------------
+void vtkThreeDViewInteractorStyle::OnEndPinch()
+{
+  this->EndPinch();
+  if (this->Interactor)
+  {
+    this->ReleaseFocus();
+  }
+}
+
+//----------------------------------------------------------------------------
 void vtkThreeDViewInteractorStyle::OnPinch()
 {
   int pointer = this->Interactor->GetPointerIndex();
@@ -570,6 +597,29 @@ void vtkThreeDViewInteractorStyle::OnPinch()
   double factor = this->Interactor->GetScale();
   this->Dolly(factor);
   this->EndDolly();
+  this->ReleaseFocus();
+
+  this->OnRotate();
+}
+
+//----------------------------------------------------------------------------
+void vtkThreeDViewInteractorStyle::OnPan()
+{
+  int pointer = this->Interactor->GetPointerIndex();
+
+  this->FindPokedRenderer(this->Interactor->GetEventPositions(pointer)[0],
+    this->Interactor->GetEventPositions(pointer)[1]);
+
+  if (this->CurrentRenderer == nullptr)
+  {
+    return;
+  }
+
+  this->GrabFocus(this->EventCallbackCommand);
+  this->StartPan();
+  this->Pan(this->Interactor->GetLastTranslation()[0], this->Interactor->GetLastTranslation()[1],
+    this->Interactor->GetTranslation()[0], this->Interactor->GetTranslation()[1]);
+  this->EndPan();
   this->ReleaseFocus();
 }
 
@@ -623,6 +673,8 @@ void vtkThreeDViewInteractorStyle::Rotate()
 
   double rxf = (double)dx * delta_azimuth * this->MotionFactor;
   double ryf = (double)dy * delta_elevation * this->MotionFactor;
+
+  vtkWarningMacro("vtkThreeDViewInteractorStyle::Rotate: dx=" << dx << ", dy=" << dy << ", rxf=" << rxf << ", ryf=" << ryf);
 
   vtkCamera *camera = 0;
   if (this->CameraNode)
@@ -707,10 +759,18 @@ void vtkThreeDViewInteractorStyle::Spin()
 //----------------------------------------------------------------------------
 void vtkThreeDViewInteractorStyle::Pan()
 {
+  vtkRenderWindowInteractor *rwi = this->Interactor;
+  this->Pan(rwi->GetLastEventPosition()[0], rwi->GetLastEventPosition()[1],
+    rwi->GetEventPosition()[0], rwi->GetEventPosition()[1]);
+}
+
+//----------------------------------------------------------------------------
+void vtkThreeDViewInteractorStyle::Pan(double x0, double y0, double x1, double y1)
+{
   if (this->CurrentRenderer == 0)
-    {
+  {
     return;
-    }
+  }
 
   vtkRenderWindowInteractor *rwi = this->Interactor;
 
@@ -720,36 +780,34 @@ void vtkThreeDViewInteractorStyle::Pan()
   // Calculate the focal depth since we'll be using it a lot
   vtkCamera *camera = 0;
   if (this->CameraNode)
-    {
+  {
     camera = this->CameraNode->GetCamera();
-    }
+  }
   else
-    {
+  {
     camera = this->CurrentRenderer->IsActiveCameraCreated() ? this->CurrentRenderer->GetActiveCamera() : 0;
-    }
+  }
 
   if (!camera)
-    {
+  {
     return;
-    }
+  }
 
   camera->GetFocalPoint(viewFocus);
   this->ComputeWorldToDisplay(viewFocus[0], viewFocus[1], viewFocus[2],
-                              viewFocus);
+    viewFocus);
   focalDepth = viewFocus[2];
 
-  this->ComputeDisplayToWorld((double)rwi->GetEventPosition()[0],
-                              (double)rwi->GetEventPosition()[1],
-                              focalDepth,
-                              newPickPoint);
+  this->ComputeDisplayToWorld(x1, y1,
+    focalDepth,
+    newPickPoint);
 
   // Has to recalc old mouse point since the viewport has moved,
   // so can't move it outside the loop
 
-  this->ComputeDisplayToWorld((double)rwi->GetLastEventPosition()[0],
-                              (double)rwi->GetLastEventPosition()[1],
-                              focalDepth,
-                              oldPickPoint);
+  this->ComputeDisplayToWorld(x0, y0,
+    focalDepth,
+    oldPickPoint);
 
   // Camera motion is reversed
 
@@ -760,17 +818,17 @@ void vtkThreeDViewInteractorStyle::Pan()
   camera->GetFocalPoint(viewFocus);
   camera->GetPosition(viewPoint);
   camera->SetFocalPoint(motionVector[0] + viewFocus[0],
-                        motionVector[1] + viewFocus[1],
-                        motionVector[2] + viewFocus[2]);
+    motionVector[1] + viewFocus[1],
+    motionVector[2] + viewFocus[2]);
 
   camera->SetPosition(motionVector[0] + viewPoint[0],
-                      motionVector[1] + viewPoint[1],
-                      motionVector[2] + viewPoint[2]);
+    motionVector[1] + viewPoint[1],
+    motionVector[2] + viewPoint[2]);
 
   if (rwi->GetLightFollowCamera())
-    {
+  {
     this->CurrentRenderer->UpdateLightsGeometryToFollowCamera();
-    }
+  }
 
   // release the camera
   camera = 0;

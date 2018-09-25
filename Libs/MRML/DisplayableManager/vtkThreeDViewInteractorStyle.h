@@ -75,7 +75,10 @@ public:
   virtual void OnRightButtonUp() VTK_OVERRIDE;
   virtual void OnMouseWheelForward() VTK_OVERRIDE;
   virtual void OnMouseWheelBackward() VTK_OVERRIDE;
+  virtual void OnStartPinch() VTK_OVERRIDE;
   virtual void OnPinch() VTK_OVERRIDE;
+  virtual void OnPan() VTK_OVERRIDE;
+  virtual void OnEndPinch() VTK_OVERRIDE;
   virtual void OnRotate() VTK_OVERRIDE;
 
   /// These methods for the different interactions in different modes
@@ -85,6 +88,7 @@ public:
   virtual void Rotate() VTK_OVERRIDE;
   virtual void Spin() VTK_OVERRIDE;
   virtual void Pan() VTK_OVERRIDE;
+  virtual void Pan(double x0, double y0, double x1, double y1);
   virtual void Dolly() VTK_OVERRIDE;
   virtual void Dolly(double factor);
 
