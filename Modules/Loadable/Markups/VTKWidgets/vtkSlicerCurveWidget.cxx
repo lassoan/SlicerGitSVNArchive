@@ -114,6 +114,8 @@ bool vtkSlicerCurveWidget::ProcessControlPointInsert(vtkMRMLInteractionEventData
     rep2d->GetSliceToWorldCoordinates(doubleDisplayPos, worldPos);
     }
 
+  markupsNode->GetScene()->SaveStateForUndo(markupsNode);
+
   // Create new control point and insert
   vtkMRMLMarkupsNode::ControlPoint* controlPoint = new vtkMRMLMarkupsNode::ControlPoint;
   (*controlPoint) = (*markupsNode->GetNthControlPoint(foundComponentIndex));

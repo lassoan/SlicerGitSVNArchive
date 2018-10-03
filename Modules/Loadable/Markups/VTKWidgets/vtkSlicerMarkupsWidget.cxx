@@ -249,6 +249,7 @@ bool vtkSlicerMarkupsWidget::ProcessWidgetReset(vtkMRMLInteractionEventData* vtk
     {
     return false;
     }
+  markupsNode->GetScene()->SaveStateForUndo(markupsNode);
   markupsNode->RemoveAllControlPoints();
   return true;
 }
@@ -282,6 +283,7 @@ bool vtkSlicerMarkupsWidget::ProcessControlPointDelete(vtkMRMLInteractionEventDa
     return false;
     }
 
+  markupsNode->GetScene()->SaveStateForUndo(markupsNode);
   markupsNode->RemoveNthControlPoint(controlPointToDelete);
   return true;
 }
@@ -304,6 +306,7 @@ bool vtkSlicerMarkupsWidget::ProcessWidgetJumpCursor(vtkMRMLInteractionEventData
     {
     return false;
     }
+  markupsNode->GetScene()->SaveStateForUndo();
   vtkNew<vtkMRMLInteractionEventData> jumpToPointEventData;
   jumpToPointEventData->SetType(vtkMRMLMarkupsDisplayNode::JumpToPointEvent);
   jumpToPointEventData->SetComponentType(vtkMRMLMarkupsDisplayNode::ComponentControlPoint);
@@ -550,6 +553,8 @@ void vtkSlicerMarkupsWidget::StartWidgetInteraction(vtkMRMLInteractionEventData*
     {
     return;
     }
+
+  markupsNode->GetScene()->SaveStateForUndo(markupsNode);
 
   //this->GrabFocus(this->EventCallbackCommand);
   //this->StartInteraction();
@@ -1059,7 +1064,7 @@ bool vtkSlicerMarkupsWidget::PlacePoint(vtkMRMLInteractionEventData* eventData)
     }
   // save for undo and add the node to the scene after any reset of the
   // interaction node so that don't end up back in place mode
-  markupsNode->GetScene()->SaveStateForUndo();
+  markupsNode->GetScene()->SaveStateForUndo(markupsNode);
 
   // Add/update preview point
   const char* associatedNodeID = this->GetAssociatedNodeID(eventData);

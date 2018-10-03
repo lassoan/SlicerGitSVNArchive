@@ -319,6 +319,9 @@ public:
   vtkSetMacro(Selectable, int);
   vtkBooleanMacro(Selectable, int);
 
+  vtkGetMacro(UndoEnabled, bool);
+  vtkSetMacro(UndoEnabled, bool);
+  vtkBooleanMacro(UndoEnabled, bool);
 
   /// Propagate events generated in mrml.
   virtual void ProcessMRMLEvents ( vtkObject *caller, unsigned long event, void *callData );
@@ -893,6 +896,7 @@ protected:
   int Selectable;
   int Selected;
   int AddToScene;
+  bool UndoEnabled;
 
   int  SaveWithScene;
 
