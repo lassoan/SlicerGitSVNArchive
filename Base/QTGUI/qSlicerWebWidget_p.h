@@ -80,7 +80,7 @@ private:
 #endif
 
 //-----------------------------------------------------------------------------
-class qSlicerWebWidgetPrivate: public QObject, Ui_qSlicerWebWidget
+class Q_SLICER_BASE_QTGUI_EXPORT qSlicerWebWidgetPrivate: public QObject, Ui_qSlicerWebWidget
 {
   Q_OBJECT
   Q_DECLARE_PUBLIC(qSlicerWebWidget);

@@ -382,14 +382,6 @@ void vtkSlicerVolumeRenderingLogic::UpdateTranferFunctionRangeFromImage(vtkMRMLV
   functionOpacity->AdjustRange(rangeNew);
 
   vtkDebugMacro("Opacity range: " << functionOpacity->GetRange()[0] << " " << functionOpacity->GetRange()[1]);
-
-  rangeNew[1] = (rangeNew[1] - rangeNew[0])*0.25;
-  rangeNew[0] = 0;
-
-  functionOpacity = prop->GetGradientOpacity();
-  functionOpacity->RemovePoint(255); //Remove the standard value
-  functionOpacity->AdjustRange(rangeNew);
-  vtkDebugMacro("Gradient Opacity range: " << functionOpacity->GetRange()[0] << " " << functionOpacity->GetRange()[1]);
 }
 
 //----------------------------------------------------------------------------
@@ -515,9 +507,11 @@ void vtkSlicerVolumeRenderingLogic::SetGradientOpacityToVolumeProp(double scalar
 
   double previous = VTK_DOUBLE_MIN;
   vtkNew<vtkPiecewiseFunction> opacity;
-  // opacity doesn't support duplicate points
-  opacity->AddPoint(vtkMRMLVolumePropertyNode::HigherAndUnique(scalarRange[0], previous), 1.0);
-  opacity->AddPoint(vtkMRMLVolumePropertyNode::HigherAndUnique(scalarRange[1], previous), 1.0);
+  // Set maximum of gradient range as 0.25*(scalar range width).
+  // Gradient is invariant to scalar value shift but dependent only on scaling.
+  double gradientRange[2] = {0.0, fabs(scalarRange[1] - scalarRange[0]) * 0.25};
+  opacity->AddPoint(vtkMRMLVolumePropertyNode::HigherAndUnique(gradientRange[0], previous), 1.0);
+  opacity->AddPoint(vtkMRMLVolumePropertyNode::HigherAndUnique(gradientRange[1], previous), 1.0);
 
   vtkPiecewiseFunction *volumePropGradientOpacity = volumeProp->GetGradientOpacity();
   if (this->IsDifferentFunction(opacity.GetPointer(), volumePropGradientOpacity))

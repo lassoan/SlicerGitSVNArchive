@@ -211,7 +211,7 @@ public:
     vtkLookupTable* lut, vtkVolumeProperty* node);
 
   /// Create an opacity transfer function for gradient opacity.
-  /// It ranges from 0 to scalarRange[1] - scalarRange[0].
+  /// It ranges from 0 to 25% of scalar range width.
   /// \sa SetThresholdToVolumeProp, SetWindowLevelToVolumeProp
   void SetGradientOpacityToVolumeProp(
     double scalarRange[2], vtkVolumeProperty* node);
