@@ -123,6 +123,8 @@ public slots:
 
 protected slots:
   void updateWidgetFromUnitNode();
+  void updateSpinBoxRange(double min, double max);
+  void updateRange();
 
 protected:
   QScopedPointer<qMRMLSliderWidgetPrivate> d_ptr;

@@ -20,8 +20,16 @@
 
 #include "qMRMLSliderWidget.h"
 
+// Qt includes
+#include <QHBoxLayout>
+#include <QMenu>
+//#include <QStyleOptionSlider>
+#include <QToolButton>
+#include <QWidgetAction>
+
 // CTK includes
 #include <ctkLinearValueProxy.h>
+#include <ctkDoubleSlider.h>
 #include <ctkUtils.h>
 
 // MRML includes
@@ -29,6 +37,9 @@
 #include <vtkMRMLScene.h>
 #include <vtkMRMLSelectionNode.h>
 #include <vtkMRMLUnitNode.h>
+
+// qMRML includes
+#include <qMRMLSpinBox.h>
 
 // STD includes
 #include <cmath>
@@ -54,6 +65,10 @@ public:
   vtkMRMLSelectionNode* SelectionNode;
   qMRMLSliderWidget::UnitAwareProperties Flags;
   ctkLinearValueProxy* Proxy;
+
+  QToolButton* OptionsButton;
+  qMRMLSpinBox* MinSpinBox;
+  qMRMLSpinBox* MaxSpinBox;
 };
 
 // --------------------------------------------------------------------------
@@ -118,6 +133,44 @@ qMRMLSliderWidget::qMRMLSliderWidget(QWidget* parentWidget)
   : Superclass(parentWidget)
   , d_ptr(new qMRMLSliderWidgetPrivate(*this))
 {
+  Q_D(qMRMLSliderWidget);
+  QWidget* rangeWidget = new QWidget(this);
+  QHBoxLayout* rangeLayout = new QHBoxLayout;
+  rangeWidget->setLayout(rangeLayout);
+  rangeLayout->setContentsMargins(0, 0, 0, 0);
+
+  d->MinSpinBox = new qMRMLSpinBox(rangeWidget);
+  d->MinSpinBox->setPrefix("Min: ");
+  d->MinSpinBox->setRange(-1000000., 1000000.);
+  d->MinSpinBox->setValue(this->minimum());
+  connect(d->MinSpinBox, SIGNAL(valueChanged(double)),
+    this, SLOT(updateRange()));
+  rangeLayout->addWidget(d->MinSpinBox);
+
+  d->MaxSpinBox = new qMRMLSpinBox(rangeWidget);
+  d->MaxSpinBox->setPrefix("Max: ");
+  d->MaxSpinBox->setRange(-1000000., 1000000.);
+  d->MaxSpinBox->setValue(this->maximum());
+  connect(d->MaxSpinBox, SIGNAL(valueChanged(double)),
+    this, SLOT(updateRange()));
+  rangeLayout->addWidget(d->MaxSpinBox);
+
+  connect(this->slider(), SIGNAL(rangeChanged(double, double)),
+    this, SLOT(updateSpinBoxRange(double, double)));
+
+  QWidgetAction* rangeAction = new QWidgetAction(this);
+  rangeAction->setDefaultWidget(rangeWidget);
+
+  QMenu* optionsMenu = new QMenu(this);
+  optionsMenu->addAction(rangeAction);
+
+  d->OptionsButton = new QToolButton(this);
+  d->OptionsButton->setIcon(QIcon(":Icons/SliceMoreOptions.png"));
+  d->OptionsButton->setMenu(optionsMenu);
+  d->OptionsButton->setPopupMode(QToolButton::InstantPopup);
+  QHBoxLayout* hBoxLayout = qobject_cast<QHBoxLayout*>(this->layout());
+  d->OptionsButton->setVisible(false);
+  hBoxLayout->addWidget(d->OptionsButton);
 }
 
 // --------------------------------------------------------------------------
@@ -135,6 +188,8 @@ void qMRMLSliderWidget::setQuantity(const QString& quantity)
     }
 
   d->Quantity = quantity;
+  d->MinSpinBox->setQuantity(quantity);
+  d->MaxSpinBox->setQuantity(quantity);
   this->updateWidgetFromUnitNode();
 }
 
@@ -163,8 +218,9 @@ void qMRMLSliderWidget::setMRMLScene(vtkMRMLScene* scene)
     }
 
   d->MRMLScene = scene;
+  d->MinSpinBox->setMRMLScene(scene);
+  d->MaxSpinBox->setMRMLScene(scene);
   d->setAndObserveSelectionNode();
-
   this->setEnabled(scene != 0);
 }
 
@@ -278,4 +334,28 @@ void qMRMLSliderWidget::setRange(double newMinimumValue, double newMaximumValue)
     {
     this->updateWidgetFromUnitNode();
     }
+}
+
+// --------------------------------------------------------------------------
+void qMRMLSliderWidget::updateSpinBoxRange(double min, double max)
+{
+  Q_D(qMRMLSliderWidget);
+  // We must set the values at the same time and update the pipeline
+  // when the MinSpinBox is set but not the MaxSpinBox. This could generate
+  // infinite loop
+  bool minSpinBoxBlocked = d->MinSpinBox->blockSignals(true);
+  bool maxSpinBoxBlocked = d->MaxSpinBox->blockSignals(true);
+  d->MinSpinBox->setValue(min);
+  d->MaxSpinBox->setValue(max);
+  d->MinSpinBox->blockSignals(minSpinBoxBlocked);
+  d->MaxSpinBox->blockSignals(maxSpinBoxBlocked);
+  this->updateRange();
+}
+
+// --------------------------------------------------------------------------
+void qMRMLSliderWidget::updateRange()
+{
+  Q_D(qMRMLSliderWidget);
+  this->setRange(d->MinSpinBox->value(),
+    d->MaxSpinBox->value());
 }
