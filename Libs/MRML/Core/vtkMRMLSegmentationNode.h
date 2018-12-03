@@ -34,6 +34,7 @@
 
 class vtkCallbackCommand;
 class vtkMRMLScene;
+class vtkMRMLSegmentationDisplayNode;
 class vtkMRMLSubjectHierarchyNode;
 class vtkMRMLScalarVolumeNode;
 class vtkPolyData;
@@ -141,6 +142,32 @@ public:
   virtual bool GenerateMergedLabelmapForAllSegments(vtkOrientedImageData* mergedImageData,
     int extentComputationMode = vtkSegmentation::EXTENT_UNION_OF_EFFECTIVE_SEGMENTS,
     vtkOrientedImageData* mergedLabelmapGeometry = NULL, vtkStringArray* segmentIDs = NULL);
+
+  enum
+  {
+    /// Modification is allowed everywhere.
+    EditAllowedEverywhere = 0,
+    /// Modification is allowed inside all segments.
+    EditAllowedInsideAllSegments,
+    /// Modification is allowed inside all visible segments.
+    EditAllowedInsideVisibleSegments,
+    /// Modification is allowed outside all segments.
+    EditAllowedOutsideAllSegments,
+    /// Modification is allowed outside all visible segments.
+    EditAllowedOutsideVisibleSegments,
+    /// Modification is allowed only over the area covered by segment specified in MaskSegmentID.
+    EditAllowedInsideSingleSegment,
+    /// Insert valid types above this line
+    EditAllowed_Last
+  };
+  /// Generates an edit mask image.
+  /// If a mask voxel is non-zero it means that the image at that position is editable.
+  /// \return Returns true is mask is successfully generated.
+  virtual bool GenerateEditMask(vtkOrientedImageData* maskImage, int editMode,
+    vtkOrientedImageData* referenceGeometry,
+    std::string editedSegmentID="", std::string maskSegmentID="",
+    vtkOrientedImageData* masterVolume = NULL, double editableIntensityRange[2] = NULL,
+    vtkMRMLSegmentationDisplayNode* displayNode = NULL);
 
   /// Expose reference identifier to get the volume node defining the reference image geometry if any
   static std::string GetReferenceImageGeometryReferenceRole() { return "referenceImageGeometryRef"; };

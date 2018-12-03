@@ -19,6 +19,11 @@ public:
   // Set input seed label volume (input 1)
   void SetSeedLabelVolume(vtkImageData* labelImage) { this->SetInputData(1, labelImage); }
 
+  // Set mask volume (input 2). Optional.
+  // If this volume is specified then only those regions will be modified and used for region growing
+  // where mask has non-zero value.
+  void SetMaskVolume(vtkImageData* labelImage) { this->SetInputData(2, labelImage); }
+
   // Reset to initial state. This forces full recomputation of the result label volume.
   // This method has to be called if intensity volume changes or if seeds are deleted after initial computation.
   void Reset();
