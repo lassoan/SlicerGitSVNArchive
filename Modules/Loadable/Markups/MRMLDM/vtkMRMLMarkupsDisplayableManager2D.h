@@ -22,7 +22,6 @@
 #include "vtkSlicerMarkupsModuleMRMLDisplayableManagerExport.h"
 
 // MarkupsModule/MRMLDisplayableManager includes
-#include "vtkMRMLMarkupsClickCounter.h"
 #include "vtkMRMLMarkupsDisplayableManagerHelper.h"
 
 // MRMLDisplayableManager includes
@@ -153,8 +152,6 @@ protected:
   void OnClickInRenderWindowGetCoordinates();
   /// Callback for click in RenderWindow
   virtual void OnClickInRenderWindow(double x, double y, const char *associatedNodeID = NULL);
-  /// Counter for clicks in Render Window
-  vtkMRMLMarkupsClickCounter* ClickCounter;
 
   /// Convert display to world coordinates
   void GetWorldToDisplayCoordinates(double r, double a, double s, double * displayCoordinates);
@@ -199,10 +196,8 @@ protected:
   double LastClickWorldCoordinates[4];
 
 private:
-
   vtkMRMLMarkupsDisplayableManager2D(const vtkMRMLMarkupsDisplayableManager2D&); /// Not implemented
   void operator=(const vtkMRMLMarkupsDisplayableManager2D&); /// Not Implemented
-
 
   int DisableInteractorStyleEventsProcessing;
 

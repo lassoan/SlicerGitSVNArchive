@@ -254,7 +254,8 @@ void vtkMRMLMarkupsFiducialStorageNode::Copy(vtkMRMLNode *anode)
 //----------------------------------------------------------------------------
 bool vtkMRMLMarkupsFiducialStorageNode::CanReadInReferenceNode(vtkMRMLNode *refNode)
 {
-  return refNode->IsA("vtkMRMLMarkupsFiducialNode");
+  return refNode->IsA("vtkMRMLMarkupsFiducialNode") ||
+         refNode->IsA("vtkMRMLMarkupsLineNode");
 }
 
 //----------------------------------------------------------------------------

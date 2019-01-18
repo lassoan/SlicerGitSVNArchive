@@ -588,6 +588,23 @@ void vtkMRMLMarkupsNode::RemoveNthControlPoint(int pointIndex)
 }
 
 //-----------------------------------------------------------
+void vtkMRMLMarkupsNode::RemoveLastControlPoint()
+{
+  int pointIndex = this->GetNumberOfControlPoints() - 1;
+  if (!this->ControlPointExists(pointIndex))
+    {
+    return;
+    }
+
+  this->ControlPoints[static_cast<unsigned int> (pointIndex)]->intermadiatePoints.clear();
+  delete this->ControlPoints[static_cast<unsigned int> (pointIndex)];
+  this->ControlPoints.erase( this->ControlPoints.begin() + pointIndex );
+  this->LastUsedControlPointNumber--;
+
+  this->InvokeCustomModifiedEvent(vtkMRMLMarkupsNode::PointRemovedEvent, static_cast<void*>(&pointIndex));
+}
+
+//-----------------------------------------------------------
 bool vtkMRMLMarkupsNode::InsertControlPoint(ControlPoint *controlPoint, int targetIndex)
 {
   int listSize = this->GetNumberOfControlPoints();

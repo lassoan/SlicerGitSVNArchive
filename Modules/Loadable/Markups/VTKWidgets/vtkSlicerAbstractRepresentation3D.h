@@ -137,11 +137,13 @@ protected:
   ~vtkSlicerAbstractRepresentation3D() VTK_OVERRIDE;
 
   // Support picking
+  // Using a vtkPropPicker will be faster,
+  // however it produces very bad flickering of the rendering for the 3D.
   vtkCellPicker *CursorPicker;
 
   // Methods to manipulate the cursor
   virtual void TranslateNode(double eventPos[2]);
-  virtual void ShiftWidget(double eventPos[2]);
+  virtual void TranslateWidget(double eventPos[2]);
   virtual void ScaleWidget(double eventPos[2]);
   virtual void RotateWidget(double eventPos[2]);
 

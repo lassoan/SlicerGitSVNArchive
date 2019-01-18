@@ -16,15 +16,15 @@
 
 =========================================================================*/
 
-#include "vtkSlicerLineRepresentation.h"
+#include "vtkSlicerLineRepresentation2D.h"
 #include "vtkCleanPolyData.h"
-#include "vtkPolyDataMapper.h"
-#include "vtkActor.h"
+#include "vtkOpenGLPolyDataMapper2D.h"
+#include "vtkActor2D.h"
 #include "vtkAssemblyPath.h"
 #include "vtkRenderer.h"
 #include "vtkRenderWindow.h"
 #include "vtkObjectFactory.h"
-#include "vtkProperty.h"
+#include "vtkProperty2D.h"
 #include "vtkAssemblyPath.h"
 #include "vtkMath.h"
 #include "vtkInteractorObserver.h"
@@ -46,90 +46,71 @@
 #include "vtkFocalPlanePointPlacer.h"
 #include "vtkBezierSlicerLineInterpolator.h"
 #include "vtkSphereSource.h"
-#include "vtkVolumePicker.h"
+#include "vtkPropPicker.h"
 #include "vtkPickingManager.h"
+#include "vtkAppendPolyData.h"
 
-vtkStandardNewMacro(vtkSlicerLineRepresentation);
+vtkStandardNewMacro(vtkSlicerLineRepresentation2D);
 
 //----------------------------------------------------------------------
-vtkSlicerLineRepresentation::vtkSlicerLineRepresentation()
+vtkSlicerLineRepresentation2D::vtkSlicerLineRepresentation2D()
 {
   this->Lines = vtkPolyData::New();
-  this->LinesMapper = vtkPolyDataMapper::New();
+  this->LinesMapper = vtkOpenGLPolyDataMapper2D::New();
   this->LinesMapper->SetInputData(this->Lines);
-  this->LinesMapper->SetResolveCoincidentTopologyToPolygonOffset();
-  this->LinesMapper->SetRelativeCoincidentTopologyLineOffsetParameters(-1,-1);
-  this->LinesMapper->SetRelativeCoincidentTopologyPolygonOffsetParameters(-1,-1);
-  this->LinesMapper->SetRelativeCoincidentTopologyPointOffsetParameter(-1);
 
   // Set up the initial properties
   this->CreateDefaultProperties();
 
-  this->LinesActor = vtkActor::New();
+  this->LinesActor = vtkActor2D::New();
   this->LinesActor->SetMapper(this->LinesMapper);
   this->LinesActor->SetProperty(this->LinesProperty);
 
   this->CursorPicker->AddPickList(this->LinesActor);
+
+  this->appendActors = vtkAppendPolyData::New();
+  this->appendActors->AddInputData(this->CursorShape);
+  this->appendActors->AddInputData(this->SelectedCursorShape);
+  this->appendActors->AddInputData(this->ActiveCursorShape);
+  this->appendActors->AddInputData(this->Lines);
 }
 
 //----------------------------------------------------------------------
-vtkSlicerLineRepresentation::~vtkSlicerLineRepresentation()
+vtkSlicerLineRepresentation2D::~vtkSlicerLineRepresentation2D()
 {
   this->Lines->Delete();
   this->LinesMapper->Delete();
   this->LinesActor->Delete();
   this->LinesProperty->Delete();
   this->ActiveLinesProperty->Delete();
+  this->appendActors->Delete();
 }
 
 //----------------------------------------------------------------------
-void vtkSlicerLineRepresentation::CreateDefaultProperties()
+void vtkSlicerLineRepresentation2D::CreateDefaultProperties()
 {
-  this->Property = vtkProperty::New();
-  this->Property->SetRepresentationToSurface();
-  this->Property->SetAmbient( 0.1 );
-  this->Property->SetDiffuse( 0.9 );
-  this->Property->SetSpecular( 0.0 );
-  this->Property->SetPointSize(10.);
-  this->Property->SetLineWidth(2);
-  this->Property->SetOpacity(1);
+  Superclass::CreateDefaultProperties();
 
-  this->ActiveProperty = vtkProperty::New();
-  this->ActiveProperty->SetRepresentationToSurface();
-  this->ActiveProperty->SetColor( 0.25, 0.75, 0.25 );
-  this->ActiveProperty->SetAmbient( 0.1 );
-  this->ActiveProperty->SetDiffuse( 0.9 );
-  this->ActiveProperty->SetSpecular( 0.0 );
-  this->ActiveProperty->SetOpacity(1);
+  this->LinesProperty = vtkProperty2D::New();
+  this->LinesProperty->SetColor( 0.4, 1.0, 1.0 );
+  this->LinesProperty->SetLineWidth( 2. );
+  this->LinesProperty->SetOpacity( 1. );
 
-  this->LinesProperty = vtkProperty::New();
-  this->LinesProperty->SetRepresentationToSurface();
-  this->LinesProperty->SetColor(1, 1, 1); // Set color to white
-  this->LinesProperty->SetLineWidth(2.0);
-  this->LinesProperty->SetAmbient( 0.1 );
-  this->LinesProperty->SetDiffuse( 0.9 );
-  this->LinesProperty->SetSpecular( 0.0 );
-  this->LinesProperty->SetOpacity(1);
-
-  this->ActiveLinesProperty = vtkProperty::New();
-  this->ActiveLinesProperty->SetRepresentationToSurface();
-  this->ActiveLinesProperty->SetLineWidth(2.0);
-  this->ActiveLinesProperty->SetColor( 0.25, 0.75, 0.25 );
-  this->ActiveLinesProperty->SetAmbient( 0.1 );
-  this->ActiveLinesProperty->SetDiffuse( 0.9 );
-  this->ActiveLinesProperty->SetSpecular( 0.0 );
-  this->ActiveLinesProperty->SetOpacity(1);
+  this->ActiveLinesProperty = vtkProperty2D::New();
+  this->ActiveLinesProperty->SetColor( 0.4, 1.0, 0. );
+  this->ActiveLinesProperty->SetLineWidth( 2. );
+  this->ActiveLinesProperty->SetOpacity( 1. );
 }
 
 //----------------------------------------------------------------------
-void vtkSlicerLineRepresentation::Highlight(int highlight)
+void vtkSlicerLineRepresentation2D::Highlight(int highlight)
 {
-  if ( !InternalMarkup )
+  if ( !this->MarkupsNode )
   {
     return;
   }
 
-  if ( highlight && this->InternalMarkup->ActiveControl == -1 &&
+  if ( highlight && this->MarkupsNode->GetActiveControlPoint() == -1 &&
        this->InteractionState == vtkSlicerAbstractRepresentation::Nearby )
   {
     this->LinesActor->SetProperty(this->ActiveLinesProperty);
@@ -143,7 +124,7 @@ void vtkSlicerLineRepresentation::Highlight(int highlight)
 }
 
 //----------------------------------------------------------------------
-void vtkSlicerLineRepresentation::BuildLines()
+void vtkSlicerLineRepresentation2D::BuildLines()
 {
   vtkPoints *points = vtkPoints::New();
   vtkCellArray *lines = vtkCellArray::New();
@@ -196,41 +177,33 @@ void vtkSlicerLineRepresentation::BuildLines()
 }
 
 //----------------------------------------------------------------------
-vtkPolyData *vtkSlicerLineRepresentation::GetWidgetRepresentationAsPolyData()
+vtkPolyData *vtkSlicerLineRepresentation2D::GetWidgetRepresentationAsPolyData()
 {
-  return this->Lines;
+  this->appendActors->Update();
+  return this->appendActors->GetOutput();
 }
 
 
 //----------------------------------------------------------------------
-void vtkSlicerLineRepresentation::GetActors(vtkPropCollection *pc)
+void vtkSlicerLineRepresentation2D::GetActors(vtkPropCollection *pc)
 {
-  this->Actor->GetActors(pc);
-  this->ActiveActor->GetActors(pc);
+  Superclass::GetActors(pc);
   this->LinesActor->GetActors(pc);
 }
 
 //----------------------------------------------------------------------
-void vtkSlicerLineRepresentation::ReleaseGraphicsResources(
+void vtkSlicerLineRepresentation2D::ReleaseGraphicsResources(
   vtkWindow *win)
 {
-  this->Actor->ReleaseGraphicsResources(win);
-  this->ActiveActor->ReleaseGraphicsResources(win);
+  Superclass::ReleaseGraphicsResources(win);
   this->LinesActor->ReleaseGraphicsResources(win);
 }
 
 //----------------------------------------------------------------------
-int vtkSlicerLineRepresentation::RenderOverlay(vtkViewport *viewport)
+int vtkSlicerLineRepresentation2D::RenderOverlay(vtkViewport *viewport)
 {
   int count=0;
-  if (this->Actor->GetVisibility())
-  {
-    count +=  this->Actor->RenderOverlay(viewport);
-  }
-  if (this->ActiveActor->GetVisibility())
-  {
-    count +=  this->ActiveActor->RenderOverlay(viewport);
-  }
+  count = Superclass::RenderOverlay(viewport);
   if (this->LinesActor->GetVisibility())
   {
     count +=  this->LinesActor->RenderOverlay(viewport);
@@ -239,7 +212,7 @@ int vtkSlicerLineRepresentation::RenderOverlay(vtkViewport *viewport)
 }
 
 //-----------------------------------------------------------------------------
-int vtkSlicerLineRepresentation::RenderOpaqueGeometry(
+int vtkSlicerLineRepresentation2D::RenderOpaqueGeometry(
   vtkViewport *viewport)
 {
   // Since we know RenderOpaqueGeometry gets called first, will do the
@@ -247,14 +220,7 @@ int vtkSlicerLineRepresentation::RenderOpaqueGeometry(
   this->BuildRepresentation();
 
   int count=0;
-  if (this->Actor->GetVisibility())
-  {
-    count += this->Actor->RenderOpaqueGeometry(viewport);
-  }
-  if (this->ActiveActor->GetVisibility())
-  {
-    count += this->ActiveActor->RenderOpaqueGeometry(viewport);
-  }
+  count = Superclass::RenderOpaqueGeometry(viewport);
   if (this->LinesActor->GetVisibility())
   {
     count += this->LinesActor->RenderOpaqueGeometry(viewport);
@@ -263,18 +229,11 @@ int vtkSlicerLineRepresentation::RenderOpaqueGeometry(
 }
 
 //-----------------------------------------------------------------------------
-int vtkSlicerLineRepresentation::RenderTranslucentPolygonalGeometry(
+int vtkSlicerLineRepresentation2D::RenderTranslucentPolygonalGeometry(
   vtkViewport *viewport)
 {
   int count=0;
-  if (this->Actor->GetVisibility())
-  {
-    count += this->Actor->RenderTranslucentPolygonalGeometry(viewport);
-  }
-  if (this->ActiveActor->GetVisibility())
-  {
-    count += this->ActiveActor->RenderTranslucentPolygonalGeometry(viewport);
-  }
+  count = Superclass::RenderTranslucentPolygonalGeometry(viewport);
   if (this->LinesActor->GetVisibility())
   {
     count += this->LinesActor->RenderTranslucentPolygonalGeometry(viewport);
@@ -283,17 +242,10 @@ int vtkSlicerLineRepresentation::RenderTranslucentPolygonalGeometry(
 }
 
 //-----------------------------------------------------------------------------
-vtkTypeBool vtkSlicerLineRepresentation::HasTranslucentPolygonalGeometry()
+vtkTypeBool vtkSlicerLineRepresentation2D::HasTranslucentPolygonalGeometry()
 {
   int result=0;
-  if (this->Actor->GetVisibility())
-  {
-    result |= this->Actor->HasTranslucentPolygonalGeometry();
-  }
-  if (this->ActiveActor->GetVisibility())
-  {
-    result |= this->ActiveActor->HasTranslucentPolygonalGeometry();
-  }
+  result |= Superclass::HasTranslucentPolygonalGeometry();
   if (this->LinesActor->GetVisibility())
   {
     result |= this->LinesActor->HasTranslucentPolygonalGeometry();
@@ -301,25 +253,16 @@ vtkTypeBool vtkSlicerLineRepresentation::HasTranslucentPolygonalGeometry()
   return result;
 }
 
-//----------------------------------------------------------------------------
-void vtkSlicerLineRepresentation::SetLineColor(
-  double r, double g, double b)
-{
-  if (this->GetLinesProperty())
-  {
-    this->GetLinesProperty()->SetColor(r, g, b);
-  }
-}
-
 //----------------------------------------------------------------------
-double *vtkSlicerLineRepresentation::GetBounds()
+double *vtkSlicerLineRepresentation2D::GetBounds()
 {
-  return this->Lines->GetPoints() ?
-              this->Lines->GetPoints()->GetBounds() : nullptr;
+  this->appendActors->Update();
+  return this->appendActors->GetOutput()->GetPoints() ?
+              this->appendActors->GetOutput()->GetBounds() : nullptr;
 }
 
 //-----------------------------------------------------------------------------
-void vtkSlicerLineRepresentation::PrintSelf(ostream& os, vtkIndent indent)
+void vtkSlicerLineRepresentation2D::PrintSelf(ostream& os, vtkIndent indent)
 {
   //Superclass typedef defined in vtkTypeMacro() found in vtkSetGet.h
   this->Superclass::PrintSelf(os, indent);
@@ -345,4 +288,3 @@ void vtkSlicerLineRepresentation::PrintSelf(ostream& os, vtkIndent indent)
   }
 
 }
-

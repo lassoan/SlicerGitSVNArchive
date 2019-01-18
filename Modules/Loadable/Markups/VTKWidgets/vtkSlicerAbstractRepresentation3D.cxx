@@ -696,13 +696,13 @@ int vtkSlicerAbstractRepresentation3D::ComputeInteractionState(int X, int Y, int
 void vtkSlicerAbstractRepresentation3D::WidgetInteraction(double eventPos[2])
 {
   // Process the motion
-  if (this->CurrentOperation == vtkSlicerAbstractRepresentation::Translate)
+  if (this->CurrentOperation == vtkSlicerAbstractRepresentation::Select)
     {
     this->TranslateNode(eventPos);
     }
-  else if (this->CurrentOperation == vtkSlicerAbstractRepresentation::Shift)
+  else if (this->CurrentOperation == vtkSlicerAbstractRepresentation::Translate)
     {
-    this->ShiftWidget(eventPos);
+    this->TranslateWidget(eventPos);
     }
   else if (this->CurrentOperation == vtkSlicerAbstractRepresentation::Scale)
     {
@@ -756,7 +756,7 @@ void vtkSlicerAbstractRepresentation3D::TranslateNode(double eventPos[2])
 }
 
 //----------------------------------------------------------------------
-void vtkSlicerAbstractRepresentation3D::ShiftWidget(double eventPos[2])
+void vtkSlicerAbstractRepresentation3D::TranslateWidget(double eventPos[2])
 {
   double ref[3] = {0.};
   double displayPos[2] = {0.};

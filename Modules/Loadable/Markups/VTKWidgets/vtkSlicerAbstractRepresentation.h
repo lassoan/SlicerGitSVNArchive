@@ -268,8 +268,8 @@ public:
   // Used to communicate about the operation of the representation
   enum {
     Inactive = 0,
+    Select,
     Translate,
-    Shift,
     Scale,
     Pick,
     Rotate
@@ -283,10 +283,10 @@ public:
                     vtkSlicerAbstractRepresentation::Rotate );
   void SetCurrentOperationToInactive()
     { this->SetCurrentOperation( vtkSlicerAbstractRepresentation::Inactive ); }
+  void SetCurrentOperationToSelect()
+    {this->SetCurrentOperation( vtkSlicerAbstractRepresentation::Select ); }
   void SetCurrentOperationToTranslate()
     { this->SetCurrentOperation( vtkSlicerAbstractRepresentation::Translate ); }
-  void SetCurrentOperationToShift()
-    {this->SetCurrentOperation( vtkSlicerAbstractRepresentation::Shift ); }
   void SetCurrentOperationToScale()
     {this->SetCurrentOperation( vtkSlicerAbstractRepresentation::Scale ); }
   void SetCurrentOperationToPick()

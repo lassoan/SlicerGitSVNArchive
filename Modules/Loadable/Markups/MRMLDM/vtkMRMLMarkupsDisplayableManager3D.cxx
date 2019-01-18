@@ -76,7 +76,6 @@ vtkStandardNewMacro (vtkMRMLMarkupsDisplayableManager3D);
 vtkMRMLMarkupsDisplayableManager3D::vtkMRMLMarkupsDisplayableManager3D()
 {
   this->Helper = vtkMRMLMarkupsDisplayableManagerHelper::New();
-  this->ClickCounter = vtkMRMLMarkupsClickCounter::New();
   this->DisableInteractorStyleEventsProcessing = 0;
 
   this->Focus = "vtkMRMLMarkupsNode";
@@ -94,7 +93,6 @@ vtkMRMLMarkupsDisplayableManager3D::~vtkMRMLMarkupsDisplayableManager3D()
   this->Focus = nullptr;
 
   this->Helper->Delete();
-  this->ClickCounter->Delete();
 }
 
 //---------------------------------------------------------------------------
@@ -141,43 +139,6 @@ void vtkMRMLMarkupsDisplayableManager3D::SetAndObserveNodes()
     {
     vtkMRMLMarkupsNode* markupsNode = vtkMRMLMarkupsNode::SafeDownCast((*it));
     this->SetAndObserveNode(markupsNode);
-    }
-}
-
-//---------------------------------------------------------------------------
-void vtkMRMLMarkupsDisplayableManager3D::AddObserversToInteractionNode()
-{
-  if (!this->GetMRMLScene())
-    {
-    return;
-    }
-  // also observe the interaction node for changes
-  vtkMRMLInteractionNode *interactionNode = this->GetInteractionNode();
-  if (interactionNode)
-    {
-    vtkDebugMacro("AddObserversToInteractionNode: interactionNode found");
-    vtkNew<vtkIntArray> interactionEvents;
-    interactionEvents->InsertNextValue(vtkMRMLInteractionNode::InteractionModeChangedEvent);
-    interactionEvents->InsertNextValue(vtkMRMLInteractionNode::InteractionModePersistenceChangedEvent);
-    interactionEvents->InsertNextValue(vtkMRMLInteractionNode::EndPlacementEvent);
-    vtkObserveMRMLNodeEventsMacro(interactionNode, interactionEvents.GetPointer());
-    }
-  else { vtkDebugMacro("AddObserversToInteractionNode: No interaction node!"); }
-}
-
-//---------------------------------------------------------------------------
-void vtkMRMLMarkupsDisplayableManager3D::RemoveObserversFromInteractionNode()
-{
-  if (!this->GetMRMLScene())
-    {
-    return;
-    }
-
-  // find the interaction node
-  vtkMRMLInteractionNode *interactionNode =  this->GetInteractionNode();
-  if (interactionNode)
-    {
-    vtkUnObserveMRMLNodeMacro(interactionNode);
     }
 }
 
@@ -268,7 +229,6 @@ void vtkMRMLMarkupsDisplayableManager3D::SetMRMLSceneInternal(vtkMRMLScene* newS
     this->RemoveObserversFromInteractionNode();
     }
   vtkDebugMacro("SetMRMLSceneInternal: add observer on interaction node now?");
-
 }
 
 //---------------------------------------------------------------------------
@@ -276,8 +236,8 @@ void vtkMRMLMarkupsDisplayableManager3D
 ::ProcessMRMLNodesEvents(vtkObject *caller,unsigned long event,void *callData)
 {
   vtkMRMLMarkupsNode * markupsNode = vtkMRMLMarkupsNode::SafeDownCast(caller);
-  vtkMRMLMarkupsDisplayNode *displayNode = vtkMRMLMarkupsDisplayNode::SafeDownCast(caller);
   vtkMRMLInteractionNode * interactionNode = vtkMRMLInteractionNode::SafeDownCast(caller);
+  vtkMRMLMarkupsDisplayNode *displayNode = vtkMRMLMarkupsDisplayNode::SafeDownCast(caller);
   int *nPtr = nullptr;
   int n = -1;
   if (callData != nullptr)
@@ -320,23 +280,13 @@ void vtkMRMLMarkupsDisplayableManager3D
         break;
       }
     }
-  else if (displayNode)
+  else if (displayNode && event == vtkCommand::ModifiedEvent)
     {
-    switch(event)
-      {
-      case vtkCommand::ModifiedEvent:
-        this->OnMRMLMarkupsDisplayNodeModifiedEvent(displayNode);
-        break;
-      }
+    this->OnMRMLMarkupsDisplayNodeModifiedEvent(displayNode);
     }
-  else if (interactionNode)
+  else if (interactionNode && event == vtkMRMLInteractionNode::InteractionModeChangedEvent)
     {
-    if (event == vtkMRMLInteractionNode::InteractionModeChangedEvent)
-      {
-      // always update lock if the mode changed, even if this isn't the displayable manager
-      // for the markups that is getting placed, but don't update locking on persistence changed event
-      this->Helper->UpdateLockedAllWidgetsFromInteractionNode(interactionNode);
-      }
+    this->Helper->UpdateAllWidgetsFromInteractionNode(interactionNode);
     }
   else
     {
@@ -390,14 +340,6 @@ void vtkMRMLMarkupsDisplayableManager3D::OnMRMLSceneNodeAdded(vtkMRMLNode* node)
     return;
     }
 
-  if (!node->IsA(this->Focus))
-    {
-    // jump out
-    vtkDebugMacro("OnMRMLSceneNodeAddedEvent: Not the correct displayableManager for node " << node->GetID() << ", jumping out!")
-    this->ClickCounter->Reset();
-    return;
-    }
-
   vtkMRMLMarkupsNode * markupsNode = vtkMRMLMarkupsNode::SafeDownCast(node);
   if (!markupsNode)
     {
@@ -440,11 +382,6 @@ void vtkMRMLMarkupsDisplayableManager3D::OnMRMLSceneNodeAdded(vtkMRMLNode* node)
     vtkDebugMacro("OnMRMLSceneNodeAddedEvent: widget was created, saved to helper Widgets map");
     }
 
-  // tear down widget creation
-  //this->OnWidgetCreated(newWidget, markupsNode);
-
-  vtkMRMLInteractionNode *interactionNode = this->GetInteractionNode();
-  this->Helper->UpdateLockedAllWidgetsFromInteractionNode(interactionNode);
   this->RequestRender();
 }
 
@@ -753,7 +690,7 @@ void vtkMRMLMarkupsDisplayableManager3D::OnMRMLMarkupsNodeLockModifiedEvent(vtkM
     return;
     }
   // Update the standard settings of all widgets.
-  this->Helper->UpdateLocked(markupsNode, this->GetInteractionNode());
+  this->Helper->UpdateLocked(markupsNode);
 }
 
 //---------------------------------------------------------------------------
@@ -858,18 +795,49 @@ void vtkMRMLMarkupsDisplayableManager3D::OnInteractorStyleEvent(int eventid)
     {
     // if we're in persistent place mode, go back to view transform mode, but
     // leave the persistent flag on
-    // Note: this is currently only implemented in 3D as the right click is used
-    // in ctkQImageView for zooming.
     if (this->GetInteractionNode()->GetCurrentInteractionMode() == vtkMRMLInteractionNode::Place &&
         this->GetInteractionNode()->GetPlaceModePersistence() == 1)
       {
       this->GetInteractionNode()->SwitchToViewTransformMode();
+      this->OnClickInRenderWindowGetCoordinates();
       }
     }
-  else
+}
+
+//---------------------------------------------------------------------------
+void vtkMRMLMarkupsDisplayableManager3D::AddObserversToInteractionNode()
+{
+  if (!this->GetMRMLScene())
     {
-    //vtkWarningMacro("OnInteractorStyleEvent: unhandled event " << eventid);
-    //std::cout << "Markups DisplayableManager: OnInteractorStyleEvent: unhandled event " << eventid << std::endl;
+    return;
+    }
+  // also observe the interaction node for changes
+  vtkMRMLInteractionNode *interactionNode = this->GetInteractionNode();
+  if (interactionNode)
+    {
+    vtkDebugMacro("AddObserversToInteractionNode: interactionNode found");
+    vtkNew<vtkIntArray> interactionEvents;
+    interactionEvents->InsertNextValue(vtkMRMLInteractionNode::InteractionModeChangedEvent);
+    interactionEvents->InsertNextValue(vtkMRMLInteractionNode::InteractionModePersistenceChangedEvent);
+    interactionEvents->InsertNextValue(vtkMRMLInteractionNode::EndPlacementEvent);
+    vtkObserveMRMLNodeEventsMacro(interactionNode, interactionEvents.GetPointer());
+    }
+  else { vtkDebugMacro("AddObserversToInteractionNode: No interaction node!"); }
+}
+
+//---------------------------------------------------------------------------
+void vtkMRMLMarkupsDisplayableManager3D::RemoveObserversFromInteractionNode()
+{
+  if (!this->GetMRMLScene())
+    {
+    return;
+    }
+
+  // find the interaction node
+  vtkMRMLInteractionNode *interactionNode =  this->GetInteractionNode();
+  if (interactionNode)
+    {
+    vtkUnObserveMRMLNodeMacro(interactionNode);
     }
 }
 
@@ -967,7 +935,7 @@ void vtkMRMLMarkupsDisplayableManager3D::OnClickInRenderWindowGetCoordinates()
     vtkDebugMacro("associatedNodeID set to " << (associatedNodeID ? associatedNodeID : "NULL"));
     this->OnClickInRenderWindow(x, y, associatedNodeID);
     //this->Helper->UpdateLockedAllWidgetsFromNodes();
-    }
+  }
 }
 
 //---------------------------------------------------------------------------

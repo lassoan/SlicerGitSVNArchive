@@ -338,27 +338,47 @@ int vtkSlicerAbstractRepresentation::ActivateNode(double displayPos[2])
   // a percentage (this->Tolerance) of the size of the window diagonal
   double dPos[3] = {displayPos[0],displayPos[1],0};
 
-  double *viewport = this->GetRenderer()->GetViewport();
-  int winSize[2] = {1, 1};
-  double x1, y1, x2, y2;
+  double p1[4], p2[4];
+  this->Renderer->GetActiveCamera()->GetFocalPoint( p1 );
+  p1[3] = 1.0;
+  this->Renderer->SetWorldPoint( p1 );
+  this->Renderer->WorldToView();
+  this->Renderer->GetViewPoint( p1 );
 
-  if (this->GetRenderer()->GetRenderWindow())
-    {
-    int *winSizePtr = this->GetRenderer()->GetRenderWindow()->GetSize();
-    if (winSizePtr)
-      {
-      winSize[0] = winSizePtr[0];
-      winSize[1] = winSizePtr[1];
-      }
-    }
-  x1 = winSize[0] * viewport[0];
-  y1 = winSize[1] * viewport[1];
+  double depth = p1[2];
+  double aspect[2];
+  this->Renderer->ComputeAspect();
+  this->Renderer->GetAspect( aspect );
 
-  x2 = winSize[0] * viewport[2];
-  y2 = winSize[1] * viewport[3];
+  p1[0] = -aspect[0];
+  p1[1] = -aspect[1];
+  this->Renderer->SetViewPoint( p1 );
+  this->Renderer->ViewToWorld();
+  this->Renderer->GetWorldPoint( p1 );
 
-  this->PixelTolerance = sqrt ((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2))
-                         * this->Tolerance * 10.;
+  p2[0] = aspect[0];
+  p2[1] = aspect[1];
+  p2[2] = depth;
+  p2[3] = 1.0;
+  this->Renderer->SetViewPoint( p2 );
+  this->Renderer->ViewToWorld();
+  this->Renderer->GetWorldPoint( p2 );
+
+  double distance = sqrt( vtkMath::Distance2BetweenPoints( p1, p2 ) );
+
+  int *size = this->Renderer->GetRenderWindow()->GetSize();
+  double viewport[4];
+  this->Renderer->GetViewport(viewport);
+
+  double x, y, scale;
+
+  x = size[0] * ( viewport[2] - viewport[0] );
+  y = size[1] * ( viewport[3] - viewport[1] );
+
+  scale = sqrt( x * x + y * y );
+  distance = scale / distance;
+
+  this->PixelTolerance = distance * this->HandleSize * this->Tolerance  * 500.;
 
   double closestDistance2 = VTK_DOUBLE_MAX;
   int closestNode = static_cast<int> (this->Locator->FindClosestPointWithinRadius(
@@ -1127,7 +1147,19 @@ int vtkSlicerAbstractRepresentation::DeleteActiveNode()
 //----------------------------------------------------------------------
 int vtkSlicerAbstractRepresentation::DeleteLastNode()
 {
-  return this->DeleteNthNode( this->GetNumberOfNodes() - 1 );
+  if ( !this->MarkupsNode )
+    {
+    return 0;
+    }
+
+  this->MarkupsNode->DisableModifiedEventOn();
+  this->MarkupsNode->RemoveLastControlPoint( );
+  this->MarkupsNode->DisableModifiedEventOff();
+
+  this->UpdateLines( this->GetNumberOfNodes() );
+
+  this->NeedToRender = 1;
+  return 1;
 }
 
 //----------------------------------------------------------------------

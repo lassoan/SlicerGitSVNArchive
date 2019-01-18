@@ -528,14 +528,7 @@ int vtkMRMLMarkupsFiducialDisplayableManager2D::AddControlPoint(vtkMRMLMarkupsFi
     return -1;
     }
 
-  vtkMRMLInteractionNode *interactionNode = this->GetInteractionNode();
-  bool persistence = false;
-  if (interactionNode && interactionNode->GetPlaceModePersistence() == 1 &&
-      interactionNode->GetCurrentInteractionMode() == vtkMRMLInteractionNode::Place)
-    {
-    persistence = true;
-    }
-  slicerWidget->AddPointToRepresentationFromWorldCoordinate(worldCoordinates, persistence);
+  slicerWidget->AddPointToRepresentationFromWorldCoordinate(worldCoordinates);
 
   return markupsNode->GetNumberOfFiducials() - 1;
 }

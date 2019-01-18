@@ -22,6 +22,7 @@
 #include "vtkMRMLMarkupsDisplayNode.h"
 #include "vtkMRMLMarkupsFiducialNode.h"
 #include "vtkMRMLMarkupsFiducialStorageNode.h"
+#include "vtkMRMLMarkupsLineNode.h"
 #include "vtkMRMLMarkupsNode.h"
 #include "vtkMRMLMarkupsStorageNode.h"
 
@@ -173,6 +174,7 @@ void vtkSlicerMarkupsLogic::RegisterNodes()
   // Nodes
   scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLMarkupsNode>::New());
   scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLMarkupsFiducialNode>::New());
+  scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLMarkupsLineNode>::New());
 
   // Display nodes
   scene->RegisterNodeClass(vtkSmartPointer<vtkMRMLMarkupsDisplayNode>::New());

@@ -532,7 +532,7 @@ void vtkSlicerAbstractRepresentation2D::RegisterPickers()
 }
 
 //----------------------------------------------------------------------
-int vtkSlicerAbstractRepresentation2D::GetNthNodeSliceDisplayPosition(int n, double slicePos[2])
+int vtkSlicerAbstractRepresentation2D::GetNthNodeDisplayPosition(int n, double slicePos[2])
 {
   if ( !this->NodeExists(n) || !this->SliceNode )
     {
@@ -558,7 +558,7 @@ int vtkSlicerAbstractRepresentation2D::GetNthNodeSliceDisplayPosition(int n, dou
 }
 
 //----------------------------------------------------------------------
-int vtkSlicerAbstractRepresentation2D::SetNthNodeSliceDisplayPosition(int n, double slicePos[2])
+int vtkSlicerAbstractRepresentation2D::SetNthNodeDisplayPosition(int n, double slicePos[2])
 {
   if ( !this->NodeExists(n) )
     {
@@ -574,33 +574,13 @@ int vtkSlicerAbstractRepresentation2D::SetNthNodeSliceDisplayPosition(int n, dou
 }
 
 //----------------------------------------------------------------------
-int vtkSlicerAbstractRepresentation2D::AddNodeAtSliceDisplayPosition( double slicePos[2] )
+int vtkSlicerAbstractRepresentation2D::AddNodeAtDisplayPosition( double slicePos[2] )
 {
   double worldPos[3];
 
   this->GetSliceToWorldCoordinates( slicePos, worldPos );
   this->AddNodeAtPositionInternal( worldPos );
 
-  return 1;
-}
-
-//----------------------------------------------------------------------
-int vtkSlicerAbstractRepresentation2D::DeleteNthNode(int n)
-{
-  if ( !this->MarkupsNode || !this->NodeExists(n) )
-    {
-    return 0;
-    }
-
-  this->MarkupsNode->DisableModifiedEventOn();
-  this->MarkupsNode->RemoveNthControlPoint( n );
-  this->MarkupsNode->DisableModifiedEventOff();
-
-  this->UpdateLines(n-1);
-
-  this->pointsVisibilityOnSlice->RemoveTuple(n);
-
-  this->NeedToRender = 1;
   return 1;
 }
 
@@ -630,7 +610,7 @@ void vtkSlicerAbstractRepresentation2D::BuildLocator()
   double pos[3] = {0,0,0};
   for( int i = 0; i < size; i++ )
     {
-    this->GetNthNodeSliceDisplayPosition( i, pos );
+    this->GetNthNodeDisplayPosition( i, pos );
     points->InsertPoint( i,pos );
     }
 
@@ -776,7 +756,7 @@ void vtkSlicerAbstractRepresentation2D::BuildRepresentation()
       }
 
     double slicePos[2] = {0}, worldOrient[9] = {0}, orientation[4] = {0};
-    this->GetNthNodeSliceDisplayPosition( ii, slicePos );
+    this->GetNthNodeDisplayPosition( ii, slicePos );
     bool skipPoint = false;
     for (int jj = 0; jj < this->FocalPoint->GetNumberOfPoints(); jj++ )
       {
@@ -841,7 +821,7 @@ void vtkSlicerAbstractRepresentation2D::BuildRepresentation()
       }
 
     double slicePos[3] = {0}, worldOrient[9] = {0}, orientation[4] = {0};
-    this->GetNthNodeSliceDisplayPosition( ii, slicePos );
+    this->GetNthNodeDisplayPosition( ii, slicePos );
     bool skipPoint = false;
     for (int jj = 0; jj < this->SelectedFocalPoint->GetNumberOfPoints(); jj++ )
       {
@@ -893,7 +873,7 @@ void vtkSlicerAbstractRepresentation2D::BuildRepresentation()
     {
     double slicePos[2] = {0}, worldOrient[9] = {0}, orientation[4] = {0};
 
-    this->GetNthNodeSliceDisplayPosition( this->GetActiveNode(), slicePos );
+    this->GetNthNodeDisplayPosition( this->GetActiveNode(), slicePos );
     this->ActiveFocalPoint->SetPoint( 0, slicePos );
 
     this->Renderer->SetDisplayPoint(slicePos);
@@ -952,13 +932,13 @@ int vtkSlicerAbstractRepresentation2D::ComputeInteractionState(int X, int Y, int
 void vtkSlicerAbstractRepresentation2D::WidgetInteraction(double eventPos[2])
 {
   // Process the motion
-  if (this->CurrentOperation == vtkSlicerAbstractRepresentation::Translate)
+  if (this->CurrentOperation == vtkSlicerAbstractRepresentation::Select)
     {
     this->TranslateNode(eventPos);
     }
-  else if (this->CurrentOperation == vtkSlicerAbstractRepresentation::Shift)
+  else if (this->CurrentOperation == vtkSlicerAbstractRepresentation::Translate)
     {
-    this->ShiftWidget(eventPos);
+    this->TranslateWidget(eventPos);
     }
   else if (this->CurrentOperation == vtkSlicerAbstractRepresentation::Scale)
     {
@@ -998,7 +978,7 @@ void vtkSlicerAbstractRepresentation2D::TranslateNode(double eventPos[2])
 }
 
 //----------------------------------------------------------------------
-void vtkSlicerAbstractRepresentation2D::ShiftWidget(double eventPos[2])
+void vtkSlicerAbstractRepresentation2D::TranslateWidget(double eventPos[2])
 {
   double ref[3] = {0.};
   double slicePos[2] = {0.};
