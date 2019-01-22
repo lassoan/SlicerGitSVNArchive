@@ -49,8 +49,6 @@ vtkMRMLMarkupsFiducialNode::~vtkMRMLMarkupsFiducialNode()
 void vtkMRMLMarkupsFiducialNode::WriteXML(ostream& of, int nIndent)
 {
   Superclass::WriteXML(of,nIndent);
-
-  //of << " locked=\"" << this->Locked << "\"";
 }
 
 //----------------------------------------------------------------------------

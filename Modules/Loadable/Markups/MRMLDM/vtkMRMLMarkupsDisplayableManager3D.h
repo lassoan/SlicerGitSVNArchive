@@ -45,10 +45,6 @@ public:
   vtkTypeMacro(vtkMRMLMarkupsDisplayableManager3D, vtkMRMLAbstractThreeDViewDisplayableManager);
   void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
 
-  /// Hide/Show a widget so that the node's display node visibility setting
-  /// matches that of the widget
-  void UpdateWidgetVisibility(vtkMRMLMarkupsNode* node);
-
   /// Check if there are real changes between two sets of displayCoordinates
   bool GetDisplayCoordinatesChanged(double * displayCoordinates1, double * displayCoordinates2);
 

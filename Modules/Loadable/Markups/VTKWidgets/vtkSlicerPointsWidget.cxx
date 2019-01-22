@@ -36,6 +36,10 @@ vtkStandardNewMacro(vtkSlicerPointsWidget);
 //----------------------------------------------------------------------
 vtkSlicerPointsWidget::vtkSlicerPointsWidget()
 {
+  this->CallbackMapper->SetCallbackMethod(vtkCommand::MouseMoveEvent,
+                                          vtkWidgetEvent::Move,
+                                          this, vtkSlicerPointsWidget::MoveAction);
+
 }
 
 //----------------------------------------------------------------------
@@ -105,5 +109,60 @@ void vtkSlicerPointsWidget::AddPointToRepresentationFromWorldCoordinate(double w
   if ( this->FollowCursor )
     {
     rep->AddNodeAtWorldPosition( worldCoordinates );
+    }
+}
+
+//-------------------------------------------------------------------------
+void vtkSlicerPointsWidget::MoveAction( vtkAbstractWidget *w )
+{
+  vtkSlicerPointsWidget *self = reinterpret_cast<vtkSlicerPointsWidget*>(w);
+  vtkSlicerAbstractRepresentation *rep =
+    reinterpret_cast<vtkSlicerAbstractRepresentation*>(self->WidgetRep);
+
+  if ( self->WidgetState == vtkSlicerPointsWidget::Start ||
+       !rep )
+    {
+    return;
+    }
+
+  int X = self->Interactor->GetEventPosition()[0];
+  int Y = self->Interactor->GetEventPosition()[1];
+
+  if ( self->WidgetState == vtkSlicerPointsWidget::Define &&
+       self->FollowCursor && rep->GetNumberOfNodes() > 0)
+    {
+    rep->SetNthNodeDisplayPosition( rep->GetNumberOfNodes()-1, X, Y );
+    }
+
+  if (self->WidgetState == vtkSlicerPointsWidget::Manipulate)
+    {
+    if ( rep->GetCurrentOperation() == vtkSlicerAbstractRepresentation::Inactive )
+      {
+      int active = rep->ActivateNode( X, Y );
+      self->SetCursor( active );
+      if ( active )
+        {
+        self->CurrentHandle = rep->GetActiveNode();
+        self->InvokeEvent( vtkCommand::InteractionEvent, &self->CurrentHandle );
+        }
+      }
+    else if ( rep->GetInteractionState() != vtkSlicerAbstractRepresentation::Outside )
+      {
+      double pos[2];
+      pos[0] = X;
+      pos[1] = Y;
+      rep->WidgetInteraction( pos );
+      if ( rep->GetCurrentOperation() != vtkSlicerAbstractRepresentation::Pick )
+        {
+        self->CurrentHandle = rep->GetActiveNode();
+        self->InvokeEvent( vtkCommand::InteractionEvent, &self->CurrentHandle );
+        }
+      }
+    }
+
+  if ( rep->GetNeedToRender() )
+    {
+    self->Render();
+    rep->NeedToRenderOff();
     }
 }

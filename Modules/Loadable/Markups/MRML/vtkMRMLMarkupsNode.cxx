@@ -53,6 +53,7 @@ vtkMRMLMarkupsNode::vtkMRMLMarkupsNode()
   this->MarkupLabelFormat = std::string("%N-%d");
   this->LastUsedControlPointNumber = 0;
   this->ActiveControlPoint = -1;
+  this->PlacingEnded = false;
 }
 
 //----------------------------------------------------------------------------
@@ -480,7 +481,14 @@ void vtkMRMLMarkupsNode::InitControlPoint(ControlPoint *controlPoint)
 
 //-----------------------------------------------------------
 int vtkMRMLMarkupsNode::AddControlPoint(ControlPoint *controlPoint)
-{
+{  
+  if ( this->MaximumNumberOfControlPoints != 0 &&
+       this->GetNumberOfControlPoints() + 1 > this->MaximumNumberOfControlPoints )
+    {
+    vtkErrorMacro("AddNControlPoints: number of points major than maximum number of control points allowed.");
+    return -1;
+    }
+
   this->ControlPoints.push_back(controlPoint);
   this->LastUsedControlPointNumber++;
 
@@ -501,17 +509,25 @@ int vtkMRMLMarkupsNode::AddNControlPoints(int n, std::string label /*=std::strin
     return controlPointIndex;
     }
 
-   for (int i = 0; i < n; i++)
-     {
-     ControlPoint *controlPoint = new ControlPoint;
-     controlPoint->Label = label;
-     this->InitControlPoint(controlPoint);
-     if (point != nullptr)
-       {
-       controlPoint->WorldPosition.Set(point->GetX(), point->GetY(), point->GetZ());
-       }
-     controlPointIndex = this->AddControlPoint(controlPoint);
-     }
+  if ( this->MaximumNumberOfControlPoints != 0 &&  n > this->MaximumNumberOfControlPoints )
+    {
+    vtkErrorMacro("AddNControlPoints: number of points " << n <<
+                  " major than maximum number of control points allowed : " << this->MaximumNumberOfControlPoints);
+    return controlPointIndex;
+    }
+
+  for (int i = 0; i < n; i++)
+    {
+    ControlPoint *controlPoint = new ControlPoint;
+    controlPoint->Label = label;
+    this->InitControlPoint(controlPoint);
+    if (point != nullptr)
+      {
+      controlPoint->WorldPosition.Set(point->GetX(), point->GetY(), point->GetZ());
+      }
+    controlPointIndex = this->AddControlPoint(controlPoint);
+    }
+
   return controlPointIndex;
 }
 

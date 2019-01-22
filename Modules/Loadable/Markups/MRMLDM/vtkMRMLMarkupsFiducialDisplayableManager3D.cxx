@@ -211,10 +211,8 @@ vtkSlicerAbstractWidget * vtkMRMLMarkupsFiducialDisplayableManager3D::CreateWidg
     }
 
   vtkMRMLMarkupsFiducialNode* fiducialNode = vtkMRMLMarkupsFiducialNode::SafeDownCast(node);
-
   if (!fiducialNode)
     {
-    vtkErrorMacro("CreateWidget: Could not get fiducial node!")
     return nullptr;
     }
 
@@ -237,6 +235,18 @@ vtkSlicerAbstractWidget * vtkMRMLMarkupsFiducialDisplayableManager3D::CreateWidg
   slicerPointsWidget->SetInteractor(this->GetInteractor());
   slicerPointsWidget->SetCurrentRenderer(this->GetRenderer());
   slicerPointsWidget->On();
+  vtkMRMLInteractionNode *interactionNode = this->GetInteractionNode();
+  if (interactionNode)
+    {
+    if (interactionNode->GetCurrentInteractionMode() == vtkMRMLInteractionNode::Place)
+      {
+      slicerPointsWidget->SetManagesCursor(false);
+      }
+    else
+      {
+      slicerPointsWidget->SetManagesCursor(true);
+      }
+    }
   vtkDebugMacro("Fids CreateWidget: Created widget for node " << fiducialNode->GetID() << " with a representation");
 
   // Add the Representation
@@ -350,7 +360,6 @@ void vtkMRMLMarkupsFiducialDisplayableManager3D::OnClickInRenderWindow(double x,
 
   // Is there an active markups node that's a fiducial node?
   vtkMRMLMarkupsFiducialNode *activeFiducialNode = nullptr;
-
   vtkMRMLSelectionNode *selectionNode = this->GetSelectionNode();
   if (selectionNode)
     {
@@ -371,13 +380,15 @@ void vtkMRMLMarkupsFiducialDisplayableManager3D::OnClickInRenderWindow(double x,
       }
     }
 
-  bool newNode = false;
   if (!activeFiducialNode)
     {
-    newNode = true;
     // create the MRML node
-    activeFiducialNode = vtkMRMLMarkupsFiducialNode::New();
-    activeFiducialNode->SetName("F");
+    activeFiducialNode = vtkMRMLMarkupsFiducialNode::SafeDownCast
+      (this->GetMRMLScene()->AddNewNodeByClass("vtkMRMLMarkupsFiducialNode"));
+    activeFiducialNode->SetName(this->GetMRMLScene()->GetUniqueNameByString("F"));
+    activeFiducialNode->AddDefaultStorageNode();
+    activeFiducialNode->CreateDefaultDisplayNodes();
+    selectionNode->SetActivePlaceNodeID(activeFiducialNode->GetID());
     }
 
   // if this was a one time place, go back to view transform mode
@@ -392,41 +403,15 @@ void vtkMRMLMarkupsFiducialDisplayableManager3D::OnClickInRenderWindow(double x,
   // interaction node so that don't end up back in place mode
   this->GetMRMLScene()->SaveStateForUndo();
 
-  int fiducialIndex = 0;
-  if (newNode)
-    {
-    // create a display node and add node and display node to scene
-    vtkMRMLMarkupsDisplayNode *displayNode = vtkMRMLMarkupsDisplayNode::New();
-    this->GetMRMLScene()->AddNode(displayNode);
-    // let the logic know that it needs to set it to defaults
-    displayNode->InvokeEvent(vtkMRMLMarkupsDisplayNode::ResetToDefaultsEvent);
-
-    activeFiducialNode->AddAndObserveDisplayNodeID(displayNode->GetID());
-    this->GetMRMLScene()->AddNode(activeFiducialNode);
-
-    // save it as the active markups list
-    if (selectionNode)
-      {
-      selectionNode->SetActivePlaceNodeID(activeFiducialNode->GetID());
-      }
-
-    // Add Control Point
-    fiducialIndex = this->AddControlPoint(activeFiducialNode, worldCoordinates);
-
-    // clean up
-    displayNode->Delete();
-    activeFiducialNode->Delete();
-    }
-  else
-    {
-    fiducialIndex = this->AddControlPoint(activeFiducialNode, worldCoordinates);
-    }
-
+  int pointIndex = this->AddControlPoint(activeFiducialNode, worldCoordinates);
   // is there a node associated with this?
   if (associatedNodeID)
     {
-    activeFiducialNode->SetNthFiducialAssociatedNodeID(fiducialIndex, associatedNodeID);
+    activeFiducialNode->SetNthFiducialAssociatedNodeID(pointIndex, associatedNodeID);
     }
+
+  // force update of widgets on other views
+  activeFiducialNode->GetMarkupsDisplayNode()->Modified();
 }
 
 //---------------------------------------------------------------------------

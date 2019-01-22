@@ -36,7 +36,9 @@ vtkMRMLNodeNewMacro(vtkMRMLMarkupsLineNode);
 //----------------------------------------------------------------------------
 vtkMRMLMarkupsLineNode::vtkMRMLMarkupsLineNode()
 {
-
+  // maximum number of control points
+  // 3 so we can have one point to use for the follow cursor option
+  this->SetMaximumNumberOfControlPoints(3);
 }
 
 //----------------------------------------------------------------------------
@@ -49,8 +51,6 @@ vtkMRMLMarkupsLineNode::~vtkMRMLMarkupsLineNode()
 void vtkMRMLMarkupsLineNode::WriteXML(ostream& of, int nIndent)
 {
   Superclass::WriteXML(of,nIndent);
-
-  //of << " locked=\"" << this->Locked << "\"";
 }
 
 //----------------------------------------------------------------------------
@@ -184,11 +184,6 @@ int vtkMRMLMarkupsLineNode::AddPoint(double x, double y, double z)
 //-------------------------------------------------------------------------
 int vtkMRMLMarkupsLineNode::AddPoint(double x, double y, double z, std::string label)
 {
-  if (this->GetNumberOfPoints() >= 2)
-    {
-    return -1;
-    }
-
   vtkVector3d point;
   point.Set(x, y, z);
   return this->AddControlPoint(point, label);

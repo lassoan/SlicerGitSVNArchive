@@ -40,6 +40,7 @@ class vtkAppendPolyData;
 class vtkOpenGLPolyDataMapper2D;
 class vtkPolyData;
 class vtkProperty2D;
+class vtkTubeFilter;
 
 class VTK_SLICER_MARKUPS_MODULE_VTKWIDGETS_EXPORT vtkSlicerLineRepresentation2D : public vtkSlicerAbstractRepresentation2D
 {
@@ -51,18 +52,11 @@ public:
   vtkTypeMacro(vtkSlicerLineRepresentation2D,vtkSlicerAbstractRepresentation2D);
   void PrintSelf(ostream& os, vtkIndent indent) override;
 
-  /// This is the property used by the line is not active
-  /// (the mouse is not near the line)
-  vtkGetObjectMacro(LinesProperty,vtkProperty2D);
-
-  /// This is the property used when the user is interacting
-  /// with the line.
-  vtkGetObjectMacro(ActiveLinesProperty,vtkProperty2D);
-
   /// Subclasses of vtkContourCurveRepresentation must implement these methods. These
   /// are the methods that the widget and its representation use to
   /// communicate with each other.
-  void Highlight(int highlight) override;
+  void BuildRepresentation() VTK_OVERRIDE;
+  int ComputeInteractionState(int X, int Y, int modified=0) VTK_OVERRIDE;
 
   /// Methods to make this class behave as a vtkProp.
   void GetActors(vtkPropCollection *) override;
@@ -75,7 +69,10 @@ public:
   /// Set/Get the three leaders used to create this representation.
   /// By obtaining these leaders the user can set the appropriate
   /// properties, etc.
-  vtkGetObjectMacro(LinesActor,vtkActor2D);
+  vtkGetObjectMacro(LineActor,vtkActor2D);
+
+  /// Register internal Pickers within PickingManager
+  void RegisterPickers() VTK_OVERRIDE;
 
   /// Get the points in this contour as a vtkPolyData.
   vtkPolyData *GetWidgetRepresentationAsPolyData() override;
@@ -87,17 +84,17 @@ protected:
   vtkSlicerLineRepresentation2D();
   ~vtkSlicerLineRepresentation2D() override;
 
-  vtkPolyData                  *Lines;
-  vtkOpenGLPolyDataMapper2D    *LinesMapper;
-  vtkActor2D                   *LinesActor;
-  virtual void                 CreateDefaultProperties();
+  vtkPolyData                  *Line;
+  vtkOpenGLPolyDataMapper2D    *LineMapper;
+  vtkActor2D                   *LineActor;
 
-  vtkProperty2D   *LinesProperty;
-  vtkProperty2D   *ActiveLinesProperty;
+  vtkTubeFilter  *TubeFilter;
 
   virtual void BuildLines() override;
 
   vtkAppendPolyData *appendActors;
+
+  vtkPropPicker *LinePicker;
 
 private:
   vtkSlicerLineRepresentation2D(const vtkSlicerLineRepresentation2D&) = delete;

@@ -39,7 +39,7 @@ class vtkAppendPolyData;
 class vtkOpenGLActor;
 class vtkOpenGLPolyDataMapper;
 class vtkPolyData;
-class vtkProperty;
+class vtkTubeFilter;
 
 class VTK_SLICER_MARKUPS_MODULE_VTKWIDGETS_EXPORT vtkSlicerLineRepresentation3D : public vtkSlicerAbstractRepresentation3D
 {
@@ -51,18 +51,19 @@ public:
   vtkTypeMacro(vtkSlicerLineRepresentation3D,vtkSlicerAbstractRepresentation3D);
   void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
 
-  /// This is the property used by the line is not active
-  /// (the mouse is not near the line)
-  vtkGetObjectMacro(LinesProperty,vtkProperty);
+  /// Specify tolerance for performing pick operation. Tolerance is specified
+  /// as fraction of rendering window size. (Rendering window size is measured
+  /// across diagonal in display pixel coordinates)
+  void SetTolerance(double tol) VTK_OVERRIDE;
 
-  /// This is the property used when the user is interacting
-  /// with the line.
-  vtkGetObjectMacro(ActiveLinesProperty,vtkProperty);
+  /// Register internal Pickers within PickingManager
+  void RegisterPickers() VTK_OVERRIDE;
 
   /// Subclasses of vtkSlicerAbstractRepresentation must implement these methods. These
   /// are the methods that the widget and its representation use to
   /// communicate with each other.
-  void Highlight(int highlight) VTK_OVERRIDE;
+  void BuildRepresentation() VTK_OVERRIDE;
+  int ComputeInteractionState(int X, int Y, int modified=0) VTK_OVERRIDE;
 
   /// Methods to make this class behave as a vtkProp.
   void GetActors(vtkPropCollection *) VTK_OVERRIDE;
@@ -75,7 +76,7 @@ public:
   /// Set/Get the three leaders used to create this representation.
   /// By obtaining these leaders the user can set the appropriate
   /// properties, etc.
-  vtkGetObjectMacro(LinesActor,vtkOpenGLActor);
+  vtkGetObjectMacro(LineActor,vtkOpenGLActor);
 
   /// Get the points in this contour as a vtkPolyData.
   vtkPolyData *GetWidgetRepresentationAsPolyData() VTK_OVERRIDE;
@@ -87,17 +88,21 @@ protected:
   vtkSlicerLineRepresentation3D();
   ~vtkSlicerLineRepresentation3D() VTK_OVERRIDE;
 
-  vtkPolyData                *Lines;
-  vtkOpenGLPolyDataMapper    *LinesMapper;
-  vtkOpenGLActor             *LinesActor;
-  virtual void         CreateDefaultProperties();
+  vtkPolyData                *Line;
+  vtkOpenGLPolyDataMapper    *LineMapper;
+  vtkOpenGLActor             *LineActor;
 
-  vtkProperty   *LinesProperty;
-  vtkProperty   *ActiveLinesProperty;
+  vtkTubeFilter  *TubeFilter;
 
   virtual void BuildLines() VTK_OVERRIDE;
 
   vtkAppendPolyData *appendActors;
+
+  // Support picking of the line
+  // Using a vtkPropPicker will be faster (harware accelerated),
+  // however it produces very bad flickering of the rendering for the 3D.
+  // 2D representations use the vtkPropPicker
+  vtkCellPicker *LinePicker;
 
 private:
   vtkSlicerLineRepresentation3D(const vtkSlicerLineRepresentation3D&) = delete;

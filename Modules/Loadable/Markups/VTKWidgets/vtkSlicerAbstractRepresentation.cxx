@@ -142,9 +142,6 @@ vtkSlicerAbstractRepresentation::vtkSlicerAbstractRepresentation()
   this->ActiveFocalData->GetPointData()->SetNormals(activeNormals);
   activeNormals->Delete();
 
-  this->InteractionOffset[0] = 0.0;
-  this->InteractionOffset[1] = 0.0;
-
   this->AlwaysOnTop = 0;
 
   this->RestrictFlag = RestrictNone;
@@ -184,6 +181,50 @@ void vtkSlicerAbstractRepresentation::ResetLocator()
   this->Locator = vtkIncrementalOctreePointLocator::New();
   this->Locator->SetBuildCubicOctree(1);
   this->RebuildLocator = true;
+}
+
+//----------------------------------------------------------------------
+double vtkSlicerAbstractRepresentation::CalculateViewScaleFactor()
+{
+  double p1[4], p2[4];
+  this->Renderer->GetActiveCamera()->GetFocalPoint( p1 );
+  p1[3] = 1.0;
+  this->Renderer->SetWorldPoint( p1 );
+  this->Renderer->WorldToView();
+  this->Renderer->GetViewPoint( p1 );
+
+  double depth = p1[2];
+  double aspect[2];
+  this->Renderer->ComputeAspect();
+  this->Renderer->GetAspect( aspect );
+
+  p1[0] = -aspect[0];
+  p1[1] = -aspect[1];
+  this->Renderer->SetViewPoint( p1 );
+  this->Renderer->ViewToWorld();
+  this->Renderer->GetWorldPoint( p1 );
+
+  p2[0] = aspect[0];
+  p2[1] = aspect[1];
+  p2[2] = depth;
+  p2[3] = 1.0;
+  this->Renderer->SetViewPoint( p2 );
+  this->Renderer->ViewToWorld();
+  this->Renderer->GetWorldPoint( p2 );
+
+  double distance = sqrt( vtkMath::Distance2BetweenPoints( p1, p2 ) );
+
+  int *size = this->Renderer->GetRenderWindow()->GetSize();
+  double viewport[4];
+  this->Renderer->GetViewport(viewport);
+
+  double x, y, distance2;
+
+  x = size[0] * ( viewport[2] - viewport[0] );
+  y = size[1] * ( viewport[3] - viewport[1] );
+
+  distance2 = sqrt( x * x + y * y );
+  return distance2 / distance;
 }
 
 //----------------------------------------------------------------------
@@ -379,7 +420,6 @@ int vtkSlicerAbstractRepresentation::ActivateNode(double displayPos[2])
   distance = scale / distance;
 
   this->PixelTolerance = distance * this->HandleSize * this->Tolerance  * 500.;
-
   double closestDistance2 = VTK_DOUBLE_MAX;
   int closestNode = static_cast<int> (this->Locator->FindClosestPointWithinRadius(
     this->PixelTolerance, dPos, closestDistance2));
@@ -391,6 +431,7 @@ int vtkSlicerAbstractRepresentation::ActivateNode(double displayPos[2])
     }
   return ( this->GetActiveNode() >= 0 );
 }
+
 //----------------------------------------------------------------------
 int vtkSlicerAbstractRepresentation::ActivateNode( int displayPos[2] )
 {
@@ -609,6 +650,36 @@ int vtkSlicerAbstractRepresentation::GetIntermediatePointWorldPosition( int n,
   point[1] = this->GetNthNode( n )->intermadiatePoints[static_cast<unsigned int> (idx)].GetY();
   point[2] = this->GetNthNode( n )->intermadiatePoints[static_cast<unsigned int> (idx)].GetZ();
 
+  return 1;
+}
+
+//----------------------------------------------------------------------
+int vtkSlicerAbstractRepresentation::GetIntermediatePointDisplayPosition(int n, int idx, double displayPos[2])
+{
+  if ( !this->NodeExists( n ) )
+    {
+    return 0;
+    }
+
+  if ( idx < 0 ||
+       static_cast<unsigned int>(idx) >= this->GetNthNode(n)->intermadiatePoints.size() )
+    {
+    return 0;
+    }
+
+  double pos[4];
+  ControlPoint* node = this->GetNthNode( n );
+  pos[0] = node->intermadiatePoints[static_cast<unsigned int> (idx)].GetX();
+  pos[1] = node->intermadiatePoints[static_cast<unsigned int> (idx)].GetY();
+  pos[2] = node->intermadiatePoints[static_cast<unsigned int> (idx)].GetZ();
+  pos[3] = 1.0;
+
+  this->Renderer->SetWorldPoint( pos );
+  this->Renderer->WorldToDisplay();
+  this->Renderer->GetDisplayPoint( pos );
+
+  displayPos[0] = pos[0];
+  displayPos[1] = pos[1];
   return 1;
 }
 
@@ -1273,7 +1344,7 @@ void vtkSlicerAbstractRepresentation::UpdateLine( int idx1, int idx2 )
 }
 
 //---------------------------------------------------------------------
-int vtkSlicerAbstractRepresentation::UpdateWidget()
+int vtkSlicerAbstractRepresentation::UpdateWidget(bool force /*=false*/)
 {
   if ( !this->Locator || !this->PointPlacer )
     {
@@ -1289,7 +1360,7 @@ int vtkSlicerAbstractRepresentation::UpdateWidget()
     this->RebuildLocator = true;
     }
 
-  if ( this->WidgetBuildTime > this->PointPlacer->GetMTime())
+  if ( this->WidgetBuildTime > this->PointPlacer->GetMTime() && !force)
     {
     // Widget does not need to be rebuilt
     return 0;
@@ -1521,9 +1592,6 @@ void vtkSlicerAbstractRepresentation::StartWidgetInteraction( double startEventP
   // convert position to display coordinates
   double pos[2];
   this->GetNthNodeDisplayPosition( this->GetActiveNode(), pos );
-
-  this->InteractionOffset[0] = pos[0] - startEventPos[0];
-  this->InteractionOffset[1] = pos[1] - startEventPos[1];
 }
 
 //----------------------------------------------------------------------

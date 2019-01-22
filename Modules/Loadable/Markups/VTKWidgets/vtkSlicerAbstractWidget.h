@@ -212,15 +212,15 @@ public:
 
   /// Convenient method to remap the horizonbtal axes constrain key.
   vtkSetMacro( HorizontalActiveKeyCode, const char );
-  vtkGetMacro( HorizontalActiveKeyCode, char );
+  vtkGetMacro( HorizontalActiveKeyCode, const char );
 
   /// Convenient method to remap the vertical axes constrain key.
   vtkSetMacro( VerticalActiveKeyCode, const char );
-  vtkGetMacro( VerticalActiveKeyCode, char );
+  vtkGetMacro( VerticalActiveKeyCode, const char );
 
   /// Convenient method to remap the depth axes constrain key.
   vtkSetMacro( DepthActiveKeyCode, const char );
-  vtkGetMacro( DepthActiveKeyCode, char );
+  vtkGetMacro( DepthActiveKeyCode, const char );
 
   /// Initialize the contour widget from a user supplied set of points. The
   /// state of the widget decides if you are still defining the widget, or
@@ -253,7 +253,6 @@ protected:
   static void TranslateAction(vtkAbstractWidget*);
   static void RotateAction(vtkAbstractWidget*);
   static void ScaleAction(vtkAbstractWidget*);
-  static void MoveAction(vtkAbstractWidget*);
   static void EndAction(vtkAbstractWidget*);
   static void ResetAction(vtkAbstractWidget*);
   static void DeleteAction(vtkAbstractWidget*);
@@ -262,7 +261,6 @@ protected:
   char HorizontalActiveKeyCode;
   char VerticalActiveKeyCode;
   char DepthActiveKeyCode;
-  int KeyCount;
   vtkCallbackCommand *KeyEventCallbackCommand;
   static void ProcessKeyEvents(vtkObject *, unsigned long, void *, void *);
 

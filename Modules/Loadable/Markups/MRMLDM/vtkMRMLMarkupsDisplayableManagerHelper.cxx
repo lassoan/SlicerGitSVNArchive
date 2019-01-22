@@ -206,11 +206,13 @@ void vtkMRMLMarkupsDisplayableManagerHelper::UpdateAllWidgetsFromInteractionNode
         // Set widget state to define
         it->second->SetWidgetState( 1 );
         it->second->SetFollowCursor( false );
+        it->second->SetManagesCursor( false );
         }
       else
         {
         // Set widget state to manipulate
         it->second->SetWidgetState( 2 );
+        it->second->SetManagesCursor( true );
         }
       }
     }

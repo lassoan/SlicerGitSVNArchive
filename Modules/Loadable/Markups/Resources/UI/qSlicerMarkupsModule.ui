@@ -42,7 +42,7 @@
         </stringlist>
        </property>
        <property name="baseName" stdset="0">
-        <string>F</string>
+        <string>M</string>
        </property>
        <property name="addEnabled" stdset="0">
         <bool>true</bool>
@@ -788,15 +788,30 @@
    <container>1</container>
   </customwidget>
   <customwidget>
-   <class>qMRMLWidget</class>
-   <extends>QWidget</extends>
-   <header>qMRMLWidget.h</header>
-   <container>1</container>
-  </customwidget>
-  <customwidget>
    <class>qSlicerWidget</class>
    <extends>QWidget</extends>
    <header>qSlicerWidget.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>ctkColorPickerButton</class>
+   <extends>QPushButton</extends>
+   <header>ctkColorPickerButton.h</header>
+  </customwidget>
+  <customwidget>
+   <class>ctkCheckBox</class>
+   <extends>QCheckBox</extends>
+   <header>ctkCheckBox.h</header>
+  </customwidget>
+  <customwidget>
+   <class>ctkSliderWidget</class>
+   <extends>QWidget</extends>
+   <header>ctkSliderWidget.h</header>
+  </customwidget>
+  <customwidget>
+   <class>qMRMLWidget</class>
+   <extends>QWidget</extends>
+   <header>qMRMLWidget.h</header>
    <container>1</container>
   </customwidget>
   <customwidget>
@@ -806,30 +821,15 @@
    <container>1</container>
   </customwidget>
   <customwidget>
-   <class>ctkCheckBox</class>
-   <extends>QCheckBox</extends>
-   <header>ctkCheckBox.h</header>
-  </customwidget>
-  <customwidget>
    <class>ctkCollapsibleGroupBox</class>
    <extends>QGroupBox</extends>
    <header>ctkCollapsibleGroupBox.h</header>
    <container>1</container>
   </customwidget>
   <customwidget>
-   <class>ctkColorPickerButton</class>
-   <extends>QPushButton</extends>
-   <header>ctkColorPickerButton.h</header>
-  </customwidget>
-  <customwidget>
    <class>ctkMenuButton</class>
    <extends>QPushButton</extends>
    <header>ctkMenuButton.h</header>
-  </customwidget>
-  <customwidget>
-   <class>ctkSliderWidget</class>
-   <extends>QWidget</extends>
-   <header>ctkSliderWidget.h</header>
   </customwidget>
   <customwidget>
    <class>qMRMLCheckableNodeComboBox</class>

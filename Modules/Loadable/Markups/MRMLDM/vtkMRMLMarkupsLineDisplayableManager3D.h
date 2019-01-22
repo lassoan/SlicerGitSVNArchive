@@ -25,9 +25,6 @@
 #include "vtkMRMLMarkupsFiducialDisplayableManager3D.h"
 
 class vtkMRMLMarkupsLineNode;
-class vtkSlicerViewerWidget;
-class vtkMRMLMarkupsDisplayNode;
-class vtkTextWidget;
 
 /// \ingroup Slicer_QtModules_Markups
 class VTK_SLICER_MARKUPS_MODULE_MRMLDISPLAYABLEMANAGER_EXPORT vtkMRMLMarkupsLineDisplayableManager3D :

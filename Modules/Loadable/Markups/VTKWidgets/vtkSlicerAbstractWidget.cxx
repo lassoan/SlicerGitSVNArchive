@@ -57,10 +57,6 @@ vtkSlicerAbstractWidget::vtkSlicerAbstractWidget()
                                           vtkWidgetEvent::Scale,
                                           this, vtkSlicerAbstractWidget::ScaleAction);
 
-  this->CallbackMapper->SetCallbackMethod(vtkCommand::MouseMoveEvent,
-                                          vtkWidgetEvent::Move,
-                                          this, vtkSlicerAbstractWidget::MoveAction);
-
   this->CallbackMapper->SetCallbackMethod(vtkCommand::LeftButtonReleaseEvent,
                                           vtkWidgetEvent::EndSelect,
                                           this, vtkSlicerAbstractWidget::EndAction);
@@ -97,7 +93,6 @@ vtkSlicerAbstractWidget::vtkSlicerAbstractWidget()
   this->HorizontalActiveKeyCode = 'x';
   this->VerticalActiveKeyCode = 'y';
   this->DepthActiveKeyCode = 'z';
-  this->KeyCount = 0;
   this->KeyEventCallbackCommand = vtkCallbackCommand::New();
   this->KeyEventCallbackCommand->SetClientData(this);
   this->KeyEventCallbackCommand->SetCallback(vtkSlicerAbstractWidget::ProcessKeyEvents);
@@ -195,11 +190,11 @@ void vtkSlicerAbstractWidget::SetEnabled( int enabling )
     rep->RegisterPickers();
     if ( this->WidgetState == vtkSlicerAbstractWidget::Start )
       {
-    rep->VisibilityOff();
+      rep->VisibilityOff();
       }
     else
       {
-    rep->VisibilityOn();
+      rep->VisibilityOn();
       }
     this->CurrentRenderer->AddViewProp(rep);
 
@@ -345,26 +340,38 @@ void vtkSlicerAbstractWidget::SelectAction( vtkAbstractWidget *w )
     return;
     }
 
-  int X = self->Interactor->GetEventPosition()[0];
-  int Y = self->Interactor->GetEventPosition()[1];
   double pos[2];
-  pos[0] = X;
-  pos[1] = Y;
+  pos[0] = self->Interactor->GetEventPosition()[0];
+  pos[1] = self->Interactor->GetEventPosition()[1];
+  int X = static_cast<int>( pos[0] );
+  int Y = static_cast<int>( pos[0] );
 
   int state = rep->ComputeInteractionState( X, Y );
-  int active = rep->ActivateNode( X, Y );
-  self->SetCursor( state );
-  if ( state == vtkSlicerAbstractRepresentation::Nearby && active )
+  self->SetCursor( state > 0 );
+  if ( state == vtkSlicerAbstractRepresentation::OnControlPoint )
     {
-    self->GrabFocus(self->EventCallbackCommand);
-    self->StartInteraction();
-    rep->Highlight(1);
     self->CurrentHandle = rep->GetActiveNode();
-    rep->SetCurrentOperationToSelect();
+    if ( self->CurrentHandle < 0 )
+      {
+      return;
+      }
     self->InvokeEvent( vtkCommand::StartInteractionEvent, &self->CurrentHandle );
-    rep->StartWidgetInteraction( pos );
-    self->EventCallbackCommand->SetAbortFlag( 1 );
     }
+  else if ( state == vtkSlicerAbstractRepresentation::OnLine )
+    {
+    self->CurrentHandle = -1;
+    self->InvokeEvent( vtkCommand::StartInteractionEvent, &self->CurrentHandle );
+    }
+  else
+    {
+    return;
+    }
+
+  self->GrabFocus(self->EventCallbackCommand);
+  self->StartInteraction();
+  rep->SetCurrentOperationToSelect();
+  rep->StartWidgetInteraction( pos );
+  self->EventCallbackCommand->SetAbortFlag( 1 );
 
   if ( rep->GetNeedToRender() )
     {
@@ -386,26 +393,38 @@ void vtkSlicerAbstractWidget::PickAction(vtkAbstractWidget *w)
     return;
     }
 
-  int X = self->Interactor->GetEventPosition()[0];
-  int Y = self->Interactor->GetEventPosition()[1];
   double pos[2];
-  pos[0] = X;
-  pos[1] = Y;
+  pos[0] = self->Interactor->GetEventPosition()[0];
+  pos[1] = self->Interactor->GetEventPosition()[1];
+  int X = static_cast<int>( pos[0] );
+  int Y = static_cast<int>( pos[0] );
 
   int state = rep->ComputeInteractionState( X, Y );
-  int active = rep->ActivateNode( X, Y );
-  self->SetCursor( state );
-  if ( state == vtkSlicerAbstractRepresentation::Nearby && active )
+  self->SetCursor( state > 0 );
+  if ( state == vtkSlicerAbstractRepresentation::OnControlPoint )
     {
-    self->GrabFocus(self->EventCallbackCommand);
-    self->StartInteraction();
-    rep->Highlight(1);
     self->CurrentHandle = rep->GetActiveNode();
-    rep->SetCurrentOperationToPick();
+    if ( self->CurrentHandle < 0 )
+      {
+      return;
+      }
     self->InvokeEvent( vtkCommand::StartInteractionEvent, &self->CurrentHandle );
-    rep->StartWidgetInteraction( pos );
-    self->EventCallbackCommand->SetAbortFlag( 1 );
     }
+  else if ( state == vtkSlicerAbstractRepresentation::OnLine )
+    {
+    self->CurrentHandle = -1;
+    self->InvokeEvent( vtkCommand::StartInteractionEvent, &self->CurrentHandle );
+    }
+  else
+    {
+    return;
+    }
+
+  self->GrabFocus(self->EventCallbackCommand);
+  self->StartInteraction();
+  rep->SetCurrentOperationToPick();
+  rep->StartWidgetInteraction( pos );
+  self->EventCallbackCommand->SetAbortFlag( 1 );
 
   if ( rep->GetNeedToRender() )
     {
@@ -427,33 +446,38 @@ void vtkSlicerAbstractWidget::RotateAction(vtkAbstractWidget *w)
     return;
     }
 
-  int X = self->Interactor->GetEventPosition()[0];
-  int Y = self->Interactor->GetEventPosition()[1];
   double pos[2];
-  pos[0] = X;
-  pos[1] = Y;
+  pos[0] = self->Interactor->GetEventPosition()[0];
+  pos[1] = self->Interactor->GetEventPosition()[1];
+  int X = static_cast<int>( pos[0] );
+  int Y = static_cast<int>( pos[0] );
 
   int state = rep->ComputeInteractionState( X, Y );
-  int active = rep->ActivateNode( X, Y );
-  self->SetCursor( state );
-  if ( state == vtkSlicerAbstractRepresentation::Nearby && active )
+  self->SetCursor( state > 0 );
+  if ( state == vtkSlicerAbstractRepresentation::OnControlPoint )
     {
-    self->GrabFocus(self->EventCallbackCommand);
-    self->StartInteraction();
-    rep->Highlight(1);
     self->CurrentHandle = rep->GetActiveNode();
-    if ( self->CurrentHandle == -2 )
+    if ( self->CurrentHandle < 0 )
       {
-      rep->SetCurrentOperationToPick();
-      }
-    else
-      {
-      rep->SetCurrentOperationToRotate();
+      return;
       }
     self->InvokeEvent( vtkCommand::StartInteractionEvent, &self->CurrentHandle );
-    rep->StartWidgetInteraction( pos );
-    self->EventCallbackCommand->SetAbortFlag( 1 );
     }
+  else if ( state == vtkSlicerAbstractRepresentation::OnLine )
+    {
+    self->CurrentHandle = -1;
+    self->InvokeEvent( vtkCommand::StartInteractionEvent, &self->CurrentHandle );
+    }
+  else
+    {
+    return;
+    }
+
+  self->GrabFocus(self->EventCallbackCommand);
+  self->StartInteraction();
+  rep->SetCurrentOperationToRotate();
+  rep->StartWidgetInteraction( pos );
+  self->EventCallbackCommand->SetAbortFlag( 1 );
 
   if ( rep->GetNeedToRender() )
     {
@@ -475,26 +499,38 @@ void vtkSlicerAbstractWidget::ScaleAction(vtkAbstractWidget *w)
     return;
     }
 
-  int X = self->Interactor->GetEventPosition()[0];
-  int Y = self->Interactor->GetEventPosition()[1];
   double pos[2];
-  pos[0] = X;
-  pos[1] = Y;
+  pos[0] = self->Interactor->GetEventPosition()[0];
+  pos[1] = self->Interactor->GetEventPosition()[1];
+  int X = static_cast<int>( pos[0] );
+  int Y = static_cast<int>( pos[0] );
 
   int state = rep->ComputeInteractionState( X, Y );
-  int active = rep->ActivateNode( X, Y );
-  self->SetCursor( state );
-  if ( state == vtkSlicerAbstractRepresentation::Nearby && active )
+  self->SetCursor( state > 0 );
+  if ( state == vtkSlicerAbstractRepresentation::OnControlPoint )
     {
-    self->GrabFocus(self->EventCallbackCommand);
-    self->StartInteraction();
-    rep->Highlight(1);
     self->CurrentHandle = rep->GetActiveNode();
-    rep->SetCurrentOperationToScale();
+    if ( self->CurrentHandle < 0 )
+      {
+      return;
+      }
     self->InvokeEvent( vtkCommand::StartInteractionEvent, &self->CurrentHandle );
-    rep->StartWidgetInteraction( pos );
-    self->EventCallbackCommand->SetAbortFlag( 1 );
     }
+  else if ( state == vtkSlicerAbstractRepresentation::OnLine )
+    {
+    self->CurrentHandle = -1;
+    self->InvokeEvent( vtkCommand::StartInteractionEvent, &self->CurrentHandle );
+    }
+  else
+    {
+    return;
+    }
+
+  self->GrabFocus(self->EventCallbackCommand);
+  self->StartInteraction();
+  rep->SetCurrentOperationToScale();
+  rep->StartWidgetInteraction( pos );
+  self->EventCallbackCommand->SetAbortFlag( 1 );
 
   if ( rep->GetNeedToRender() )
     {
@@ -516,87 +552,38 @@ void vtkSlicerAbstractWidget::TranslateAction( vtkAbstractWidget *w )
     return;
     }
 
-  int X = self->Interactor->GetEventPosition()[0];
-  int Y = self->Interactor->GetEventPosition()[1];
   double pos[2];
-  pos[0] = X;
-  pos[1] = Y;
+  pos[0] = self->Interactor->GetEventPosition()[0];
+  pos[1] = self->Interactor->GetEventPosition()[1];
+  int X = static_cast<int>( pos[0] );
+  int Y = static_cast<int>( pos[0] );
 
   int state = rep->ComputeInteractionState( X, Y );
-  int active = rep->ActivateNode( X, Y );
-  self->SetCursor( state );
-  if ( state == vtkSlicerAbstractRepresentation::Nearby && active )
+  self->SetCursor( state > 0 );
+  if ( state == vtkSlicerAbstractRepresentation::OnControlPoint )
     {
-    self->GrabFocus(self->EventCallbackCommand);
-    self->StartInteraction();
-    rep->Highlight(1);
     self->CurrentHandle = rep->GetActiveNode();
-    rep->SetCurrentOperationToTranslate();
+    if ( self->CurrentHandle < 0 )
+      {
+      return;
+      }
     self->InvokeEvent( vtkCommand::StartInteractionEvent, &self->CurrentHandle );
-    rep->StartWidgetInteraction( pos );
-    self->EventCallbackCommand->SetAbortFlag( 1 );
     }
-
-  if ( rep->GetNeedToRender() )
+  else if ( state == vtkSlicerAbstractRepresentation::OnLine )
     {
-    self->Render();
-    rep->NeedToRenderOff();
+    self->CurrentHandle = -1;
+    self->InvokeEvent( vtkCommand::StartInteractionEvent, &self->CurrentHandle );
     }
-}
-
-//-------------------------------------------------------------------------
-void vtkSlicerAbstractWidget::MoveAction( vtkAbstractWidget *w )
-{
-  vtkSlicerAbstractWidget *self = reinterpret_cast<vtkSlicerAbstractWidget*>(w);
-  vtkSlicerAbstractRepresentation *rep =
-    reinterpret_cast<vtkSlicerAbstractRepresentation*>(self->WidgetRep);
-
-  if ( self->WidgetState == vtkSlicerAbstractWidget::Start ||
-       !rep )
+  else
     {
     return;
     }
 
-  int X = self->Interactor->GetEventPosition()[0];
-  int Y = self->Interactor->GetEventPosition()[1];
-
-  if ( self->WidgetState == vtkSlicerAbstractWidget::Define &&
-       self->FollowCursor && rep->GetNumberOfNodes() > 0)
-    {
-    rep->SetNthNodeDisplayPosition( rep->GetNumberOfNodes()-1, X, Y );
-    }
-
-  if (self->WidgetState == vtkSlicerAbstractWidget::Manipulate)
-    {
-    if ( rep->GetCurrentOperation() == vtkSlicerAbstractRepresentation::Inactive )
-      {
-      int state = rep->ComputeInteractionState( X, Y );
-      self->SetCursor( state );
-      rep->ActivateNode( X, Y );
-      if ( state == vtkSlicerAbstractRepresentation::Nearby )
-        {
-        rep->Highlight(1);
-        self->CurrentHandle = rep->GetActiveNode();
-        self->InvokeEvent( vtkCommand::InteractionEvent, &self->CurrentHandle );
-        }
-      else
-        {
-        rep->Highlight(0);
-        }
-      }
-    else if ( rep->GetInteractionState() == vtkSlicerAbstractRepresentation::Nearby )
-      {
-      self->CurrentHandle = rep->GetActiveNode();
-      double pos[2];
-      pos[0] = X;
-      pos[1] = Y;
-      rep->WidgetInteraction( pos );
-      if ( rep->GetCurrentOperation() != vtkSlicerAbstractRepresentation::Pick )
-        {
-        self->InvokeEvent( vtkCommand::InteractionEvent, &self->CurrentHandle );
-        }
-      }
-    }
+  self->GrabFocus(self->EventCallbackCommand);
+  self->StartInteraction();
+  rep->SetCurrentOperationToTranslate();
+  rep->StartWidgetInteraction( pos );
+  self->EventCallbackCommand->SetAbortFlag( 1 );
 
   if ( rep->GetNeedToRender() )
     {
@@ -623,7 +610,6 @@ void vtkSlicerAbstractWidget::EndAction( vtkAbstractWidget *w )
     int Y = self->Interactor->GetEventPosition()[1];
     rep->ActivateNode( X, Y );
     self->SetCursor( 0 );
-    rep->Highlight(rep->ComputeInteractionState( X, Y ));
     rep->SetCurrentOperationToInactive();
     self->ReleaseFocus();
     self->EventCallbackCommand->SetAbortFlag( 1 );
@@ -682,6 +668,8 @@ void vtkSlicerAbstractWidget::DeleteAction( vtkAbstractWidget *w )
       }
     }
 
+  rep->ActivateNode( X, Y );
+
   if ( rep->GetNeedToRender() )
     {
     self->Render();
@@ -706,72 +694,21 @@ void vtkSlicerAbstractWidget::ProcessKeyEvents(vtkObject* , unsigned long vtkNot
 
   if ( iren->GetKeyCode() == self->HorizontalActiveKeyCode)
     {
-    if ( rep->GetRestrictFlag() == vtkSlicerAbstractRepresentation::RestrictToY ||
-         rep->GetRestrictFlag() == vtkSlicerAbstractRepresentation::RestrictToZ )
-      {
-      return;
-      }
-
-    if ( rep->GetRestrictFlag() == vtkSlicerAbstractRepresentation::RestrictNone && self->KeyCount == 1)
-      {
-      rep->SetRestrictFlag(vtkSlicerAbstractRepresentation::RestrictToX);
-      self->KeyCount = 0;
-      }
-    else if ( rep->GetRestrictFlag() == vtkSlicerAbstractRepresentation::RestrictToX && self->KeyCount == 1 )
-      {
-      rep->SetRestrictFlag(vtkSlicerAbstractRepresentation::RestrictNone);
-      self->KeyCount = 0;
-      }
-    else
-      {
-      self->KeyCount++;
-      }
+    rep->SetRestrictFlag(vtkSlicerAbstractRepresentation::RestrictToX);
     }
   else if (iren->GetKeyCode() == self->VerticalActiveKeyCode )
     {
-    if ( rep->GetRestrictFlag() == vtkSlicerAbstractRepresentation::RestrictToX ||
-         rep->GetRestrictFlag() == vtkSlicerAbstractRepresentation::RestrictToZ )
-      {
-      return;
-      }
-
-    if ( rep->GetRestrictFlag() == vtkSlicerAbstractRepresentation::RestrictNone && self->KeyCount == 1)
-      {
-      rep->SetRestrictFlag(vtkSlicerAbstractRepresentation::RestrictToY);
-      self->KeyCount = 0;
-      }
-    else if ( rep->GetRestrictFlag() == vtkSlicerAbstractRepresentation::RestrictToY && self->KeyCount == 1 )
-      {
-      rep->SetRestrictFlag(vtkSlicerAbstractRepresentation::RestrictNone);
-      self->KeyCount = 0;
-      }
-    else
-      {
-      self->KeyCount++;
-      }
+    // RAS coordinates (Y <-> Z), this should take care also of transform?
+    rep->SetRestrictFlag(vtkSlicerAbstractRepresentation::RestrictToZ);
     }
   else if ( iren->GetKeyCode() == self->DepthActiveKeyCode )
     {
-    if ( rep->GetRestrictFlag() == vtkSlicerAbstractRepresentation::RestrictToX ||
-         rep->GetRestrictFlag() == vtkSlicerAbstractRepresentation::RestrictToY )
-      {
-      return;
-      }
-
-    if ( rep->GetRestrictFlag() == vtkSlicerAbstractRepresentation::RestrictNone && self->KeyCount == 1)
-      {
-      rep->SetRestrictFlag(vtkSlicerAbstractRepresentation::RestrictToZ);
-      self->KeyCount = 0;
-      }
-    else if ( rep->GetRestrictFlag() == vtkSlicerAbstractRepresentation::RestrictToZ && self->KeyCount == 1 )
-      {
-      rep->SetRestrictFlag(vtkSlicerAbstractRepresentation::RestrictNone);
-      self->KeyCount = 0;
-      }
-    else
-      {
-      self->KeyCount++;
-      }
+    // RAS coordinates (Y <-> Z)
+    rep->SetRestrictFlag(vtkSlicerAbstractRepresentation::RestrictToY);
+    }
+  else if ( iren->GetKeyCode() == 'q' )
+    {
+    rep->SetRestrictFlag(vtkSlicerAbstractRepresentation::RestrictNone);
     }
 }
 

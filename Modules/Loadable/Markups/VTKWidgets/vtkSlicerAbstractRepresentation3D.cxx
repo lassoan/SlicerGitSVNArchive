@@ -121,13 +121,13 @@ vtkSlicerAbstractRepresentation3D::vtkSlicerAbstractRepresentation3D()
   this->ActiveActor->SetMapper(this->ActiveMapper);
   this->ActiveActor->SetProperty(this->ActiveProperty);
 
-  //Manage the picking stuff
-  this->CursorPicker = vtkCellPicker::New();
-  this->CursorPicker->PickFromListOn();
-  this->CursorPicker->SetTolerance(this->Tolerance);
-  this->CursorPicker->AddPickList(this->Actor);
-  this->CursorPicker->AddPickList(this->SelectedActor);
-  this->CursorPicker->AddPickList(this->ActiveActor);
+  //Manage the picking of control Points
+  this->ControlPointsPicker = vtkCellPicker::New();
+  this->ControlPointsPicker->PickFromListOn();
+  this->ControlPointsPicker->SetTolerance(this->Tolerance);
+  this->ControlPointsPicker->AddPickList(this->Actor);
+  this->ControlPointsPicker->AddPickList(this->SelectedActor);
+  this->ControlPointsPicker->AddPickList(this->ActiveActor);
 
   // Labels
   this->Labels = vtkStringArray::New();
@@ -227,7 +227,7 @@ vtkSlicerAbstractRepresentation3D::~vtkSlicerAbstractRepresentation3D()
   this->SelectedGlypher->Delete();
   this->ActiveGlypher->Delete();
 
-  this->CursorPicker->Delete();
+  this->ControlPointsPicker->Delete();
 
   this->Labels->Delete();
   this->LabelsPriority->Delete();
@@ -428,11 +428,74 @@ vtkPolyData *vtkSlicerAbstractRepresentation3D::GetActiveCursorShape()
   return this->ActiveCursorShape;
 }
 
+//----------------------------------------------------------------------
+int vtkSlicerAbstractRepresentation3D::ActivateNode( double displayPos[2] )
+{
+  this->BuildLocator();
+
+  // Find closest node to this display pos that
+  // is within PixelTolerance. PixelTolerance is calculated as
+  // a percentage (this->Tolerance) of the size of the window diagonal
+  double dPos[3] = {displayPos[0],displayPos[1],0};
+
+  double p1[4], p2[4];
+  this->Renderer->GetActiveCamera()->GetFocalPoint( p1 );
+  p1[3] = 1.0;
+  this->Renderer->SetWorldPoint( p1 );
+  this->Renderer->WorldToView();
+  this->Renderer->GetViewPoint( p1 );
+
+  double depth = p1[2];
+  double aspect[2];
+  this->Renderer->ComputeAspect();
+  this->Renderer->GetAspect( aspect );
+
+  p1[0] = -aspect[0];
+  p1[1] = -aspect[1];
+  this->Renderer->SetViewPoint( p1 );
+  this->Renderer->ViewToWorld();
+  this->Renderer->GetWorldPoint( p1 );
+
+  p2[0] = aspect[0];
+  p2[1] = aspect[1];
+  p2[2] = depth;
+  p2[3] = 1.0;
+  this->Renderer->SetViewPoint( p2 );
+  this->Renderer->ViewToWorld();
+  this->Renderer->GetWorldPoint( p2 );
+
+  double distance = sqrt( vtkMath::Distance2BetweenPoints( p1, p2 ) );
+
+  int *size = this->Renderer->GetRenderWindow()->GetSize();
+  double viewport[4];
+  this->Renderer->GetViewport(viewport);
+
+  double x, y, scale;
+
+  x = size[0] * ( viewport[2] - viewport[0] );
+  y = size[1] * ( viewport[3] - viewport[1] );
+
+  scale = sqrt( x * x + y * y );
+  distance = scale / distance;
+
+  this->PixelTolerance = distance * distance * this->HandleSize * this->Tolerance  * 500. * 1.39;
+  double closestDistance2 = VTK_DOUBLE_MAX;
+  int closestNode = static_cast<int> (this->Locator->FindClosestPointWithinRadius(
+    this->PixelTolerance, dPos, closestDistance2));
+
+  if ( closestNode != this->GetActiveNode() )
+    {
+    this->SetActiveNode( closestNode );
+    this->NeedToRender = 1;
+    }
+  return ( this->GetActiveNode() >= 0 );
+}
+
 //-----------------------------------------------------------------------------
 void vtkSlicerAbstractRepresentation3D::SetTolerance(double tol)
 {
   this->Tolerance = tol;
-  this->CursorPicker->SetTolerance(this->Tolerance);
+  this->ControlPointsPicker->SetTolerance(this->Tolerance);
 }
 
 //-----------------------------------------------------------------------------
@@ -443,7 +506,7 @@ void vtkSlicerAbstractRepresentation3D::RegisterPickers()
     {
     return;
     }
-  pm->AddPicker( this->CursorPicker, this );
+  pm->AddPicker( this->ControlPointsPicker, this );
 }
 
 //----------------------------------------------------------------------
@@ -504,49 +567,11 @@ void vtkSlicerAbstractRepresentation3D::BuildRepresentation()
     this->ActiveMapper->SetRelativeCoincidentTopologyPointOffsetParameter( -1 );
     }
 
-  double p1[4], p2[4];
-  this->Renderer->GetActiveCamera()->GetFocalPoint( p1 );
-  p1[3] = 1.0;
-  this->Renderer->SetWorldPoint( p1 );
-  this->Renderer->WorldToView();
-  this->Renderer->GetViewPoint( p1 );
+  double scale = this->CalculateViewScaleFactor();
 
-  double depth = p1[2];
-  double aspect[2];
-  this->Renderer->ComputeAspect();
-  this->Renderer->GetAspect( aspect );
-
-  p1[0] = -aspect[0];
-  p1[1] = -aspect[1];
-  this->Renderer->SetViewPoint( p1 );
-  this->Renderer->ViewToWorld();
-  this->Renderer->GetWorldPoint( p1 );
-
-  p2[0] = aspect[0];
-  p2[1] = aspect[1];
-  p2[2] = depth;
-  p2[3] = 1.0;
-  this->Renderer->SetViewPoint( p2 );
-  this->Renderer->ViewToWorld();
-  this->Renderer->GetWorldPoint( p2 );
-
-  double distance = sqrt( vtkMath::Distance2BetweenPoints( p1, p2 ) );
-
-  int *size = this->Renderer->GetRenderWindow()->GetSize();
-  double viewport[4];
-  this->Renderer->GetViewport(viewport);
-
-  double x, y, scale;
-
-  x = size[0] * ( viewport[2] - viewport[0] );
-  y = size[1] * ( viewport[3] - viewport[1] );
-
-  scale = sqrt( x * x + y * y );
-  distance = scale / distance;
-
-  this->Glypher->SetScaleFactor( distance * this->HandleSize );
-  this->SelectedGlypher->SetScaleFactor( distance * this->HandleSize );
-  this->ActiveGlypher->SetScaleFactor( distance * this->HandleSize );
+  this->Glypher->SetScaleFactor( scale * this->HandleSize );
+  this->SelectedGlypher->SetScaleFactor( scale * this->HandleSize );
+  this->ActiveGlypher->SetScaleFactor( scale * this->HandleSize );
 
   int numPoints = this->GetNumberOfNodes();
   int ii;
@@ -676,14 +701,15 @@ void vtkSlicerAbstractRepresentation3D::BuildRepresentation()
 //----------------------------------------------------------------------
 int vtkSlicerAbstractRepresentation3D::ComputeInteractionState(int X, int Y, int vtkNotUsed(modified))
 {
-  if ( this->GetAssemblyPath(X, Y, 0., this->CursorPicker) )
+  if ( this->GetAssemblyPath(X, Y, 0., this->ControlPointsPicker ) )
     {
-    this->InteractionState = vtkSlicerAbstractRepresentation::Nearby;
+    this->InteractionState = vtkSlicerAbstractRepresentation::OnControlPoint;
     }
   else
     {
     this->InteractionState = vtkSlicerAbstractRepresentation::Outside;
     }
+
   return this->InteractionState;
 }
 
@@ -721,43 +747,43 @@ void vtkSlicerAbstractRepresentation3D::WidgetInteraction(double eventPos[2])
 //----------------------------------------------------------------------
 void vtkSlicerAbstractRepresentation3D::TranslateNode(double eventPos[2])
 {
-  if (this->GetActiveNodeLocked())
+  if (this->GetActiveNodeLocked() || !this->MarkupsNode)
     {
     return;
     }
 
-  double ref[3];
-
-  if (!this->GetActiveNodeWorldPosition(ref))
+  double oldWorldPos[3];
+  if (!this->GetActiveNodeWorldPosition(oldWorldPos))
     {
     return;
     }
-
-  double displayPos[2];
-  displayPos[0] = eventPos[0] + this->InteractionOffset[0];
-  displayPos[1] = eventPos[1] + this->InteractionOffset[1];
 
   double worldPos[3], worldOrient[9];
   if (this->PointPlacer->ComputeWorldPosition(this->Renderer,
-                                               displayPos, ref, worldPos,
+                                               eventPos, oldWorldPos, worldPos,
                                                worldOrient))
     {
     if (this->RestrictFlag != vtkSlicerAbstractRepresentation::RestrictNone)
       {
-      double oldWorldPos[3];
-      this->GetActiveNodeWorldPosition(oldWorldPos);
       for (int i = 0; i < 3; ++i)
         { 
         worldPos[i] = (this->RestrictFlag == (i + 1)) ? worldPos[i] : oldWorldPos[i];
         }
       }
+    this->MarkupsNode->DisableModifiedEventOn();
     this->SetActiveNodeToWorldPosition(worldPos);
+    this->MarkupsNode->DisableModifiedEventOn();
     }
 }
 
 //----------------------------------------------------------------------
 void vtkSlicerAbstractRepresentation3D::TranslateWidget(double eventPos[2])
 {
+  if (!this->MarkupsNode)
+    {
+    return;
+    }
+
   double ref[3] = {0.};
   double displayPos[2] = {0.};
   double worldPos[3], worldOrient[9];
@@ -793,8 +819,6 @@ void vtkSlicerAbstractRepresentation3D::TranslateWidget(double eventPos[2])
   vector[1] = worldPos[1] - ref[1];
   vector[2] = worldPos[2] - ref[2];
 
-  // SetNthNodeWorldPosition calls vtkMRMLMarkupsNode::PointModifiedEvent reporting the id of the point modified.
-  // However, already for > 200 points, it gets bad perfomance. Therefore, we call a simply modified call at the end.
   this->MarkupsNode->DisableModifiedEventOn();
   for (int i = 0; i < this->GetNumberOfNodes(); i++)
     {
@@ -825,6 +849,11 @@ void vtkSlicerAbstractRepresentation3D::TranslateWidget(double eventPos[2])
 //----------------------------------------------------------------------
 void vtkSlicerAbstractRepresentation3D::ScaleWidget(double eventPos[2])
 {
+  if (!this->MarkupsNode)
+    {
+    return;
+    }
+
   double ref[3] = {0.};
   double displayPos[2] = {0.};
   double worldPos[3], worldOrient[9];
@@ -868,9 +897,7 @@ void vtkSlicerAbstractRepresentation3D::ScaleWidget(double eventPos[2])
 
   double ratio = sqrt(d2 / r2);
 
-  // SetNthNodeWorldPosition calls vtkMRMLMarkupsNode::PointModifiedEvent reporting the id of the point modified.
-  // However, already for > 200 points, it gets bad perfomance. Therefore, we call a simply modified call at the end.
-  this->MarkupsNode->DisableModifiedEventOn();
+ this->MarkupsNode->DisableModifiedEventOn();
   for (int i = 0; i < this->GetNumberOfNodes(); i++)
     {
     if (this->GetNthNodeLocked(i))
@@ -893,6 +920,11 @@ void vtkSlicerAbstractRepresentation3D::ScaleWidget(double eventPos[2])
 //----------------------------------------------------------------------
 void vtkSlicerAbstractRepresentation3D::RotateWidget(double eventPos[2])
 {
+  if (!this->MarkupsNode)
+    {
+    return;
+    }
+
   // If any node is locked return
   for (int i = 0; i < this->GetNumberOfNodes(); i++)
     {
@@ -951,9 +983,7 @@ void vtkSlicerAbstractRepresentation3D::RotateWidget(double eventPos[2])
   double angle = -vtkMath::DegreesFromRadians
                  ( vtkMath::AngleBetweenVectors( lastWorldPos, worldPos ) );
 
-  // SetNthNodeWorldPosition calls vtkMRMLMarkupsNode::PointModifiedEvent reporting the id of the point modified.
-  // However, already for > 200 points, it gets bad perfomance. Therefore, we call a simply modified call at the end.
-  this->MarkupsNode->DisableModifiedEventOn();
+ this->MarkupsNode->DisableModifiedEventOn();
   for (int i = 0; i < this->GetNumberOfNodes(); i++)
     {
     this->GetNthNodeWorldPosition(i, ref);

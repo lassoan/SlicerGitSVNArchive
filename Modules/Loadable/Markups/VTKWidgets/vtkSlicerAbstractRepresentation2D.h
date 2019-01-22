@@ -133,6 +133,13 @@ public:
   /// (n+1) nodes (0 based counting).
   int GetNthNodeDisplayPosition( int n, double pos[2] ) VTK_OVERRIDE;
 
+  /// Get the display position of the intermediate point at
+  /// index idx between nodes n and (n+1) (or n and 0 if
+  /// n is the last node and the loop is closed). Returns
+  /// 1 on success or 0 if n or idx are out of range.
+  virtual int GetIntermediatePointDisplayPosition( int n,
+                                                   int idx, double pos[2] );
+
   /// Set the nth node's position on the slice. slice position
   /// will be converted into world position according to the
   /// GetXYToRAS matrix. Will return
@@ -160,7 +167,7 @@ protected:
   vtkWeakPointer<vtkMRMLSliceNode> SliceNode;
 
   // Support picking
-  vtkPropPicker *CursorPicker;
+  vtkPropPicker *ControlPointsPicker;
 
   // Methods to manipulate the cursor
   virtual void TranslateNode(double eventPos[2]);

@@ -176,12 +176,15 @@ public:
   virtual void CreateDefaultRepresentation() override;
 
   /// Add a point to the current active Markup at input World coordiantes.
-  /// If persistence is true, the widget state remains to Define
-  void AddPointToRepresentationFromWorldCoordinate(double worldCoordinates [3], bool persistence = false);
+  void AddPointToRepresentationFromWorldCoordinate(double worldCoordinates [3], bool persistence = true);
 
 protected:
   vtkSlicerLineWidget();
   ~vtkSlicerLineWidget() override;
+
+  // Callback interface to capture events when
+  // placing the widget.
+  static void MoveAction(vtkAbstractWidget*);
 
 private:
   vtkSlicerLineWidget(const vtkSlicerLineWidget&) = delete;

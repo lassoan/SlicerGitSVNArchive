@@ -184,6 +184,10 @@ protected:
   vtkSlicerPointsWidget();
   ~vtkSlicerPointsWidget() VTK_OVERRIDE;
 
+  // Callback interface to capture events when
+  // placing the widget.
+  static void MoveAction(vtkAbstractWidget*);
+
 private:
   vtkSlicerPointsWidget(const vtkSlicerPointsWidget&) = delete;
   void operator=(const vtkSlicerPointsWidget&) = delete;

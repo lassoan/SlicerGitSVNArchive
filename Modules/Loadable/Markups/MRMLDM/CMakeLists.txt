@@ -19,7 +19,7 @@ set(displayable_manager_SRCS
   vtkMRML${MODULE_NAME}FiducialDisplayableManager3D.cxx
   vtkMRML${MODULE_NAME}FiducialDisplayableManager2D.cxx
   vtkMRML${MODULE_NAME}LineDisplayableManager3D.cxx
-  #vtkMRML${MODULE_NAME}LineDisplayableManager2D.cxx
+  vtkMRML${MODULE_NAME}LineDisplayableManager2D.cxx
   )
 
 SlicerConfigureDisplayableManagerObjectFactory(

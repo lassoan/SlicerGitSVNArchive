@@ -75,7 +75,6 @@ public:
   virtual int ActivateNode( double displayPos[2] );
   virtual int ActivateNode( int displayPos[2] );
   virtual int ActivateNode( int X, int Y );
-  //@}
 
   /// Move the active node to a specified world position.
   /// Will return 0 if there is no active node or the node
@@ -221,6 +220,13 @@ public:
   virtual int GetIntermediatePointWorldPosition( int n,
                                                  int idx, double point[3] );
 
+  /// Get the display position of the intermediate point at
+  /// index idx between nodes n and (n+1) (or n and 0 if
+  /// n is the last node and the loop is closed). Returns
+  /// 1 on success or 0 if n or idx are out of range.
+  virtual int GetIntermediatePointDisplayPosition( int n,
+                                                   int idx, double pos[2] );
+
   /// Add an intermediate point between node n and n+1
   /// (or n and 0 if n is the last node and the loop is closed).
   /// Returns 1 on success or 0 if n is out of range.
@@ -253,7 +259,7 @@ public:
   vtkGetMacro(Tolerance, double);
 
   /// The tolerance to use when calculations are performed in
-  /// display coordinates
+  /// display coordinates   
   vtkGetMacro(PixelTolerance,int);
 
   /// Give an inter which provides
@@ -262,7 +268,8 @@ public:
   // Used to communicate about the state of the representation
   enum {
     Outside=0,
-    Nearby
+    OnControlPoint,
+    OnLine
   };
 
   // Used to communicate about the operation of the representation
@@ -392,7 +399,7 @@ protected:
   // This method is called when something changes in the point placer.
   // It will cause all points to be updated, and all lines to be regenerated.
   // It should be extended to detect changes in the line interpolator too.
-  virtual int  UpdateWidget();
+  virtual int  UpdateWidget( bool force = false );
   vtkTimeStamp WidgetBuildTime;
 
   void ComputeMidpoint( double p1[3], double p2[3], double mid[3] )
@@ -409,6 +416,9 @@ protected:
   // Deletes the previous locator if it exists and creates
   // a new locator. Also deletes / recreates the attached data set.
   void ResetLocator();
+
+  // Calculate view scale factor
+  double CalculateViewScaleFactor();
 
   virtual void BuildLocator();
 
@@ -439,10 +449,6 @@ protected:
   // the manipulator in general.
 
   virtual void  CreateDefaultProperties() = 0;
-
-  // Distance between where the mouse event happens and where the
-  // widget is focused - maintain this distance during interaction.
-  double InteractionOffset[2];
 
   vtkTypeBool AlwaysOnTop;
 

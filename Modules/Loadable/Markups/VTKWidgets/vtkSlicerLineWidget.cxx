@@ -36,6 +36,10 @@ vtkStandardNewMacro(vtkSlicerLineWidget);
 //----------------------------------------------------------------------
 vtkSlicerLineWidget::vtkSlicerLineWidget()
 {
+  this->CallbackMapper->SetCallbackMethod(vtkCommand::MouseMoveEvent,
+                                          vtkWidgetEvent::Move,
+                                          this, vtkSlicerLineWidget::MoveAction);
+
 }
 
 //----------------------------------------------------------------------
@@ -53,7 +57,7 @@ void vtkSlicerLineWidget::CreateDefaultRepresentation()
 
 //-------------------------------------------------------------------------
 void vtkSlicerLineWidget::AddPointToRepresentationFromWorldCoordinate(double worldCoordinates[3],
-                                                                      bool persistence /*=false*/)
+                                                                      bool persistence /*=true*/)
 {
   vtkSlicerAbstractRepresentation *rep =
     reinterpret_cast<vtkSlicerAbstractRepresentation*>(this->WidgetRep);
@@ -63,7 +67,22 @@ void vtkSlicerLineWidget::AddPointToRepresentationFromWorldCoordinate(double wor
     return;
     }
 
-  this->CurrentHandle = rep->GetActiveNode();
+  if ( persistence )
+    {
+    if ( this->FollowCursor == true )
+      {
+      rep->DeleteLastNode();
+      }
+    else
+      {
+      this->FollowCursor = true;
+      }
+    }
+  else if ( this->FollowCursor == true )
+    {
+    rep->DeleteLastNode();
+    this->FollowCursor = false;
+    }
 
   if ( rep->AddNodeAtWorldPosition( worldCoordinates ) )
     {
@@ -74,17 +93,98 @@ void vtkSlicerLineWidget::AddPointToRepresentationFromWorldCoordinate(double wor
       }
     this->WidgetState = vtkSlicerLineWidget::Define;
     rep->VisibilityOn();
-    this->ReleaseFocus();
-    this->Render();
     this->EventCallbackCommand->SetAbortFlag(1);
     this->InvokeEvent( vtkCommand::PlacePointEvent, &this->CurrentHandle );
-    if ( !persistence )
+    this->ReleaseFocus();
+    this->Render();
+    if ( rep->GetNumberOfNodes() > 1 )
       {
+      this->FollowCursor = false;
       this->WidgetState = vtkSlicerLineWidget::Manipulate;
-      this->EventCallbackCommand->SetAbortFlag( 1 );
       this->InvokeEvent( vtkCommand::EndInteractionEvent, &this->CurrentHandle );
       this->Interactor->MouseWheelForwardEvent();
       this->Interactor->MouseWheelBackwardEvent();
       }
     }
+
+  if ( this->FollowCursor )
+    {
+    rep->AddNodeAtWorldPosition( worldCoordinates );
+    }
 }
+
+//-------------------------------------------------------------------------
+void vtkSlicerLineWidget::MoveAction( vtkAbstractWidget *w )
+{
+  vtkSlicerLineWidget *self = reinterpret_cast<vtkSlicerLineWidget*>(w);
+  vtkSlicerAbstractRepresentation *rep =
+    reinterpret_cast<vtkSlicerAbstractRepresentation*>(self->WidgetRep);
+
+  if ( self->WidgetState == vtkSlicerLineWidget::Start ||
+       !rep )
+    {
+    return;
+    }
+
+  int X = self->Interactor->GetEventPosition()[0];
+  int Y = self->Interactor->GetEventPosition()[1];
+
+  if ( self->WidgetState == vtkSlicerLineWidget::Define &&
+       self->FollowCursor && rep->GetNumberOfNodes() > 0)
+    {
+    rep->SetNthNodeDisplayPosition( rep->GetNumberOfNodes()-1, X, Y );
+    }
+
+  if (self->WidgetState == vtkSlicerLineWidget::Manipulate)
+    {
+    if ( rep->GetCurrentOperation() == vtkSlicerAbstractRepresentation::Inactive )
+      {
+      // on 3D views compute the interaction state is expensive
+      // it would be the best to solve the rendering flickering of 3D view when using a vtkPropPicker
+      // and use the vtkPropPicker (it is hardware accelerated) instaed of the vtkCellPicker.
+      // 2D views already use the vtkPropPicker.
+      int state = rep->ComputeInteractionState( X, Y );
+      rep->ActivateNode( X, Y );
+      self->SetCursor( state > 0 );
+      if ( state == vtkSlicerAbstractRepresentation::OnControlPoint )
+        {
+        self->CurrentHandle = rep->GetActiveNode();
+        self->InvokeEvent( vtkCommand::InteractionEvent, &self->CurrentHandle );
+        }
+      else if ( state == vtkSlicerAbstractRepresentation::OnLine )
+        {
+        self->CurrentHandle = -1;
+        self->InvokeEvent( vtkCommand::InteractionEvent, &self->CurrentHandle );
+        }
+      else
+        {
+        }
+      }
+    else if ( rep->GetInteractionState() != vtkSlicerAbstractRepresentation::Outside )
+      {
+      double pos[2];
+      pos[0] = X;
+      pos[1] = Y;
+      rep->WidgetInteraction( pos );
+      if ( rep->GetCurrentOperation() != vtkSlicerAbstractRepresentation::Pick )
+        {
+        if ( rep->GetInteractionState() == vtkSlicerAbstractRepresentation::OnControlPoint )
+          {
+          self->CurrentHandle = rep->GetActiveNode();
+          }
+        else if (rep->GetInteractionState() == vtkSlicerAbstractRepresentation::OnLine)
+          {
+          self->CurrentHandle = -1;
+          }
+        self->InvokeEvent( vtkCommand::InteractionEvent, &self->CurrentHandle );
+        }
+      }
+    }
+
+  if ( rep->GetNeedToRender() )
+    {
+    self->Render();
+    rep->NeedToRenderOff();
+    }
+}
+

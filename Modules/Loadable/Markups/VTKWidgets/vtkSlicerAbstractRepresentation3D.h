@@ -81,6 +81,12 @@ public:
   /// with the handle.
   vtkGetObjectMacro(ActiveTextProperty,vtkTextProperty);
 
+  /// Given a display position, activate a node. The closest
+  /// node within tolerance will be activated. If a node is
+  /// activated, 1 will be returned, otherwise 0 will be
+  /// returned.
+  virtual int ActivateNode(double displayPos[2]) VTK_OVERRIDE;
+
   /// Specify tolerance for performing pick operation. Tolerance is specified
   /// as fraction of rendering window size. (Rendering window size is measured
   /// across diagonal in display pixel coordinates)
@@ -137,9 +143,10 @@ protected:
   ~vtkSlicerAbstractRepresentation3D() VTK_OVERRIDE;
 
   // Support picking
-  // Using a vtkPropPicker will be faster,
+  // Using a vtkPropPicker will be faster (hardware accelerated),
   // however it produces very bad flickering of the rendering for the 3D.
-  vtkCellPicker *CursorPicker;
+  // 2D representations use the vtkPropPicker
+  vtkCellPicker *ControlPointsPicker;
 
   // Methods to manipulate the cursor
   virtual void TranslateNode(double eventPos[2]);

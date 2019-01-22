@@ -15,8 +15,8 @@
 
 ==============================================================================*/
 
-#ifndef __vtkMRMLMarkupsFiducialDisplayableManager2D_h
-#define __vtkMRMLMarkupsFiducialDisplayableManager2D_h
+#ifndef __vtkMRMLMarkupsLineDisplayableManager2D_h
+#define __vtkMRMLMarkupsLineDisplayableManager2D_h
 
 // MarkupsModule includes
 #include "vtkSlicerMarkupsModuleMRMLDisplayableManagerExport.h"
@@ -24,25 +24,22 @@
 // MarkupsModule/MRMLDisplayableManager includes
 #include "vtkMRMLMarkupsDisplayableManager2D.h"
 
-class vtkMRMLMarkupsFiducialNode;
-class vtkMRMLMarkupsDisplayNode;
-class vtkSlicerAbstractWidget;
-class vtkTextWidget;
+class vtkMRMLMarkupsLineNode;
 
 /// \ingroup Slicer_QtModules_Markups
-class VTK_SLICER_MARKUPS_MODULE_MRMLDISPLAYABLEMANAGER_EXPORT vtkMRMLMarkupsFiducialDisplayableManager2D :
+class VTK_SLICER_MARKUPS_MODULE_MRMLDISPLAYABLEMANAGER_EXPORT vtkMRMLMarkupsLineDisplayableManager2D :
     public vtkMRMLMarkupsDisplayableManager2D
 {
 public:
 
-  static vtkMRMLMarkupsFiducialDisplayableManager2D *New();
-  vtkTypeMacro(vtkMRMLMarkupsFiducialDisplayableManager2D, vtkMRMLMarkupsDisplayableManager2D);
+  static vtkMRMLMarkupsLineDisplayableManager2D *New();
+  vtkTypeMacro(vtkMRMLMarkupsLineDisplayableManager2D, vtkMRMLMarkupsDisplayableManager2D);
   void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
 
 protected:
 
-  vtkMRMLMarkupsFiducialDisplayableManager2D(){this->Focus="vtkMRMLMarkupsFiducialNode";}
-  virtual ~vtkMRMLMarkupsFiducialDisplayableManager2D(){}
+  vtkMRMLMarkupsLineDisplayableManager2D(){this->Focus="vtkMRMLMarkupsLineNode";}
+  virtual ~vtkMRMLMarkupsLineDisplayableManager2D(){}
 
   /// Callback for click in RenderWindow
   virtual void OnClickInRenderWindow(double x, double y, const char *associatedNodeID) VTK_OVERRIDE;
@@ -63,14 +60,14 @@ protected:
   /// Clean up when scene closes
   virtual void OnMRMLSceneEndClose() VTK_OVERRIDE;
   /// Add Control Point
-  virtual int AddControlPoint(vtkMRMLMarkupsFiducialNode *markupsNode, double worldCoordinates[4]);
+  virtual int AddControlPoint(vtkMRMLMarkupsLineNode *markupsNode, double worldCoordinates[4]);
   /// Check, if the point is displayable in the current slice geometry
   virtual bool IsPointDisplayableOnSlice(vtkMRMLMarkupsNode* node, int pointIndex = 0);
 
 private:
 
-  vtkMRMLMarkupsFiducialDisplayableManager2D(const vtkMRMLMarkupsFiducialDisplayableManager2D&); /// Not implemented
-  void operator=(const vtkMRMLMarkupsFiducialDisplayableManager2D&); /// Not Implemented
+  vtkMRMLMarkupsLineDisplayableManager2D(const vtkMRMLMarkupsLineDisplayableManager2D&); /// Not implemented
+  void operator=(const vtkMRMLMarkupsLineDisplayableManager2D&); /// Not Implemented
 
 };
 

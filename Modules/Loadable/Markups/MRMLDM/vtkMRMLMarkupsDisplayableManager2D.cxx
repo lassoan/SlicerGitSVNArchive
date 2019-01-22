@@ -388,8 +388,8 @@ void vtkMRMLMarkupsDisplayableManager2D::OnMRMLSceneNodeAdded(vtkMRMLNode* node)
       markupsNode);
   if (it != this->Helper->MarkupsNodeList.end())
     {
-      vtkErrorMacro("OnMRMLSceneNodeAddedEvent: This node is already associated to the displayable manager!")
-      return;
+    vtkErrorMacro("OnMRMLSceneNodeAddedEvent: This node is already associated to the displayable manager!")
+    return;
     }
 
   // There should not be a widget for the new node
@@ -403,7 +403,6 @@ void vtkMRMLMarkupsDisplayableManager2D::OnMRMLSceneNodeAdded(vtkMRMLNode* node)
   vtkAbstractWidget* newWidget = this->AddWidget(markupsNode);
   if (!newWidget)
     {
-    vtkErrorMacro("OnMRMLSceneNodeAddedEvent: Widget was not created!")
     return;
     }
   else
@@ -499,7 +498,6 @@ void vtkMRMLMarkupsDisplayableManager2D::OnMRMLMarkupsDisplayNodeModifiedEvent(v
 {
   if (!node)
     {
-    vtkErrorMacro("OnMRMLMarkupsDisplayNodeModifiedEvent: no node!");
     return;
     }
 
@@ -784,56 +782,6 @@ void vtkMRMLMarkupsDisplayableManager2D::OnMRMLDisplayableNodeModifiedEvent(vtkO
     vtkDebugMacro("OnMRMLDisplayableNodeModifiedEvent: This displayableManager handles a ThreeD view.")
     return;
     }
-}
-
-//---------------------------------------------------------------------------
-void vtkMRMLMarkupsDisplayableManager2D::UpdateWidgetVisibility(vtkMRMLMarkupsNode* markupsNode)
-{
-//  std::cout << "UpdateWidgetVisibility" << std::endl;
-  if (!markupsNode)
-    {
-    vtkErrorMacro("UpdateWidgetVisibility: no markups node from which to work!");
-    return;
-    }
-
-   vtkAbstractWidget* widget = this->Helper->GetWidget(markupsNode);
-
-   if (!widget)
-     {
-     vtkErrorMacro("UpdateWidgetVisibility: We could not get the widget to the node: " << markupsNode->GetID());
-     return;
-     }
-
-   // check if the markups node is visible according to the current mrml state
-   vtkMRMLDisplayNode *displayNode = markupsNode->GetDisplayNode();
-   bool visibleOnNode = true;
-   if (displayNode)
-     {
-     vtkMRMLSliceNode *sliceNode = this->GetMRMLSliceNode();
-     if (sliceNode)
-       {
-       visibleOnNode = (displayNode->GetVisibility(sliceNode->GetID()) == 1 ? true : false);
-       }
-     else
-       {
-       visibleOnNode = (displayNode->GetVisibility() == 1 ? true : false);
-       }
-     }
-   // check if the widget is visible according to the widget state
-   bool visibleOnWidget = (widget->GetEnabled() == 1 ? true : false);
-
-   // only update the visibility of the widget if it is different than on the node
-   // first case: the node says it is not visible, but the widget is
-   if (!visibleOnNode && visibleOnWidget)
-     {
-     // hide the widget immediately
-     widget->SetEnabled(0);
-     }
-   // second case: the node says it is visible, but the widget is not
-   else if (visibleOnNode && !visibleOnWidget)
-     {
-     widget->SetEnabled(1);
-     }
 }
 
 //---------------------------------------------------------------------------
@@ -1137,6 +1085,10 @@ void vtkMRMLMarkupsDisplayableManager2D::OnInteractorStyleEvent(int eventid)
       this->GetInteractionNode()->SwitchToViewTransformMode();
       this->OnClickInRenderWindowGetCoordinates();
       }
+    }
+  else if (eventid == vtkCommand::EnterEvent)
+    {
+    this->RequestRender();
     }
 }
 
@@ -1526,7 +1478,6 @@ vtkSlicerAbstractWidget * vtkMRMLMarkupsDisplayableManager2D::AddWidget(vtkMRMLM
   vtkSlicerAbstractWidget* newWidget = this->CreateWidget(markupsNode);
   if (!newWidget)
     {
-    vtkErrorMacro("AddWidget: unable to create a new widget for markups node " << markupsNode->GetID());
     return nullptr;
     }
 

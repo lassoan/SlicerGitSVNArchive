@@ -45,10 +45,6 @@ public:
   vtkTypeMacro(vtkMRMLMarkupsDisplayableManager2D, vtkMRMLAbstractSliceViewDisplayableManager);
   void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
 
-  /// Hide/Show a widget so that the node's display node visibility setting
-  /// matches that of the widget
-  void UpdateWidgetVisibility(vtkMRMLMarkupsNode* node);
-
   /// Check if the displayCoordinates are inside the viewport and if not,
   /// correct the displayCoordinates. Coordinates are reset if the normalized
   /// viewport coordinates are less than 0.001 or greater than 0.999 and are

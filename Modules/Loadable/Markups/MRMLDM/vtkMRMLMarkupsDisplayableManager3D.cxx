@@ -340,7 +340,7 @@ void vtkMRMLMarkupsDisplayableManager3D::OnMRMLSceneNodeAdded(vtkMRMLNode* node)
     return;
     }
 
-  vtkMRMLMarkupsNode * markupsNode = vtkMRMLMarkupsNode::SafeDownCast(node);
+  vtkMRMLMarkupsNode *markupsNode = vtkMRMLMarkupsNode::SafeDownCast(node);
   if (!markupsNode)
     {
     return;
@@ -355,8 +355,6 @@ void vtkMRMLMarkupsDisplayableManager3D::OnMRMLSceneNodeAdded(vtkMRMLNode* node)
       markupsNode);
   if (it != this->Helper->MarkupsNodeList.end())
     {
-    // Refresh observers
-    this->SetAndObserveNode(markupsNode);
     vtkErrorMacro("OnMRMLSceneNodeAddedEvent: This node is already associated to the displayable manager!")
     return;
     }
@@ -364,8 +362,6 @@ void vtkMRMLMarkupsDisplayableManager3D::OnMRMLSceneNodeAdded(vtkMRMLNode* node)
   // There should not be a widget for the new node
   if (this->Helper->GetWidget(markupsNode) != nullptr)
     {
-    // Refresh observers
-    this->SetAndObserveNode(markupsNode);
     vtkErrorMacro("OnMRMLSceneNodeAddedEvent: A widget is already associated to this node!");
     return;
     }
@@ -374,7 +370,6 @@ void vtkMRMLMarkupsDisplayableManager3D::OnMRMLSceneNodeAdded(vtkMRMLNode* node)
   vtkSlicerAbstractWidget* newWidget = this->AddWidget(markupsNode);
   if (!newWidget)
     {
-    vtkErrorMacro("OnMRMLSceneNodeAddedEvent: Widget was not created!")
     return;
     }
   else
@@ -431,14 +426,12 @@ void vtkMRMLMarkupsDisplayableManager3D::OnMRMLMarkupsDisplayNodeModifiedEvent(v
 {
   if (!node)
     {
-    vtkErrorMacro("OnMRMLMarkupsDisplayNodeModifiedEvent: no node!");
     return;
     }
 
   vtkMRMLMarkupsDisplayNode *markupsDisplayNode = vtkMRMLMarkupsDisplayNode::SafeDownCast(node);
   if (!markupsDisplayNode)
     {
-    vtkErrorMacro("OnMRMLMarkupsDisplayNodeModifiedEvent: Can not access node.")
     return;
     }
 
@@ -456,16 +449,15 @@ void vtkMRMLMarkupsDisplayableManager3D::OnMRMLMarkupsDisplayNodeModifiedEvent(v
         << markupsDisplayNode->GetID());
 
   vtkSlicerAbstractWidget * widget = this->Helper->GetWidget(markupsNode);
-
   if (widget)
     {
     vtkSlicerAbstractRepresentation3D *rep =
       vtkSlicerAbstractRepresentation3D::SafeDownCast(widget->GetRepresentation());
     if (rep)
       {
-      if (markupsDisplayNode->IsDisplayableInView(this->GetMRMLViewNode()->GetID()))
+      if (markupsDisplayNode->GetVisibility() && markupsDisplayNode->IsDisplayableInView(this->GetMRMLViewNode()->GetID()))
         {
-        rep->VisibilityOn();
+        widget->On();
         vtkProperty *prop = rep->GetProperty();
         if (prop)
           {
@@ -549,13 +541,13 @@ void vtkMRMLMarkupsDisplayableManager3D::OnMRMLMarkupsDisplayNodeModifiedEvent(v
         }
       else
         {
-        rep->VisibilityOff();
+        widget->Off();
         }
       }
     // Rebuild representation
     widget->BuildRepresentation();
     this->RequestRender();
-  }
+    }
 }
 
 //---------------------------------------------------------------------------
@@ -715,58 +707,6 @@ void vtkMRMLMarkupsDisplayableManager3D::OnMRMLDisplayableNodeModifiedEvent(vtkO
     }
 
 }
-
-//---------------------------------------------------------------------------
-void vtkMRMLMarkupsDisplayableManager3D::UpdateWidgetVisibility(vtkMRMLMarkupsNode* markupsNode)
-{
-//  std::cout << "UpdateWidgetVisibility" << std::endl;
-  if (!markupsNode)
-    {
-    vtkErrorMacro("UpdateWidgetVisibility: no markups node from which to work!");
-    return;
-    }
-
-   vtkSlicerAbstractWidget* widget = this->Helper->GetWidget(markupsNode);
-
-   if (!widget)
-     {
-     vtkErrorMacro("UpdateWidgetVisibility: We could not get the widget to the node: " << markupsNode->GetID());
-     return;
-     }
-
-   // check if the markups node is visible according to the current mrml state
-   vtkMRMLDisplayNode *displayNode = markupsNode->GetDisplayNode();
-   bool visibleOnNode = true;
-   if (displayNode)
-     {
-     vtkMRMLViewNode *viewNode = this->GetMRMLViewNode();
-     if (viewNode)
-       {
-       // use the view information to get the visibility
-       visibleOnNode = (displayNode->GetVisibility(viewNode->GetID()) == 1 ? true : false);
-       }
-     else
-       {
-       visibleOnNode = (displayNode->GetVisibility() == 1 ? true : false);
-       }
-     }
-   // check if the widget is visible according to the widget state
-   bool visibleOnWidget = (widget->GetEnabled() == 1 ? true : false);
-
-   // only update the visibility of the widget if it is different than on the node
-   // first case: the node says it is not visible, but the widget is
-   if (!visibleOnNode && visibleOnWidget)
-     {
-     // hide the widget immediately
-     widget->SetEnabled(0);
-     }
-   // second case: the node says it is visible, but the widget is not
-   else if (visibleOnNode && !visibleOnWidget)
-     {
-     widget->SetEnabled(1);
-     }
-}
-
 
 //---------------------------------------------------------------------------
 void vtkMRMLMarkupsDisplayableManager3D::OnInteractorStyleEvent(int eventid)
@@ -1185,7 +1125,6 @@ vtkSlicerAbstractWidget * vtkMRMLMarkupsDisplayableManager3D::AddWidget(vtkMRMLM
   vtkSlicerAbstractWidget* newWidget = this->CreateWidget(markupsNode);
   if (!newWidget)
     {
-    vtkErrorMacro("AddWidget: unable to create a new widget for markups node " << markupsNode->GetID());
     return nullptr;
     }
 
