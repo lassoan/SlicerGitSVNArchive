@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>490</width>
-    <height>317</height>
+    <width>285</width>
+    <height>451</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -30,19 +30,16 @@
     <number>4</number>
    </property>
    <item>
-    <widget class="QFrame" name="frame_SourceGeometry">
-     <property name="frameShape">
-      <enum>QFrame::StyledPanel</enum>
+    <widget class="QGroupBox" name="groupBox_CurrentSegmentationLabelmapGeometry">
+     <property name="title">
+      <string>Current segmentation labelmap geometry</string>
      </property>
-     <property name="frameShadow">
-      <enum>QFrame::Raised</enum>
-     </property>
-     <layout class="QGridLayout" name="gridLayout">
+     <layout class="QGridLayout" name="gridLayout_4">
       <property name="leftMargin">
        <number>4</number>
       </property>
       <property name="topMargin">
-       <number>4</number>
+       <number>6</number>
       </property>
       <property name="rightMargin">
        <number>4</number>
@@ -50,17 +47,129 @@
       <property name="bottomMargin">
        <number>4</number>
       </property>
-      <property name="verticalSpacing">
-       <number>9</number>
+      <property name="horizontalSpacing">
+       <number>4</number>
       </property>
-      <item row="0" column="0">
-       <widget class="QLabel" name="label_SourceGeometryNode">
-        <property name="text">
-         <string>Source geometry:</string>
+      <property name="verticalSpacing">
+       <number>6</number>
+      </property>
+      <item row="6" column="1">
+       <widget class="qMRMLCoordinatesWidget" name="MRMLCoordinatesWidget_CurrentOrigin">
+        <property name="decimals">
+         <number>2</number>
+        </property>
+        <property name="frame">
+         <bool>false</bool>
+        </property>
+        <property name="readOnly">
+         <bool>true</bool>
+        </property>
+        <property name="quantity">
+         <string>length</string>
         </property>
        </widget>
       </item>
-      <item row="0" column="1">
+      <item row="7" column="0">
+       <widget class="QLabel" name="label_Directions_2">
+        <property name="text">
+         <string>Directions:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="1">
+       <widget class="qMRMLCoordinatesWidget" name="MRMLCoordinatesWidget_CurrentSpacing">
+        <property name="decimals">
+         <number>2</number>
+        </property>
+        <property name="frame">
+         <bool>false</bool>
+        </property>
+        <property name="readOnly">
+         <bool>true</bool>
+        </property>
+        <property name="quantity">
+         <string>length</string>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="0">
+       <widget class="QLabel" name="label_Spacing_2">
+        <property name="text">
+         <string>Spacing:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="7" column="1">
+       <widget class="ctkMatrixWidget" name="MatrixWidget_CurrentDirections">
+        <property name="columnCount">
+         <number>3</number>
+        </property>
+        <property name="rowCount">
+         <number>3</number>
+        </property>
+        <property name="editable">
+         <bool>false</bool>
+        </property>
+        <property name="decimals">
+         <number>3</number>
+        </property>
+       </widget>
+      </item>
+      <item row="6" column="0">
+       <widget class="QLabel" name="label_Origin_2">
+        <property name="text">
+         <string>Origin:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="0">
+       <widget class="QLabel" name="label_Dimensions_2">
+        <property name="text">
+         <string>Dimensions:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="1">
+       <widget class="qMRMLCoordinatesWidget" name="MRMLCoordinatesWidget_CurrentDimensions">
+        <property name="decimals">
+         <number>0</number>
+        </property>
+        <property name="frame">
+         <bool>false</bool>
+        </property>
+        <property name="readOnly">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <widget class="QGroupBox" name="groupBox_NewSegmentationLabelmapGeometry">
+     <property name="title">
+      <string>New segmentation labelmap geometry</string>
+     </property>
+     <layout class="QGridLayout" name="gridLayout_3">
+      <property name="leftMargin">
+       <number>4</number>
+      </property>
+      <property name="topMargin">
+       <number>6</number>
+      </property>
+      <property name="rightMargin">
+       <number>4</number>
+      </property>
+      <property name="bottomMargin">
+       <number>4</number>
+      </property>
+      <property name="horizontalSpacing">
+       <number>4</number>
+      </property>
+      <property name="verticalSpacing">
+       <number>6</number>
+      </property>
+      <item row="2" column="1">
        <widget class="qMRMLNodeComboBox" name="MRMLNodeComboBox_SourceGeometryNode">
         <property name="nodeTypes">
          <stringlist>
@@ -84,135 +193,80 @@
         </property>
        </widget>
       </item>
-      <item row="1" column="0" colspan="2">
-       <widget class="QGroupBox" name="groupBox_VolumeSpacingOptions">
-        <property name="title">
-         <string>Volume spacing options</string>
+      <item row="4" column="1">
+       <widget class="QCheckBox" name="checkBox_IsotropicSpacing">
+        <property name="enabled">
+         <bool>false</bool>
         </property>
-        <layout class="QGridLayout" name="gridLayout_2">
-         <property name="leftMargin">
-          <number>4</number>
-         </property>
-         <property name="topMargin">
-          <number>6</number>
-         </property>
-         <property name="rightMargin">
-          <number>4</number>
-         </property>
-         <property name="bottomMargin">
-          <number>4</number>
-         </property>
-         <property name="horizontalSpacing">
-          <number>4</number>
-         </property>
-         <property name="verticalSpacing">
-          <number>6</number>
-         </property>
-         <item row="0" column="0">
-          <widget class="QLabel" name="label_OversamplingFactor">
-           <property name="toolTip">
-            <string>Split each voxel of the volume to this many voxels along each direction. Useful when increasing the resolution is needed</string>
-           </property>
-           <property name="text">
-            <string>Oversampling factor:</string>
-           </property>
-          </widget>
-         </item>
-         <item row="0" column="1">
-          <widget class="ctkDoubleSpinBox" name="DoubleSpinBox_OversamplingFactor">
-           <property name="toolTip">
-            <string>Split each voxel of the volume to this many voxels along each direction. Useful when increasing the resolution is needed</string>
-           </property>
-           <property name="minimum">
-            <double>0.050000000000000</double>
-           </property>
-           <property name="maximum">
-            <double>20.000000000000000</double>
-           </property>
-           <property name="singleStep">
-            <double>0.500000000000000</double>
-           </property>
-           <property name="value">
-            <double>1.000000000000000</double>
-           </property>
-          </widget>
-         </item>
-         <item row="1" column="0">
-          <widget class="QLabel" name="label_IsotropicSpacing">
-           <property name="toolTip">
-            <string>Resample the volume to have isotropic spacing, which means the voxels will be cubes. Use smallest spacing. Useful if the volume has elongated voxels.</string>
-           </property>
-           <property name="text">
-            <string>Isotropic spacing:</string>
-           </property>
-          </widget>
-         </item>
-         <item row="1" column="1">
-          <widget class="QCheckBox" name="checkBox_IsotropicSpacing">
-           <property name="toolTip">
-            <string>Resample the volume to have isotropic spacing, which means the voxels will be cubes. Use smallest spacing. Useful if the volume has elongated voxels.</string>
-           </property>
-           <property name="text">
-            <string/>
-           </property>
-          </widget>
-         </item>
-        </layout>
+        <property name="toolTip">
+         <string>Resample the volume to have isotropic spacing, which means the voxels will be cubes. Use smallest spacing. Useful if the volume has elongated voxels.</string>
+        </property>
+        <property name="text">
+         <string/>
+        </property>
        </widget>
       </item>
-     </layout>
-    </widget>
-   </item>
-   <item>
-    <widget class="QGroupBox" name="groupBox_SegmentationLabelmapGeometry">
-     <property name="title">
-      <string>Segmentation labelmap geometry</string>
-     </property>
-     <layout class="QGridLayout" name="gridLayout_3">
-      <property name="leftMargin">
-       <number>4</number>
-      </property>
-      <property name="topMargin">
-       <number>6</number>
-      </property>
-      <property name="rightMargin">
-       <number>4</number>
-      </property>
-      <property name="bottomMargin">
-       <number>4</number>
-      </property>
-      <property name="horizontalSpacing">
-       <number>4</number>
-      </property>
-      <property name="verticalSpacing">
-       <number>6</number>
-      </property>
       <item row="6" column="0">
-       <widget class="QLabel" name="label_Directions">
-        <property name="text">
-         <string>Directions:</string>
-        </property>
-       </widget>
-      </item>
-      <item row="4" column="0">
-       <widget class="QLabel" name="label_Origin">
-        <property name="text">
-         <string>Origin:</string>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="0">
        <widget class="QLabel" name="label_Spacing">
         <property name="text">
          <string>Spacing:</string>
         </property>
        </widget>
       </item>
+      <item row="2" column="0">
+       <widget class="QLabel" name="label_SourceGeometryNode">
+        <property name="text">
+         <string>Extent:</string>
+        </property>
+       </widget>
+      </item>
       <item row="6" column="1">
-       <widget class="ctkMatrixWidget" name="MatrixWidget_Directions">
-        <property name="enabled">
+       <widget class="qMRMLCoordinatesWidget" name="MRMLCoordinatesWidget_Spacing">
+        <property name="decimals">
+         <number>2</number>
+        </property>
+        <property name="decimalsOption">
+         <set>ctkDoubleSpinBox::DecimalsByKey|ctkDoubleSpinBox::DecimalsByShortcuts|ctkDoubleSpinBox::DecimalsByValue|ctkDoubleSpinBox::InsertDecimals</set>
+        </property>
+        <property name="frame">
          <bool>false</bool>
         </property>
+        <property name="readOnly">
+         <bool>true</bool>
+        </property>
+        <property name="quantity">
+         <string>length</string>
+        </property>
+       </widget>
+      </item>
+      <item row="4" column="0">
+       <widget class="QLabel" name="label_IsotropicSpacing">
+        <property name="toolTip">
+         <string>Resample the volume to have isotropic spacing, which means the voxels will be cubes. Use smallest spacing. Useful if the volume has elongated voxels.</string>
+        </property>
+        <property name="text">
+         <string>Isotropic spacing:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="11" column="1">
+       <widget class="qMRMLCoordinatesWidget" name="MRMLCoordinatesWidget_Origin">
+        <property name="decimals">
+         <number>2</number>
+        </property>
+        <property name="frame">
+         <bool>false</bool>
+        </property>
+        <property name="readOnly">
+         <bool>true</bool>
+        </property>
+        <property name="quantity">
+         <string>length</string>
+        </property>
+       </widget>
+      </item>
+      <item row="12" column="1">
+       <widget class="ctkMatrixWidget" name="MatrixWidget_Directions">
         <property name="columnCount">
          <number>3</number>
         </property>
@@ -220,60 +274,14 @@
          <number>3</number>
         </property>
         <property name="editable">
-         <bool>true</bool>
+         <bool>false</bool>
         </property>
         <property name="decimals">
          <number>3</number>
         </property>
        </widget>
       </item>
-      <item row="4" column="1">
-       <widget class="qMRMLCoordinatesWidget" name="MRMLCoordinatesWidget_Origin">
-        <property name="enabled">
-         <bool>false</bool>
-        </property>
-        <property name="decimals">
-         <number>2</number>
-        </property>
-        <property name="quantity">
-         <string>length</string>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="0">
-       <widget class="QLabel" name="label_Dimensions">
-        <property name="text">
-         <string>Dimensions:</string>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="1">
-       <widget class="qMRMLCoordinatesWidget" name="MRMLCoordinatesWidget_Spacing">
-        <property name="enabled">
-         <bool>false</bool>
-        </property>
-        <property name="decimals">
-         <number>2</number>
-        </property>
-        <property name="decimalsOption">
-         <set>ctkDoubleSpinBox::DecimalsByKey|ctkDoubleSpinBox::DecimalsByShortcuts|ctkDoubleSpinBox::DecimalsByValue|ctkDoubleSpinBox::InsertDecimals|ctkDoubleSpinBox::ReplaceDecimals</set>
-        </property>
-        <property name="quantity">
-         <string>length</string>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="1">
-       <widget class="qMRMLCoordinatesWidget" name="MRMLCoordinatesWidget_Dimensions">
-        <property name="enabled">
-         <bool>false</bool>
-        </property>
-        <property name="decimals">
-         <number>0</number>
-        </property>
-       </widget>
-      </item>
-      <item row="7" column="0" colspan="2">
+      <item row="22" column="0" colspan="2">
        <widget class="QLabel" name="label_Error">
         <property name="palette">
          <palette>
@@ -322,6 +330,72 @@
          <string>Error message</string>
         </property>
         <property name="wordWrap">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item row="12" column="0">
+       <widget class="QLabel" name="label_Directions">
+        <property name="text">
+         <string>Directions:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="5" column="0">
+       <widget class="QLabel" name="label_OversamplingFactor">
+        <property name="toolTip">
+         <string>Split each voxel of the volume to this many voxels along each direction. Useful when increasing the resolution is needed</string>
+        </property>
+        <property name="text">
+         <string>Oversampling factor:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="11" column="0">
+       <widget class="QLabel" name="label_Origin">
+        <property name="text">
+         <string>Origin:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="5" column="1">
+       <widget class="ctkDoubleSpinBox" name="DoubleSpinBox_OversamplingFactor">
+        <property name="enabled">
+         <bool>false</bool>
+        </property>
+        <property name="toolTip">
+         <string>Split each voxel of the volume to this many voxels along each direction. Useful when increasing the resolution is needed</string>
+        </property>
+        <property name="minimum">
+         <double>0.050000000000000</double>
+        </property>
+        <property name="maximum">
+         <double>20.000000000000000</double>
+        </property>
+        <property name="singleStep">
+         <double>0.500000000000000</double>
+        </property>
+        <property name="value">
+         <double>1.000000000000000</double>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="0">
+       <widget class="QLabel" name="label_Dimensions">
+        <property name="text">
+         <string>Dimensions:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="1">
+       <widget class="qMRMLCoordinatesWidget" name="MRMLCoordinatesWidget_Dimensions">
+        <property name="decimals">
+         <number>0</number>
+        </property>
+        <property name="frame">
+         <bool>false</bool>
+        </property>
+        <property name="readOnly">
          <bool>true</bool>
         </property>
        </widget>

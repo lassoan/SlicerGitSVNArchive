@@ -6,15 +6,24 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>583</width>
-    <height>792</height>
+    <width>297</width>
+    <height>462</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>Crop Volume</string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
-   <property name="margin">
+   <property name="leftMargin">
+    <number>0</number>
+   </property>
+   <property name="topMargin">
+    <number>0</number>
+   </property>
+   <property name="rightMargin">
+    <number>0</number>
+   </property>
+   <property name="bottomMargin">
     <number>0</number>
    </property>
    <item>
@@ -38,7 +47,16 @@
       <property name="verticalSpacing">
        <number>6</number>
       </property>
-      <property name="margin">
+      <property name="leftMargin">
+       <number>4</number>
+      </property>
+      <property name="topMargin">
+       <number>4</number>
+      </property>
+      <property name="rightMargin">
+       <number>4</number>
+      </property>
+      <property name="bottomMargin">
        <number>4</number>
       </property>
       <item row="0" column="0">
@@ -99,7 +117,16 @@
       <property name="verticalSpacing">
        <number>6</number>
       </property>
-      <property name="margin">
+      <property name="leftMargin">
+       <number>4</number>
+      </property>
+      <property name="topMargin">
+       <number>4</number>
+      </property>
+      <property name="rightMargin">
+       <number>4</number>
+      </property>
+      <property name="bottomMargin">
        <number>4</number>
       </property>
       <item row="0" column="0">
@@ -279,7 +306,16 @@
       <property name="verticalSpacing">
        <number>6</number>
       </property>
-      <property name="margin">
+      <property name="leftMargin">
+       <number>4</number>
+      </property>
+      <property name="topMargin">
+       <number>4</number>
+      </property>
+      <property name="rightMargin">
+       <number>4</number>
+      </property>
+      <property name="bottomMargin">
        <number>4</number>
       </property>
       <item row="0" column="0">
@@ -452,7 +488,16 @@
       <number>6</number>
      </property>
      <layout class="QVBoxLayout" name="verticalLayout_3">
-      <property name="margin">
+      <property name="leftMargin">
+       <number>4</number>
+      </property>
+      <property name="topMargin">
+       <number>4</number>
+      </property>
+      <property name="rightMargin">
+       <number>4</number>
+      </property>
+      <property name="bottomMargin">
        <number>4</number>
       </property>
       <item>
@@ -463,9 +508,6 @@
         <layout class="QGridLayout" name="gridLayout">
          <item row="1" column="1">
           <widget class="qMRMLCoordinatesWidget" name="InputDimensionsWidget">
-           <property name="enabled">
-            <bool>false</bool>
-           </property>
            <property name="toolTip">
             <string>Output volume dimension after cropping</string>
            </property>
@@ -481,6 +523,9 @@
            <property name="coordinates" stdset="0">
             <string>0,0,0</string>
            </property>
+           <property name="readOnly">
+            <bool>true</bool>
+           </property>
            <property name="unitAwareProperties">
             <set>qMRMLCoordinatesWidget::All</set>
            </property>
@@ -488,9 +533,6 @@
          </item>
          <item row="0" column="1">
           <widget class="qMRMLCoordinatesWidget" name="InputSpacingWidget">
-           <property name="enabled">
-            <bool>false</bool>
-           </property>
            <property name="toolTip">
             <string>Output volume spacing after cropping</string>
            </property>
@@ -508,6 +550,9 @@
            </property>
            <property name="coordinates" stdset="0">
             <string>0,0,0</string>
+           </property>
+           <property name="readOnly">
+            <bool>true</bool>
            </property>
            <property name="quantity">
             <string>length</string>
@@ -542,9 +587,6 @@
         <layout class="QGridLayout" name="gridLayout_2">
          <item row="1" column="1">
           <widget class="qMRMLCoordinatesWidget" name="CroppedDimensionsWidget">
-           <property name="enabled">
-            <bool>false</bool>
-           </property>
            <property name="toolTip">
             <string>Output volume dimension after cropping</string>
            </property>
@@ -560,6 +602,9 @@
            <property name="coordinates" stdset="0">
             <string>0,0,0</string>
            </property>
+           <property name="readOnly">
+            <bool>true</bool>
+           </property>
            <property name="unitAwareProperties">
             <set>qMRMLCoordinatesWidget::All</set>
            </property>
@@ -567,9 +612,6 @@
          </item>
          <item row="0" column="1">
           <widget class="qMRMLCoordinatesWidget" name="CroppedSpacingWidget">
-           <property name="enabled">
-            <bool>false</bool>
-           </property>
            <property name="toolTip">
             <string>Output volume spacing after cropping</string>
            </property>
@@ -587,6 +629,9 @@
            </property>
            <property name="coordinates" stdset="0">
             <string>0,0,0</string>
+           </property>
+           <property name="readOnly">
+            <bool>true</bool>
            </property>
            <property name="quantity">
             <string>length</string>
