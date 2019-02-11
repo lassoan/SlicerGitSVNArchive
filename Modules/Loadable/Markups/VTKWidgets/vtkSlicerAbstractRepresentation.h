@@ -79,14 +79,14 @@ public:
   /// Add a node at a specific world position. Returns 0 if the
   /// node could not be added, 1 otherwise.
   virtual int AddNodeAtWorldPosition(double x, double y, double z);
-  virtual int AddNodeAtWorldPosition(double worldPos[3]);
+  virtual int AddNodeAtWorldPosition(const double worldPos[3]);
 
   /// Add a node at a specific display position. This will be
   /// converted into a world position according to the current
   /// constraints of the point placer. Return 0 if a point could
   /// not be added, 1 otherwise.
-  virtual int AddNodeAtDisplayPosition(double displayPos[2]);
-  virtual int AddNodeAtDisplayPosition(int displayPos[2]);
+  virtual int AddNodeAtDisplayPosition(const double displayPos[2]);
+  virtual int AddNodeAtDisplayPosition(const int displayPos[2]);
   virtual int AddNodeAtDisplayPosition(int X, int Y);
 
   /// Given a display position, activate a node. The closest
@@ -99,15 +99,15 @@ public:
   /// Will return 0 if there is no active node or the node
   /// could not be moved to that position. 1 will be returned
   /// on success.
-  virtual int SetActiveNodeToWorldPosition(double pos[3]);
+  virtual int SetActiveNodeToWorldPosition(const double pos[3]);
 
   /// Move the active node based on a specified display position.
   /// The display position will be converted into a world
   /// position. If the new position is not valid or there is
   /// no active node, a 0 will be returned. Otherwise, on
   /// success a 1 will be returned.
-  virtual int SetActiveNodeToDisplayPosition(double pos[2]);
-  virtual int SetActiveNodeToDisplayPosition(int pos[2]);
+  virtual int SetActiveNodeToDisplayPosition(const double pos[2]);
+  virtual int SetActiveNodeToDisplayPosition(const int pos[2]);
   virtual int SetActiveNodeToDisplayPosition(int X, int Y);
   //@}
 
@@ -213,15 +213,15 @@ public:
   /// (n+1) nodes (0 based counting) or the world position
   /// is not valid.
   virtual int SetNthNodeDisplayPosition(int n, int X, int Y);
-  virtual int SetNthNodeDisplayPosition(int n, int pos[2]);
-  virtual int SetNthNodeDisplayPosition(int n, double pos[2]);
+  virtual int SetNthNodeDisplayPosition(int n, const int pos[2]);
+  virtual int SetNthNodeDisplayPosition(int n, const double pos[2]);
 
   /// Set the nth node's world position. Will return
   /// 1 on success, or 0 if there are not at least
   /// (n+1) nodes (0 based counting) or the world
   /// position is not valid according to the point
   /// placer.
-  virtual int SetNthNodeWorldPosition(int n, double pos[3]);
+  virtual int SetNthNodeWorldPosition(int n, const double pos[3]);
 
   /// Get the nth node's slope. Will return
   /// 1 on success, or 0 if there are not at least
@@ -381,6 +381,10 @@ public:
   /// and it also updates automatically the centroid pos stored in the Markups node
   virtual void UpdateCentroid();
 
+  /// Return true if interaction is possible.
+  /// Distance2 is the squared distance in display coordinates from the closest position where interaction is possible.
+  virtual bool CanInteract(const int displayPosition[2], const double worldPosition[3], double &closestDistance2);
+
 protected:
   vtkSlicerAbstractRepresentation();
   ~vtkSlicerAbstractRepresentation() VTK_OVERRIDE;
@@ -401,14 +405,14 @@ protected:
   int CurrentOperation;
   vtkTypeBool ClosedLoop;
 
-  virtual void AddNodeAtPositionInternal(double worldPos[3]);
-  virtual void SetNthNodeWorldPositionInternal(int n, double worldPos[3]);
-  virtual void FromWorldOrientToOrientationQuaternion(double worldOrient[9], double orientation[4]);
-  virtual void FromOrientationQuaternionToWorldOrient(double orientation[4], double worldOrient[9]);
+  virtual void AddNodeAtPositionInternal(const double worldPos[3]);
+  virtual void SetNthNodeWorldPositionInternal(int n, const double worldPos[3]);
+  virtual void FromWorldOrientToOrientationQuaternion(const double worldOrient[9], double orientation[4]);
+  virtual void FromOrientationQuaternionToWorldOrient(const double orientation[4], double worldOrient[9]);
 
   // Given a world position and orientation, this computes the display position
   // using the renderer of this class.
-  void GetRendererComputedDisplayPositionFromWorldPosition(double worldPos[3],
+  void GetRendererComputedDisplayPositionFromWorldPosition(const double worldPos[3],
                                                            double displayPos[2]);
 
   virtual void UpdateLines(int index);

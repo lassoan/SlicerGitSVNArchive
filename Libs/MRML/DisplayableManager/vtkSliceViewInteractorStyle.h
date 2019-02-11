@@ -17,14 +17,107 @@
 #define __vtkSliceViewInteractorStyle_h
 
 // VTK includes
+#include "vtkCommand.h"
+#include "vtkEventData.h"
 #include "vtkInteractorStyleUser.h"
 #include "vtkMatrix4x4.h"
+#include "vtkWeakPointer.h"
 
 // MRML includes
 #include "vtkMRMLDisplayableManagerExport.h"
 
+class vtkMRMLAbstractSliceViewDisplayableManager;
 class vtkMRMLSegmentationDisplayNode;
 class vtkMRMLSliceLogic;
+class vtkMRMLDisplayableManagerGroup;
+
+/// Class for storing all relevant details of mouse and keyboard events.
+/// It stores additional information that is expensive to compute (such as 3D position)
+/// or not always easy to get (such as modifiers).
+class VTK_MRML_DISPLAYABLEMANAGER_EXPORT vtkSlicerInteractionEventData : public vtkEventData
+{
+public:
+  vtkTypeMacro(vtkSlicerInteractionEventData, vtkEventData);
+  static vtkSlicerInteractionEventData *New() {
+    vtkSlicerInteractionEventData *ret = new vtkSlicerInteractionEventData;
+    ret->InitializeObjectBase();
+    return ret;
+  };
+
+  void SetType(unsigned long v) { this->Type = v; }
+
+  void SetModifiers(int v) { this->Modifiers = v; }
+  int GetModifiers() { return this->Modifiers; }
+
+  void GetWorldPosition(double v[3]) const {
+    std::copy(this->WorldPosition, this->WorldPosition + 3, v);
+  }
+  const double *GetWorldPosition() const {
+    return this->WorldPosition;
+  }
+  void SetWorldPosition(const double p[3])
+  {
+    this->WorldPosition[0] = p[0];
+    this->WorldPosition[1] = p[1];
+    this->WorldPosition[2] = p[2];
+    this->WorldPositionValid = true;
+  }
+  bool IsWorldPositionValid()
+  {
+    return this->WorldPositionValid;
+  }
+  void SetWorldPositionInvalid()
+  {
+    this->WorldPositionValid = false;
+  }
+
+  void GetDisplayPosition(int v[2]) const {
+    std::copy(this->DisplayPosition, this->DisplayPosition + 2, v);
+  }
+  const int *GetDisplayPosition() const {
+    return this->DisplayPosition;
+  }
+  void SetDisplayPosition(const int p[2])
+  {
+    this->DisplayPosition[0] = p[0];
+    this->DisplayPosition[1] = p[1];
+    this->DisplayPositionValid = true;
+  }
+  bool IsDisplayPositionValid()
+  {
+    return this->DisplayPositionValid;
+  }
+  void SetDisplayPositionValid()
+  {
+    this->DisplayPositionValid = false;
+  }
+
+protected:
+  int Modifiers;
+  int DisplayPosition[2];
+  double WorldPosition[3];
+  bool DisplayPositionValid;
+  bool WorldPositionValid;
+
+  bool Equivalent(const vtkEventData *e) const override {
+    const vtkSlicerInteractionEventData *edd = static_cast<const vtkSlicerInteractionEventData *>(e);
+    return (this->Type == edd->Type) && (this->Modifiers == edd->Modifiers);
+  };
+
+  vtkSlicerInteractionEventData()
+  {
+    this->Type = 0;
+    this->Modifiers = 0;
+    this->DisplayPositionValid = false;
+    this->WorldPositionValid = false;
+  }
+  ~vtkSlicerInteractionEventData() override {}
+
+private:
+  vtkSlicerInteractionEventData(const vtkSlicerInteractionEventData& c) = delete;
+  void operator=(const vtkSlicerInteractionEventData&) = delete;
+};
+
 
 /// \brief Provides customizable interaction routines.
 ///
@@ -157,6 +250,12 @@ public:
   void SetLabelOpacity(double opacity);
   double GetLabelOpacity();
 
+  void SetDisplayableManagers(vtkMRMLDisplayableManagerGroup* displayableManagers);
+
+  /// Give a chance to displayable managers to process the event.
+  /// Return true if the event is processed.
+  bool ForwardInteractionEventToDisplayableManagers(vtkCommand::EventIds event);
+
 protected:
 
   vtkSliceViewInteractorStyle();
@@ -190,6 +289,9 @@ protected:
   double LastVolumeWindowLevel[2];
 
   vtkMRMLSliceLogic *SliceLogic;
+
+  vtkWeakPointer<vtkMRMLDisplayableManagerGroup> DisplayableManagers;
+  vtkMRMLAbstractSliceViewDisplayableManager* FocusedDisplayableManager;
 
 private:
   vtkSliceViewInteractorStyle(const vtkSliceViewInteractorStyle&);  /// Not implemented.

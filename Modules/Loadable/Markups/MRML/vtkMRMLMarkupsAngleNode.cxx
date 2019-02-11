@@ -36,9 +36,8 @@ vtkMRMLNodeNewMacro(vtkMRMLMarkupsAngleNode);
 //----------------------------------------------------------------------------
 vtkMRMLMarkupsAngleNode::vtkMRMLMarkupsAngleNode()
 {
-  // maximum number of control points
-  // 4 so we can have one point to use for the follow cursor option
-  this->SetMaximumNumberOfControlPoints(4);
+  this->MaximumNumberOfControlPoints = 3;
+  this->PreferredNumberOfControlPoints = 3;
 }
 
 //----------------------------------------------------------------------------

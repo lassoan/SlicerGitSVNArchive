@@ -36,9 +36,6 @@ vtkMRMLNodeNewMacro(vtkMRMLMarkupsCurveNode);
 //----------------------------------------------------------------------------
 vtkMRMLMarkupsCurveNode::vtkMRMLMarkupsCurveNode()
 {
-  // maximum number of control points
-  // 0 is unlimited
-  this->SetMaximumNumberOfControlPoints(0);
 }
 
 //----------------------------------------------------------------------------

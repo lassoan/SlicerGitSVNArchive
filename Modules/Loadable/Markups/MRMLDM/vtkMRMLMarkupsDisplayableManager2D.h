@@ -91,10 +91,18 @@ public:
   /// Returns -1 if not in lightbox mode or the indices are out of range.
   int GetLightboxIndex(vtkMRMLMarkupsNode *node, int pointIndex);
 
+  bool CanProcessInteractionEvent(vtkEventData* eventData, double &closestDistance2) VTK_OVERRIDE;
+  void ProcessInteractionEvent(vtkEventData* eventData) VTK_OVERRIDE;
+  void SetHasFocus(bool hasFocus) VTK_OVERRIDE;
+
 protected:
 
   vtkMRMLMarkupsDisplayableManager2D();
   virtual ~vtkMRMLMarkupsDisplayableManager2D();
+
+  vtkSlicerAbstractWidget* FindClosestWidget(vtkEventData *callData, double &closestDistance2);
+
+  bool UpdatePointPlacePreview(const int displayPosition[2], const double worldPosition[3]);
 
   virtual void ProcessMRMLNodesEvents(vtkObject *caller, unsigned long event, void *callData) VTK_OVERRIDE;
 
@@ -158,14 +166,10 @@ protected:
 
   /// Get the coordinates of a click in the RenderWindow
   /// It calls OnClickInRenderWindow.
-  /// If action == 0 and InteractionNode is on place, it places a point and shows the preview point.
-  /// If action == 1 and InteractionNode is on place, it only shows the preview point.
-  /// If action == 2 and InteractionNode is on place, it remove the preview point.
-  void OnClickInRenderWindowGetCoordinates(int action = vtkMRMLMarkupsDisplayableManager2D::AddPoint);
+  void OnClickInRenderWindowGetCoordinates();
   /// Callback for click in RenderWindow
   void OnClickInRenderWindow(double x, double y,
-                                     const char *associatedNodeID = NULL,
-                                     int action = vtkMRMLMarkupsDisplayableManager2D::AddPoint);
+                                     const char *associatedNodeID = NULL);
 
   /// Convert display to world coordinates
   void GetWorldToDisplayCoordinates(double r, double a, double s, double * displayCoordinates);
@@ -198,7 +202,6 @@ protected:
 
   /// Focus of this displayableManager is set to a specific markups type when inherited
   std::set<std::string> Focus;
-  std::string FocusStr;
 
   /// Respond to interactor style events
   virtual void OnInteractorStyleEvent(int eventid) VTK_OVERRIDE;
@@ -211,6 +214,8 @@ protected:
   double LastClickWorldCoordinates[4];
 
   vtkMRMLMarkupsNode* CreateNewMarkupsNode(const std::string &markupsNodeClassName);
+
+  vtkSlicerAbstractWidget* LastActiveWidget;
 
 private:
   vtkMRMLMarkupsDisplayableManager2D(const vtkMRMLMarkupsDisplayableManager2D&); /// Not implemented

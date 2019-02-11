@@ -178,7 +178,7 @@ void vtkSlicerLineRepresentation2D::BuildRepresentation()
   bool lineVisibility = true;
   for (int ii = 0; ii < this->GetNumberOfNodes(); ii++)
     {
-    if (!this->pointsVisibilityOnSlice->GetValue(ii) ||
+    if (!this->PointsVisibilityOnSlice->GetValue(ii) ||
         !this->GetNthNodeVisibility(ii))
       {
       lineVisibility = false;
@@ -216,7 +216,7 @@ int vtkSlicerLineRepresentation2D::ComputeInteractionState(int X, int Y, int vtk
   this->MarkupsNode->DisableModifiedEventOn();
   if (this->ActivateNode(X, Y))
     {
-    if (this->pointsVisibilityOnSlice->GetValue(this->GetActiveNode()))
+    if (this->PointsVisibilityOnSlice->GetValue(this->GetActiveNode()))
       {
       this->InteractionState = vtkSlicerAbstractRepresentation::OnControlPoint;
       }
@@ -226,12 +226,12 @@ int vtkSlicerLineRepresentation2D::ComputeInteractionState(int X, int Y, int vtk
       this->InteractionState = vtkSlicerAbstractRepresentation::Outside;
       }
     }
-  else if (this->GetAssemblyPath(X, Y, 0, this->LinePicker)) // poor perfomances when widgets > 5
-  //else if (this->LinePicker->Pick(X, Y, 0, this->Renderer)) // produce many rendering flickering when < 10
+  //else if (this->GetAssemblyPath(X, Y, 0, this->LinePicker)) // poor perfomances when widgets > 5
+  /*else if (this->LinePicker->Pick(X, Y, 0, this->Renderer)) // produce many rendering flickering when < 10
     {
     this->SetActiveNode(-2);
     this->InteractionState = vtkSlicerAbstractRepresentation::OnLine;
-    }
+    }*/
   else
     {
     this->InteractionState = vtkSlicerAbstractRepresentation::Outside;

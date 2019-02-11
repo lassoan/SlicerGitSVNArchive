@@ -66,6 +66,7 @@ int vtkSlicerPointsWidget::AddPointToRepresentationFromWorldCoordinate(
     return -1;
     }
 
+  /*
   if (persistence)
     {
     if (this->WidgetState == vtkSlicerPointsWidget::Manipulate)
@@ -87,30 +88,35 @@ int vtkSlicerPointsWidget::AddPointToRepresentationFromWorldCoordinate(
     rep->DeleteLastNode();
     this->FollowCursor = false;
     }
-
-  if (rep->AddNodeAtWorldPosition(worldCoordinates))
+    */
+  if (this->FollowCursor)
+  {
+    // convert point preview to final point
+    rep->SetNthNodeWorldPosition(rep->GetNumberOfNodes() - 1, worldCoordinates);
+    this->FollowCursor = false;
+  }
+  else
+  {
+    if (!rep->AddNodeAtWorldPosition(worldCoordinates))
     {
-    this->CurrentHandle = rep->GetActiveNode();
-    if (this->WidgetState == vtkSlicerPointsWidget::Start)
-      {
-      this->InvokeEvent(vtkCommand::StartInteractionEvent, &this->CurrentHandle);
-      }
-    this->WidgetState = vtkSlicerPointsWidget::Define;
-    rep->VisibilityOn();
-    this->EventCallbackCommand->SetAbortFlag(1);
-    this->InvokeEvent(vtkCommand::PlacePointEvent, &this->CurrentHandle);
-    this->ReleaseFocus();
-    this->Render();
-    if (!this->FollowCursor)
-      {
-      this->WidgetState = vtkSlicerPointsWidget::Manipulate;
-      this->InvokeEvent(vtkCommand::EndInteractionEvent, &this->CurrentHandle);
-      }
-    else
-      {
-      rep->AddNodeAtWorldPosition(worldCoordinates);
-      }
+      return -1;
     }
+  }
+
+  this->CurrentHandle = rep->GetActiveNode();
+  if (this->WidgetState == vtkSlicerPointsWidget::Start)
+    {
+    this->InvokeEvent(vtkCommand::StartInteractionEvent, &this->CurrentHandle);
+    }
+  this->WidgetState = vtkSlicerPointsWidget::Define;
+  rep->VisibilityOn();
+  this->EventCallbackCommand->SetAbortFlag(1);
+  this->InvokeEvent(vtkCommand::PlacePointEvent, &this->CurrentHandle);
+  this->ReleaseFocus();
+  this->Render();
+
+  this->WidgetState = vtkSlicerPointsWidget::Manipulate;
+  this->InvokeEvent(vtkCommand::EndInteractionEvent, &this->CurrentHandle);
 
   return this->CurrentHandle;
 }

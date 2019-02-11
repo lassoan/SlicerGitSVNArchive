@@ -151,3 +151,9 @@ void vtkMRMLAbstractSliceViewDisplayableManager::ConvertXYZToRAS(
   sliceNode->GetXYToRAS()->MultiplyPoint(xyzw, rasw);
   ras[0] = rasw[0]/rasw[3]; ras[1] = rasw[1]/rasw[3]; ras[2] = rasw[2]/rasw[3];
 }
+
+//---------------------------------------------------------------------------
+void vtkMRMLAbstractSliceViewDisplayableManager::SetHasFocus(bool hasFocus)
+{
+  return;
+}

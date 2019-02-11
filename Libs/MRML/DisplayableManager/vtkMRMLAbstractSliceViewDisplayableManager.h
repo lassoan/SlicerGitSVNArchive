@@ -75,6 +75,9 @@ public:
   /// Parameters \a ras and \a xyz are double[3]. \a xyz[2] is the lightbox id.
   static void ConvertXYZToRAS(vtkMRMLSliceNode * sliceNode, double xyz[3], double ras[3]);
 
+  /// Set if the widget gets/loses focus (interaction events are processed by this displayable manager).
+  virtual void SetHasFocus(bool hasFocus);
+
 protected:
 
   vtkMRMLAbstractSliceViewDisplayableManager();

@@ -399,6 +399,11 @@ public:
   /// scene. Returns false if n out of bounds, true on success.
   bool ResetNthControlPointID(int n);
 
+  /// Return the number of control points that are required for defining this widget.
+  /// Interaction mode remains in "place" mode until this number is reached.
+  /// If the number is set to 0 then no it means there is no prefrence (this is the default value).
+  vtkGetMacro(PreferredNumberOfControlPoints, int);
+
   /// Maximum naumber of control points limits the number of markups allowed in the node.
   /// If maximum number of control points is set to 0 then no it means there
   /// is no limit (this is the default value).
@@ -428,6 +433,10 @@ protected:
   /// have been in this list
   std::string GenerateUniqueControlPointID();
 
+  // Used for limiting number of markups that may be placed.
+  int MaximumNumberOfControlPoints;
+  int PreferredNumberOfControlPoints;
+
 private:
   // Vector of point sets
   std::vector<ControlPoint*> ControlPoints;
@@ -437,9 +446,6 @@ private:
 
   // Locks all the points and GUI
   int Locked;
-
-  // Used for limiting number of markups that may be placed.
-  int MaximumNumberOfControlPoints;
 
   std::string MarkupLabelFormat;
 

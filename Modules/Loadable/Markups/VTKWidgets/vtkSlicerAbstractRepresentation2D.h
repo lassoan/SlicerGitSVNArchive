@@ -62,6 +62,9 @@ public:
   /// with the handle.
   vtkGetObjectMacro(ActiveProperty,vtkProperty2D);
 
+  /// Position is displayed (slice) position
+  bool CanInteract(const int displayPosition[2], const double worldPosition[3], double &distance2) VTK_OVERRIDE;
+
   /// Given a display position, activate a node. The closest
   /// node within tolerance will be activated. If a node is
   /// activated, 1 will be returned, otherwise 0 will be
@@ -133,13 +136,13 @@ public:
   /// 1 on success, or 0 if there are not at least
   /// (n+1) nodes (0 based counting) or the world position
   /// is not valid.
-  int SetNthNodeDisplayPosition(int n, double pos[2]) VTK_OVERRIDE;
+  int SetNthNodeDisplayPosition(int n, const double pos[2]) VTK_OVERRIDE;
 
   /// Add a node at a specific position on the slice. This will be
   /// converted into a world position according to the current
   /// constraints of the point placer. Return 0 if a point could
   /// not be added, 1 otherwise.
-  int AddNodeAtDisplayPosition(double slicePos[2]) VTK_OVERRIDE;
+  int AddNodeAtDisplayPosition(const double slicePos[2]) VTK_OVERRIDE;
 
   /// Set the Nth node slice visibility (i.e. if it is on the slice).
   virtual void SetNthPointSliceVisibility(int n, bool visibility);
@@ -151,8 +154,8 @@ protected:
   vtkSlicerAbstractRepresentation2D();
   ~vtkSlicerAbstractRepresentation2D() VTK_OVERRIDE;
 
-  void GetSliceToWorldCoordinates(double [2], double [3]);
-  void GetWorldToSliceCoordinates(double worldPos[2], double slicePos[3]);
+  void GetSliceToWorldCoordinates(const double [2], double [3]);
+  void GetWorldToSliceCoordinates(const double worldPos[3], double slicePos[2]);
 
   vtkWeakPointer<vtkMRMLSliceNode> SliceNode;
 
@@ -182,9 +185,9 @@ protected:
   vtkActor2D                  *ActiveLabelsActor;
   vtkLabelPlacementMapper     *ActiveLabelsMapper;
 
-  vtkIntArray                 *pointsVisibilityOnSlice;
+  vtkIntArray                 *PointsVisibilityOnSlice;
 
-  bool                        centroidVisibilityOnSlice;
+  bool                        CentroidVisibilityOnSlice;
 
   // Properties used to control the appearance of selected objects and
   // the manipulator in general.
@@ -195,7 +198,7 @@ protected:
   virtual void  CreateDefaultProperties() VTK_OVERRIDE;
   virtual void BuildRepresentationPointsAndLabels(double labelsOffset);
   void BuildLocator() VTK_OVERRIDE;
-  virtual void AddNodeAtPositionInternal(double worldPos[3]) VTK_OVERRIDE;
+  virtual void AddNodeAtPositionInternal(const double worldPos[3]) VTK_OVERRIDE;
 
 private:
   vtkSlicerAbstractRepresentation2D(const vtkSlicerAbstractRepresentation2D&) = delete;

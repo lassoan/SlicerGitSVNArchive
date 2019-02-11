@@ -76,6 +76,7 @@ int vtkSlicerLineWidget::AddPointToRepresentationFromWorldCoordinate(
     return -1;
     }
 
+  /*
   if (this->WidgetState == vtkSlicerLineWidget::Manipulate)
     {
     this->FollowCursor = false;
@@ -89,30 +90,40 @@ int vtkSlicerLineWidget::AddPointToRepresentationFromWorldCoordinate(
       this->FollowCursor = false;
       }
     }
+    */
 
-  if (rep->AddNodeAtWorldPosition(worldCoordinates))
+  if (this->FollowCursor)
     {
-    this->CurrentHandle = rep->GetActiveNode();
-    if (this->WidgetState == vtkSlicerLineWidget::Start)
-      {
-      this->InvokeEvent(vtkCommand::StartInteractionEvent, &this->CurrentHandle);
-      }
-    this->WidgetState = vtkSlicerLineWidget::Define;
-    rep->VisibilityOn();
-    this->EventCallbackCommand->SetAbortFlag(1);
-    this->InvokeEvent(vtkCommand::PlacePointEvent, &this->CurrentHandle);
-    this->ReleaseFocus();
-    this->Render();
-    if (!this->FollowCursor)
-      {
-      this->WidgetState = vtkSlicerLineWidget::Manipulate;
-      this->InvokeEvent(vtkCommand::EndInteractionEvent, &this->CurrentHandle);
-      }
-    else
-      {
-      rep->AddNodeAtWorldPosition(worldCoordinates);
-      }
+    // update the preview node
+    this->FollowCursor = false;
+    rep->SetNthNodeWorldPosition(rep->GetNumberOfNodes() - 1, worldCoordinates);
+    }
+  else
+    {
+    rep->AddNodeAtWorldPosition(worldCoordinates);
     }
 
+  this->CurrentHandle = rep->GetActiveNode();
+  if (this->WidgetState == vtkSlicerLineWidget::Start)
+    {
+    this->InvokeEvent(vtkCommand::StartInteractionEvent, &this->CurrentHandle);
+    }
+  this->WidgetState = vtkSlicerLineWidget::Define;
+  rep->VisibilityOn();
+  this->EventCallbackCommand->SetAbortFlag(1);
+  this->InvokeEvent(vtkCommand::PlacePointEvent, &this->CurrentHandle);
+  this->ReleaseFocus();
+  this->Render();
+
+/*  if (!this->FollowCursor)
+    {
+    this->WidgetState = vtkSlicerLineWidget::Manipulate;
+    this->InvokeEvent(vtkCommand::EndInteractionEvent, &this->CurrentHandle);
+    }
+  else
+    {
+    rep->AddNodeAtWorldPosition(worldCoordinates);
+    }
+    */
   return this->CurrentHandle;
 }

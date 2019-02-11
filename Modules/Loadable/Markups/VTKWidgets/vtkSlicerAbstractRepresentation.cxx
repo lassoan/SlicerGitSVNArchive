@@ -383,7 +383,7 @@ void vtkSlicerAbstractRepresentation::ClearAllNodes()
 }
 
 //----------------------------------------------------------------------
-void vtkSlicerAbstractRepresentation::AddNodeAtPositionInternal(double worldPos[3])
+void vtkSlicerAbstractRepresentation::AddNodeAtPositionInternal(const double worldPos[3])
 {
   if (!this->MarkupsNode)
     {
@@ -455,7 +455,7 @@ void vtkSlicerAbstractRepresentation::GetNodePolyData(vtkPolyData* poly)
 }
 
 //----------------------------------------------------------------------
-int vtkSlicerAbstractRepresentation::AddNodeAtWorldPosition(double worldPos[3])
+int vtkSlicerAbstractRepresentation::AddNodeAtWorldPosition(const double worldPos[3])
 {
   this->AddNodeAtPositionInternal(worldPos);
   return 1;
@@ -470,11 +470,11 @@ int vtkSlicerAbstractRepresentation::AddNodeAtWorldPosition(
 }
 
 //----------------------------------------------------------------------
-int vtkSlicerAbstractRepresentation::AddNodeAtDisplayPosition(double displayPos[2])
+int vtkSlicerAbstractRepresentation::AddNodeAtDisplayPosition(const double displayPos[2])
 {
   double worldPos[3], worldOrient[9], orientation[4];
   if (!this->PointPlacer->ComputeWorldPosition(this->Renderer,
-                                               displayPos, worldPos,
+                                               (double*)displayPos, worldPos,
                                                worldOrient))
     {
     return 0;
@@ -486,7 +486,7 @@ int vtkSlicerAbstractRepresentation::AddNodeAtDisplayPosition(double displayPos[
   return 1;
 }
 //----------------------------------------------------------------------
-int vtkSlicerAbstractRepresentation::AddNodeAtDisplayPosition(int displayPos[2])
+int vtkSlicerAbstractRepresentation::AddNodeAtDisplayPosition(const int displayPos[2])
 {
   double doubleDisplayPos[2];
   doubleDisplayPos[0] = displayPos[0];
@@ -504,7 +504,7 @@ int vtkSlicerAbstractRepresentation::AddNodeAtDisplayPosition(int X, int Y)
 }
 
 //----------------------------------------------------------------------
-int vtkSlicerAbstractRepresentation::SetActiveNodeToWorldPosition(double worldPos[3])
+int vtkSlicerAbstractRepresentation::SetActiveNodeToWorldPosition(const double worldPos[3])
 {
   if (this->GetActiveNode() < 0 ||
        this->GetActiveNode() >= this->GetNumberOfNodes())
@@ -513,7 +513,7 @@ int vtkSlicerAbstractRepresentation::SetActiveNodeToWorldPosition(double worldPo
     }
 
   // Check if this is a valid location
-  if (!this->PointPlacer->ValidateWorldPosition(worldPos))
+  if (!this->PointPlacer->ValidateWorldPosition((double*)worldPos))
     {
     return 0;
     }
@@ -524,7 +524,7 @@ int vtkSlicerAbstractRepresentation::SetActiveNodeToWorldPosition(double worldPo
 }
 
 //----------------------------------------------------------------------
-int vtkSlicerAbstractRepresentation::SetActiveNodeToDisplayPosition(double displayPos[2])
+int vtkSlicerAbstractRepresentation::SetActiveNodeToDisplayPosition(const double displayPos[2])
 {
   if (this->GetActiveNode() < 0 ||
        this->GetActiveNode() >= this->GetNumberOfNodes())
@@ -536,7 +536,7 @@ int vtkSlicerAbstractRepresentation::SetActiveNodeToDisplayPosition(double displ
   this->GetActiveNodeOrientation(worldOrient);
 
   if (!this->PointPlacer->ComputeWorldPosition(this->Renderer,
-                                               displayPos, worldPos,
+                                               (double*)displayPos, worldPos,
                                                worldOrient))
     {
     return 0;
@@ -548,7 +548,7 @@ int vtkSlicerAbstractRepresentation::SetActiveNodeToDisplayPosition(double displ
   return 1;
 }
 //----------------------------------------------------------------------
-int vtkSlicerAbstractRepresentation::SetActiveNodeToDisplayPosition(int displayPos[2])
+int vtkSlicerAbstractRepresentation::SetActiveNodeToDisplayPosition(const int displayPos[2])
 {
   double doubleDisplayPos[2];
   doubleDisplayPos[0] = displayPos[0];
@@ -892,7 +892,7 @@ bool vtkSlicerAbstractRepresentation::NodeExists(int n)
 }
 
 //----------------------------------------------------------------------
-void vtkSlicerAbstractRepresentation::SetNthNodeWorldPositionInternal(int n, double worldPos[3])
+void vtkSlicerAbstractRepresentation::SetNthNodeWorldPositionInternal(int n, const double worldPos[3])
 {
   if (!this->MarkupsNode || !this->NodeExists(n))
     {
@@ -906,7 +906,7 @@ void vtkSlicerAbstractRepresentation::SetNthNodeWorldPositionInternal(int n, dou
 }
 
 //----------------------------------------------------------------------
-void vtkSlicerAbstractRepresentation::FromWorldOrientToOrientationQuaternion(double worldOrient[9], double orientation[4])
+void vtkSlicerAbstractRepresentation::FromWorldOrientToOrientationQuaternion(const double worldOrient[9], double orientation[4])
 {
   if (!worldOrient || !orientation)
     {
@@ -928,7 +928,7 @@ void vtkSlicerAbstractRepresentation::FromWorldOrientToOrientationQuaternion(dou
 }
 
 //----------------------------------------------------------------------
-void vtkSlicerAbstractRepresentation::FromOrientationQuaternionToWorldOrient(double orientation[4], double worldOrient[9])
+void vtkSlicerAbstractRepresentation::FromOrientationQuaternionToWorldOrient(const double orientation[4], double worldOrient[9])
 {
   if (!worldOrient || !orientation)
     {
@@ -950,7 +950,7 @@ void vtkSlicerAbstractRepresentation::FromOrientationQuaternionToWorldOrient(dou
 }
 
 //----------------------------------------------------------------------
-int vtkSlicerAbstractRepresentation::SetNthNodeWorldPosition(int n, double worldPos[3])
+int vtkSlicerAbstractRepresentation::SetNthNodeWorldPosition(int n, const double worldPos[3])
 {
   if (!this->NodeExists(n))
     {
@@ -958,7 +958,7 @@ int vtkSlicerAbstractRepresentation::SetNthNodeWorldPosition(int n, double world
     }
 
   // Check if this is a valid location
-  if (!this->PointPlacer->ValidateWorldPosition(worldPos))
+  if (!this->PointPlacer->ValidateWorldPosition((double*)worldPos))
     {
     return 0;
     }
@@ -968,7 +968,7 @@ int vtkSlicerAbstractRepresentation::SetNthNodeWorldPosition(int n, double world
 }
 
 //----------------------------------------------------------------------
-int vtkSlicerAbstractRepresentation::SetNthNodeDisplayPosition(int n, double displayPos[2])
+int vtkSlicerAbstractRepresentation::SetNthNodeDisplayPosition(int n, const double displayPos[2])
 {
   if (!this->NodeExists(n))
     {
@@ -977,7 +977,7 @@ int vtkSlicerAbstractRepresentation::SetNthNodeDisplayPosition(int n, double dis
 
   double worldPos[3], worldOrient[9], orientation[4];
   if (!this->PointPlacer->ComputeWorldPosition(this->Renderer,
-                                                 displayPos, worldPos,
+                                                 (double*)displayPos, worldPos,
                                                  worldOrient))
     {
     return 0;
@@ -989,7 +989,7 @@ int vtkSlicerAbstractRepresentation::SetNthNodeDisplayPosition(int n, double dis
 }
 
 //----------------------------------------------------------------------
-int vtkSlicerAbstractRepresentation::SetNthNodeDisplayPosition(int n, int displayPos[2])
+int vtkSlicerAbstractRepresentation::SetNthNodeDisplayPosition(int n, const int displayPos[2])
 {
   double doubleDisplayPos[2];
   doubleDisplayPos[0] = displayPos[0];
@@ -1422,7 +1422,7 @@ int vtkSlicerAbstractRepresentation::UpdateWidget(bool force /*=false*/)
 
 //----------------------------------------------------------------------
 void vtkSlicerAbstractRepresentation
-::GetRendererComputedDisplayPositionFromWorldPosition(double worldPos[3],
+::GetRendererComputedDisplayPositionFromWorldPosition(const double worldPos[3],
                                                       double displayPos[2])
 {
   double pos[4];
@@ -1766,4 +1766,10 @@ void vtkSlicerAbstractRepresentation::AddActorsBounds(vtkBoundingBox& boundingBo
     {
     boundingBox.AddBounds(additionalBounds);
     }
+}
+
+//-----------------------------------------------------------------------------
+bool vtkSlicerAbstractRepresentation::CanInteract(const int displayPosition[2], const double position[3], double &distance2)
+{
+  return false;
 }

@@ -16,8 +16,10 @@
 #include "vtkSliceViewInteractorStyle.h"
 
 // MRML includes
+#include "vtkMRMLAbstractSliceViewDisplayableManager.h"
 #include "vtkMRMLCrosshairDisplayableManager.h"
 #include "vtkMRMLCrosshairNode.h"
+#include "vtkMRMLDisplayableManagerGroup.h"
 #include "vtkMRMLInteractionNode.h"
 #include "vtkMRMLScalarVolumeDisplayNode.h"
 #include "vtkMRMLScene.h"
@@ -50,6 +52,8 @@ vtkStandardNewMacro(vtkSliceViewInteractorStyle);
 //----------------------------------------------------------------------------
 vtkSliceViewInteractorStyle::vtkSliceViewInteractorStyle()
 {
+  this->FocusedDisplayableManager = nullptr;
+
   this->ActionState = vtkSliceViewInteractorStyle::None;
   this->ActionsEnabled = vtkSliceViewInteractorStyle::AllActionsMask;
   this->ShiftKeyUsedForPreviousAction = false;
@@ -362,6 +366,11 @@ int vtkSliceViewInteractorStyle::GetMouseInteractionMode()
 //----------------------------------------------------------------------------
 void vtkSliceViewInteractorStyle::OnLeftButtonDown()
 {
+  if (this->ForwardInteractionEventToDisplayableManagers(vtkCommand::LeftButtonPressEvent))
+    {
+    return;
+    }
+
   if (this->Interactor->GetShiftKey() && this->GetActionEnabled(vtkSliceViewInteractorStyle::Translate))
     {
     this->StartTranslate();
@@ -401,7 +410,10 @@ void vtkSliceViewInteractorStyle::OnLeftButtonUp()
     {
     this->EndAdjustWindowLevel();
     }
-  this->Superclass::OnLeftButtonUp();
+  if (!this->ForwardInteractionEventToDisplayableManagers(vtkCommand::LeftButtonReleaseEvent))
+  {
+    this->Superclass::OnLeftButtonUp();
+  }
 }
 
 //----------------------------------------------------------------------------
@@ -580,7 +592,11 @@ void vtkSliceViewInteractorStyle::OnMouseMove()
         }
       if (performDefaultAction)
         {
-        this->Superclass::OnMouseMove();
+        if (!this->ForwardInteractionEventToDisplayableManagers(vtkCommand::MouseMoveEvent))
+          {
+          // Displayable managers did not process it
+          this->Superclass::OnMouseMove();
+          }
         }
       }
     }
@@ -955,4 +971,89 @@ void vtkSliceViewInteractorStyle::CycleVolumeLayer(int layer, int direction)
       case 2: { sliceCompositeNode->SetLabelVolumeID(volumeNode->GetID()); } break;
       }
     }
+}
+
+//----------------------------------------------------------------------------
+void vtkSliceViewInteractorStyle::SetDisplayableManagers(vtkMRMLDisplayableManagerGroup* displayableManagerGroup)
+{
+  this->DisplayableManagers = displayableManagerGroup;
+}
+
+//----------------------------------------------------------------------------
+bool vtkSliceViewInteractorStyle::ForwardInteractionEventToDisplayableManagers(vtkCommand::EventIds event)
+{
+  if (!this->DisplayableManagers)
+    {
+    return false;
+    }
+  double canProcessEvent = false;
+  double closestDistance2 = VTK_DOUBLE_MAX;
+  vtkMRMLAbstractSliceViewDisplayableManager* closestDisplayableManager = NULL;
+  int numberOfDisplayableManagers = this->DisplayableManagers->GetDisplayableManagerCount();
+
+  // Get display and world position
+  int* displayPositionInt = this->GetInteractor()->GetEventPosition();
+  vtkRenderer* pokedRenderer = this->GetInteractor()->FindPokedRenderer(displayPositionInt[0], displayPositionInt[1]);
+  double displayPosition[4] =
+    {
+    static_cast<double>(displayPositionInt[0] - pokedRenderer->GetOrigin()[0]),
+    static_cast<double>(displayPositionInt[1] - pokedRenderer->GetOrigin()[1]),
+    0.0,
+    1.0
+    };
+  vtkMRMLSliceNode *sliceNode = this->SliceLogic->GetSliceNode();
+  vtkMatrix4x4 * xyToRasMatrix = sliceNode->GetXYToRAS();
+  double worldPosition[4] = { 0.0, 0.0, 0.0, 1.0 };
+  xyToRasMatrix->MultiplyPoint(displayPosition, worldPosition);
+
+  vtkNew<vtkSlicerInteractionEventData> ed;
+  ed->SetType(event);
+  int displayPositionCorrected[2] = { displayPositionInt[0] - pokedRenderer->GetOrigin()[0], displayPositionInt[1] - pokedRenderer->GetOrigin()[1] };
+  ed->SetDisplayPosition(displayPositionCorrected);
+  ed->SetWorldPosition(worldPosition);
+
+  // Find the most suitable displayable manager
+  for (int displayableManagerIndex = 0; displayableManagerIndex < numberOfDisplayableManagers; ++displayableManagerIndex)
+    {
+    vtkMRMLAbstractSliceViewDisplayableManager* displayableManager = vtkMRMLAbstractSliceViewDisplayableManager::SafeDownCast(
+      this->DisplayableManagers->GetNthDisplayableManager(displayableManagerIndex));
+    if (!displayableManager)
+      {
+      continue;
+      }
+    double distance2 = VTK_DOUBLE_MAX;
+    if (displayableManager->CanProcessInteractionEvent(ed, distance2))
+      {
+      if (!canProcessEvent || (distance2 < closestDistance2))
+        {
+        canProcessEvent = true;
+        closestDisplayableManager = displayableManager;
+        closestDistance2 = distance2;
+        }
+      }
+    }
+
+  // Notify displayable managers about focus change
+  vtkMRMLAbstractSliceViewDisplayableManager* oldFocusedDisplayableManager = this->FocusedDisplayableManager;
+  if (oldFocusedDisplayableManager != closestDisplayableManager)
+    {
+    if (oldFocusedDisplayableManager != nullptr)
+      {
+      oldFocusedDisplayableManager->SetHasFocus(false);
+      }
+    this->FocusedDisplayableManager = closestDisplayableManager;
+    if (closestDisplayableManager != nullptr)
+      {
+      closestDisplayableManager->SetHasFocus(true);
+      }
+    }
+
+  // Process event with new displayable manager
+  if (!this->FocusedDisplayableManager)
+    {
+    return false;
+    }
+
+  this->FocusedDisplayableManager->ProcessInteractionEvent(ed);
+  return true;
 }

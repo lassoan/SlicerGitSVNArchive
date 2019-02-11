@@ -31,12 +31,15 @@
 
 #include "vtkSlicerMarkupsModuleVTKWidgetsExport.h"
 #include "vtkAbstractWidget.h"
+#include "vtkWidgetCallbackMapper.h"
 
 #include "vtkMRMLMarkupsNode.h"
 
 class vtkSlicerAbstractRepresentation;
+class vtkEventData;
 class vtkPolyData;
 class vtkIdList;
+
 
 class VTK_SLICER_MARKUPS_MODULE_VTKWIDGETS_EXPORT vtkSlicerAbstractWidget : public vtkAbstractWidget
 {
@@ -109,13 +112,30 @@ public:
   enum {Start,Define,Manipulate};
 
   /// Add a point preview to the current active Markup at input World coordiantes.
-  int AddPreviewPointToRepresentationFromWorldCoordinate(double worldCoordinates [3]);
+  int AddPreviewPointToRepresentationFromWorldCoordinate(const double worldCoordinates [3]);
+
+  /// Add/update preview point position
+  void UpdatePreviewPointPositionFromWorldCoordinate(const double worldCoordinates[3]);
 
   /// Remove the point preview to the current active Markup.
   void RemoveLastPreviewPointToRepresentation();
 
   /// Add a point to the current active Markup at input World coordiantes.
   virtual int AddPointToRepresentationFromWorldCoordinate(double worldCoordinates [3], bool persistence = false) = 0;
+
+  /// Return true if the displayable manager can process the event.
+  /// Distance2 is the squared distance in display coordinates from the closest interaction position.
+  /// The displayable manager with the closest distance will get the chance to process the interaction event.
+  virtual bool CanProcessInteractionEvent(vtkEventData* eventData, double &distance2);
+
+  /// Allows injecting interaction events for processing, without directly observing window interactor events
+  virtual void ProcessInteractionEvent(vtkEventData* eventData);
+
+  /// Called when the the widget loses the focus.
+  virtual void Leave();
+
+  void SetCallbackMethod(vtkEventData *edata, unsigned long widgetEvent, vtkWidgetCallbackMapper::CallbackType f);
+  void SetCallbackMethod(unsigned long interactionEvent, int modifiers, unsigned long widgetEvent, vtkWidgetCallbackMapper::CallbackType f);
 
 protected:
   vtkSlicerAbstractWidget();
@@ -133,12 +153,14 @@ protected:
   static void SelectAction(vtkAbstractWidget*);
   static void PickAction(vtkAbstractWidget*);
   static void TranslateAction(vtkAbstractWidget*);
+  static void MoveAction(vtkAbstractWidget *w);
   static void RotateAction(vtkAbstractWidget*);
   static void ScaleAction(vtkAbstractWidget*);
-  static void MoveAction(vtkAbstractWidget*);
   static void EndAction(vtkAbstractWidget*);
   static void ResetAction(vtkAbstractWidget*);
   static void DeleteAction(vtkAbstractWidget*);
+
+  bool ProcessMoveEvent(double displayPosition[3], double worldPosition[3]);
 
   // Manual axis constrain
   char HorizontalActiveKeyCode;

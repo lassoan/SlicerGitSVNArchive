@@ -18,6 +18,7 @@
 
 #include "vtkSlicerAbstractWidget.h"
 #include "vtkSlicerAbstractRepresentation.h"
+#include "vtkSliceViewInteractorStyle.h" // for vtkSlicerInteractionEventData
 #include "vtkCommand.h"
 #include "vtkCallbackCommand.h"
 #include "vtkRenderWindowInteractor.h"
@@ -42,38 +43,17 @@ vtkSlicerAbstractWidget::vtkSlicerAbstractWidget()
   this->FollowCursor     = false;
   this->ManagesCursorOff();
 
-  // These are the event callbacks supported by this widget
-  this->CallbackMapper->SetCallbackMethod(vtkCommand::LeftButtonPressEvent,
-                                          vtkEvent::NoModifier, 0, 0, nullptr,
-                                          vtkWidgetEvent::Select,
-                                          this, vtkSlicerAbstractWidget::SelectAction);
-  this->CallbackMapper->SetCallbackMethod(vtkCommand::MiddleButtonPressEvent,
-                                          vtkWidgetEvent::Translate,
-                                          this, vtkSlicerAbstractWidget::TranslateAction);
+  this->SetCallbackMethod(vtkCommand::LeftButtonPressEvent, vtkEvent::NoModifier, vtkWidgetEvent::Select, vtkSlicerAbstractWidget::SelectAction);
+  this->SetCallbackMethod(vtkCommand::MiddleButtonPressEvent, vtkEvent::NoModifier, vtkWidgetEvent::Translate, vtkSlicerAbstractWidget::TranslateAction);
+  this->SetCallbackMethod(vtkCommand::MouseMoveEvent, vtkEvent::AnyModifier, vtkWidgetEvent::Move3D, vtkSlicerAbstractWidget::MoveAction);
 
-  this->CallbackMapper->SetCallbackMethod(vtkCommand::MouseMoveEvent,
-                                          vtkWidgetEvent::Move,
-                                          this, vtkSlicerAbstractWidget::MoveAction);
+  this->SetCallbackMethod(vtkCommand::LeftButtonReleaseEvent, vtkEvent::AnyModifier, vtkWidgetEvent::EndSelect, vtkSlicerAbstractWidget::EndAction);
+  this->SetCallbackMethod(vtkCommand::MiddleButtonReleaseEvent, vtkEvent::AnyModifier, vtkWidgetEvent::EndTranslate, vtkSlicerAbstractWidget::EndAction);
+  this->SetCallbackMethod(vtkCommand::RightButtonReleaseEvent, vtkEvent::AnyModifier, vtkWidgetEvent::EndScale, vtkSlicerAbstractWidget::EndAction);
 
-  this->CallbackMapper->SetCallbackMethod(vtkCommand::LeftButtonReleaseEvent,
-                                          vtkWidgetEvent::EndSelect,
-                                          this, vtkSlicerAbstractWidget::EndAction);
-  this->CallbackMapper->SetCallbackMethod(vtkCommand::MiddleButtonReleaseEvent,
-                                          vtkWidgetEvent::EndTranslate,
-                                          this, vtkSlicerAbstractWidget::EndAction);
-  this->CallbackMapper->SetCallbackMethod(vtkCommand::RightButtonReleaseEvent,
-                                          vtkWidgetEvent::EndScale,
-                                          this, vtkSlicerAbstractWidget::EndAction);
-
-  this->CallbackMapper->SetCallbackMethod(vtkCommand::LeftButtonDoubleClickEvent,
-                                          vtkWidgetEvent::Pick,
-                                          this, vtkSlicerAbstractWidget::PickAction);
-  this->CallbackMapper->SetCallbackMethod(vtkCommand::MiddleButtonDoubleClickEvent,
-                                          vtkWidgetEvent::Pick,
-                                          this, vtkSlicerAbstractWidget::PickAction);
-  this->CallbackMapper->SetCallbackMethod(vtkCommand::RightButtonDoubleClickEvent,
-                                          vtkWidgetEvent::Pick,
-                                          this, vtkSlicerAbstractWidget::PickAction);
+  this->SetCallbackMethod(vtkCommand::LeftButtonDoubleClickEvent, vtkEvent::AnyModifier, vtkWidgetEvent::Pick, vtkSlicerAbstractWidget::PickAction);
+  this->SetCallbackMethod(vtkCommand::MiddleButtonDoubleClickEvent, vtkEvent::AnyModifier, vtkWidgetEvent::Pick, vtkSlicerAbstractWidget::PickAction);
+  this->SetCallbackMethod(vtkCommand::RightButtonDoubleClickEvent, vtkEvent::AnyModifier, vtkWidgetEvent::Pick, vtkSlicerAbstractWidget::PickAction);
 
   this->CallbackMapper->SetCallbackMethod(vtkCommand::KeyPressEvent,
                                           vtkEvent::ShiftModifier, 127, 1, "Delete",
@@ -94,6 +74,7 @@ vtkSlicerAbstractWidget::vtkSlicerAbstractWidget()
   this->KeyEventCallbackCommand = vtkCallbackCommand::New();
   this->KeyEventCallbackCommand->SetClientData(this);
   this->KeyEventCallbackCommand->SetCallback(vtkSlicerAbstractWidget::ProcessKeyEvents);
+
   this->Enabled = 1;
 }
 
@@ -101,6 +82,22 @@ vtkSlicerAbstractWidget::vtkSlicerAbstractWidget()
 vtkSlicerAbstractWidget::~vtkSlicerAbstractWidget()
 {
   this->KeyEventCallbackCommand->Delete();
+}
+
+//----------------------------------------------------------------------
+void vtkSlicerAbstractWidget::SetCallbackMethod(vtkEventData *edata, unsigned long widgetEvent, vtkWidgetCallbackMapper::CallbackType f)
+{
+  this->CallbackMapper->SetCallbackMethod(edata->GetType(), edata, widgetEvent, this, f);
+}
+
+//----------------------------------------------------------------------
+void vtkSlicerAbstractWidget::SetCallbackMethod(unsigned long interactionEvent, int modifiers,
+  unsigned long widgetEvent, vtkWidgetCallbackMapper::CallbackType f)
+{
+  vtkNew<vtkSlicerInteractionEventData> ed;
+  ed->SetType(interactionEvent);
+  ed->SetModifiers(modifiers);
+  this->SetCallbackMethod(ed, widgetEvent, f);
 }
 
 //----------------------------------------------------------------------
@@ -172,6 +169,7 @@ void vtkSlicerAbstractWidget::SetEnabled(int enabling)
     // We're ready to enable
     this->Enabled = 1;
 
+    /* don't listen to the interactor directly, we'll get the events from thr displayable manager
     // listen for the events found in the EventTranslator
     if (!this->Parent)
       {
@@ -183,6 +181,7 @@ void vtkSlicerAbstractWidget::SetEnabled(int enabling)
       this->EventTranslator->AddEventsToParent(this->Parent,
         this->EventCallbackCommand,this->Priority);
       }
+      */
 
     rep->SetRenderer(this->CurrentRenderer);
     if (this->WidgetState == vtkSlicerAbstractWidget::Start)
@@ -194,6 +193,8 @@ void vtkSlicerAbstractWidget::SetEnabled(int enabling)
       rep->VisibilityOn();
       }
     this->CurrentRenderer->AddViewProp(rep);
+
+    /* don't listen to the interactor directly, we'll get the events from thr displayable manager
 
     if (this->Parent)
       {
@@ -213,12 +214,14 @@ void vtkSlicerAbstractWidget::SetEnabled(int enabling)
                                     this->KeyEventCallbackCommand,
                                     this->Priority);
       }
-
+*/
     this->InvokeEvent(vtkCommand::EnableEvent,nullptr);
     }
   else
     {
     this->Enabled = 0;
+
+    /* don't listen to the interactor directly, we'll get the events from thr displayable manager
 
     // don't listen for events any more
     if (!this->Parent)
@@ -229,11 +232,14 @@ void vtkSlicerAbstractWidget::SetEnabled(int enabling)
       {
       this->Parent->RemoveObserver(this->EventCallbackCommand);
       }
+      */
 
     if (this->CurrentRenderer)
       {
       this->CurrentRenderer->RemoveViewProp(rep);
       }
+
+    /* don't listen to the interactor directly, we'll get the events from thr displayable manager
 
     if (rep)
       {
@@ -249,6 +255,7 @@ void vtkSlicerAbstractWidget::SetEnabled(int enabling)
       {
       this->Interactor->RemoveObserver(this->KeyEventCallbackCommand);
       }
+      */
 
     this->InvokeEvent(vtkCommand::DisableEvent,nullptr);
     this->SetCurrentRenderer(nullptr);
@@ -291,7 +298,7 @@ void vtkSlicerAbstractWidget::SetRepresentation(vtkSlicerAbstractRepresentation 
 
 //-------------------------------------------------------------------------
 vtkSlicerAbstractRepresentation* vtkSlicerAbstractWidget::GetRepresentation()
-{     
+{
   return reinterpret_cast<vtkSlicerAbstractRepresentation*>(this->WidgetRep);
 }
 
@@ -324,59 +331,6 @@ void vtkSlicerAbstractWidget::BuildLocator()
 }
 
 // The following methods are the callbacks that the contour widget responds to.
-//-------------------------------------------------------------------------
-void vtkSlicerAbstractWidget::MoveAction(vtkAbstractWidget *w)
-{
-  vtkSlicerAbstractWidget *self = reinterpret_cast<vtkSlicerAbstractWidget*>(w);
-  vtkSlicerAbstractRepresentation *rep =
-    reinterpret_cast<vtkSlicerAbstractRepresentation*>(self->WidgetRep);
-
-  if (self->WidgetState == vtkSlicerAbstractWidget::Start ||
-      !rep)
-    {
-    return;
-    }
-
-  int X = self->Interactor->GetEventPosition()[0];
-  int Y = self->Interactor->GetEventPosition()[1];
-
-  if (self->WidgetState == vtkSlicerAbstractWidget::Define &&
-      self->FollowCursor && rep->GetNumberOfNodes() > 0)
-    {
-    rep->SetNthNodeDisplayPosition(rep->GetNumberOfNodes()-1, X, Y);
-    }
-
-  if (self->WidgetState == vtkSlicerAbstractWidget::Manipulate)
-    {
-    if (rep->GetCurrentOperation() == vtkSlicerAbstractRepresentation::Inactive)
-      {
-      int state = rep->ComputeInteractionState(X, Y);
-      self->CurrentHandle = rep->GetActiveNode();
-      self->SetCursor(state != vtkSlicerAbstractRepresentation::Outside);
-      if (state != vtkSlicerAbstractRepresentation::Outside)
-        {
-        self->InvokeEvent(vtkCommand::StartInteractionEvent, &self->CurrentHandle);
-        }
-      }
-    else
-      {
-      double pos[2];
-      pos[0] = X;
-      pos[1] = Y;
-      rep->WidgetInteraction(pos);
-      if (rep->GetCurrentOperation() != vtkSlicerAbstractRepresentation::Pick)
-        {
-        if (rep->GetActiveNode() != -1)
-          {
-          self->CurrentHandle = rep->GetActiveNode();
-          self->InvokeEvent(vtkCommand::InteractionEvent, &self->CurrentHandle);
-          } 
-        }
-      }
-    }
-
-}
-
 //-------------------------------------------------------------------------
 void vtkSlicerAbstractWidget::SelectAction(vtkAbstractWidget *w)
 {
@@ -415,7 +369,7 @@ void vtkSlicerAbstractWidget::SelectAction(vtkAbstractWidget *w)
 
 //-------------------------------------------------------------------------
 void vtkSlicerAbstractWidget::PickAction(vtkAbstractWidget *w)
-{    
+{
   vtkSlicerAbstractWidget *self = reinterpret_cast<vtkSlicerAbstractWidget*>(w);
   vtkSlicerAbstractRepresentation *rep =
     reinterpret_cast<vtkSlicerAbstractRepresentation*>(self->WidgetRep);
@@ -521,6 +475,72 @@ void vtkSlicerAbstractWidget::ScaleAction(vtkAbstractWidget *w)
   rep->StartWidgetInteraction(pos);
   self->EventCallbackCommand->SetAbortFlag(1);
 }
+
+//-------------------------------------------------------------------------
+void vtkSlicerAbstractWidget::MoveAction(vtkAbstractWidget *w)
+{
+  vtkSlicerAbstractWidget *self = reinterpret_cast<vtkSlicerAbstractWidget*>(w);
+  vtkSlicerAbstractRepresentation *rep =
+    reinterpret_cast<vtkSlicerAbstractRepresentation*>(self->WidgetRep);
+
+  if (self->WidgetState != vtkSlicerAbstractWidget::Manipulate ||
+    !rep)
+  {
+    return;
+  }
+
+  vtkEventData* eventData = reinterpret_cast<vtkEventData*>(self->CallData);
+  vtkSlicerInteractionEventData* interactionEventData = vtkSlicerInteractionEventData::SafeDownCast(eventData);
+  if (!interactionEventData)
+    {
+    // only 3D event types are supported
+    return;
+    }
+
+  if (self->WidgetState == vtkSlicerAbstractWidget::Start || !rep)
+    {
+    return;
+    }
+
+  if (self->WidgetState == vtkSlicerAbstractWidget::Define &&
+    self->FollowCursor && rep->GetNumberOfNodes() > 0)
+    {
+    const int* displayPosition = interactionEventData->GetDisplayPosition();
+    rep->SetNthNodeDisplayPosition(rep->GetNumberOfNodes() - 1, displayPosition[0], displayPosition[1]);
+    }
+
+  if (self->WidgetState == vtkSlicerAbstractWidget::Manipulate)
+    {
+    if (rep->GetCurrentOperation() == vtkSlicerAbstractRepresentation::Inactive)
+      {
+      const int* displayPosition = interactionEventData->GetDisplayPosition();
+      int state = rep->ComputeInteractionState(displayPosition[0], displayPosition[1]);
+      self->CurrentHandle = rep->GetActiveNode();
+      self->SetCursor(state != vtkSlicerAbstractRepresentation::Outside);
+      if (state != vtkSlicerAbstractRepresentation::Outside)
+        {
+        self->InvokeEvent(vtkCommand::StartInteractionEvent, &self->CurrentHandle);
+        }
+      }
+    else
+      {
+      const int* displayPositionInt = interactionEventData->GetDisplayPosition();
+      double displayPosition[3] = { static_cast<double>(displayPositionInt[0]), static_cast<double>(displayPositionInt[1]), 0.0 };
+      rep->WidgetInteraction(displayPosition);
+      if (rep->GetCurrentOperation() != vtkSlicerAbstractRepresentation::Pick)
+        {
+        if (rep->GetActiveNode() != -1)
+          {
+          self->CurrentHandle = rep->GetActiveNode();
+          self->InvokeEvent(vtkCommand::InteractionEvent, &self->CurrentHandle);
+          }
+        }
+      }
+    }
+
+  self->EventCallbackCommand->SetAbortFlag(1);
+}
+
 
 //-------------------------------------------------------------------------
 void vtkSlicerAbstractWidget::TranslateAction(vtkAbstractWidget *w)
@@ -690,7 +710,7 @@ void vtkSlicerAbstractWidget::Initialize(vtkPolyData * pd, int state)
 }
 
 //-------------------------------------------------------------------------
-int vtkSlicerAbstractWidget::AddPreviewPointToRepresentationFromWorldCoordinate(double worldCoordinates[3])
+int vtkSlicerAbstractWidget::AddPreviewPointToRepresentationFromWorldCoordinate(const double worldCoordinates[3])
 {
   vtkSlicerAbstractRepresentation *rep =
     reinterpret_cast<vtkSlicerAbstractRepresentation*>(this->WidgetRep);
@@ -708,6 +728,26 @@ int vtkSlicerAbstractWidget::AddPreviewPointToRepresentationFromWorldCoordinate(
 }
 
 //-------------------------------------------------------------------------
+void vtkSlicerAbstractWidget::UpdatePreviewPointPositionFromWorldCoordinate(const double worldCoordinates[3])
+{
+  vtkSlicerAbstractRepresentation *rep =
+    reinterpret_cast<vtkSlicerAbstractRepresentation*>(this->WidgetRep);
+
+  if (!rep)
+    {
+    return;
+    }
+  if (!this->FollowCursor)
+    {
+    this->AddPreviewPointToRepresentationFromWorldCoordinate(worldCoordinates);
+    }
+  else
+    {
+    rep->SetNthNodeWorldPosition(rep->GetNumberOfNodes()-1, worldCoordinates);
+    }
+}
+
+//-------------------------------------------------------------------------
 void vtkSlicerAbstractWidget::RemoveLastPreviewPointToRepresentation()
 {
   vtkSlicerAbstractRepresentation *rep =
@@ -718,7 +758,7 @@ void vtkSlicerAbstractWidget::RemoveLastPreviewPointToRepresentation()
     return;
     }
 
-  if (this->WidgetState != vtkSlicerAbstractWidget::Manipulate)
+  if (this->FollowCursor)
     {
     rep->DeleteLastNode();
     this->FollowCursor = false;
@@ -734,4 +774,53 @@ void vtkSlicerAbstractWidget::PrintSelf(ostream& os, vtkIndent indent)
   os << indent << "WidgetState: " << this->WidgetState << endl;
   os << indent << "CurrentHandle: " << this->CurrentHandle << endl;
   os << indent << "FollowCursor: " << (this->FollowCursor ? "On" : "Off") << endl;
+}
+
+//-----------------------------------------------------------------------------
+void vtkSlicerAbstractWidget::ProcessInteractionEvent(vtkEventData* eventData)
+{
+  // vtkCommand::Move3DEvent is used because that indicates there is eventData.
+  // Event ID stored in eventData->EventType is used for further processing.
+  vtkAbstractWidget::ProcessEventsHandler(NULL, vtkCommand::Move3DEvent, this, eventData);
+}
+
+//-----------------------------------------------------------------------------
+bool vtkSlicerAbstractWidget::CanProcessInteractionEvent(vtkEventData* eventData, double &distance2)
+{
+  if (!this->GetRepresentation() || !this->GetInteractor())
+    {
+    return false;
+    }
+
+  // If we are currently translating then we interact everywhere
+  if (this->GetRepresentation()->GetCurrentOperation() != vtkSlicerAbstractRepresentation::Inactive)
+    {
+    distance2 = 0.0;
+    return true;
+    }
+
+  vtkSlicerInteractionEventData* interactionEventData = vtkSlicerInteractionEventData::SafeDownCast(eventData);
+  if (!interactionEventData)
+  {
+    // only 3D event types are supported for now
+    return false;
+  }
+
+  return this->GetRepresentation()->CanInteract(interactionEventData->GetDisplayPosition(), interactionEventData->GetWorldPosition(), distance2);
+}
+
+//-----------------------------------------------------------------------------
+void vtkSlicerAbstractWidget::Leave()
+{
+  this->RemoveLastPreviewPointToRepresentation();
+  vtkSlicerAbstractRepresentation *rep = reinterpret_cast<vtkSlicerAbstractRepresentation*>(this->WidgetRep);
+  if (!rep)
+    {
+    return;
+    }
+  rep->SetActiveNode(-1);
+  this->SetCursor(0);
+  //    slicerWidget->SetManagesCursor(false);
+  //rep->SetCurrentOperationToInactive();
+  this->Render();
 }

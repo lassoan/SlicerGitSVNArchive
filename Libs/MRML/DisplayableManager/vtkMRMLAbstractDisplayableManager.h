@@ -26,6 +26,7 @@
 
 #include "vtkMRMLDisplayableManagerExport.h"
 
+class vtkEventData;
 class vtkMRMLInteractionNode;
 class vtkMRMLSelectionNode;
 class vtkMRMLDisplayableManagerGroup;
@@ -89,6 +90,14 @@ public:
   /// \return Invalid string by default, meaning no information to display.
   virtual std::string GetDataProbeInfoStringForPosition(
       double vtkNotUsed(xyz)[3]) { return ""; }
+
+  /// Return true if the displayable manager can process the event.
+  /// Distance2 is the squared distance in display coordinates from the closest interaction position.
+  /// The displayable manager with the closest distance will get the chance to process the interaction event.
+  virtual bool CanProcessInteractionEvent(vtkEventData* eventData, double &distance2);
+
+  /// Process an interaction event.
+  virtual void ProcessInteractionEvent(vtkEventData* eventData);
 
 protected:
 

@@ -50,6 +50,7 @@ vtkMRMLMarkupsNode::vtkMRMLMarkupsNode()
   this->TextList = vtkStringArray::New();
   this->Locked = 0;
 
+  this->PreferredNumberOfControlPoints = 0;
   this->MaximumNumberOfControlPoints = 0;
   this->MarkupLabelFormat = std::string("%N-%d");
   this->LastUsedControlPointNumber = 0;

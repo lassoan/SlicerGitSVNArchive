@@ -100,11 +100,11 @@ vtkSlicerAbstractRepresentation2D::vtkSlicerAbstractRepresentation2D()
   this->ActiveActor->SetMapper(this->ActiveMapper);
   this->ActiveActor->SetProperty(this->ActiveProperty);
 
-  this->pointsVisibilityOnSlice = vtkIntArray::New();
-  pointsVisibilityOnSlice->SetName("pointsVisibilityOnSlice");
-  pointsVisibilityOnSlice->SetNumberOfValues(100);
-  pointsVisibilityOnSlice->SetNumberOfValues(1);
-  pointsVisibilityOnSlice->SetValue(0,0);
+  this->PointsVisibilityOnSlice = vtkIntArray::New();
+  this->PointsVisibilityOnSlice->SetName("pointsVisibilityOnSlice");
+  this->PointsVisibilityOnSlice->Allocate(100);
+  this->PointsVisibilityOnSlice->SetNumberOfValues(1);
+  this->PointsVisibilityOnSlice->SetValue(0,0);
 
   this->SliceNode = nullptr;
 
@@ -166,11 +166,11 @@ vtkSlicerAbstractRepresentation2D::~vtkSlicerAbstractRepresentation2D()
   this->ActiveLabelsActor->Delete();
   this->ActiveLabelsMapper->Delete();
 
-  this->pointsVisibilityOnSlice->Delete();
+  this->PointsVisibilityOnSlice->Delete();
 }
 
 //----------------------------------------------------------------------
-void vtkSlicerAbstractRepresentation2D::GetSliceToWorldCoordinates(double slicePos[2],
+void vtkSlicerAbstractRepresentation2D::GetSliceToWorldCoordinates(const double slicePos[2],
                                                                    double worldPos[3])
 {
   if (this->Renderer == nullptr ||
@@ -193,7 +193,7 @@ void vtkSlicerAbstractRepresentation2D::GetSliceToWorldCoordinates(double sliceP
 }
 
 //----------------------------------------------------------------------
-void vtkSlicerAbstractRepresentation2D::GetWorldToSliceCoordinates(double worldPos[3], double slicePos[2])
+void vtkSlicerAbstractRepresentation2D::GetWorldToSliceCoordinates(const double worldPos[3], double slicePos[2])
 {
   if (this->Renderer == nullptr ||
       this->SliceNode == nullptr)
@@ -263,7 +263,6 @@ void vtkSlicerAbstractRepresentation2D::CreateDefaultProperties()
 void vtkSlicerAbstractRepresentation2D::BuildRepresentationPointsAndLabels(double labelsOffset)
 {
   int numPoints = this->GetNumberOfNodes();
-  int ii;
 
   this->FocalPoint->SetNumberOfPoints(0);
   this->FocalData->GetPointData()->GetNormals()->SetNumberOfTuples(0);
@@ -274,12 +273,12 @@ void vtkSlicerAbstractRepresentation2D::BuildRepresentationPointsAndLabels(doubl
   this->Labels->SetNumberOfValues(0);
   this->LabelsPriority->SetNumberOfValues(0);
 
-  for (ii = 0; ii < numPoints; ii++)
+  for (int pointIndex = 0; pointIndex < numPoints; pointIndex++)
     {
-    if (ii == this->GetActiveNode() ||
-        !this->pointsVisibilityOnSlice->GetValue(ii) ||
-        !this->GetNthNodeVisibility(ii) ||
-        this->GetNthNodeSelected(ii))
+    if (pointIndex == this->GetActiveNode() ||
+        !this->PointsVisibilityOnSlice->GetValue(pointIndex) ||
+        !this->GetNthNodeVisibility(pointIndex) ||
+        this->GetNthNodeSelected(pointIndex))
       {
       continue;
       }
@@ -287,7 +286,7 @@ void vtkSlicerAbstractRepresentation2D::BuildRepresentationPointsAndLabels(doubl
     double slicePos[2] = { 0.0 };
     double worldOrient[9] = { 0.0 };
     double orientation[4] = { 0.0 };
-    this->GetNthNodeDisplayPosition(ii, slicePos);
+    this->GetNthNodeDisplayPosition(pointIndex, slicePos);
     bool skipPoint = false;
     for (int jj = 0; jj < this->FocalPoint->GetNumberOfPoints(); jj++)
       {
@@ -317,13 +316,13 @@ void vtkSlicerAbstractRepresentation2D::BuildRepresentationPointsAndLabels(doubl
     this->Renderer->ViewToNormalizedViewport(viewPos[0], viewPos[1], viewPos[2]);
     this->LabelsFocalPoint->InsertNextPoint(viewPos);
 
-    this->GetNthNodeOrientation(ii, orientation);
+    this->GetNthNodeOrientation(pointIndex, orientation);
     this->FromOrientationQuaternionToWorldOrient(orientation, worldOrient);
     this->FocalData->GetPointData()->GetNormals()->InsertNextTuple(worldOrient + 6);
     this->LabelsFocalData->GetPointData()->GetNormals()->InsertNextTuple(worldOrient + 6);
 
-    this->Labels->InsertNextValue(this->GetNthNodeLabel(ii));
-    this->LabelsPriority->InsertNextValue(std::to_string (ii));
+    this->Labels->InsertNextValue(this->GetNthNodeLabel(pointIndex));
+    this->LabelsPriority->InsertNextValue(std::to_string (pointIndex));
     }
 
   this->FocalPoint->Modified();
@@ -343,12 +342,12 @@ void vtkSlicerAbstractRepresentation2D::BuildRepresentationPointsAndLabels(doubl
   this->SelectedLabels->SetNumberOfValues(0);
   this->SelectedLabelsPriority->SetNumberOfValues(0);
 
-  for (ii = 0; ii < numPoints; ii++)
+  for (int pointIndex = 0; pointIndex < numPoints; pointIndex++)
     {
-    if (ii == this->GetActiveNode() ||
-        !this->pointsVisibilityOnSlice->GetValue(ii) ||
-        !this->GetNthNodeVisibility(ii) ||
-        !this->GetNthNodeSelected(ii))
+    if (pointIndex == this->GetActiveNode() ||
+        !this->PointsVisibilityOnSlice->GetValue(pointIndex) ||
+        !this->GetNthNodeVisibility(pointIndex) ||
+        !this->GetNthNodeSelected(pointIndex))
       {
       continue;
       }
@@ -356,7 +355,7 @@ void vtkSlicerAbstractRepresentation2D::BuildRepresentationPointsAndLabels(doubl
     double slicePos[3] = { 0.0 };
     double worldOrient[9] = { 0.0 };
     double orientation[4] = { 0.0 };
-    this->GetNthNodeDisplayPosition(ii, slicePos);
+    this->GetNthNodeDisplayPosition(pointIndex, slicePos);
     bool skipPoint = false;
     for (int jj = 0; jj < this->SelectedFocalPoint->GetNumberOfPoints(); jj++)
       {
@@ -386,13 +385,13 @@ void vtkSlicerAbstractRepresentation2D::BuildRepresentationPointsAndLabels(doubl
     this->Renderer->ViewToNormalizedViewport(viewPos[0], viewPos[1], viewPos[2]);
     this->SelectedLabelsFocalPoint->InsertNextPoint(viewPos);
 
-    this->GetNthNodeOrientation(ii, orientation);
+    this->GetNthNodeOrientation(pointIndex, orientation);
     this->FromOrientationQuaternionToWorldOrient(orientation, worldOrient);
     this->SelectedFocalData->GetPointData()->GetNormals()->InsertNextTuple(worldOrient + 6);
     this->SelectedLabelsFocalData->GetPointData()->GetNormals()->InsertNextTuple(worldOrient + 6);
 
-    this->SelectedLabels->InsertNextValue(this->GetNthNodeLabel(ii));
-    this->SelectedLabelsPriority->InsertNextValue(std::to_string(ii));
+    this->SelectedLabels->InsertNextValue(this->GetNthNodeLabel(pointIndex));
+    this->SelectedLabelsPriority->InsertNextValue(std::to_string(pointIndex));
     }
 
   this->SelectedFocalPoint->Modified();
@@ -406,7 +405,7 @@ void vtkSlicerAbstractRepresentation2D::BuildRepresentationPointsAndLabels(doubl
   if (this->GetActiveNode() >= 0 &&
       this->GetActiveNode() < this->GetNumberOfNodes() &&
       this->GetNthNodeVisibility(this->GetActiveNode()) &&
-      this->pointsVisibilityOnSlice->GetValue(this->GetActiveNode()))
+      this->PointsVisibilityOnSlice->GetValue(this->GetActiveNode()))
     {
     double slicePos[2] = { 0.0 };
     double worldOrient[9] = { 0.0 };
@@ -591,7 +590,7 @@ int vtkSlicerAbstractRepresentation2D::GetIntermediatePointDisplayPosition(int n
 }
 
 //----------------------------------------------------------------------
-int vtkSlicerAbstractRepresentation2D::SetNthNodeDisplayPosition(int n, double slicePos[2])
+int vtkSlicerAbstractRepresentation2D::SetNthNodeDisplayPosition(int n, const double slicePos[2])
 {
   if (!this->NodeExists(n))
     {
@@ -607,7 +606,7 @@ int vtkSlicerAbstractRepresentation2D::SetNthNodeDisplayPosition(int n, double s
 }
 
 //----------------------------------------------------------------------
-int vtkSlicerAbstractRepresentation2D::AddNodeAtDisplayPosition(double slicePos[2])
+int vtkSlicerAbstractRepresentation2D::AddNodeAtDisplayPosition(const double slicePos[2])
 {
   double worldPos[3];
 
@@ -620,14 +619,14 @@ int vtkSlicerAbstractRepresentation2D::AddNodeAtDisplayPosition(double slicePos[
 //----------------------------------------------------------------------
 void vtkSlicerAbstractRepresentation2D::SetNthPointSliceVisibility(int n, bool visibility)
 {
-  this->pointsVisibilityOnSlice->InsertValue(n, visibility);
+  this->PointsVisibilityOnSlice->InsertValue(n, visibility);
   this->Modified();
 }
 
 //----------------------------------------------------------------------
 void vtkSlicerAbstractRepresentation2D::SetCentroidSliceVisibility(bool visibility)
 {
-  this->centroidVisibilityOnSlice = visibility;
+  this->CentroidVisibilityOnSlice = visibility;
   this->Modified();
 }
 
@@ -666,7 +665,7 @@ void vtkSlicerAbstractRepresentation2D::BuildLocator()
 }
 
 //----------------------------------------------------------------------
-void vtkSlicerAbstractRepresentation2D::AddNodeAtPositionInternal(double worldPos[3])
+void vtkSlicerAbstractRepresentation2D::AddNodeAtPositionInternal(const double worldPos[3])
 {
   if (!this->MarkupsNode)
     {
@@ -681,13 +680,13 @@ void vtkSlicerAbstractRepresentation2D::AddNodeAtPositionInternal(double worldPo
 
   this->UpdateLines(this->GetNumberOfNodes() - 1);
 
-  if (this->GetNumberOfNodes() - 1 >= this->pointsVisibilityOnSlice->GetNumberOfValues())
+  if (this->GetNumberOfNodes() - 1 >= this->PointsVisibilityOnSlice->GetNumberOfValues())
     {
-    this->pointsVisibilityOnSlice->InsertValue(this->GetNumberOfNodes() - 1, 1);
+    this->PointsVisibilityOnSlice->InsertValue(this->GetNumberOfNodes() - 1, 1);
     }
   else
     {
-    this->pointsVisibilityOnSlice->InsertNextValue(1);
+    this->PointsVisibilityOnSlice->InsertNextValue(1);
     }
 
   this->NeedToRender = 1;
@@ -729,6 +728,63 @@ void vtkSlicerAbstractRepresentation2D::BuildRepresentation()
   this->SelectedGlypher->SetScaleFactor(scale * this->HandleSize);
   this->ActiveGlypher->SetScaleFactor(scale * this->HandleSize);
   this->BuildRepresentationPointsAndLabels(scale * this->HandleSize);
+}
+
+//----------------------------------------------------------------------
+bool vtkSlicerAbstractRepresentation2D::CanInteract(const int displayPosition[2], const double worldPosition[3], double &closestDistance2)
+{
+  if (this->GetNumberOfNodes() < 1)
+    {
+    return false;
+    }
+
+  double displayPosition3[3] = { static_cast<double>(displayPosition[0]), static_cast<double>(displayPosition[1]), 0.0 };
+
+  this->PixelTolerance = this->HandleSize * (1.0 + this->Tolerance) * this->CalculateViewScaleFactor();
+  double pixelTolerance2 = this->PixelTolerance * this->PixelTolerance;
+
+  closestDistance2 = VTK_DOUBLE_MAX; // in display coordinate system
+  bool canProcess = false;
+  if (this->GetNumberOfNodes() > 2 && this->ClosedLoop && this->MarkupsNode && this->CentroidVisibilityOnSlice)
+    {
+    // Check if centroid is selected
+    double centroidPosWorld[3], centroidPosDisplay[3];
+    this->MarkupsNode->GetCentroidPositionWorld(centroidPosWorld);
+    this->GetWorldToSliceCoordinates(centroidPosWorld, centroidPosDisplay);
+
+    double dist2 = vtkMath::Distance2BetweenPoints(centroidPosDisplay, displayPosition3);
+    if ( dist2 < pixelTolerance2)
+      {
+      closestDistance2 = dist2;
+      canProcess = true;
+      }
+    }
+
+  vtkIdType numberOfPoints = this->GetNumberOfNodes();
+  double sliceCoordinates[4], worldCoordinates[4];
+
+  double pointDisplayPos[4] = { 0.0, 0.0, 0.0, 1.0 };
+  double pointWorldPos[4] = { 0.0, 0.0, 0.0, 1.0 };
+
+  vtkNew<vtkMatrix4x4> rasToxyMatrix;
+  this->SliceNode->GetXYToRAS()->Invert(this->SliceNode->GetXYToRAS(), rasToxyMatrix.GetPointer());
+  for (int i = 0; i < numberOfPoints; i++)
+    {
+    if (!this->PointsVisibilityOnSlice->GetValue(i))
+      {
+      continue;
+      }
+    this->MarkupsNode->GetNthControlPointPositionWorld(i, pointWorldPos);
+    rasToxyMatrix->MultiplyPoint(pointWorldPos, pointDisplayPos);
+    double dist2 = vtkMath::Distance2BetweenPoints(pointDisplayPos, displayPosition3);
+    if (dist2 < pixelTolerance2)
+      {
+      closestDistance2 = dist2;
+      canProcess = true;
+      }
+    }
+
+  return canProcess;
 }
 
 //----------------------------------------------------------------------
@@ -797,7 +853,7 @@ int vtkSlicerAbstractRepresentation2D::ComputeInteractionState(int X, int Y, int
   this->MarkupsNode->DisableModifiedEventOn();
   if (this->ActivateNode(X, Y))
     {
-    if (this->pointsVisibilityOnSlice->GetValue(this->GetActiveNode()))
+    if (this->PointsVisibilityOnSlice->GetValue(this->GetActiveNode()))
       {
       this->InteractionState = vtkSlicerAbstractRepresentation::OnControlPoint;
       }
