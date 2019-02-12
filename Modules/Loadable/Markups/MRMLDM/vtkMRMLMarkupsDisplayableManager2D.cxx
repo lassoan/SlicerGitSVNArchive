@@ -1088,18 +1088,18 @@ void vtkMRMLMarkupsDisplayableManager2D::OnMRMLMarkupsDisplayNodeModifiedEvent(v
           vtkNew<vtkSphereSource> ss;
           ss->SetRadius(0.5);
           ss->Update();
-          rep->SetCursorShape(ss->GetOutput());
-          rep->SetSelectedCursorShape(ss->GetOutput());
-          rep->SetActiveCursorShape(ss->GetOutput());
+          rep->SetpointMarkerShape(ss->GetOutput());
+          rep->SetSelectedpointMarkerShape(ss->GetOutput());
+          rep->SetActivepointMarkerShape(ss->GetOutput());
           }
         else
           {
           vtkNew<vtkMarkupsGlyphSource2D> glyphSource;
           glyphSource->SetGlyphType(markupsDisplayNode->GetGlyphType());
           glyphSource->Update();
-          rep->SetCursorShape(glyphSource->GetOutput());
-          rep->SetSelectedCursorShape(glyphSource->GetOutput());
-          rep->SetActiveCursorShape(glyphSource->GetOutput());
+          rep->SetpointMarkerShape(glyphSource->GetOutput());
+          rep->SetSelectedpointMarkerShape(glyphSource->GetOutput());
+          rep->SetActivepointMarkerShape(glyphSource->GetOutput());
           }
 
         rep->SetHandleSize(markupsDisplayNode->GetGlyphScale() * this->ScaleFactor2D);

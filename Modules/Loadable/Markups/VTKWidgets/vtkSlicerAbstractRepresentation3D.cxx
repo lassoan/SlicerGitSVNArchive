@@ -64,146 +64,24 @@
 #include "vtkLabelHierarchy.h"
 #include "vtkMRMLMarkupsDisplayNode.h"
 
-//----------------------------------------------------------------------
-vtkSlicerAbstractRepresentation3D::vtkSlicerAbstractRepresentation3D()
+vtkSlicerAbstractRepresentation3D::ControlPointsPipeline3D::ControlPointsPipeline3D()
 {
-  // Set up the initial properties
-  this->CreateDefaultProperties();
-
-  this->Mapper = vtkOpenGLPolyDataMapper::New();
-  this->Mapper->SetInputConnection(this->Glypher->GetOutputPort());
-  // This turns on resolve coincident topology for everything
-  // as it is a class static on the mapper
-  this->Mapper->SetResolveCoincidentTopologyToPolygonOffset();
-  this->Mapper->ScalarVisibilityOff();
-  // Put this on top of other objects
-  this->Mapper->SetRelativeCoincidentTopologyLineOffsetParameters(-1, -1);
-  this->Mapper->SetRelativeCoincidentTopologyPolygonOffsetParameters(-1, -1);
-  this->Mapper->SetRelativeCoincidentTopologyPointOffsetParameter(-1);
-
-  this->SelectedMapper = vtkOpenGLPolyDataMapper::New();
-  this->SelectedMapper->SetInputConnection(this->SelectedGlypher->GetOutputPort());
-  // This turns on resolve coincident topology for everything
-  // as it is a class static on the mapper
-  this->SelectedMapper->SetResolveCoincidentTopologyToPolygonOffset();
-  this->SelectedMapper->ScalarVisibilityOff();
-  // Put this on top of other objects
-  this->SelectedMapper->SetRelativeCoincidentTopologyLineOffsetParameters(-1, -1);
-  this->SelectedMapper->SetRelativeCoincidentTopologyPolygonOffsetParameters(-1, -1);
-  this->SelectedMapper->SetRelativeCoincidentTopologyPointOffsetParameter(-1);
-
-  this->ActiveMapper = vtkOpenGLPolyDataMapper::New();
-  this->ActiveMapper->SetInputConnection(this->ActiveGlypher->GetOutputPort());
-  // This turns on resolve coincident topology for everything
-  // as it is a class static on the mapper
-  this->ActiveMapper->SetResolveCoincidentTopologyToPolygonOffset();
-  this->ActiveMapper->ScalarVisibilityOff();
-  // Put this on top of other objects
-  this->ActiveMapper->SetRelativeCoincidentTopologyLineOffsetParameters(-1, -1);
-  this->ActiveMapper->SetRelativeCoincidentTopologyPolygonOffsetParameters(-1, -1);
-  this->ActiveMapper->SetRelativeCoincidentTopologyPointOffsetParameter(-1);
-
-  this->Actor = vtkOpenGLActor::New();
-  this->Actor->SetMapper(this->Mapper);
-  this->Actor->SetProperty(this->Property);
-
-  this->SelectedActor = vtkOpenGLActor::New();
-  this->SelectedActor->SetMapper(this->SelectedMapper);
-  this->SelectedActor->SetProperty(this->SelectedProperty);
-
-  this->ActiveActor = vtkOpenGLActor::New();
-  this->ActiveActor->SetMapper(this->ActiveMapper);
-  this->ActiveActor->SetProperty(this->ActiveProperty);
-
-  // Labels
-  this->LabelsMapper = vtkLabelPlacementMapper::New();
-  this->LabelsMapper->SetInputConnection(this->PointSetToLabelHierarchyFilter->GetOutputPort());
-  this->LabelsActor = vtkActor2D::New();
-  this->LabelsActor->SetMapper(this->LabelsMapper);
-
-  this->SelectedLabelsMapper = vtkLabelPlacementMapper::New();
-  this->SelectedLabelsMapper->SetInputConnection(this->SelectedPointSetToLabelHierarchyFilter->GetOutputPort());
-  this->SelectedLabelsActor = vtkActor2D::New();
-  this->SelectedLabelsActor->SetMapper(this->SelectedLabelsMapper);
-
-  this->ActiveLabelsMapper = vtkLabelPlacementMapper::New();
-  this->ActiveLabelsMapper->SetInputConnection(this->ActivePointSetToLabelHierarchyFilter->GetOutputPort());
-  this->ActiveLabelsActor = vtkActor2D::New();
-  this->ActiveLabelsActor->SetMapper(this->ActiveLabelsMapper);
-
-  this->HandleSize = 3;
-}
-
-//----------------------------------------------------------------------
-vtkSlicerAbstractRepresentation3D::~vtkSlicerAbstractRepresentation3D()
-{
-  this->Mapper->Delete();
-  this->Actor->Delete();
-
-  this->SelectedMapper->Delete();
-  this->SelectedActor->Delete();
-
-  this->ActiveMapper->Delete();
-  this->ActiveActor->Delete();
-
-  this->Property->Delete();
-  this->SelectedProperty->Delete();
-  this->ActiveProperty->Delete();
-
-  this->SetCursorShape(nullptr);
-  this->SetSelectedCursorShape(nullptr);
-  this->SetActiveCursorShape(nullptr);
-
-  this->Glypher->Delete();
-  this->SelectedGlypher->Delete();
-  this->ActiveGlypher->Delete();
-
-  this->LabelsActor->Delete();
-  this->LabelsMapper->Delete();
-
-  this->SelectedLabelsActor->Delete();
-  this->SelectedLabelsMapper->Delete();
-
-  this->ActiveLabelsActor->Delete();
-  this->ActiveLabelsMapper->Delete();
-}
-
-//----------------------------------------------------------------------
-void vtkSlicerAbstractRepresentation3D::CreateDefaultProperties()
-{
-  this->Glypher = vtkGlyph3D::New();
-  this->Glypher->SetInputData(this->FocalData);
+  this->Glypher = vtkSmartPointer<vtkGlyph3D>::New();
+  this->Glypher->SetInputData(this->ControlPointsPolyData);
   this->Glypher->SetVectorModeToUseNormal();
   this->Glypher->OrientOn();
   this->Glypher->ScalingOn();
   this->Glypher->SetScaleModeToDataScalingOff();
   this->Glypher->SetScaleFactor(1.0);
 
-  this->SelectedGlypher = vtkGlyph3D::New();
-  this->SelectedGlypher->SetInputData(this->SelectedFocalData);
-  this->SelectedGlypher->SetVectorModeToUseNormal();
-  this->SelectedGlypher->OrientOn();
-  this->SelectedGlypher->ScalingOn();
-  this->SelectedGlypher->SetScaleModeToDataScalingOff();
-  this->SelectedGlypher->SetScaleFactor(1.0);
-
-  this->ActiveGlypher = vtkGlyph3D::New();
-  this->ActiveGlypher->SetInputData(this->ActiveFocalData);
-  this->ActiveGlypher->SetVectorModeToUseNormal();
-  this->ActiveGlypher->OrientOn();
-  this->ActiveGlypher->ScalingOn();
-  this->ActiveGlypher->SetScaleModeToDataScalingOff();
-  this->ActiveGlypher->SetScaleFactor(1.0);
-
   // By default the Points are rendered as spheres
   vtkNew<vtkSphereSource> ss;
   ss->SetRadius(0.5);
   ss->Update();
-  this->SetCursorShape(ss->GetOutput());
-  this->SetSelectedCursorShape(ss->GetOutput());
-  this->SetActiveCursorShape(ss->GetOutput());
+  this->PointMarkerShape = ss->GetOutput();
+  this->Glypher->SetSourceData(this->PointMarkerShape);
 
-  this->Property = vtkProperty::New();
+  this->Property = vtkSmartPointer<vtkProperty>::New();
   this->Property->SetRepresentationToSurface();
   this->Property->SetColor(0.4, 1.0, 1.0);
   this->Property->SetAmbient(0.0);
@@ -215,286 +93,152 @@ void vtkSlicerAbstractRepresentation3D::CreateDefaultProperties()
   this->Property->SetLineWidth(2.);
   this->Property->SetOpacity(1.);
 
-  this->SelectedProperty = vtkProperty::New();
-  this->SelectedProperty->SetRepresentationToSurface();
-  this->SelectedProperty->SetColor(1.0, 0.5, 0.5);
-  this->SelectedProperty->SetAmbient(0.0);
-  this->SelectedProperty->SetDiffuse(1.0);
-  this->SelectedProperty->SetSpecular(0.0);
-  this->SelectedProperty->SetShading(true);
-  this->SelectedProperty->SetSpecularPower(1.0);
-  this->SelectedProperty->SetPointSize(10.);
-  this->SelectedProperty->SetLineWidth(2.);
-  this->SelectedProperty->SetOpacity(1.);
+  this->Mapper = vtkSmartPointer<vtkOpenGLPolyDataMapper>::New();
+  this->Mapper->SetInputConnection(this->Glypher->GetOutputPort());
+  // This turns on resolve coincident topology for everything
+  // as it is a class static on the mapper
+  this->Mapper->SetResolveCoincidentTopologyToPolygonOffset();
+  this->Mapper->ScalarVisibilityOff();
+  // Put this on top of other objects
+  this->Mapper->SetRelativeCoincidentTopologyLineOffsetParameters(-1, -1);
+  this->Mapper->SetRelativeCoincidentTopologyPolygonOffsetParameters(-1, -1);
+  this->Mapper->SetRelativeCoincidentTopologyPointOffsetParameter(-1);
 
-  this->ActiveProperty = vtkProperty::New();
-  this->ActiveProperty->SetRepresentationToSurface();
-  // bright green
-  this->ActiveProperty->SetColor(0.4, 1.0, 0.);
-  this->ActiveProperty->SetAmbient(0.);
-  this->ActiveProperty->SetDiffuse(1.0);
-  this->ActiveProperty->SetSpecular(0.);
-  this->ActiveProperty->SetShading(true);
-  this->ActiveProperty->SetSpecularPower(1.0);
-  this->ActiveProperty->SetPointSize(10.);
-  this->ActiveProperty->SetLineWidth(2.);
-  this->ActiveProperty->SetOpacity(1.);
+  this->Actor = vtkSmartPointer<vtkOpenGLActor>::New();
+  this->Actor->SetMapper(this->Mapper);
+  this->Actor->SetProperty(this->Property);
+
+  // Labels
+  this->LabelsMapper = vtkSmartPointer<vtkLabelPlacementMapper>::New();
+  this->LabelsMapper->SetInputConnection(this->PointSetToLabelHierarchyFilter->GetOutputPort());
+  this->LabelsActor = vtkSmartPointer<vtkActor2D>::New();
+  this->LabelsActor->SetMapper(this->LabelsMapper);
+};
+
+//----------------------------------------------------------------------
+vtkSlicerAbstractRepresentation3D::vtkSlicerAbstractRepresentation3D()
+{
+  for (int i = 0; i<NumberOfControlPointTypes; i++)
+  {
+    this->ControlPoints[i] = new ControlPointsPipeline3D;
+  }
+
+  this->ControlPoints[Selected]->TextProperty->SetColor(1.0, 0.5, 0.5);
+  reinterpret_cast<ControlPointsPipeline3D*>(this->ControlPoints[Selected])->Property->SetColor(1.0, 0.5, 0.5);
+
+  this->ControlPoints[Active]->TextProperty->SetColor(0.4, 1.0, 0.); // bright green
+  reinterpret_cast<ControlPointsPipeline3D*>(this->ControlPoints[Selected])->Property->SetColor(0.4, 1.0, 0.);
+
+  this->HandleSize = 3;
+}
+
+//----------------------------------------------------------------------
+vtkSlicerAbstractRepresentation3D::~vtkSlicerAbstractRepresentation3D()
+{
 }
 
 //----------------------------------------------------------------------
 void vtkSlicerAbstractRepresentation3D::BuildRepresentationPointsAndLabels()
 {
   int numPoints = this->GetNumberOfNodes();
-  int ii;
 
-  this->FocalPoint->SetNumberOfPoints(0);
-  this->FocalData->GetPointData()->GetNormals()->SetNumberOfTuples(0);
+  for (int controlPointType = 0; controlPointType < NumberOfControlPointTypes; ++controlPointType)
+  {
+    ControlPointsPipeline3D* controlPoints = reinterpret_cast<ControlPointsPipeline3D*>(this->ControlPoints[controlPointType]);
 
-  this->LabelsFocalPoint->SetNumberOfPoints(0);
-  this->LabelsFocalData->GetPointData()->GetNormals()->SetNumberOfTuples(0);
+    controlPoints->ControlPoints->SetNumberOfPoints(0);
+    controlPoints->ControlPointsPolyData->GetPointData()->GetNormals()->SetNumberOfTuples(0);
 
-  this->Labels->SetNumberOfValues(0);
-  this->LabelsPriority->SetNumberOfValues(0);
+    controlPoints->LabelControlPoints->SetNumberOfPoints(0);
+    controlPoints->LabelControlPointsPolyData->GetPointData()->GetNormals()->SetNumberOfTuples(0);
 
-  for (ii = 0; ii < numPoints; ii++)
+    controlPoints->Labels->SetNumberOfValues(0);
+    controlPoints->LabelsPriority->SetNumberOfValues(0);
+
+    int startIndex = 0;
+    int stopIndex = numPoints - 1;
+    if (controlPointType == Active)
     {
-    if (!this->GetNthNodeVisibility(ii) ||
-        ii == this->GetActiveNode() ||
-        this->GetNthNodeSelected(ii))
+      if (this->GetActiveNode() >= 0 && this->GetActiveNode() < numPoints &&
+        this->GetNthNodeVisibility(this->GetActiveNode()))
       {
-      continue;
+        startIndex = this->GetActiveNode();
+        stopIndex = startIndex;
       }
-
-    double worldPos[3], worldOrient[9] = {0}, orientation[4] = {0};
-    this->GetNthNodeWorldPosition(ii, worldPos);
-    bool skipPoint = false;
-    for (int jj = 0; jj < this->FocalPoint->GetNumberOfPoints(); jj++)
+      else
       {
-      double* pos = this->FocalPoint->GetPoint(jj);
-      double eps = 0.001;
-      if (fabs(pos[0] - worldPos[0]) < eps &&
-          fabs(pos[1] - worldPos[1]) < eps &&
-          fabs(pos[2] - worldPos[2]) < eps)
+        controlPoints->Actor->VisibilityOff();
+        controlPoints->LabelsActor->VisibilityOff();
+        continue;
+      }
+    }
+
+    for (int pointIndex = startIndex; pointIndex <= stopIndex; pointIndex++)
+      {
+
+      if (controlPointType != Active
+        && (!this->GetNthNodeVisibility(pointIndex) || pointIndex == this->GetActiveNode() ||
+        ((controlPointType == Selected) != (this->GetNthNodeSelected(pointIndex) != 0))))
         {
-        skipPoint = true;
-        break;
+        continue;
         }
-      }
 
-    if (skipPoint)
-      {
-      continue;
-      }
+      double worldPos[3], worldOrient[9] = {0}, orientation[4] = {0};
+      this->GetNthNodeWorldPosition(pointIndex, worldPos);
 
-    this->FocalPoint->InsertNextPoint(worldPos);
-
-    worldPos[0] += this->HandleSize;
-    worldPos[1] += this->HandleSize;
-    worldPos[2] += this->HandleSize;
-    this->LabelsFocalPoint->InsertNextPoint(worldPos);
-
-    this->GetNthNodeOrientation(ii, orientation);
-    this->FromOrientationQuaternionToWorldOrient(orientation, worldOrient);
-    this->FocalData->GetPointData()->GetNormals()->InsertNextTuple(worldOrient + 6);
-    this->LabelsFocalData->GetPointData()->GetNormals()->InsertNextTuple(worldOrient + 6);
-    this->Labels->InsertNextValue(this->GetNthNodeLabel(ii));
-    this->LabelsPriority->InsertNextValue(std::to_string (ii));
-    }
-
-  this->FocalPoint->Modified();
-  this->FocalData->GetPointData()->GetNormals()->Modified();
-  this->FocalData->Modified();
-
-  this->LabelsFocalPoint->Modified();
-  this->LabelsFocalData->GetPointData()->GetNormals()->Modified();
-  this->LabelsFocalData->Modified();
-
-  this->SelectedFocalPoint->SetNumberOfPoints(0);
-  this->SelectedFocalData->GetPointData()->GetNormals()->SetNumberOfTuples(0);
-
-  this->SelectedLabelsFocalPoint->SetNumberOfPoints(0);
-  this->SelectedLabelsFocalData->GetPointData()->GetNormals()->SetNumberOfTuples(0);
-
-  this->SelectedLabels->SetNumberOfValues(0);
-  this->SelectedLabelsPriority->SetNumberOfValues(0);
-
-  for (ii = 0; ii < numPoints; ii++)
-    {
-    if (!this->GetNthNodeVisibility(ii) ||
-        ii == this->GetActiveNode() ||
-        !this->GetNthNodeSelected(ii))
-      {
-      continue;
-      }
-
-    double worldPos[3], worldOrient[9] = {0}, orientation[4] = {0};
-    this->GetNthNodeWorldPosition(ii, worldPos);
-    bool skipPoint = false;
-    for (int jj = 0; jj < this->SelectedFocalPoint->GetNumberOfPoints(); jj++)
-      {
-      double* pos = this->SelectedFocalPoint->GetPoint(jj);
-      double eps = 0.001;
-      if ( fabs(pos[0] - worldPos[0]) < eps &&
-          fabs(pos[1] - worldPos[1]) < eps &&
-          fabs(pos[2] - worldPos[2]) < eps)
+      // TODO: skipping points at the same position is probably this not a good idea.
+      // For example, only one of them may have label.
+      bool skipPoint = false;
+      for (int jj = 0; jj < controlPoints->ControlPoints->GetNumberOfPoints(); jj++)
         {
-        skipPoint = true;
-        break;
+        double* pos = controlPoints->ControlPoints->GetPoint(jj);
+        double eps = 0.001;
+        if (fabs(pos[0] - worldPos[0]) < eps &&
+            fabs(pos[1] - worldPos[1]) < eps &&
+            fabs(pos[2] - worldPos[2]) < eps)
+          {
+          skipPoint = true;
+          break;
+          }
         }
+      if (skipPoint)
+        {
+        continue;
+        }
+
+      controlPoints->ControlPoints->InsertNextPoint(worldPos);
+
+      worldPos[0] += this->HandleSize;
+      worldPos[1] += this->HandleSize;
+      worldPos[2] += this->HandleSize;
+      controlPoints->LabelControlPoints->InsertNextPoint(worldPos);
+
+      this->GetNthNodeOrientation(pointIndex, orientation);
+      this->FromOrientationQuaternionToWorldOrient(orientation, worldOrient);
+      controlPoints->ControlPointsPolyData->GetPointData()->GetNormals()->InsertNextTuple(worldOrient + 6);
+      controlPoints->LabelControlPointsPolyData->GetPointData()->GetNormals()->InsertNextTuple(worldOrient + 6);
+      controlPoints->Labels->InsertNextValue(this->GetNthNodeLabel(pointIndex));
+      controlPoints->LabelsPriority->InsertNextValue(std::to_string(pointIndex));
       }
 
-    if (skipPoint)
+    controlPoints->ControlPoints->Modified();
+    controlPoints->ControlPointsPolyData->GetPointData()->GetNormals()->Modified();
+    controlPoints->ControlPointsPolyData->Modified();
+
+    controlPoints->LabelControlPoints->Modified();
+    controlPoints->LabelControlPointsPolyData->GetPointData()->GetNormals()->Modified();
+    controlPoints->LabelControlPointsPolyData->Modified();
+
+    if (controlPointType == Active)
       {
-      continue;
+      controlPoints->Actor->VisibilityOn();
+      controlPoints->LabelsActor->VisibilityOn();
       }
 
-    this->SelectedFocalPoint->InsertNextPoint(worldPos);
-
-    worldPos[0] += this->HandleSize;
-    worldPos[1] += this->HandleSize;
-    worldPos[2] += this->HandleSize;
-    this->SelectedLabelsFocalPoint->InsertNextPoint(worldPos);
-
-    this->GetNthNodeOrientation(ii, orientation);
-    this->FromOrientationQuaternionToWorldOrient(orientation, worldOrient);
-    this->SelectedFocalData->GetPointData()->GetNormals()->InsertNextTuple(worldOrient + 6);
-    this->SelectedLabelsFocalData->GetPointData()->GetNormals()->InsertNextTuple(worldOrient + 6);
-    this->SelectedLabels->InsertNextValue(this->GetNthNodeLabel(ii));
-    this->SelectedLabelsPriority->InsertNextValue(std::to_string (ii));
-    }
-
-  this->SelectedFocalPoint->Modified();
-  this->SelectedFocalData->GetPointData()->GetNormals()->Modified();
-  this->SelectedFocalData->Modified();
-
-  this->SelectedLabelsFocalPoint->Modified();
-  this->SelectedLabelsFocalData->GetPointData()->GetNormals()->Modified();
-  this->SelectedLabelsFocalData->Modified();
-
-  if (this->GetActiveNode() >= 0 &&
-      this->GetActiveNode() < this->GetNumberOfNodes() &&
-      this->GetNthNodeVisibility(this->GetActiveNode()))
-    {
-    double worldPos[3], worldOrient[9] = {0}, orientation[4] = {0};
-
-    this->GetActiveNodeWorldPosition(worldPos);
-    this->ActiveFocalPoint->SetPoint(0, worldPos);
-
-    worldPos[0] += this->HandleSize;
-    worldPos[1] += this->HandleSize;
-    worldPos[2] += this->HandleSize;
-    this->ActiveLabelsFocalPoint->SetPoint(0, worldPos);
-
-    this->GetActiveNodeOrientation(orientation);
-    this->FromOrientationQuaternionToWorldOrient(orientation, worldOrient);
-    this->ActiveFocalData->GetPointData()->GetNormals()->SetTuple(0, worldOrient + 6);
-    this->ActiveLabelsFocalData->GetPointData()->GetNormals()->SetTuple(0, worldOrient + 6);
-
-    this->ActiveFocalPoint->Modified();
-    this->ActiveFocalData->GetPointData()->GetNormals()->Modified();
-    this->ActiveFocalData->Modified();
-
-    this->ActiveLabelsFocalPoint->Modified();
-    this->ActiveLabelsFocalData->GetPointData()->GetNormals()->Modified();
-    this->ActiveLabelsFocalData->Modified();
-
-    this->ActiveLabels->SetValue(0, this->GetActiveNodeLabel());
-    this->ActiveLabelsPriority->SetValue(0, std::to_string(this->GetActiveNode()));
-
-    this->ActiveActor->VisibilityOn();
-    this->ActiveLabelsActor->VisibilityOn();
-    }
-  else
-    {
-    this->ActiveActor->VisibilityOff();
-    this->ActiveLabelsActor->VisibilityOff();
     }
 }
 
-//----------------------------------------------------------------------
-void vtkSlicerAbstractRepresentation3D::SetCursorShape(vtkPolyData *shape)
-{
-  if (shape != this->CursorShape)
-    {
-    if (this->CursorShape)
-      {
-      this->CursorShape->Delete();
-      }
-    this->CursorShape = shape;
-    if (this->CursorShape)
-      {
-      this->CursorShape->Register(this);
-      }
-    if (this->CursorShape)
-      {
-      this->Glypher->SetSourceData(this->CursorShape);
-      }
-    this->Modified();
-    }
-}
 
-//----------------------------------------------------------------------
-vtkPolyData *vtkSlicerAbstractRepresentation3D::GetCursorShape()
-{
-  return this->CursorShape;
-}
-
-//----------------------------------------------------------------------
-void vtkSlicerAbstractRepresentation3D::SetSelectedCursorShape(vtkPolyData *shape)
-{
-  if (shape != this->SelectedCursorShape)
-    {
-    if (this->SelectedCursorShape)
-      {
-      this->SelectedCursorShape->Delete();
-      }
-    this->SelectedCursorShape = shape;
-    if (this->SelectedCursorShape)
-      {
-      this->SelectedCursorShape->Register(this);
-      }
-    if (this->SelectedCursorShape)
-      {
-      this->SelectedGlypher->SetSourceData(this->SelectedCursorShape);
-      }
-    this->Modified();
-    }
-}
-
-//----------------------------------------------------------------------
-vtkPolyData *vtkSlicerAbstractRepresentation3D::GetSelectedCursorShape()
-{
-  return this->SelectedCursorShape;
-}
-
-//----------------------------------------------------------------------
-void vtkSlicerAbstractRepresentation3D::SetActiveCursorShape(
-  vtkPolyData *shape)
-{
-  if (shape != this->ActiveCursorShape)
-    {
-    if (this->ActiveCursorShape)
-      {
-      this->ActiveCursorShape->Delete();
-      }
-    this->ActiveCursorShape = shape;
-    if (this->ActiveCursorShape)
-      {
-      this->ActiveCursorShape->Register(this);
-      }
-    if (this->ActiveCursorShape)
-      {
-      this->ActiveGlypher->SetSourceData(this->ActiveCursorShape);
-      }
-    this->Modified();
-    }
-}
-
-//----------------------------------------------------------------------
-vtkPolyData *vtkSlicerAbstractRepresentation3D::GetActiveCursorShape()
-{
-  return this->ActiveCursorShape;
-}
 
 //----------------------------------------------------------------------
 int vtkSlicerAbstractRepresentation3D::ActivateNode(int X, int Y)
@@ -514,12 +258,14 @@ int vtkSlicerAbstractRepresentation3D::ActivateNode(int X, int Y)
   double scale = this->CalculateViewScaleFactor();
   this->PixelTolerance *= scale;
 
+  vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
+
   if (this->GetNumberOfNodes() > 2 && this->ClosedLoop &&
-      this->MarkupsNode)
+    markupsNode)
     {
     // Check if centroid is selected
     double centroidPosWorld[3], centroidPosDisplay[3];
-    this->MarkupsNode->GetCentroidPosition(centroidPosWorld);
+    markupsNode->GetCentroidPosition(centroidPosWorld);
     this->Renderer->SetWorldPoint(centroidPosWorld);
     this->Renderer->WorldToDisplay();
     this->Renderer->GetDisplayPoint(centroidPosDisplay);
@@ -555,435 +301,76 @@ void vtkSlicerAbstractRepresentation3D::BuildRepresentation()
   // Make sure we are up to date with any changes made in the placer
   this->UpdateWidget();
 
-  if (this->MarkupsNode == nullptr)
-    {
-    return;
-    }
-
-  vtkMRMLMarkupsDisplayNode* display = vtkMRMLMarkupsDisplayNode::SafeDownCast
-    (this->MarkupsNode->GetDisplayNode());
+  vtkMRMLMarkupsDisplayNode* display = this->MarkupsDisplayNode;
   if (display == nullptr)
     {
     return;
     }
 
-  if (display->GetTextVisibility())
-    {
-    LabelsActor->VisibilityOn();
-    SelectedLabelsActor->VisibilityOn();
-    ActiveLabelsActor->VisibilityOn();
-    }
-  else
-    {
-    LabelsActor->VisibilityOff();
-    SelectedLabelsActor->VisibilityOff();
-    ActiveLabelsActor->VisibilityOff();
-    }
+  for (int i = 0; i<NumberOfControlPointTypes; i++)
+  {
+    ControlPointsPipeline3D* controlPoints = reinterpret_cast<ControlPointsPipeline3D*>(this->ControlPoints[i]);
+    controlPoints->LabelsActor->SetVisibility(display->GetTextVisibility());
 
-  if (this->AlwaysOnTop)
-    {
-    // max value 65536 so we subtract 66000 to make sure we are
-    // zero or negative
-    this->Mapper->SetRelativeCoincidentTopologyLineOffsetParameters(0, -66000);
-    this->Mapper->SetRelativeCoincidentTopologyPolygonOffsetParameters(0, -66000);
-    this->Mapper->SetRelativeCoincidentTopologyPointOffsetParameter(-66000);
-    this->SelectedMapper->SetRelativeCoincidentTopologyLineOffsetParameters(0, -66000);
-    this->SelectedMapper->SetRelativeCoincidentTopologyPolygonOffsetParameters(0, -66000);
-    this->SelectedMapper->SetRelativeCoincidentTopologyPointOffsetParameter(-66000);
-    this->ActiveMapper->SetRelativeCoincidentTopologyLineOffsetParameters(0, -66000);
-    this->ActiveMapper->SetRelativeCoincidentTopologyPolygonOffsetParameters(0, -66000);
-    this->ActiveMapper->SetRelativeCoincidentTopologyPointOffsetParameter(-66000);
-    }
-  else
-    {
-    this->Mapper->SetRelativeCoincidentTopologyLineOffsetParameters(-1, -1);
-    this->Mapper->SetRelativeCoincidentTopologyPolygonOffsetParameters(-1, -1);
-    this->Mapper->SetRelativeCoincidentTopologyPointOffsetParameter(-1);
-    this->SelectedMapper->SetRelativeCoincidentTopologyLineOffsetParameters(-1, -1);
-    this->SelectedMapper->SetRelativeCoincidentTopologyPolygonOffsetParameters(-1, -1);
-    this->SelectedMapper->SetRelativeCoincidentTopologyPointOffsetParameter(-1);
-    this->ActiveMapper->SetRelativeCoincidentTopologyLineOffsetParameters(-1, -1);
-    this->ActiveMapper->SetRelativeCoincidentTopologyPolygonOffsetParameters(-1, -1);
-    this->ActiveMapper->SetRelativeCoincidentTopologyPointOffsetParameter(-1);
-    }
+    if (this->AlwaysOnTop)
+      {
+      // max value 65536 so we subtract 66000 to make sure we are
+      // zero or negative
+      controlPoints->Mapper->SetRelativeCoincidentTopologyLineOffsetParameters(0, -66000);
+      controlPoints->Mapper->SetRelativeCoincidentTopologyPolygonOffsetParameters(0, -66000);
+      controlPoints->Mapper->SetRelativeCoincidentTopologyPointOffsetParameter(-66000);
+      }
+    else
+      {
+      controlPoints->Mapper->SetRelativeCoincidentTopologyLineOffsetParameters(-1, -1);
+      controlPoints->Mapper->SetRelativeCoincidentTopologyPolygonOffsetParameters(-1, -1);
+      controlPoints->Mapper->SetRelativeCoincidentTopologyPointOffsetParameter(-1);
+      }
 
-  this->Glypher->SetScaleFactor(this->HandleSize);
-  this->SelectedGlypher->SetScaleFactor(this->HandleSize);
-  this->ActiveGlypher->SetScaleFactor(this->HandleSize);
+    controlPoints->Glypher->SetScaleFactor(this->HandleSize);
+    }
   this->BuildRepresentationPointsAndLabels();
-}
-
-//----------------------------------------------------------------------
-int vtkSlicerAbstractRepresentation3D::ComputeInteractionState(int X, int Y, int vtkNotUsed(modified))
-{
-  if (!this->MarkupsNode || this->MarkupsNode->GetLocked())
-    {
-    this->InteractionState = vtkSlicerAbstractRepresentation::Outside;
-    return this->InteractionState;
-    }
-
-  int oldActiveNode = this->GetActiveNode();
-
-  this->MarkupsNode->DisableModifiedEventOn();
-  if (this->ActivateNode(X, Y))
-    {
-    this->InteractionState = vtkSlicerAbstractRepresentation::OnControlPoint;
-    }
-  else
-    {
-    this->InteractionState = vtkSlicerAbstractRepresentation::Outside;
-    }
-  this->MarkupsNode->DisableModifiedEventOff();
-
-  if (oldActiveNode != this->GetActiveNode())
-    {
-    this->MarkupsNode->Modified();
-    }
-
-  return this->InteractionState;
-}
-
-//----------------------------------------------------------------------
-// Based on the displacement vector (computed in display coordinates) and
-// the cursor state (which corresponds to which part of the widget has been
-// selected), the widget points are modified.
-// First construct a local coordinate system based on the display coordinates
-// of the widget.
-void vtkSlicerAbstractRepresentation3D::WidgetInteraction(double eventPos[2])
-{
-  // Process the motion
-  if (this->CurrentOperation == vtkSlicerAbstractRepresentation::Select)
-    {
-    this->TranslateNode(eventPos);
-    }
-  else if (this->CurrentOperation == vtkSlicerAbstractRepresentation::Translate)
-    {
-    this->TranslateWidget(eventPos);
-    }
-  else if (this->CurrentOperation == vtkSlicerAbstractRepresentation::Scale)
-    {
-    this->ScaleWidget(eventPos);
-    }
-  else if (this->CurrentOperation == vtkSlicerAbstractRepresentation::Rotate)
-    {
-    this->RotateWidget(eventPos);
-    }
-
-  // Book keeping
-  this->LastEventPosition[0] = eventPos[0];
-  this->LastEventPosition[1] = eventPos[1];
-}
-
-//----------------------------------------------------------------------
-void vtkSlicerAbstractRepresentation3D::TranslateNode(double eventPos[2])
-{
-  if (this->GetActiveNodeLocked() || !this->MarkupsNode)
-    {
-    return;
-    }
-
-  eventPos[0] -= this->StartEventOffsetPosition[0];
-  eventPos[1] -= this->StartEventOffsetPosition[1];
-
-  double oldWorldPos[3];
-  if (!this->GetActiveNodeWorldPosition(oldWorldPos))
-    {
-    return;
-    }
-
-  double worldPos[3], worldOrient[9];
-  if (this->PointPlacer->ComputeWorldPosition(this->Renderer,
-                                              eventPos, oldWorldPos, worldPos,
-                                              worldOrient))
-    {
-    if (this->RestrictFlag != vtkSlicerAbstractRepresentation::RestrictNone)
-      {
-      for (int i = 0; i < 3; ++i)
-        { 
-        worldPos[i] = (this->RestrictFlag == (i + 1)) ? worldPos[i] : oldWorldPos[i];
-        }
-      }
-    this->MarkupsNode->DisableModifiedEventOn();
-    this->SetActiveNodeToWorldPosition(worldPos);
-    this->MarkupsNode->DisableModifiedEventOff();
-    }
-}
-
-//----------------------------------------------------------------------
-void vtkSlicerAbstractRepresentation3D::TranslateWidget(double eventPos[2])
-{
-  if (!this->MarkupsNode)
-    {
-    return;
-    }
-
-  double ref[3] = {0.};
-  double displayPos[2] = {0.};
-  double worldPos[3], worldOrient[9];
-
-  displayPos[0] = this->LastEventPosition[0];
-  displayPos[1] = this->LastEventPosition[1];
-
-  if (this->PointPlacer->ComputeWorldPosition(this->Renderer,
-                                              displayPos, ref, worldPos,
-                                              worldOrient))
-    {
-    ref[0] = worldPos[0];
-    ref[1] = worldPos[1];
-    ref[2] = worldPos[2];
-    }
-  else
-    {
-    return;
-    }
-
-  displayPos[0] = eventPos[0];
-  displayPos[1] = eventPos[1];
-
-  if (!this->PointPlacer->ComputeWorldPosition(this->Renderer,
-                                               displayPos, ref, worldPos,
-                                               worldOrient))
-    {
-    return;
-    }
-
-  double vector[3];
-  vector[0] = worldPos[0] - ref[0];
-  vector[1] = worldPos[1] - ref[1];
-  vector[2] = worldPos[2] - ref[2];
-
-  this->MarkupsNode->DisableModifiedEventOn();
-  for (int i = 0; i < this->GetNumberOfNodes(); i++)
-    {
-    if (this->GetNthNodeLocked(i))
-      {
-      continue;
-      }
-
-    this->GetNthNodeWorldPosition(i, ref);
-    for (int j = 0; j < 3; j++)
-      {
-      if (this->RestrictFlag != vtkSlicerAbstractRepresentation::RestrictNone)
-        {
-        worldPos[j] = (this->RestrictFlag == (j + 1)) ? ref[j] + vector[j] : ref[j];
-        }
-      else
-        {
-        worldPos[j] = ref[j] + vector[j];
-        }
-      }
-
-    this->SetNthNodeWorldPosition(i, worldPos);
-    }
-  this->MarkupsNode->DisableModifiedEventOff();
-  this->MarkupsNode->Modified();
-}
-
-//----------------------------------------------------------------------
-void vtkSlicerAbstractRepresentation3D::ScaleWidget(double eventPos[2])
-{
-  if (!this->MarkupsNode)
-    {
-    return;
-    }
-
-  double ref[3] = {0.};
-  double displayPos[2] = {0.};
-  double worldPos[3], worldOrient[9];
-
-  displayPos[0] = this->LastEventPosition[0];
-  displayPos[1] = this->LastEventPosition[1];
-
-  if (this->PointPlacer->ComputeWorldPosition(this->Renderer,
-                                              displayPos, ref, worldPos,
-                                              worldOrient))
-    {
-    for (int i = 0; i < 3; i++)
-      {
-      ref[i] = worldPos[i];
-      }
-    }
-  else
-    {
-    return;
-    }
-
-  displayPos[0] = eventPos[0];
-  displayPos[1] = eventPos[1];
-
-  double centroid[3];
-  this->UpdateCentroid();
-  this->MarkupsNode->GetCentroidPosition(centroid);
-
-  double r2 = vtkMath::Distance2BetweenPoints(ref, centroid);
-
-  if (!this->PointPlacer->ComputeWorldPosition(this->Renderer,
-                                               displayPos, ref, worldPos,
-                                               worldOrient))
-    {
-    return;
-    }
-  double d2 = vtkMath::Distance2BetweenPoints(worldPos, centroid);
-  if (d2 < 0.0000001)
-    {
-    return;
-    }
-
-  double ratio = sqrt(d2 / r2);
-
-  this->MarkupsNode->DisableModifiedEventOn();
-  for (int i = 0; i < this->GetNumberOfNodes(); i++)
-    {
-    if (this->GetNthNodeLocked(i))
-      {
-      continue;
-      }
-
-    this->GetNthNodeWorldPosition(i, ref);
-    for (int j = 0; j < 3; j++)
-      {
-      worldPos[j] = centroid[j] + ratio * (ref[j] - centroid[j]);
-      }
-
-    this->SetNthNodeWorldPosition(i, worldPos);
-    }
-  this->MarkupsNode->DisableModifiedEventOff();
-  this->MarkupsNode->Modified();
-}
-
-//----------------------------------------------------------------------
-void vtkSlicerAbstractRepresentation3D::RotateWidget(double eventPos[2])
-{
-  if (!this->MarkupsNode)
-    {
-    return;
-    }
-
-  double ref[3] = {0.};
-  double displayPos[2] = {0.};
-  double lastWorldPos[3] = {0.};
-  double worldPos[3], worldOrient[9];
-
-  displayPos[0] = this->LastEventPosition[0];
-  displayPos[1] = this->LastEventPosition[1];
-
-  if (this->PointPlacer->ComputeWorldPosition(this->Renderer,
-                                              displayPos, ref, lastWorldPos,
-                                              worldOrient))
-    {
-    for (int i = 0; i < 3; i++)
-      {
-      ref[i] = worldPos[i];
-      }
-    }
-  else
-    {
-    return;
-    }
-
-  displayPos[0] = eventPos[0];
-  displayPos[1] = eventPos[1];
-
-  double centroid[3];
-  this->UpdateCentroid();
-  this->MarkupsNode->GetCentroidPosition(centroid);
-
-  if (!this->PointPlacer->ComputeWorldPosition(this->Renderer,
-                                               displayPos, ref, worldPos,
-                                               worldOrient))
-    {
-    return;
-    }
-
-  double d2 = vtkMath::Distance2BetweenPoints(worldPos, centroid);
-  if (d2 < 0.0000001)
-    {
-    return;
-    }
-
-  for (int i = 0; i < 3; i++)
-    {
-    lastWorldPos[i] -= centroid[i];
-    worldPos[i] -= centroid[i];
-    }
-  double angle = -vtkMath::DegreesFromRadians
-                 (vtkMath::AngleBetweenVectors(lastWorldPos, worldPos));
-
-  this->MarkupsNode->DisableModifiedEventOn();
-  for (int i = 0; i < this->GetNumberOfNodes(); i++)
-    {
-    this->GetNthNodeWorldPosition(i, ref);
-    for (int j = 0; j < 3; j++)
-      {
-      ref[j] -= centroid[j];
-      }
-    vtkNew<vtkTransform> RotateTransform;
-    RotateTransform->RotateY(angle);
-    RotateTransform->TransformPoint(ref, worldPos);
-
-    for (int j = 0; j < 3; j++)
-      {
-      worldPos[j] += centroid[j];
-      }
-
-    this->SetNthNodeWorldPosition(i, worldPos);
-    }
-  this->MarkupsNode->DisableModifiedEventOff();
-  this->MarkupsNode->Modified();
 }
 
 //----------------------------------------------------------------------
 void vtkSlicerAbstractRepresentation3D::GetActors(vtkPropCollection *pc)
 {
-  this->Actor->GetActors(pc);
-  this->SelectedActor->GetActors(pc);
-  this->ActiveActor->GetActors(pc);
-  this->LabelsActor->GetActors(pc);
-  this->SelectedLabelsActor->GetActors(pc);
-  this->ActiveLabelsActor->GetActors(pc);
+  for (int i = 0; i < NumberOfControlPointTypes; i++)
+  {
+    ControlPointsPipeline3D* controlPoints = reinterpret_cast<ControlPointsPipeline3D*>(this->ControlPoints[i]);
+    controlPoints->Actor->GetActors(pc);
+    controlPoints->LabelsActor->GetActors(pc);
+  }
 }
 
 //----------------------------------------------------------------------
 void vtkSlicerAbstractRepresentation3D::ReleaseGraphicsResources(
   vtkWindow *win)
 {
-  this->Actor->ReleaseGraphicsResources(win);
-  this->SelectedActor->ReleaseGraphicsResources(win);
-  this->ActiveActor->ReleaseGraphicsResources(win);
-  this->LabelsActor->ReleaseGraphicsResources(win);
-  this->SelectedLabelsActor->ReleaseGraphicsResources(win);
-  this->ActiveLabelsActor->ReleaseGraphicsResources(win);
+  for (int i = 0; i < NumberOfControlPointTypes; i++)
+  {
+    ControlPointsPipeline3D* controlPoints = reinterpret_cast<ControlPointsPipeline3D*>(this->ControlPoints[i]);
+    controlPoints->Actor->ReleaseGraphicsResources(win);
+    controlPoints->LabelsActor->ReleaseGraphicsResources(win);
+  }
 }
 
 //----------------------------------------------------------------------
 int vtkSlicerAbstractRepresentation3D::RenderOverlay(vtkViewport *viewport)
 {
   int count=0;
-  if (this->Actor->GetVisibility())
+  for (int i = 0; i < NumberOfControlPointTypes; i++)
+  {
+    ControlPointsPipeline3D* controlPoints = reinterpret_cast<ControlPointsPipeline3D*>(this->ControlPoints[i]);
+    if (controlPoints->Actor->GetVisibility())
     {
-    count += this->Actor->RenderOverlay(viewport);
+      count += controlPoints->Actor->RenderOverlay(viewport);
     }
-  if (this->SelectedActor->GetVisibility())
+    if (controlPoints->LabelsActor->GetVisibility())
     {
-    count += this->SelectedActor->RenderOverlay(viewport);
+      count += controlPoints->LabelsActor->RenderOverlay(viewport);
     }
-  if (this->ActiveActor->GetVisibility())
-    {
-    count += this->ActiveActor->RenderOverlay(viewport);
-    }
-  if (this->LabelsActor->GetVisibility())
-    {
-    count += this->LabelsActor->RenderOverlay(viewport);
-    }
-  if (this->SelectedLabelsActor->GetVisibility())
-    {
-    count += this->SelectedLabelsActor->RenderOverlay(viewport);
-    }
-  if (this->ActiveLabelsActor->GetVisibility())
-    {
-    count += this->ActiveLabelsActor->RenderOverlay(viewport);
-    }
-
+  }
   return count;
 }
 
@@ -996,31 +383,18 @@ int vtkSlicerAbstractRepresentation3D::RenderOpaqueGeometry(
   this->BuildRepresentation();
 
   int count=0;
-  if (this->Actor->GetVisibility())
+  for (int i = 0; i < NumberOfControlPointTypes; i++)
+  {
+    ControlPointsPipeline3D* controlPoints = reinterpret_cast<ControlPointsPipeline3D*>(this->ControlPoints[i]);
+    if (controlPoints->Actor->GetVisibility())
     {
-    count += this->Actor->RenderOpaqueGeometry(viewport);
+      count += controlPoints->Actor->RenderOpaqueGeometry(viewport);
     }
-  if (this->SelectedActor->GetVisibility())
+    if (controlPoints->LabelsActor->GetVisibility())
     {
-    count += this->SelectedActor->RenderOpaqueGeometry(viewport);
+      count += controlPoints->LabelsActor->RenderOpaqueGeometry(viewport);
     }
-  if (this->ActiveActor->GetVisibility())
-    {
-    count += this->ActiveActor->RenderOpaqueGeometry(viewport);
-    }
-  if (this->LabelsActor->GetVisibility())
-    {
-    count += this->LabelsActor->RenderOpaqueGeometry(viewport);
-    }
-  if (this->SelectedLabelsActor->GetVisibility())
-    {
-    count += this->SelectedLabelsActor->RenderOpaqueGeometry(viewport);
-    }
-  if (this->ActiveLabelsActor->GetVisibility())
-    {
-    count += this->ActiveLabelsActor->RenderOpaqueGeometry(viewport);
-    }
-
+  }
   return count;
 }
 
@@ -1029,71 +403,55 @@ int vtkSlicerAbstractRepresentation3D::RenderTranslucentPolygonalGeometry(
   vtkViewport *viewport)
 {
   int count=0;
-  if (this->Actor->GetVisibility())
+  for (int i = 0; i < NumberOfControlPointTypes; i++)
+  {
+    ControlPointsPipeline3D* controlPoints = reinterpret_cast<ControlPointsPipeline3D*>(this->ControlPoints[i]);
+    if (controlPoints->Actor->GetVisibility())
     {
-    count += this->Actor->RenderTranslucentPolygonalGeometry(viewport);
+      count += controlPoints->Actor->RenderTranslucentPolygonalGeometry(viewport);
     }
-  if (this->SelectedActor->GetVisibility())
+    if (controlPoints->LabelsActor->GetVisibility())
     {
-    count += this->SelectedActor->RenderTranslucentPolygonalGeometry(viewport);
+      count += controlPoints->LabelsActor->RenderTranslucentPolygonalGeometry(viewport);
     }
-  if (this->ActiveActor->GetVisibility())
-    {
-    count += this->ActiveActor->RenderTranslucentPolygonalGeometry(viewport);
-    }
-  if (this->LabelsActor->GetVisibility())
-    {
-    count += this->LabelsActor->RenderTranslucentPolygonalGeometry(viewport);
-    }
-  if (this->SelectedLabelsActor->GetVisibility())
-    {
-    count += this->SelectedLabelsActor->RenderTranslucentPolygonalGeometry(viewport);
-    }
-  if (this->ActiveLabelsActor->GetVisibility())
-    {
-    count += this->ActiveLabelsActor->RenderTranslucentPolygonalGeometry(viewport);
-    }
-
+  }
   return count;
 }
 
 //-----------------------------------------------------------------------------
 vtkTypeBool vtkSlicerAbstractRepresentation3D::HasTranslucentPolygonalGeometry()
 {
-  int result=0;
-  if (this->Actor->GetVisibility())
+  for (int i = 0; i < NumberOfControlPointTypes; i++)
+  {
+    ControlPointsPipeline3D* controlPoints = reinterpret_cast<ControlPointsPipeline3D*>(this->ControlPoints[i]);
+    if (controlPoints->Actor->GetVisibility())
     {
-    result |= this->Actor->HasTranslucentPolygonalGeometry();
+      if (controlPoints->Actor->HasTranslucentPolygonalGeometry())
+      {
+        return true;
+      }
     }
-  if (this->SelectedActor->GetVisibility())
+    if (controlPoints->LabelsActor->GetVisibility())
     {
-    result |= this->SelectedActor->HasTranslucentPolygonalGeometry();
+      if (controlPoints->LabelsActor->HasTranslucentPolygonalGeometry())
+      {
+        return true;
+      }
     }
-  if (this->ActiveActor->GetVisibility())
-    {
-    result |= this->ActiveActor->HasTranslucentPolygonalGeometry();
-    }
-  if (this->LabelsActor->GetVisibility())
-    {
-    result |= this->LabelsActor->HasTranslucentPolygonalGeometry();
-    }
-  if (this->SelectedLabelsActor->GetVisibility())
-    {
-    result |= this->SelectedLabelsActor->HasTranslucentPolygonalGeometry();
-    }
-  if (this->ActiveLabelsActor->GetVisibility())
-    {
-    result |= this->ActiveLabelsActor->HasTranslucentPolygonalGeometry();
-    }
-
-  return result;
+  }
+  return false;
 }
 
 //-----------------------------------------------------------------------------
 double *vtkSlicerAbstractRepresentation3D::GetBounds()
 {
   vtkBoundingBox boundingBox;
-  const std::vector<vtkProp*> actors({ this->Actor, this->SelectedActor, this->ActiveActor });
+  const std::vector<vtkProp*> actors(
+    {
+    reinterpret_cast<ControlPointsPipeline3D*>(this->ControlPoints[Unselected])->Actor,
+    reinterpret_cast<ControlPointsPipeline3D*>(this->ControlPoints[Selected])->Actor,
+    reinterpret_cast<ControlPointsPipeline3D*>(this->ControlPoints[Active])->Actor
+    });
   this->AddActorsBounds(boundingBox, actors, Superclass::GetBounds());
   boundingBox.GetBounds(this->Bounds);
   return this->Bounds;
@@ -1106,84 +464,33 @@ void vtkSlicerAbstractRepresentation3D::PrintSelf(ostream& os,
   //Superclass typedef defined in vtkTypeMacro() found in vtkSetGet.h
   this->Superclass::PrintSelf(os, indent);
 
-  if (this->Actor)
+  for (int i = 0; i < NumberOfControlPointTypes; i++)
     {
-     os << indent << "Points Visibility: " << this->Actor->GetVisibility() << "\n";
-    }
-  else
-    {
-    os << indent << "Points: (none)\n";
-    }
-
-  if (this->SelectedActor)
-    {
-     os << indent << "Selected Points Visibility: " << this->SelectedActor->GetVisibility() << "\n";
-    }
-  else
-    {
-    os << indent << "Selected Points: (none)\n";
-    }
-
-  if (this->ActiveActor)
-    {
-    os << indent << "Active Points Visibility: " << this->ActiveActor->GetVisibility() << "\n";
-    }
-  else
-    {
-    os << indent << "Active Points: (none)\n";
-    }
-
-  if (this->LabelsActor)
-    {
-    os << indent << "Labels Visibility: " << this->LabelsActor->GetVisibility() << "\n";
-    }
-  else
-    {
-    os << indent << "Labels Points: (none)\n";
-    }
-
-  if (this->SelectedLabelsActor)
-    {
-    os << indent << "Selected Labels Visibility: " << this->LabelsActor->GetVisibility() << "\n";
-    }
-  else
-    {
-    os << indent << "Selected Labels Points: (none)\n";
-    }
-
-  if (this->ActiveLabelsActor)
-    {
-    os << indent << "Active Labels Visibility: " << this->LabelsActor->GetVisibility() << "\n";
-    }
-  else
-    {
-    os << indent << "Active Labels Points: (none)\n";
-    }
-
-  if (this->Property)
-    {
-    os << indent << "Property: " << this->Property << "\n";
-    }
-  else
-    {
-    os << indent << "Property: (none)\n";
-    }
-
-  if (this->SelectedProperty)
-    {
-    os << indent << "Selected Property: " << this->SelectedProperty << "\n";
-    }
-  else
-    {
-    os << indent << "Selected Property: (none)\n";
-    }
-
-  if (this->ActiveProperty)
-    {
-    os << indent << "Active Property: " << this->ActiveProperty << "\n";
-    }
-  else
-    {
-    os << indent << "Active Property: (none)\n";
+    ControlPointsPipeline3D* controlPoints = reinterpret_cast<ControlPointsPipeline3D*>(this->ControlPoints[i]);
+    os << indent << "Pipeline " << i << "\n";
+    if (controlPoints->Actor)
+      {
+       os << indent << "Points Visibility: " << controlPoints->Actor->GetVisibility() << "\n";
+      }
+    else
+      {
+      os << indent << "Points: (none)\n";
+      }
+    if (controlPoints->LabelsActor)
+      {
+      os << indent << "Labels Visibility: " << controlPoints->LabelsActor->GetVisibility() << "\n";
+      }
+    else
+      {
+      os << indent << "Labels Points: (none)\n";
+      }
+    if (controlPoints->Property)
+      {
+      os << indent << "Property: " << controlPoints->Property << "\n";
+      }
+    else
+      {
+      os << indent << "Property: (none)\n";
+      }
     }
 }

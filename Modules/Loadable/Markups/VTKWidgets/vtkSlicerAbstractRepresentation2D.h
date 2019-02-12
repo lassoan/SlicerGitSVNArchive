@@ -50,20 +50,8 @@ public:
   vtkTypeMacro(vtkSlicerAbstractRepresentation2D,vtkSlicerAbstractRepresentation);
   void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
 
-  /// This is the property used when the handle is not active
-  /// (the mouse is not near the handle)
-  vtkGetObjectMacro(Property,vtkProperty2D);
-
-  /// This is the selected property used when the handle is not active
-  /// (the mouse is not near the handle)
-  vtkGetObjectMacro(SelectedProperty,vtkProperty2D);
-
-  /// This is the property used when the user is interacting
-  /// with the handle.
-  vtkGetObjectMacro(ActiveProperty,vtkProperty2D);
-
   /// Position is displayed (slice) position
-  bool CanInteract(const int displayPosition[2], const double worldPosition[3], double &distance2) VTK_OVERRIDE;
+  int CanInteract(const int displayPosition[2], const double worldPosition[3], double &closestDistance2, int &itemIndex) VTK_OVERRIDE;
 
   /// Given a display position, activate a node. The closest
   /// node within tolerance will be activated. If a node is
@@ -86,33 +74,23 @@ public:
   int RenderTranslucentPolygonalGeometry(vtkViewport *viewport) VTK_OVERRIDE;
   vtkTypeBool HasTranslucentPolygonalGeometry() VTK_OVERRIDE;
 
-  /// Set/Get the three leaders used to create this representation.
-  /// By obtaining these leaders the user can set the appropriate
-  /// properties, etc.
-  vtkGetObjectMacro(Actor,vtkActor2D);
-  vtkGetObjectMacro(SelectedActor,vtkActor2D);
-  vtkGetObjectMacro(ActiveActor,vtkActor2D);
-  vtkGetObjectMacro(LabelsActor,vtkActor2D);
-  vtkGetObjectMacro(SelectedLabelsActor,vtkActor2D);
-  vtkGetObjectMacro(ActiveLabelsActor,vtkActor2D);
+  /// Specify the cursor shape. Keep in mind that the shape will be
+  /// aligned with the constraining plane by orienting it such that
+  /// the x axis of the geometry lies along the normal of the plane.
+  void SetPointMarkerShape(vtkPolyData *pointMarkerShape);
+  vtkPolyData *GetPointMarkerShape();
 
   /// Specify the cursor shape. Keep in mind that the shape will be
   /// aligned with the constraining plane by orienting it such that
   /// the x axis of the geometry lies along the normal of the plane.
-  void SetCursorShape(vtkPolyData *cursorShape);
-  vtkPolyData *GetCursorShape();
-
-  /// Specify the cursor shape. Keep in mind that the shape will be
-  /// aligned with the constraining plane by orienting it such that
-  /// the x axis of the geometry lies along the normal of the plane.
-  void SetSelectedCursorShape(vtkPolyData *selectedShape);
-  vtkPolyData *GetSelectedCursorShape();
+  void SetSelectedPointMarkerShape(vtkPolyData *selectedShape);
+  vtkPolyData *GetSelectedPointMarkerShape();
 
   /// Specify the shape of the cursor (handle) when it is active.
   /// This is the geometry that will be used when the mouse is
   /// close to the handle or if the user is manipulating the handle.
-  void SetActiveCursorShape(vtkPolyData *activeShape);
-  vtkPolyData *GetActiveCursorShape();
+  void SetActivePointMarkerShape(vtkPolyData *activeShape);
+  vtkPolyData *GetActivePointMarkerShape();
 
   /// Set/Get method to the sliceNode connected to this representation
   void SetSliceNode(vtkMRMLSliceNode *sliceNode);
@@ -159,41 +137,23 @@ protected:
 
   vtkWeakPointer<vtkMRMLSliceNode> SliceNode;
 
-  // Methods to manipulate the cursor
-  virtual void TranslateNode(double eventPos[2]);
-  virtual void TranslateWidget(double eventPos[2]);
-  virtual void ScaleWidget(double eventPos[2]);
-  virtual void RotateWidget(double eventPos[2]);
+  class ControlPointsPipeline2D : public ControlPointsPipeline
+  {
+  public:
+    ControlPointsPipeline2D();
 
-  // Render the cursor
-  vtkActor2D                 *Actor;
-  vtkOpenGLPolyDataMapper2D  *Mapper;
-  vtkActor2D                 *SelectedActor;
-  vtkOpenGLPolyDataMapper2D  *SelectedMapper;
-  vtkActor2D                 *ActiveActor;
-  vtkOpenGLPolyDataMapper2D  *ActiveMapper;
-  vtkGlyph2D                 *Glypher;
-  vtkGlyph2D                 *SelectedGlypher;
-  vtkGlyph2D                 *ActiveGlypher;
+    vtkSmartPointer<vtkActor2D> Actor;
+    vtkSmartPointer<vtkOpenGLPolyDataMapper2D> Mapper;
+    vtkSmartPointer<vtkGlyph2D> Glypher;
+    vtkSmartPointer<vtkActor2D> LabelsActor;
+    vtkSmartPointer<vtkLabelPlacementMapper> LabelsMapper;
+    // Properties used to control the appearance of selected objects and
+    // the manipulator in general.
+    vtkSmartPointer<vtkProperty2D> Property;
+  };
 
-  vtkActor2D                  *LabelsActor;
-  vtkLabelPlacementMapper     *LabelsMapper;
-
-  vtkActor2D                  *SelectedLabelsActor;
-  vtkLabelPlacementMapper     *SelectedLabelsMapper;
-
-  vtkActor2D                  *ActiveLabelsActor;
-  vtkLabelPlacementMapper     *ActiveLabelsMapper;
-
-  vtkIntArray                 *PointsVisibilityOnSlice;
-
+  vtkSmartPointer<vtkIntArray> PointsVisibilityOnSlice;
   bool                        CentroidVisibilityOnSlice;
-
-  // Properties used to control the appearance of selected objects and
-  // the manipulator in general.
-  vtkProperty2D   *Property;
-  vtkProperty2D   *SelectedProperty;
-  vtkProperty2D   *ActiveProperty;
 
   virtual void  CreateDefaultProperties() VTK_OVERRIDE;
   virtual void BuildRepresentationPointsAndLabels(double labelsOffset);

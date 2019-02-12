@@ -65,265 +65,102 @@
 #include <algorithm>
 #include <iterator>
 
-vtkCxxSetObjectMacro(vtkSlicerAbstractRepresentation, PointPlacer, vtkPointPlacer);
-vtkCxxSetObjectMacro(vtkSlicerAbstractRepresentation, LineInterpolator, vtkSlicerLineInterpolator);
+vtkSlicerAbstractRepresentation::ControlPointsPipeline::ControlPointsPipeline()
+{
+  this->TextProperty = vtkSmartPointer<vtkTextProperty>::New();
+  this->TextProperty->SetFontSize(15);
+  this->TextProperty->SetFontFamily(vtkTextProperty::GetFontFamilyFromString("Arial"));
+  this->TextProperty->SetColor(0.4, 1.0, 1.0);
+  this->TextProperty->SetOpacity(1.);
+
+  this->ControlPoints = vtkSmartPointer<vtkPoints>::New();
+  this->ControlPoints->Allocate(100);
+  this->ControlPoints->SetNumberOfPoints(1);
+  this->ControlPoints->SetPoint(0, 0.0, 0.0, 0.0);
+
+  vtkNew<vtkDoubleArray> controlPointNormals;
+  controlPointNormals->SetNumberOfComponents(3);
+  controlPointNormals->Allocate(100);
+  controlPointNormals->SetNumberOfTuples(1);
+  double n[3] = { 0, 0, 0 };
+  controlPointNormals->SetTuple(0, n);
+
+  this->ControlPointsPolyData = vtkSmartPointer<vtkPolyData>::New();
+  this->ControlPointsPolyData->SetPoints(this->ControlPoints);
+  this->ControlPointsPolyData->GetPointData()->SetNormals(controlPointNormals);
+
+  this->LabelControlPoints = vtkSmartPointer<vtkPoints>::New();
+  this->LabelControlPoints->Allocate(100);
+  this->LabelControlPoints->SetNumberOfPoints(1);
+  this->LabelControlPoints->SetPoint(0, 0.0, 0.0, 0.0);
+
+  vtkNew<vtkDoubleArray> labelNormals;
+  labelNormals->SetNumberOfComponents(3);
+  labelNormals->Allocate(100);
+  labelNormals->SetNumberOfTuples(1);
+  labelNormals->SetTuple(0, n);
+
+  this->LabelControlPointsPolyData = vtkSmartPointer<vtkPolyData>::New();
+  this->LabelControlPointsPolyData->SetPoints(this->LabelControlPoints);
+  this->LabelControlPointsPolyData->GetPointData()->SetNormals(labelNormals);
+
+  this->Labels = vtkSmartPointer<vtkStringArray>::New();
+  this->Labels->SetName("labels");
+  this->Labels->Allocate(100);
+  this->Labels->SetNumberOfValues(1);
+  this->Labels->SetValue(0, "F");
+  this->LabelsPriority = vtkSmartPointer<vtkStringArray>::New();
+  this->LabelsPriority->SetName("priority");
+  this->LabelsPriority->Allocate(100);
+  this->LabelsPriority->SetNumberOfValues(1);
+  this->LabelsPriority->SetValue(0, "1");
+  this->LabelControlPointsPolyData->GetPointData()->AddArray(this->Labels);
+  this->LabelControlPointsPolyData->GetPointData()->AddArray(this->LabelsPriority);
+  this->PointSetToLabelHierarchyFilter = vtkSmartPointer<vtkPointSetToLabelHierarchy>::New();
+  this->PointSetToLabelHierarchyFilter->SetTextProperty(this->TextProperty);
+  this->PointSetToLabelHierarchyFilter->SetLabelArrayName("labels");
+  this->PointSetToLabelHierarchyFilter->SetPriorityArrayName("priority");
+  this->PointSetToLabelHierarchyFilter->SetInputData(this->LabelControlPointsPolyData);
+};
 
 //----------------------------------------------------------------------
 vtkSlicerAbstractRepresentation::vtkSlicerAbstractRepresentation()
 {
   this->Tolerance                = 0.4;
   this->PixelTolerance           = 1;
-  this->PointPlacer              = nullptr;
-  this->LineInterpolator         = nullptr;
   this->Locator                  = nullptr;
   this->RebuildLocator           = false;
   this->NeedToRender             = 0;
   this->ClosedLoop               = 0;
-  this->CurrentOperation         = vtkSlicerAbstractRepresentation::Inactive;
 
   this->ResetLocator();
 
-  // Initialize state
-  this->InteractionState = vtkSlicerAbstractRepresentation::Outside;
+  this->PointPlacer = vtkSmartPointer<vtkFocalPlanePointPlacer>::New();
 
-  this->CursorShape = nullptr;
-  this->SelectedCursorShape = nullptr;
-  this->ActiveCursorShape = nullptr;
-
-  this->PointPlacer = vtkFocalPlanePointPlacer::New();
-
-  this->TextProperty = vtkTextProperty::New();
-  this->TextProperty->SetFontSize(15);
-  this->TextProperty->SetFontFamily(vtkTextProperty::GetFontFamilyFromString("Arial"));
-  this->TextProperty->SetColor(0.4, 1.0, 1.0);
-  this->TextProperty->SetOpacity(1.);
-
-  this->SelectedTextProperty = vtkTextProperty::New();
-  this->SelectedTextProperty->SetFontSize(15);
-  this->SelectedTextProperty->SetFontFamily(vtkTextProperty::GetFontFamilyFromString("Arial"));
-  this->SelectedTextProperty->SetColor(1.0, 0.5, 0.5);
-  this->SelectedTextProperty->SetOpacity(1.);
-
-  this->ActiveTextProperty = vtkTextProperty::New();
-  this->ActiveTextProperty->SetFontSize(15);
-  this->ActiveTextProperty->SetFontFamily(vtkTextProperty::GetFontFamilyFromString("Arial"));
-  // bright green
-  this->ActiveTextProperty->SetColor(0.4, 1.0, 0.);
-  this->ActiveTextProperty->SetOpacity(1.);
-
-  this->FocalPoint = vtkPoints::New();
-  this->FocalPoint->Allocate(100);
-  this->FocalPoint->SetNumberOfPoints(1);
-  this->FocalPoint->SetPoint(0, 0.0, 0.0, 0.0);
-
-  vtkDoubleArray *normals = vtkDoubleArray::New();
-  normals->SetNumberOfComponents(3);
-  normals->Allocate(100);
-  normals->SetNumberOfTuples(1);
-  double n[3] = {0, 0, 0};
-  normals->SetTuple(0, n);
-
-  this->SelectedFocalPoint = vtkPoints::New();
-  this->SelectedFocalPoint->Allocate(100);
-  this->SelectedFocalPoint->SetNumberOfPoints(1);
-  this->SelectedFocalPoint->SetPoint(0, 0.0, 0.0, 0.0);
-
-  vtkDoubleArray *selectedNormals = vtkDoubleArray::New();
-  selectedNormals->SetNumberOfComponents(3);
-  selectedNormals->Allocate(100);
-  selectedNormals->SetNumberOfTuples(1);
-  selectedNormals->SetTuple(0, n);
-
-  this->ActiveFocalPoint = vtkPoints::New();
-  this->ActiveFocalPoint->Allocate(100);
-  this->ActiveFocalPoint->SetNumberOfPoints(1);
-  this->ActiveFocalPoint->SetPoint(0, 0.0, 0.0, 0.0);
-
-  vtkDoubleArray *activeNormals = vtkDoubleArray::New();
-  activeNormals->SetNumberOfComponents(3);
-  activeNormals->Allocate(100);
-  activeNormals->SetNumberOfTuples(1);
-  activeNormals->SetTuple(0, n);
-
-  this->FocalData = vtkPolyData::New();
-  this->FocalData->SetPoints(this->FocalPoint);
-  this->FocalData->GetPointData()->SetNormals(normals);
-  normals->Delete();
-
-  this->SelectedFocalData = vtkPolyData::New();
-  this->SelectedFocalData->SetPoints(this->SelectedFocalPoint);
-  this->SelectedFocalData->GetPointData()->SetNormals(selectedNormals);
-  selectedNormals->Delete();
-
-  this->ActiveFocalData = vtkPolyData::New();
-  this->ActiveFocalData->SetPoints(this->ActiveFocalPoint);
-  this->ActiveFocalData->GetPointData()->SetNormals(activeNormals);
-  activeNormals->Delete();
-
-  // Labels
-  this->LabelsFocalPoint = vtkPoints::New();
-  this->LabelsFocalPoint->Allocate(100);
-  this->LabelsFocalPoint->SetNumberOfPoints(1);
-  this->LabelsFocalPoint->SetPoint(0, 0.0, 0.0, 0.0);
-
-  vtkDoubleArray *normalsLabels = vtkDoubleArray::New();
-  normalsLabels->SetNumberOfComponents(3);
-  normalsLabels->Allocate(100);
-  normalsLabels->SetNumberOfTuples(1);
-  normalsLabels->SetTuple(0, n);
-
-  this->SelectedLabelsFocalPoint = vtkPoints::New();
-  this->SelectedLabelsFocalPoint->Allocate(100);
-  this->SelectedLabelsFocalPoint->SetNumberOfPoints(1);
-  this->SelectedLabelsFocalPoint->SetPoint(0, 0.0, 0.0, 0.0);
-
-  vtkDoubleArray *selectedNormalsLabels = vtkDoubleArray::New();
-  selectedNormalsLabels->SetNumberOfComponents(3);
-  selectedNormalsLabels->Allocate(100);
-  selectedNormalsLabels->SetNumberOfTuples(1);
-  selectedNormalsLabels->SetTuple(0, n);
-
-  this->ActiveLabelsFocalPoint = vtkPoints::New();
-  this->ActiveLabelsFocalPoint->Allocate(100);
-  this->ActiveLabelsFocalPoint->SetNumberOfPoints(1);
-  this->ActiveLabelsFocalPoint->SetPoint(0, 0.0, 0.0, 0.0);
-
-  vtkDoubleArray *activeNormalsLabels = vtkDoubleArray::New();
-  activeNormalsLabels->SetNumberOfComponents(3);
-  activeNormalsLabels->Allocate(100);
-  activeNormalsLabels->SetNumberOfTuples(1);
-  activeNormalsLabels->SetTuple(0, n);
-
-  this->LabelsFocalData = vtkPolyData::New();
-  this->LabelsFocalData->SetPoints(this->LabelsFocalPoint);
-  this->LabelsFocalData->GetPointData()->SetNormals(normalsLabels);
-  normalsLabels->Delete();
-
-  this->SelectedLabelsFocalData = vtkPolyData::New();
-  this->SelectedLabelsFocalData->SetPoints(this->SelectedLabelsFocalPoint);
-  this->SelectedLabelsFocalData->GetPointData()->SetNormals(selectedNormalsLabels);
-  selectedNormalsLabels->Delete();
-
-  this->ActiveLabelsFocalData = vtkPolyData::New();
-  this->ActiveLabelsFocalData->SetPoints(this->ActiveLabelsFocalPoint);
-  this->ActiveLabelsFocalData->GetPointData()->SetNormals(activeNormalsLabels);
-  activeNormalsLabels->Delete();
-
-  this->Labels = vtkStringArray::New();
-  this->Labels->SetName("labels");
-  this->Labels->Allocate(100);
-  this->Labels->SetNumberOfValues(1);
-  this->Labels->SetValue(0, "F");
-  this->LabelsPriority = vtkStringArray::New();
-  this->LabelsPriority->SetName("priority");
-  this->LabelsPriority->Allocate(100);
-  this->LabelsPriority->SetNumberOfValues(1);
-  this->LabelsPriority->SetValue(0, "1");
-  this->LabelsFocalData->GetPointData()->AddArray(this->Labels);
-  this->LabelsFocalData->GetPointData()->AddArray(this->LabelsPriority);
-  this->PointSetToLabelHierarchyFilter = vtkPointSetToLabelHierarchy::New();
-  this->PointSetToLabelHierarchyFilter->SetTextProperty(this->TextProperty);
-  this->PointSetToLabelHierarchyFilter->SetLabelArrayName("labels");
-  this->PointSetToLabelHierarchyFilter->SetPriorityArrayName("priority");
-  this->PointSetToLabelHierarchyFilter->SetInputData(this->LabelsFocalData);
-
-  this->SelectedLabels = vtkStringArray::New();
-  this->SelectedLabels->SetName("labels");
-  this->SelectedLabels->Allocate(100);
-  this->SelectedLabels->SetNumberOfValues(1);
-  this->SelectedLabels->SetValue(0, "F");
-  this->SelectedLabelsPriority = vtkStringArray::New();
-  this->SelectedLabelsPriority->SetName("priority");
-  this->SelectedLabelsPriority->Allocate(100);
-  this->SelectedLabelsPriority->SetNumberOfValues(1);
-  this->SelectedLabelsPriority->SetValue(0, "1");
-  this->SelectedLabelsFocalData->GetPointData()->AddArray(this->SelectedLabels);
-  this->SelectedLabelsFocalData->GetPointData()->AddArray(this->SelectedLabelsPriority);
-  this->SelectedPointSetToLabelHierarchyFilter = vtkPointSetToLabelHierarchy::New();
-  this->SelectedPointSetToLabelHierarchyFilter->SetTextProperty(this->SelectedTextProperty);
-  this->SelectedPointSetToLabelHierarchyFilter->SetLabelArrayName("labels");
-  this->SelectedPointSetToLabelHierarchyFilter->SetPriorityArrayName("priority");
-  this->SelectedPointSetToLabelHierarchyFilter->SetInputData(this->SelectedLabelsFocalData);
-
-  this->ActiveLabels = vtkStringArray::New();
-  this->ActiveLabels->SetName("labels");
-  this->ActiveLabels->Allocate(100);
-  this->ActiveLabels->SetNumberOfValues(1);
-  this->ActiveLabels->SetValue(0, "F");
-  this->ActiveLabelsPriority = vtkStringArray::New();
-  this->ActiveLabelsPriority->SetName("priority");
-  this->ActiveLabelsPriority->Allocate(100);
-  this->ActiveLabelsPriority->SetNumberOfValues(1);
-  this->ActiveLabelsPriority->SetValue(0, "1");
-  this->ActiveLabelsFocalData->GetPointData()->AddArray(this->ActiveLabels);
-  this->ActiveLabelsFocalData->GetPointData()->AddArray(this->ActiveLabelsPriority);
-  this->ActivePointSetToLabelHierarchyFilter = vtkPointSetToLabelHierarchy::New();
-  this->ActivePointSetToLabelHierarchyFilter->SetTextProperty(this->ActiveTextProperty);
-  this->ActivePointSetToLabelHierarchyFilter->SetLabelArrayName("labels");
-  this->ActivePointSetToLabelHierarchyFilter->SetPriorityArrayName("priority");
-  this->ActivePointSetToLabelHierarchyFilter->SetInputData(this->ActiveLabelsFocalData);
+  for (int i = 0; i<NumberOfControlPointTypes; i++)
+  {
+    this->ControlPoints[i] = nullptr;
+  }
 
   this->AlwaysOnTop = 0;
 
   this->RestrictFlag = RestrictNone;
-
-  this->MarkupsNode = nullptr;
 }
 
 //----------------------------------------------------------------------
 vtkSlicerAbstractRepresentation::~vtkSlicerAbstractRepresentation()
 {
-  this->PointPlacer->Delete();
-
-  if (this->Locator)
-    {
-    this->Locator->Delete();
-    }
-
-  this->FocalPoint->Delete();
-  this->FocalData->Delete();
-
-  this->SelectedFocalPoint->Delete();
-  this->SelectedFocalData->Delete();
-
-  this->ActiveFocalPoint->Delete();
-  this->ActiveFocalData->Delete();
-
-  this->LabelsFocalPoint->Delete();
-  this->LabelsFocalData->Delete();
-
-  this->Labels->Delete();
-  this->LabelsPriority->Delete();
-  this->PointSetToLabelHierarchyFilter->Delete();
-
-  this->SelectedLabelsFocalPoint->Delete();
-  this->SelectedLabelsFocalData->Delete();
-
-  this->SelectedLabels->Delete();
-  this->SelectedLabelsPriority->Delete();
-  this->SelectedPointSetToLabelHierarchyFilter->Delete();
-
-  this->ActiveLabelsFocalPoint->Delete();
-  this->ActiveLabelsFocalData->Delete();
-
-  this->ActiveLabels->Delete();
-  this->ActiveLabelsPriority->Delete();
-  this->ActivePointSetToLabelHierarchyFilter->Delete();
-
-  this->TextProperty->Delete();
-  this->SelectedTextProperty->Delete();
-  this->ActiveTextProperty->Delete();
+  for (int i=0; i<NumberOfControlPointTypes; i++)
+  {
+    delete this->ControlPoints[i];
+    this->ControlPoints[i] = nullptr;
+  }
 }
 
 //----------------------------------------------------------------------
 void vtkSlicerAbstractRepresentation::ResetLocator()
 {
-  if (this->Locator)
-    {
-    this->Locator->Delete();
-    }
-
-  this->Locator = vtkIncrementalOctreePointLocator::New();
+  this->Locator = vtkSmartPointer<vtkIncrementalOctreePointLocator>::New();
   this->Locator->SetBuildCubicOctree(1);
   this->RebuildLocator = true;
 }
@@ -385,73 +222,20 @@ void vtkSlicerAbstractRepresentation::ClearAllNodes()
 //----------------------------------------------------------------------
 void vtkSlicerAbstractRepresentation::AddNodeAtPositionInternal(const double worldPos[3])
 {
-  if (!this->MarkupsNode)
+  vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
+  if (!markupsNode)
     {
     return;
     }
 
   // Add a new point at this position
   vtkVector3d pos(worldPos[0], worldPos[1], worldPos[2]);
-  this->MarkupsNode->DisableModifiedEventOn();
-  this->MarkupsNode->AddControlPoint(pos);
-  this->MarkupsNode->DisableModifiedEventOff();
+  markupsNode->DisableModifiedEventOn();
+  markupsNode->AddControlPoint(pos);
+  markupsNode->DisableModifiedEventOff();
 
   this->UpdateLines(this->GetNumberOfNodes() - 1);
   this->NeedToRender = 1;
-}
-
-//----------------------------------------------------------------------
-void vtkSlicerAbstractRepresentation::GetNodePolyData(vtkPolyData* poly)
-{
-  poly->Initialize();
-  int count = this->GetNumberOfNodes();
-
-  if (count == 0)
-    {
-    return;
-    }
-
-  vtkPoints *points = vtkPoints::New();
-  vtkCellArray *lines = vtkCellArray::New();
-
-  points->SetNumberOfPoints(count);
-  vtkIdType numLines = count;
-
-  if (this->ClosedLoop)
-    {
-    numLines++;
-    }
-
-  vtkIdType *lineIndices = new vtkIdType[numLines];
-
-  int i;
-  vtkIdType index = 0;
-  double pos[3];
-
-  for (i = 0; i < this->GetNumberOfNodes(); ++i)
-    {
-    // Add the node
-    this->GetNthNodeWorldPosition(i, pos);
-    points->InsertPoint(index, pos);
-    lineIndices[index] = index;
-    index++;
-    }
-
-  if (this->ClosedLoop)
-    {
-    this->GetNthNodeWorldPosition(0, pos);
-    points->InsertPoint(index, pos);
-    lineIndices[index] = 0;
-    }
-
-  lines->InsertNextCell(numLines, lineIndices);
-  delete [] lineIndices;
-
-  poly->SetPoints(points);
-  poly->SetLines(lines);
-
-  points->Delete();
-  lines->Delete();
 }
 
 //----------------------------------------------------------------------
@@ -568,23 +352,25 @@ int vtkSlicerAbstractRepresentation::SetActiveNodeToDisplayPosition(int X, int Y
 //----------------------------------------------------------------------
 int vtkSlicerAbstractRepresentation::GetActiveNode()
 {
-  if (!this->MarkupsNode)
-    {
+  vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
+  if (!markupsNode)
+  {
     return -1;
-    }
+  }
 
-  return this->MarkupsNode->GetActiveControlPoint();
+  return markupsNode->GetActiveControlPoint();
 }
 
 //----------------------------------------------------------------------
 void vtkSlicerAbstractRepresentation::SetActiveNode(int index)
 {
-  if (!this->MarkupsNode)
-    {
+  vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
+  if (!markupsNode)
+  {
     return;
-    }
+  }
 
-  this->MarkupsNode->SetActiveControlPoint(index);
+  markupsNode->SetActiveControlPoint(index);
 }
 
 //----------------------------------------------------------------------
@@ -662,23 +448,30 @@ vtkStdString vtkSlicerAbstractRepresentation::GetActiveNodeLabel()
 //----------------------------------------------------------------------
 int vtkSlicerAbstractRepresentation::GetNumberOfNodes()
 {
-  if (!this->MarkupsNode)
-    {
+  vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
+  if (!markupsNode)
+  {
     return 0;
-    }
+  }
 
-  return static_cast<int>(this->MarkupsNode->GetNumberOfControlPoints());
+  return static_cast<int>(markupsNode->GetNumberOfControlPoints());
 }
 
 //----------------------------------------------------------------------
 int vtkSlicerAbstractRepresentation::GetNumberOfIntermediatePoints(int n)
 {
+  vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
+  if (!markupsNode)
+  {
+    return 0;
+  }
+
   if (!this->NodeExists(n))
     {
     return 0;
     }
 
-  return static_cast<int> (this->MarkupsNode->GetNthControlPoint(n)->IntermediatePositions.size());
+  return static_cast<int> (markupsNode->GetNthControlPoint(n)->IntermediatePositions.size());
 }
 
 //----------------------------------------------------------------------
@@ -686,6 +479,12 @@ int vtkSlicerAbstractRepresentation::GetIntermediatePointWorldPosition(int n,
                                                                        int idx,
                                                                        double point[3])
 {
+  vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
+  if (!markupsNode)
+  {
+    return 0;
+  }
+
   if (!this->NodeExists(n))
     {
     return 0;
@@ -698,7 +497,7 @@ int vtkSlicerAbstractRepresentation::GetIntermediatePointWorldPosition(int n,
     }
 
   vtkVector3d intermediatePosition = this->GetNthNode(n)->IntermediatePositions[static_cast<unsigned int> (idx)];
-  this->MarkupsNode->TransformPointToWorld(intermediatePosition.GetData(), point);
+  markupsNode->TransformPointToWorld(intermediatePosition.GetData(), point);
 
   return 1;
 }
@@ -729,13 +528,19 @@ int vtkSlicerAbstractRepresentation::GetIntermediatePointDisplayPosition(int n,
 // whose camera position may have changed
 int vtkSlicerAbstractRepresentation::GetNthNodeDisplayPosition(int n, double displayPos[2])
 {
+  vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
+  if (!markupsNode)
+  {
+    return 0;
+  }
+
   if (!this->NodeExists(n))
     {
     return 0;
     }
 
   double pos[4] = { 0.0, 0.0, 0.0, 1.0 };
-  this->MarkupsNode->TransformPointToWorld(this->GetNthNode(n)->Position.GetData(), pos);
+  markupsNode->TransformPointToWorld(this->GetNthNode(n)->Position.GetData(), pos);
 
   this->Renderer->SetWorldPoint(pos);
   this->Renderer->WorldToDisplay();
@@ -749,12 +554,18 @@ int vtkSlicerAbstractRepresentation::GetNthNodeDisplayPosition(int n, double dis
 //----------------------------------------------------------------------
 int vtkSlicerAbstractRepresentation::GetNthNodeWorldPosition(int n, double worldPos[3])
 {
-  if (!this->MarkupsNode || !this->NodeExists(n))
+  vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
+  if (!markupsNode)
+  {
+    return 0;
+  }
+
+  if (!this->NodeExists(n))
     {
     return 0;
     }
 
-  this->MarkupsNode->GetNthControlPointPositionWorld(n, worldPos);
+  markupsNode->GetNthControlPointPositionWorld(n, worldPos);
 
   return 1;
 }
@@ -762,144 +573,211 @@ int vtkSlicerAbstractRepresentation::GetNthNodeWorldPosition(int n, double world
 //----------------------------------------------------------------------
 bool vtkSlicerAbstractRepresentation::GetNthNodeVisibility(int n)
 {
-  if (!this->MarkupsNode || !this->NodeExists(n))
+  vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
+  if (!markupsNode)
+  {
+    return false;
+  }
+
+  if (!this->NodeExists(n))
     {
     return false;
     }
 
-  return this->MarkupsNode->GetNthControlPointVisibility(n);
+  return markupsNode->GetNthControlPointVisibility(n);
 }
 
 //----------------------------------------------------------------------
 void vtkSlicerAbstractRepresentation::SetNthNodeVisibility(int n, bool visibility)
 {
-  if (!this->MarkupsNode || !this->NodeExists(n))
+  vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
+  if (!markupsNode)
+  {
+    return;
+  }
+
+  if (!this->NodeExists(n))
     {
     return;
     }
 
-  return this->MarkupsNode->SetNthControlPointVisibility(n, visibility);
+  return markupsNode->SetNthControlPointVisibility(n, visibility);
 }
 
 //----------------------------------------------------------------------
 bool vtkSlicerAbstractRepresentation::GetNthNodeSelected(int n)
 {
-  if (!this->MarkupsNode || !this->NodeExists(n))
+  vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
+  if (!markupsNode)
+    {
+    return false;
+    }
+  if (!this->NodeExists(n))
     {
     return false;
     }
 
-  return this->MarkupsNode->GetNthControlPointSelected(n);
+  return markupsNode->GetNthControlPointSelected(n);
 }
 
 //----------------------------------------------------------------------
 void vtkSlicerAbstractRepresentation::SetNthNodeSelected(int n, bool selected)
 {
-  if (!this->MarkupsNode || !this->NodeExists(n))
+  vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
+  if (!markupsNode)
+    {
+    return;
+    }
+  if (!this->NodeExists(n))
     {
     return;
     }
 
-  return this->MarkupsNode->SetNthControlPointSelected(n, selected);
+  return markupsNode->SetNthControlPointSelected(n, selected);
 }
 
 //----------------------------------------------------------------------
 bool vtkSlicerAbstractRepresentation::GetNthNodeLocked(int n)
 {
-  if (!this->MarkupsNode || !this->NodeExists(n))
-    {
+  vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
+  if (!markupsNode)
+  {
     return false;
-    }
+  }
+  if (!this->NodeExists(n))
+  {
+    return false;
+  }
 
-  return this->MarkupsNode->GetNthControlPointLocked(n);
+  return markupsNode->GetNthControlPointLocked(n);
 }
 
 //----------------------------------------------------------------------
 void vtkSlicerAbstractRepresentation::SetNthNodeLocked(int n, bool locked)
 {
-  if (!this->MarkupsNode || !this->NodeExists(n))
-    {
+  vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
+  if (!markupsNode)
+  {
     return;
-    }
+  }
+  if (!this->NodeExists(n))
+  {
+    return;
+  }
 
-  return this->MarkupsNode->SetNthControlPointLocked(n, locked);
+  return markupsNode->SetNthControlPointLocked(n, locked);
 }
 
 //----------------------------------------------------------------------
 void vtkSlicerAbstractRepresentation::SetNthNodeOrientation(int n, double orientation[4])
 {
-  if (!this->MarkupsNode || !this->NodeExists(n))
-    {
+  vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
+  if (!markupsNode)
+  {
     return;
-    }
+  }
+  if (!this->NodeExists(n))
+  {
+    return;
+  }
 
-  this->MarkupsNode->SetNthControlPointOrientationFromArray(n, orientation);
+  markupsNode->SetNthControlPointOrientationFromArray(n, orientation);
 }
 
 //----------------------------------------------------------------------
 void vtkSlicerAbstractRepresentation::GetNthNodeOrientation(int n, double orientation[4])
 {
-  if (!this->MarkupsNode || !this->NodeExists(n))
-    {
+  vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
+  if (!markupsNode)
+  {
     return;
-    }
+  }
+  if (!this->NodeExists(n))
+  {
+    return;
+  }
 
-  this->MarkupsNode->GetNthControlPointOrientation(n, orientation);
+  markupsNode->GetNthControlPointOrientation(n, orientation);
 }
 
 //----------------------------------------------------------------------
 void vtkSlicerAbstractRepresentation::SetNthNodeLabel(int n, vtkStdString label)
 {
-  if (!this->MarkupsNode || !this->NodeExists(n))
-    {
+  vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
+  if (!markupsNode)
+  {
     return;
-    }
+  }
+  if (!this->NodeExists(n))
+  {
+    return;
+  }
 
-  this->MarkupsNode->SetNthControlPointLabel(n, label);
+  markupsNode->SetNthControlPointLabel(n, label);
 }
 
 //----------------------------------------------------------------------
 vtkStdString vtkSlicerAbstractRepresentation::GetNthNodeLabel(int n)
 {
-  if (!this->MarkupsNode || !this->NodeExists(n))
-    {
+  vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
+  if (!markupsNode)
+  {
     return nullptr;
-    }
+  }
+  if (!this->NodeExists(n))
+  {
+    return nullptr;
+  }
 
-  return this->MarkupsNode->GetNthControlPointLabel(n);
+  return markupsNode->GetNthControlPointLabel(n);
 }
 
 //----------------------------------------------------------------------
 ControlPoint* vtkSlicerAbstractRepresentation::GetNthNode(int n)
 {
-  if (!this->NodeExists(n))
-    {
+  vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
+  if (!markupsNode)
+  {
     return nullptr;
-    }
+  }
+  if (!this->NodeExists(n))
+  {
+    return nullptr;
+  }
 
-  return this->MarkupsNode->GetNthControlPoint(n);
+  return markupsNode->GetNthControlPoint(n);
 }
 
 //----------------------------------------------------------------------
 bool vtkSlicerAbstractRepresentation::NodeExists(int n)
 {
-  if (!this->MarkupsNode)
-    {
+  vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
+  if (!markupsNode)
+  {
     return false;
-    }
+  }
+  if (!this->NodeExists(n))
+  {
+    return false;
+  }
 
-  return this->MarkupsNode->ControlPointExists(n);
+  return markupsNode->ControlPointExists(n);
 }
 
 //----------------------------------------------------------------------
 void vtkSlicerAbstractRepresentation::SetNthNodeWorldPositionInternal(int n, const double worldPos[3])
 {
-  if (!this->MarkupsNode || !this->NodeExists(n))
-    {
+  vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
+  if (!markupsNode)
+  {
     return;
-    }
+  }
+  if (!this->NodeExists(n))
+  {
+    return;
+  }
 
-  this->MarkupsNode->SetNthControlPointPositionWorldFromArray(n, worldPos);
+  markupsNode->SetNthControlPointPositionWorldFromArray(n, worldPos);
 
   this->UpdateLines(n);
   this->NeedToRender = 1;
@@ -1011,6 +889,12 @@ int vtkSlicerAbstractRepresentation::FindClosestPointOnWidget(int X, int Y,
                                                               double closestWorldPos[3],
                                                               int *idx)
 {
+  vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
+  if (!markupsNode)
+  {
+    return 0;
+  }
+
   // Make a line out of this viewing ray
   double p1[4], p2[4];
 
@@ -1053,7 +937,7 @@ int vtkSlicerAbstractRepresentation::FindClosestPointOnWidget(int X, int Y,
   double wt2 = vtkMath::Distance2BetweenPoints(tmp1, tmp2);
 
   vtkNew<vtkGeneralTransform> nodeToWorldTransform;
-  vtkMRMLTransformNode::GetTransformBetweenNodes(this->MarkupsNode->GetParentTransformNode(), NULL, nodeToWorldTransform.GetPointer());
+  vtkMRMLTransformNode::GetTransformBetweenNodes(markupsNode->GetParentTransformNode(), NULL, nodeToWorldTransform.GetPointer());
 
   // Now loop through all lines and look for closest one within tolerance
   double p3[4] = {0.0, 0.0, 0.0, 1.0};
@@ -1180,7 +1064,8 @@ int vtkSlicerAbstractRepresentation::FindClosestPointOnWidget(int X, int Y,
 //----------------------------------------------------------------------
 int vtkSlicerAbstractRepresentation::AddNodeOnWidget(int X, int Y)
 {
-  if (!this->MarkupsNode)
+  vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
+  if (!markupsNode)
     {
     return 0;
     }
@@ -1214,14 +1099,14 @@ int vtkSlicerAbstractRepresentation::AddNodeOnWidget(int X, int Y)
 
   // Add a new point at this position
   ControlPoint *node = new ControlPoint;
-  this->MarkupsNode->InitControlPoint(node);
-  this->MarkupsNode->TransformPointFromWorld(vtkVector3d(worldPos), node->Position);
+  markupsNode->InitControlPoint(node);
+  markupsNode->TransformPointFromWorld(vtkVector3d(worldPos), node->Position);
 
-  this->MarkupsNode->DisableModifiedEventOn();
-  this->MarkupsNode->InsertControlPoint(node, idx);
+  markupsNode->DisableModifiedEventOn();
+  markupsNode->InsertControlPoint(node, idx);
   this->FromWorldOrientToOrientationQuaternion(worldOrient, orientation);
   this->SetNthNodeOrientation(idx,  orientation);
-  this->MarkupsNode->DisableModifiedEventOff();
+  markupsNode->DisableModifiedEventOff();
 
   this->UpdateLines(idx);
   this->NeedToRender = 1;
@@ -1232,14 +1117,19 @@ int vtkSlicerAbstractRepresentation::AddNodeOnWidget(int X, int Y)
 //----------------------------------------------------------------------
 int vtkSlicerAbstractRepresentation::DeleteNthNode(int n)
 {
-  if (!this->MarkupsNode || !this->NodeExists(n))
+  vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
+  if (!markupsNode)
+    {
+    return 0;
+    }
+  if (!this->NodeExists(n))
     {
     return 0;
     }
 
-  this->MarkupsNode->DisableModifiedEventOn();
-  this->MarkupsNode->RemoveNthControlPoint(n);
-  this->MarkupsNode->DisableModifiedEventOff();
+  markupsNode->DisableModifiedEventOn();
+  markupsNode->RemoveNthControlPoint(n);
+  markupsNode->DisableModifiedEventOff();
 
   this->UpdateLines(n - 1);
 
@@ -1256,14 +1146,15 @@ int vtkSlicerAbstractRepresentation::DeleteActiveNode()
 //----------------------------------------------------------------------
 int vtkSlicerAbstractRepresentation::DeleteLastNode()
 {
-  if (!this->MarkupsNode)
-    {
+  vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
+  if (!markupsNode)
+  {
     return 0;
-    }
+  }
 
-  this->MarkupsNode->DisableModifiedEventOn();
-  this->MarkupsNode->RemoveLastControlPoint();
-  this->MarkupsNode->DisableModifiedEventOff();
+  markupsNode->DisableModifiedEventOn();
+  markupsNode->RemoveLastControlPoint();
+  markupsNode->DisableModifiedEventOff();
 
   this->UpdateLines(this->GetNumberOfNodes() - 1);
 
@@ -1306,13 +1197,18 @@ void vtkSlicerAbstractRepresentation::UpdateLines(int index)
 int vtkSlicerAbstractRepresentation::AddIntermediatePointWorldPosition(int n,
                                                                        const double posWorld[3])
 {
+  vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
+  if (!markupsNode)
+    {
+    return 0;
+    }
   if (!this->NodeExists(n))
     {
     return 0;
     }
 
   double pos[3];
-  this->MarkupsNode->TransformPointFromWorld(posWorld, pos);
+  markupsNode->TransformPointFromWorld(posWorld, pos);
   this->GetNthNode(n)->IntermediatePositions.push_back(vtkVector3d(pos));
   return 1;
 }
@@ -1439,10 +1335,11 @@ void vtkSlicerAbstractRepresentation
   displayPos[1] = static_cast<int>(pos[1]);
 }
 
+/*
 //----------------------------------------------------------------------
 void vtkSlicerAbstractRepresentation::Initialize(vtkPolyData * pd)
 {
-  if (!this->MarkupsNode)
+  if (!markupsNode)
     {
     return;
     }
@@ -1455,9 +1352,9 @@ void vtkSlicerAbstractRepresentation::Initialize(vtkPolyData * pd)
     }
 
   // Clear all existing nodes.
-  this->MarkupsNode->DisableModifiedEventOn();
-  this->MarkupsNode->RemoveAllControlPoints();
-  this->MarkupsNode->DisableModifiedEventOff();
+  markupsNode->DisableModifiedEventOn();
+  markupsNode->RemoveAllControlPoints();
+  markupsNode->DisableModifiedEventOff();
 
   vtkPolyData *tmpPoints = vtkPolyData::New();
   tmpPoints->DeepCopy(pd);
@@ -1465,7 +1362,7 @@ void vtkSlicerAbstractRepresentation::Initialize(vtkPolyData * pd)
   tmpPoints->Delete();
 
   //reserver space in memory to speed up vector push_back
-  this->MarkupsNode->GetControlPoints()->reserve(static_cast<unsigned int> (nPoints));
+  markupsNode->GetControlPoints()->reserve(static_cast<unsigned int> (nPoints));
   vtkIdList *pointIds = pd->GetCell(0)->GetPointIds();
 
   // Get the worldOrient from the point placer
@@ -1491,12 +1388,12 @@ void vtkSlicerAbstractRepresentation::Initialize(vtkPolyData * pd)
 
     // Add a new point at this position
 
-    this->MarkupsNode->DisableModifiedEventOn();
+    markupsNode->DisableModifiedEventOn();
     vtkVector3d controlPointPos(pos[0], pos[1], pos[2]);
-    int pointIndex = this->MarkupsNode->AddControlPoint(controlPointPos);
+    int pointIndex = markupsNode->AddControlPoint(controlPointPos);
     this->FromWorldOrientToOrientationQuaternion(worldOrient, orientation);
     this->SetNthNodeOrientation(pointIndex,  orientation);
-    this->MarkupsNode->DisableModifiedEventOff();
+    markupsNode->DisableModifiedEventOff();
     }
 
   if (pointIds->GetNumberOfIds() > nPoints)
@@ -1514,12 +1411,17 @@ void vtkSlicerAbstractRepresentation::Initialize(vtkPolyData * pd)
   // Show the widget.
   this->VisibilityOn();
 }
+*/
 
 //----------------------------------------------------------------------
 void vtkSlicerAbstractRepresentation::BuildLocator()
 {
-  if ((!this->RebuildLocator && !this->NeedToRender) ||
-       !this->MarkupsNode)
+  vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
+  if (!markupsNode)
+    {
+    return;
+    }
+  if (!this->RebuildLocator && !this->NeedToRender)
     {
     return;
     }
@@ -1567,12 +1469,12 @@ void vtkSlicerAbstractRepresentation::BuildLocator()
   double *wp;
   for (int i = 0; i < size; i++)
     {
-    if (!this->MarkupsNode->ControlPointExists(i))
+    if (!markupsNode->ControlPointExists(i))
       {
       continue;
       }
     vtkVector3d worldPos;
-    this->MarkupsNode->TransformPointToWorld(this->GetNthNode(i)->Position, worldPos);
+    markupsNode->TransformPointToWorld(this->GetNthNode(i)->Position, worldPos);
     double* wp = worldPos.GetData();
 
     //convert from world to view
@@ -1610,39 +1512,6 @@ void vtkSlicerAbstractRepresentation::BuildLocator()
 }
 
 //----------------------------------------------------------------------
-// Record the current event position, and the rectilinear wipe position.
-void vtkSlicerAbstractRepresentation::StartWidgetInteraction(double startEventPos[2])
-{
-  // How far is this in pixels from the position of this widget?
-  // Maintain this during interaction such as translating (don't
-  // force center of widget to snap to mouse position)
-
-  // GetActiveNode position
-  double pos[2];
-  if (this->GetActiveNodeDisplayPosition(pos))
-    {
-    // save offset
-    this->StartEventOffsetPosition[0] = startEventPos[0] - pos[0];
-    this->StartEventOffsetPosition[1] = startEventPos[1] - pos[1];
-    }
-  else
-    {
-    this->StartEventOffsetPosition[0] = 0;
-    this->StartEventOffsetPosition[1] = 0;
-    }
-
-  // save also the cursor pos
-  this->LastEventPosition[0] = startEventPos[0];
-  this->LastEventPosition[1] = startEventPos[1];
-}
-
-//----------------------------------------------------------------------
-void vtkSlicerAbstractRepresentation::SetInteractionState(int state)
-{
-  this->InteractionState = state;
-}
-
-//----------------------------------------------------------------------
 void vtkSlicerAbstractRepresentation::SetClosedLoop(vtkTypeBool val)
 {
   if (this->ClosedLoop != val)
@@ -1674,27 +1543,39 @@ void vtkSlicerAbstractRepresentation::UpdateCentroid()
   centroidWorldPos[1] *= inv_N;
   centroidWorldPos[2] *= inv_N;
 
-  if (this->MarkupsNode)
+  vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
+  if (markupsNode)
     {
-    this->MarkupsNode->SetCentroidPositionFromPointer(centroidWorldPos);
+    markupsNode->SetCentroidPositionFromPointer(centroidWorldPos);
     }
 }
 
 //----------------------------------------------------------------------
-void vtkSlicerAbstractRepresentation::SetMarkupsNode(vtkMRMLMarkupsNode *markupNode)
+void vtkSlicerAbstractRepresentation::SetMarkupsDisplayNode(vtkMRMLMarkupsDisplayNode *markupsDisplayNode)
 {
-  if (markupNode == nullptr || this->MarkupsNode == markupNode)
+  if (this->MarkupsDisplayNode == markupsDisplayNode)
   {
     return;
   }
 
-  this->MarkupsNode = markupNode;
+  this->MarkupsDisplayNode = markupsDisplayNode;
 }
+
+//----------------------------------------------------------------------
+vtkMRMLMarkupsDisplayNode *vtkSlicerAbstractRepresentation::GetMarkupsDisplayNode()
+{
+  return this->MarkupsDisplayNode;
+}
+
 
 //----------------------------------------------------------------------
 vtkMRMLMarkupsNode *vtkSlicerAbstractRepresentation::GetMarkupsNode()
 {
-  return this->MarkupsNode;
+  if (!this->MarkupsDisplayNode)
+  {
+    return nullptr;
+  }
+  return vtkMRMLMarkupsNode::SafeDownCast(this->MarkupsDisplayNode->GetDisplayableNode());
 }
 
 //-----------------------------------------------------------------------------
@@ -1728,14 +1609,6 @@ void vtkSlicerAbstractRepresentation::PrintSelf(ostream& os,
      (this->RebuildLocator ? "On" : "Off") << endl;
 
   os << indent << "Current Operation: ";
-  if (this->CurrentOperation == vtkSlicerAbstractRepresentation::Inactive)
-  {
-    os << "Inactive\n";
-  }
-  else
-  {
-    os << "Translate\n";
-  }
 
   os << indent << "Line Interpolator: " << this->LineInterpolator << "\n";
   os << indent << "Point Placer: " << this->PointPlacer << "\n";
@@ -1769,7 +1642,60 @@ void vtkSlicerAbstractRepresentation::AddActorsBounds(vtkBoundingBox& boundingBo
 }
 
 //-----------------------------------------------------------------------------
-bool vtkSlicerAbstractRepresentation::CanInteract(const int displayPosition[2], const double position[3], double &distance2)
+int vtkSlicerAbstractRepresentation::CanInteract(const int displayPosition[2], const double position[3], double &closestDistance2, int &itemIndex)
 {
-  return false;
+  return InteractNone;
+}
+
+//-----------------------------------------------------------------------------
+vtkTextProperty* vtkSlicerAbstractRepresentation::GetUnselectedTextProperty()
+{
+  return this->ControlPoints[Unselected]->TextProperty;
+}
+
+//-----------------------------------------------------------------------------
+vtkTextProperty* vtkSlicerAbstractRepresentation::GetSelectedTextProperty()
+{
+  return this->ControlPoints[Selected]->TextProperty;
+}
+
+//-----------------------------------------------------------------------------
+vtkTextProperty* vtkSlicerAbstractRepresentation::GetActiveTextProperty()
+{
+  return this->ControlPoints[Active]->TextProperty;
+}
+
+//-----------------------------------------------------------------------------
+vtkPointPlacer* vtkSlicerAbstractRepresentation::GetPointPlacer()
+{
+  return this->PointPlacer;
+}
+
+//-----------------------------------------------------------------------------
+void vtkSlicerAbstractRepresentation::SetPointPlacer(vtkPointPlacer* placer)
+{
+  if (this->PointPlacer == placer)
+  {
+    return;
+  }
+  this->PointPlacer = placer;
+  this->Modified();
+}
+
+
+//-----------------------------------------------------------------------------
+vtkSlicerLineInterpolator* vtkSlicerAbstractRepresentation::GetLineInterpolator()
+{
+  return this->LineInterpolator;
+}
+
+//-----------------------------------------------------------------------------
+void vtkSlicerAbstractRepresentation::SetLineInterpolator(vtkSlicerLineInterpolator* interpolator)
+{
+  if (this->LineInterpolator == interpolator)
+  {
+    return;
+  }
+  this->LineInterpolator = interpolator;
+  this->Modified();
 }

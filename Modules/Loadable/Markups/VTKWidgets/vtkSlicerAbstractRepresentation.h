@@ -39,6 +39,7 @@
 #include "vtkSlicerMarkupsModuleVTKWidgetsExport.h"
 #include "vtkWidgetRepresentation.h"
 
+#include "vtkMRMLMarkupsDisplayNode.h"
 #include "vtkMRMLMarkupsNode.h"
 
 #include <vector> // STL Header; Required for vector
@@ -57,6 +58,8 @@ class vtkTextProperty;
 
 #include "vtkBoundingBox.h"
 
+class ControlPointsPipeline;
+
 class VTK_SLICER_MARKUPS_MODULE_VTKWIDGETS_EXPORT vtkSlicerAbstractRepresentation : public vtkWidgetRepresentation
 {
 public:
@@ -66,15 +69,15 @@ public:
 
   /// This is the property used for the text when the handle is not active
   /// (the mouse is not near the handle)
-  vtkGetObjectMacro(TextProperty,vtkTextProperty);
+  vtkTextProperty* GetUnselectedTextProperty();
 
   /// This is the selected property used for the text when the handle is not active
   /// (the mouse is not near the handle)
-  vtkGetObjectMacro(SelectedTextProperty,vtkTextProperty);
+  vtkTextProperty* GetSelectedTextProperty();
 
   /// This is the property used for the text when the user is interacting
   /// with the handle.
-  vtkGetObjectMacro(ActiveTextProperty,vtkTextProperty);
+  vtkTextProperty* GetActiveTextProperty();
 
   /// Add a node at a specific world position. Returns 0 if the
   /// node could not be added, 1 otherwise.
@@ -282,60 +285,18 @@ public:
   vtkSetMacro(Tolerance, double);
   vtkGetMacro(Tolerance, double);
 
-  /// Used to communicate about the state of the representation
-  enum {
-    Outside = 0,
-    OnControlPoint,
-    OnLine
-  };
-
-  /// Used to communicate about the operation of the representation
-  enum {
-    Inactive = 0,
-    Select,
-    Translate,
-    Scale,
-    Pick,
-    Rotate
-  };
-
-  /// Set / get the current operation. The widget is either
-  /// inactive, or it is being translated.
-  vtkGetMacro(CurrentOperation, int);
-  vtkSetClampMacro(CurrentOperation, int,
-                   vtkSlicerAbstractRepresentation::Inactive,
-                   vtkSlicerAbstractRepresentation::Rotate);
-  void SetCurrentOperationToInactive()
-    { this->SetCurrentOperation(vtkSlicerAbstractRepresentation::Inactive); }
-  void SetCurrentOperationToSelect()
-    { this->SetCurrentOperation(vtkSlicerAbstractRepresentation::Select); }
-  void SetCurrentOperationToTranslate()
-    { this->SetCurrentOperation(vtkSlicerAbstractRepresentation::Translate); }
-  void SetCurrentOperationToScale()
-    { this->SetCurrentOperation(vtkSlicerAbstractRepresentation::Scale); }
-  void SetCurrentOperationToPick()
-    { this->SetCurrentOperation(vtkSlicerAbstractRepresentation::Pick); }
-  void SetCurrentOperationToRotate()
-    { this->SetCurrentOperation(vtkSlicerAbstractRepresentation::Rotate); }
-
   /// Set / get the Point Placer. The point placer is
   /// responsible for converting display coordinates into
   /// world coordinates according to some constraints, and
   /// for validating world positions.
   void SetPointPlacer(vtkPointPlacer *);
-  vtkGetObjectMacro(PointPlacer, vtkPointPlacer);
+  vtkPointPlacer* GetPointPlacer();
 
   /// Set / Get the Line Interpolator. The line interpolator
   /// is responsible for generating the line segments connecting
   /// nodes.
   void SetLineInterpolator(vtkSlicerLineInterpolator *);
-  vtkGetObjectMacro(LineInterpolator, vtkSlicerLineInterpolator);
-
-  /// Subclasses of vtkSlicerAbstractRepresentation must implement these methods. These
-  /// are the methods that the widget and its representation use to
-  /// communicate with each other.
-  void StartWidgetInteraction(double eventPos[2]) VTK_OVERRIDE;
-  void SetInteractionState(int state);
+  vtkSlicerLineInterpolator* GetLineInterpolator();
 
   /// Controls whether the widget should always appear on top
   /// of other actors in the scene. (In effect, this will disable OpenGL
@@ -345,9 +306,6 @@ public:
   vtkGetMacro(AlwaysOnTop, vtkTypeBool);
   vtkBooleanMacro(AlwaysOnTop, vtkTypeBool);
 
-  /// Get the nodes and not the intermediate points in this
-  /// widget as a vtkPolyData.
-  void GetNodePolyData(vtkPolyData* poly);
 
   /// Handle when rebuilding the locator
   vtkSetMacro(RebuildLocator,bool);
@@ -361,7 +319,7 @@ public:
 
   /// Initialize with poly data
   ///
-  virtual void Initialize(vtkPolyData *);
+  //virtual void Initialize(vtkPolyData *);
 
   /// Set / Get the ClosedLoop value. This ivar indicates whether the widget
   /// forms a closed loop.
@@ -370,7 +328,8 @@ public:
   vtkBooleanMacro(ClosedLoop, vtkTypeBool);
 
   /// Set/Get the vtkMRMLMarkipsNode connected with this representation
-  virtual void SetMarkupsNode(vtkMRMLMarkupsNode *markupNode);
+  virtual void SetMarkupsDisplayNode(vtkMRMLMarkupsDisplayNode *markupsDisplayNode);
+  virtual vtkMRMLMarkupsDisplayNode* GetMarkupsDisplayNode();
   virtual vtkMRMLMarkupsNode* GetMarkupsNode();
 
   /// Set the renderer
@@ -381,26 +340,56 @@ public:
   /// and it also updates automatically the centroid pos stored in the Markups node
   virtual void UpdateCentroid();
 
+  enum
+  {
+    InteractNone,
+    InteractControlPoint,
+    InteractLine,
+    InteractCentroid
+  };
+
   /// Return true if interaction is possible.
-  /// Distance2 is the squared distance in display coordinates from the closest position where interaction is possible.
-  virtual bool CanInteract(const int displayPosition[2], const double worldPosition[3], double &closestDistance2);
+  /// closestDistance2 is the squared distance in display coordinates from the closest position where interaction is possible.
+  /// itemIndex returns control point index if return value is InteractControlPoint.
+  virtual int CanInteract(const int displayPosition[2], const double worldPosition[3], double &closestDistance2, int &itemIndex);
 
 protected:
   vtkSlicerAbstractRepresentation();
   ~vtkSlicerAbstractRepresentation() VTK_OVERRIDE;
 
+  class ControlPointsPipeline
+  {
+  public:
+    ControlPointsPipeline();
+
+    /// Specify the glyph that is displayed at each control point position.
+    /// Keep in mind that the shape will be
+    /// aligned with the constraining plane by orienting it such that
+    /// the x axis of the geometry lies along the normal of the plane.
+    vtkSmartPointer<vtkPolyData> PointMarkerShape;
+
+    vtkSmartPointer<vtkPolyData> ControlPointsPolyData;
+    vtkSmartPointer<vtkPoints> ControlPoints;
+    vtkSmartPointer<vtkPolyData> LabelControlPointsPolyData;
+    vtkSmartPointer<vtkPoints> LabelControlPoints;
+    vtkSmartPointer<vtkPointSetToLabelHierarchy> PointSetToLabelHierarchyFilter;
+    vtkSmartPointer<vtkStringArray> Labels;
+    vtkSmartPointer<vtkStringArray> LabelsPriority;
+    vtkSmartPointer<vtkTextProperty> TextProperty;
+  };
+
   /// Helper function to add bounds of all listed actors to the supplied bounding box.
   /// additionalBounds is for convenience only, it allows defining additional bounds.
   void AddActorsBounds(vtkBoundingBox& bounds, const std::vector<vtkProp*> &actors, double* additionalBounds = nullptr);
 
-  vtkWeakPointer<vtkMRMLMarkupsNode> MarkupsNode;
+  vtkWeakPointer<vtkMRMLMarkupsDisplayNode> MarkupsDisplayNode;
 
   // Selection tolerance for the picking of points
   double Tolerance;
   double PixelTolerance;
 
-  vtkPointPlacer             *PointPlacer;
-  vtkSlicerLineInterpolator  *LineInterpolator;
+  vtkSmartPointer<vtkPointPlacer> PointPlacer;
+  vtkSmartPointer<vtkSlicerLineInterpolator> LineInterpolator;
 
   int CurrentOperation;
   vtkTypeBool ClosedLoop;
@@ -439,7 +428,7 @@ protected:
 
   // Adding a point locator to the representation to speed
   // up lookup of the active node when dealing with large datasets (100k+)
-  vtkIncrementalOctreePointLocator *Locator;
+  vtkSmartPointer<vtkIncrementalOctreePointLocator> Locator;
 
   // Deletes the previous locator if it exists and creates
   // a new locator. Also deletes / recreates the attached data set.
@@ -455,50 +444,21 @@ protected:
   // Axis restrict flag
   int RestrictFlag;
 
-  // Render the cursor
-  vtkPolyData          *CursorShape;
-  vtkPolyData          *SelectedCursorShape;
-  vtkPolyData          *ActiveCursorShape;
+  enum
+  {
+    Unselected,
+    Selected,
+    Active,
+    NumberOfControlPointTypes
+  };
 
-  vtkPolyData          *FocalData; /// non-selected markup control point positions
-  vtkPoints            *FocalPoint; /// FocalData points
-  vtkPolyData          *SelectedFocalData; /// selected markup control point positions
-  vtkPoints            *SelectedFocalPoint; /// SelectedFocalData points
-  vtkPolyData          *ActiveFocalData; /// control point position that is currently interacting with
-  vtkPoints            *ActiveFocalPoint; /// ActiveFocalData points
-
-  vtkPolyData          *LabelsFocalData;
-  vtkPoints            *LabelsFocalPoint;
-  vtkPolyData          *SelectedLabelsFocalData;
-  vtkPoints            *SelectedLabelsFocalPoint;
-  vtkPolyData          *ActiveLabelsFocalData;
-  vtkPoints            *ActiveLabelsFocalPoint;
-
-  vtkPointSetToLabelHierarchy *PointSetToLabelHierarchyFilter;
-  vtkStringArray              *Labels;
-  vtkStringArray              *LabelsPriority;
-
-  vtkPointSetToLabelHierarchy *SelectedPointSetToLabelHierarchyFilter;
-  vtkStringArray              *SelectedLabels;
-  vtkStringArray              *SelectedLabelsPriority;
-
-  vtkPointSetToLabelHierarchy *ActivePointSetToLabelHierarchyFilter;
-  vtkStringArray              *ActiveLabels;
-  vtkStringArray              *ActiveLabelsPriority;
-
-  vtkTextProperty   *TextProperty;
-  vtkTextProperty   *SelectedTextProperty;
-  vtkTextProperty   *ActiveTextProperty;
+  ControlPointsPipeline* ControlPoints[3]; // Unselected, Selected, Active
 
   // Properties used to control the appearance of selected objects and
   // the manipulator in general.
   virtual void  CreateDefaultProperties() = 0;
 
   vtkTypeBool AlwaysOnTop;
-
-  // Variable for picking
-  double LastEventPosition[2];
-  double StartEventOffsetPosition[2];
 
   // Temporary variable to store GetBounds() result
   double Bounds[6];

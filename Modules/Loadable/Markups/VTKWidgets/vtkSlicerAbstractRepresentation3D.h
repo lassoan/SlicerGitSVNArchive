@@ -56,6 +56,7 @@ public:
   vtkTypeMacro(vtkSlicerAbstractRepresentation3D,vtkSlicerAbstractRepresentation);
   void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
 
+  /*
   /// This is the property used when the handle is not active
   /// (the mouse is not near the handle)
   vtkGetObjectMacro(Property,vtkProperty);
@@ -67,7 +68,7 @@ public:
   /// This is the property used when the user is interacting
   /// with the handle.
   vtkGetObjectMacro(ActiveProperty,vtkProperty);
-
+  */
   /// Given a display position, activate a node. The closest
   /// node within tolerance will be activated. If a node is
   /// activated, 1 will be returned, otherwise 0 will be
@@ -89,6 +90,8 @@ public:
   int RenderTranslucentPolygonalGeometry(vtkViewport *viewport) VTK_OVERRIDE;
   vtkTypeBool HasTranslucentPolygonalGeometry() VTK_OVERRIDE;
 
+
+  /*
   /// Set/Get the three leaders used to create this representation.
   /// By obtaining these leaders the user can set the appropriate
   /// properties, etc.
@@ -98,24 +101,7 @@ public:
   vtkGetObjectMacro(LabelsActor,vtkActor2D);
   vtkGetObjectMacro(SelectedLabelsActor,vtkActor2D);
   vtkGetObjectMacro(ActiveLabelsActor,vtkActor2D);
-
-  /// Specify the cursor shape. Keep in mind that the shape will be
-  /// aligned with the constraining plane by orienting it such that
-  /// the x axis of the geometry lies along the normal of the plane.
-  void SetCursorShape(vtkPolyData *cursorShape);
-  vtkPolyData *GetCursorShape();
-
-  /// Specify the cursor shape. Keep in mind that the shape will be
-  /// aligned with the constraining plane by orienting it such that
-  /// the x axis of the geometry lies along the normal of the plane.
-  void SetSelectedCursorShape(vtkPolyData *selectedShape);
-  vtkPolyData *GetSelectedCursorShape();
-
-  /// Specify the shape of the cursor (handle) when it is active.
-  /// This is the geometry that will be used when the mouse is
-  /// close to the handle or if the user is manipulating the handle.
-  void SetActiveCursorShape(vtkPolyData *activeShape);
-  vtkPolyData *GetActiveCursorShape();
+  */
 
   /// Return the bounds of the representation
   double *GetBounds() VTK_OVERRIDE;
@@ -124,38 +110,26 @@ protected:
   vtkSlicerAbstractRepresentation3D();
   ~vtkSlicerAbstractRepresentation3D() VTK_OVERRIDE;
 
+  class ControlPointsPipeline3D : public ControlPointsPipeline
+  {
+  public:
+    ControlPointsPipeline3D();
+
+    vtkSmartPointer<vtkOpenGLActor> Actor;
+    vtkSmartPointer<vtkOpenGLPolyDataMapper> Mapper;
+    vtkSmartPointer<vtkGlyph3D> Glypher;
+    vtkSmartPointer<vtkActor2D> LabelsActor;
+    vtkSmartPointer<vtkLabelPlacementMapper> LabelsMapper;
+    // Properties used to control the appearance of selected objects and
+    // the manipulator in general.
+    vtkSmartPointer<vtkProperty> Property;
+  };
+
   // Methods to manipulate the cursor
   virtual void TranslateNode(double eventPos[2]);
   virtual void TranslateWidget(double eventPos[2]);
   virtual void ScaleWidget(double eventPos[2]);
   virtual void RotateWidget(double eventPos[2]);
-
-  // Render the cursor
-  vtkOpenGLActor              *Actor;
-  vtkOpenGLPolyDataMapper     *Mapper;
-  vtkOpenGLActor              *SelectedActor;
-  vtkOpenGLPolyDataMapper     *SelectedMapper;
-  vtkOpenGLActor              *ActiveActor;
-  vtkOpenGLPolyDataMapper     *ActiveMapper;
-
-  vtkGlyph3D                  *Glypher;
-  vtkGlyph3D                  *SelectedGlypher;
-  vtkGlyph3D                  *ActiveGlypher;
-
-  vtkActor2D                  *LabelsActor;
-  vtkLabelPlacementMapper     *LabelsMapper;
-
-  vtkActor2D                  *SelectedLabelsActor;
-  vtkLabelPlacementMapper     *SelectedLabelsMapper;
-
-  vtkActor2D                  *ActiveLabelsActor;
-  vtkLabelPlacementMapper     *ActiveLabelsMapper;
-
-  // Properties used to control the appearance of selected objects and
-  // the manipulator in general.
-  vtkProperty   *Property;
-  vtkProperty   *SelectedProperty;
-  vtkProperty   *ActiveProperty;
 
   virtual void CreateDefaultProperties() VTK_OVERRIDE;
   virtual void BuildRepresentationPointsAndLabels();

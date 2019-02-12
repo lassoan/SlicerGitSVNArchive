@@ -512,18 +512,18 @@ void vtkMRMLMarkupsDisplayableManager3D::OnMRMLMarkupsDisplayNodeModifiedEvent(v
           vtkNew<vtkSphereSource> ss;
           ss->SetRadius(0.5);
           ss->Update();
-          rep->SetCursorShape(ss->GetOutput());
-          rep->SetSelectedCursorShape(ss->GetOutput());
-          rep->SetActiveCursorShape(ss->GetOutput());
+          rep->SetPointMarkerShape(ss->GetOutput());
+          rep->SetSelectedPointMarkerShape(ss->GetOutput());
+          rep->SetActivePointMarkerShape(ss->GetOutput());
           }
         else
           {
           vtkNew<vtkMarkupsGlyphSource2D> glyphSource;
           glyphSource->SetGlyphType(markupsDisplayNode->GetGlyphType());
           glyphSource->Update();
-          rep->SetCursorShape(glyphSource->GetOutput());
-          rep->SetSelectedCursorShape(glyphSource->GetOutput());
-          rep->SetActiveCursorShape(glyphSource->GetOutput());
+          rep->SetPointMarkerShape(glyphSource->GetOutput());
+          rep->SetSelectedPointMarkerShape(glyphSource->GetOutput());
+          rep->SetActivePointMarkerShape(glyphSource->GetOutput());
           }
 
         // The handle size for 3D view needs to be rescaled for the spacing of the volume

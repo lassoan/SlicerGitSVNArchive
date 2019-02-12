@@ -60,7 +60,7 @@ public:
   /// Lock/Unlock a widget. If no interaction node is passed in, don't take the
   /// mouse mode into account, if it is passed in, widgets get locked while in
   /// Place mode
-  void UpdateLocked(vtkMRMLMarkupsNode* node);
+  void UpdateLocked(vtkMRMLMarkupsDisplayNode* node);
 
   /// Update all widget status
   void UpdateAllWidgetsFromInteractionNode(vtkMRMLInteractionNode* interactionNode);
@@ -69,53 +69,31 @@ public:
   void SetAllWidgetsToManipulate();
 
   /// Keep track of the mapping between widgets and nodes
-  void RecordWidgetForNode(vtkSlicerAbstractWidget* widget, vtkMRMLMarkupsNode *node);
+  void RecordWidgetForNode(vtkSlicerAbstractWidget* widget, vtkMRMLMarkupsDisplayNode *node);
 
   /// Get a vtkSlicerAbstractWidget* given a node
-  vtkSlicerAbstractWidget * GetWidget(vtkMRMLMarkupsNode * node);
-  /// ...and its associated vtkSlicerAbstractWidget* for Slice intersection representation
-  vtkSlicerAbstractWidget * GetIntersectionWidget(vtkMRMLMarkupsNode * node);
-  /// ...and its associated vtkSlicerAbstractWidget* for Slice projection representation. There is one
-  /// projection widget per unique point.
-  vtkSlicerAbstractWidget * GetPointProjectionWidget(std::string uniqueFiducialID);
+  vtkSlicerAbstractWidget * GetWidget(vtkMRMLMarkupsDisplayNode * node);
 
   /// Remove all widgets, intersection widgets, nodes
   void RemoveAllWidgetsAndNodes();
   /// Remove a node, its widget and its intersection widget
-  void RemoveWidgetAndNode(vtkMRMLMarkupsNode *node);
-
-  /// Search the markups node list and return the markups node that has this display node
-  vtkMRMLMarkupsNode * GetMarkupsNodeFromDisplayNode(vtkMRMLMarkupsDisplayNode *displayNode);
+  void RemoveWidgetAndNode(vtkMRMLMarkupsDisplayNode *node);
 
   /// List of nodes managed by the DisplayableManager
-  std::vector<vtkMRMLMarkupsNode*> MarkupsNodeList;
+  std::vector<vtkMRMLMarkupsDisplayNode*> MarkupsDisplayNodeList;
 
   /// Typedef for iterator over the list of nodes managed by the DisplayableManager
-  typedef std::vector<vtkMRMLMarkupsNode*>::iterator MarkupsNodeListIt;
+  typedef std::vector<vtkMRMLMarkupsDisplayNode*>::iterator MarkupsNodeListIt;
 
   /// Map of vtkWidget indexed using associated node ID
-  std::map<vtkMRMLMarkupsNode*, vtkSlicerAbstractWidget*> Widgets;
+  std::map<vtkMRMLMarkupsDisplayNode*, vtkSlicerAbstractWidget*> Widgets;
 
   /// .. and its associated convenient typedef
-  typedef std::map<vtkMRMLMarkupsNode*, vtkSlicerAbstractWidget*>::iterator WidgetsIt;
+  typedef std::map<vtkMRMLMarkupsDisplayNode*, vtkSlicerAbstractWidget*>::iterator WidgetsIt;
 
-  /// Map of vtkWidgets to reflect the Slice intersections indexed using associated node ID
-  std::map<vtkMRMLMarkupsNode*, vtkSlicerAbstractWidget*> WidgetIntersections;
-
-  /// .. and its associated convenient typedef
-  typedef std::map<vtkMRMLMarkupsNode*, vtkSlicerAbstractWidget*>::iterator WidgetIntersectionsIt;
-
-  /// Map of vtkWidgets to reflect the Slice projection indexed using associated point IDs
-  std::map<std::string, vtkSlicerAbstractWidget*> WidgetPointProjections;
-
-  /// .. and its associated convenient typedef
-  typedef std::map<std::string, vtkSlicerAbstractWidget*>::iterator WidgetPointProjectionsIt;
-
-  //
-  // End of The Lists!!
-  //
   //----------------------------------------------------------------------------------
 
+  /*
   /// Get the seed glyph type for the given display node.
   /// Returns -1 if not found
   int GetNodeGlyphType(vtkMRMLNode *displayNode, int index);
@@ -126,6 +104,7 @@ public:
   void RemoveNodeGlyphType(vtkMRMLNode *displayNode);
   /// Clear out the saved list of glyph types, called on scene close or node removed
   void ClearNodeGlyphTypes();
+  */
 
 protected:
 

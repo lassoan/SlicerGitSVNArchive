@@ -98,18 +98,17 @@ public:
   vtkSetMacro(DepthActiveKeyCode, const char);
   vtkGetMacro(DepthActiveKeyCode, char);
 
-  /// Initialize the contour widget from a user supplied set of points. The
-  /// state of the widget decides if you are still defining the widget, or
-  /// if you've finished defining (added the last point) are manipulating
-  /// it. Note that if the polydata supplied is closed, the state will be
-  /// set to manipulate.
-  /// State: Define = 0, Manipulate = 1.
-  virtual void Initialize(vtkPolyData * poly, int state = 1);
-  virtual void Initialize()
-    {this->Initialize(nullptr);}
-
   /// The state of the widget
-  enum {Start,Define,Manipulate};
+  enum {
+    Idle, // mouse pointer is outside the widget, click does not do anything
+    Define, // click in empty area will place a new point
+    OnControlPoint, // mouse pointer is over a control point, clicking will manipulate it
+    OnWidget, // mouse pointer is over a widget line, clicking will add a point or manipulate the line
+    TranslateControlPoint, // translating the active point by mouse move
+    Translate, // mouse move transforms the entire widget
+    Scale,     // mouse move transforms the entire widget
+    Rotate,     // mouse move transforms the entire widget
+  };
 
   /// Add a point preview to the current active Markup at input World coordiantes.
   int AddPreviewPointToRepresentationFromWorldCoordinate(const double worldCoordinates [3]);
@@ -141,8 +140,18 @@ protected:
   vtkSlicerAbstractWidget();
   ~vtkSlicerAbstractWidget() VTK_OVERRIDE;
 
+  void StartWidgetInteraction();
+  void EndWidgetInteraction();
+
+  virtual void TranslateNode(double eventPos[2]);
+  virtual void TranslateWidget(double eventPos[2]);
+  virtual void ScaleWidget(double eventPos[2]);
+  virtual void RotateWidget(double eventPos[2]);
+
+  vtkMRMLMarkupsNode* GetMarkupsNode();
+
   int WidgetState;
-  int CurrentHandle;
+  //int CurrentHandle;
   vtkTypeBool FollowCursor;
 
   // helper methods for cursor management
@@ -150,7 +159,7 @@ protected:
 
   // Callback interface to capture events when
   // placing the widget.
-  static void SelectAction(vtkAbstractWidget*);
+  static void ControlPointMoveAction(vtkAbstractWidget*);
   static void PickAction(vtkAbstractWidget*);
   static void TranslateAction(vtkAbstractWidget*);
   static void MoveAction(vtkAbstractWidget *w);
@@ -166,8 +175,12 @@ protected:
   char HorizontalActiveKeyCode;
   char VerticalActiveKeyCode;
   char DepthActiveKeyCode;
-  vtkCallbackCommand *KeyEventCallbackCommand;
+  vtkSmartPointer<vtkCallbackCommand> KeyEventCallbackCommand;
   static void ProcessKeyEvents(vtkObject *, unsigned long, void *, void *);
+
+  // Variables for translate/rotate/scale
+  double LastEventPosition[2];
+  double StartEventOffsetPosition[2];
 
 private:
   vtkSlicerAbstractWidget(const vtkSlicerAbstractWidget&) = delete;
