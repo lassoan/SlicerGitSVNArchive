@@ -1147,14 +1147,6 @@ void vtkMRMLMarkupsDisplayableManager3D::OnClickInRenderWindow(double vtkNotUsed
 }
 
 //---------------------------------------------------------------------------
-vtkSlicerAbstractWidget* vtkMRMLMarkupsDisplayableManager3D::CreateWidget(vtkMRMLMarkupsNode* vtkNotUsed(node))
-{
-  // A widget should be created here.
-  vtkErrorMacro("CreateWidget should be overloaded!");
-  return nullptr;
-}
-
-//---------------------------------------------------------------------------
 void vtkMRMLMarkupsDisplayableManager3D::OnWidgetCreated(vtkSlicerAbstractWidget* vtkNotUsed(widget), vtkMRMLMarkupsNode* vtkNotUsed(node))
 {
   // Actions after a widget was created should be executed here.
@@ -1236,4 +1228,56 @@ vtkSlicerAbstractWidget * vtkMRMLMarkupsDisplayableManager3D::AddWidget(vtkMRMLM
   newWidget->BuildRepresentation();
 
   return newWidget;
+}
+
+
+//---------------------------------------------------------------------------
+vtkSlicerAbstractWidget * vtkMRMLMarkupsDisplayableManager3D::CreateWidget(vtkMRMLMarkupsDisplayNode* markupsDisplayNode)
+{
+  vtkMRMLMarkupsNode* markupsNode = markupsDisplayNode->GetMarkupsNode();
+  if (!markupsNode)
+  {
+    return nullptr;
+  }
+
+  vtkMRMLMarkupsAngleNode* angleNode = vtkMRMLMarkupsAngleNode::SafeDownCast(markupsNode);
+  vtkMRMLMarkupsFiducialNode* fiducialNode = vtkMRMLMarkupsFiducialNode::SafeDownCast(markupsNode);
+  vtkMRMLMarkupsLineNode* lineNode = vtkMRMLMarkupsLineNode::SafeDownCast(markupsNode);
+  vtkMRMLMarkupsCurveNode* curveNode = vtkMRMLMarkupsCurveNode::SafeDownCast(markupsNode);
+  vtkMRMLMarkupsClosedCurveNode* closedCurveNode = vtkMRMLMarkupsClosedCurveNode::SafeDownCast(markupsNode);
+
+  vtkSlicerAbstractWidget* widget = NULL;
+  vtkSmartPointer<vtkSlicerAbstractRepresentation2D> rep = NULL;
+  if (fiducialNode)
+  {
+    widget = vtkSlicerPointsWidget::New();
+    rep = vtkSmartPointer<vtkSlicerPointsRepresentation3D>::New();
+  }
+  else if (angleNode)
+  {
+    widget = vtkSlicerAngleWidget::New();
+    rep = vtkSmartPointer<vtkSlicerAngleRepresentation3D>::New();
+  }
+  else if (lineNode)
+  {
+    widget = vtkSlicerLineWidget::New();
+    rep = vtkSmartPointer<vtkSlicerLineRepresentation3D>::New();
+  }
+  else if (curveNode)
+  {
+    widget = vtkSlicerCurveWidget::New();
+    rep = vtkSmartPointer<vtkSlicerCurveRepresentation3D>::New();
+  }
+  else if (closedCurveNode)
+  {
+    widget = vtkSlicerClosedCurveWidget::New();
+    rep = vtkSmartPointer<vtkSlicerCurveRepresentation3D>::New();
+    rep->SetClosedLoop(true);
+  }
+  else
+  {
+    return nullptr;
+  }
+
+  return widget;
 }

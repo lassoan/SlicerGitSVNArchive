@@ -123,7 +123,12 @@ vtkSlicerAngleRepresentation3D::~vtkSlicerAngleRepresentation3D()
 //----------------------------------------------------------------------
 bool vtkSlicerAngleRepresentation3D::GetTransformationReferencePoint(double referencePointWorld[3])
 {
+  if (this->GetNumberOfNodes() < 2)
+  {
+    return false;
+  }
   this->GetNthNodeWorldPosition(1, referencePointWorld);
+  return true;
 }
 
 //----------------------------------------------------------------------
@@ -413,7 +418,7 @@ double *vtkSlicerAngleRepresentation3D::GetBounds()
 }
 
 //----------------------------------------------------------------------
-int vtkSlicerAbstractRepresentation3D::CanInteract(const int displayPosition[2], const double worldPosition[3], double &closestDistance2, int &componentIndex)
+int vtkSlicerAngleRepresentation3D::CanInteract(const int displayPosition[2], const double worldPosition[3], double &closestDistance2, int &componentIndex)
 {
   vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
   if (!markupsNode || markupsNode->GetLocked() || this->GetNumberOfNodes() < 1)

@@ -58,18 +58,12 @@ public:
   /// Can be used on the output of CanInteract, as if no better component is found then the input is returned.
   void CanInteractWithLine(int &foundComponentType, const int displayPosition[2], const double worldPosition[3], double &closestDistance2, int &componentIndex);
 
-  /// Given a display position, activate a node. The closest
-  /// node within tolerance will be activated. If a node is
-  /// activated, 1 will be returned, otherwise 0 will be
-  /// returned.
-  virtual int ActivateNode(int X, int Y) VTK_OVERRIDE;
-
   /// Subclasses of vtkSlicerAbstractRepresentation2D must implement these methods. These
   /// are the methods that the widget and its representation use to
   /// communicate with each other.
   void BuildRepresentation() VTK_OVERRIDE;
-  int ComputeInteractionState(int X, int Y, int modified=0) VTK_OVERRIDE;
-  void WidgetInteraction(double eventPos[2]) VTK_OVERRIDE;
+  int ComputeInteractionState(int X, int Y, int modified = 0) VTK_OVERRIDE { return 0; };
+  void WidgetInteraction(double eventPos[2]) VTK_OVERRIDE { return; };
 
   /// Methods to make this class behave as a vtkProp.
   void GetActors(vtkPropCollection *) VTK_OVERRIDE;
@@ -169,7 +163,6 @@ protected:
   /// Scale factor for 2d windows
   double ScaleFactor2D;
 
-  virtual void  CreateDefaultProperties() VTK_OVERRIDE;
   virtual void BuildRepresentationPointsAndLabels(double labelsOffset);
   void BuildLocator() VTK_OVERRIDE;
   virtual void AddNodeAtPositionInternal(const double worldPos[3]) VTK_OVERRIDE;

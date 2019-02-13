@@ -49,7 +49,7 @@ protected:
                                      const char *associatedNodeID,
                                      int action = vtkMRMLMarkupsFiducialDisplayableManager3D::AddPoint) VTK_OVERRIDE;
   /// Create a widget.
-  virtual vtkSlicerAbstractWidget * CreateWidget(vtkMRMLMarkupsNode* node) VTK_OVERRIDE;
+  virtual vtkSlicerAbstractWidget * CreateWidget(vtkMRMLMarkupsNode* node);
   /// Gets called when widget was created
   virtual void OnWidgetCreated(vtkSlicerAbstractWidget * widget, vtkMRMLMarkupsNode * node) VTK_OVERRIDE;
   /// Clean up when scene closes

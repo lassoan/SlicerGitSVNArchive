@@ -82,12 +82,6 @@ public:
   virtual int AddNodeAtDisplayPosition(const int displayPos[2]);
   virtual int AddNodeAtDisplayPosition(int X, int Y);
 
-  /// Given a display position, activate a node. The closest
-  /// node within tolerance will be activated. If a node is
-  /// activated, 1 will be returned, otherwise 0 will be
-  /// returned.
-  virtual int ActivateNode(int X, int Y) = 0;
-
   /// Move the active node to a specified world position.
   /// Will return 0 if there is no active node or the node
   /// could not be moved to that position. 1 will be returned
@@ -435,10 +429,6 @@ protected:
   };
 
   ControlPointsPipeline* ControlPoints[3]; // Unselected, Selected, Active
-
-  // Properties used to control the appearance of selected objects and
-  // the manipulator in general.
-  virtual void  CreateDefaultProperties() = 0;
 
   vtkTypeBool AlwaysOnTop;
 

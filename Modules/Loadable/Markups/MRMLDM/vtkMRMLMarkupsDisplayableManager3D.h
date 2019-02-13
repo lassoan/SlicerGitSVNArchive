@@ -41,6 +41,9 @@ class  VTK_SLICER_MARKUPS_MODULE_MRMLDISPLAYABLEMANAGER_EXPORT vtkMRMLMarkupsDis
 {
 public:
 
+  // Allow the helper to call protected methods of displayable manager
+  friend class vtkMRMLMarkupsDisplayableManagerHelper;
+
   static vtkMRMLMarkupsDisplayableManager3D *New();
   vtkTypeMacro(vtkMRMLMarkupsDisplayableManager3D, vtkMRMLAbstractThreeDViewDisplayableManager);
   void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
@@ -139,7 +142,8 @@ protected:
   void GetDisplayToViewportCoordinates(double *displayCoordinates, double * viewportCoordinates);
 
   /// Create a widget.
-  virtual vtkSlicerAbstractWidget * CreateWidget(vtkMRMLMarkupsNode* node);
+  vtkSlicerAbstractWidget* CreateWidget(vtkMRMLMarkupsDisplayNode* node);
+
   /// Gets called when widget was created
   virtual void OnWidgetCreated(vtkSlicerAbstractWidget * widget, vtkMRMLMarkupsNode * node);
   /// Get the widget of a node.

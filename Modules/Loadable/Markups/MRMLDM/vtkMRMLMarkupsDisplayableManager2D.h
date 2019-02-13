@@ -43,6 +43,9 @@ class  VTK_SLICER_MARKUPS_MODULE_MRMLDISPLAYABLEMANAGER_EXPORT vtkMRMLMarkupsDis
 {
 public:
 
+  // Allow the helper to call protected methods of displayable manager
+  friend class vtkMRMLMarkupsDisplayableManagerHelper;
+
   static vtkMRMLMarkupsDisplayableManager2D *New();
   vtkTypeMacro(vtkMRMLMarkupsDisplayableManager2D, vtkMRMLAbstractSliceViewDisplayableManager);
   void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
@@ -73,7 +76,9 @@ public:
 
   /// Create a new widget for this markups node and save it to the helper.
   /// Returns widget on success, null on failure.
-  vtkSlicerAbstractWidget *AddWidget(vtkMRMLMarkupsDisplayNode *markupsDisplayNode);
+  vtkSlicerAbstractWidget* AddWidget(vtkMRMLMarkupsDisplayNode *markupsDisplayNode);
+
+  void RemoveWidget(vtkMRMLMarkupsDisplayNode *markupsDisplayNode);
 
   vtkMRMLMarkupsDisplayableManagerHelper *  GetHelper() { return this->Helper; };
 
@@ -105,9 +110,6 @@ protected:
   /// Wrap the superclass render request in a check for batch processing
   virtual void RequestRender();
 
-  /// Remove MRML observers
-  virtual void RemoveMRMLObservers() VTK_OVERRIDE;
-
   /// Called from RequestRender method if UpdateFromMRMLRequested is true
   /// \sa RequestRender() SetUpdateFromMRMLRequested()
   virtual void UpdateFromMRML() VTK_OVERRIDE;
@@ -122,6 +124,11 @@ protected:
   virtual void OnMRMLSceneNodeAdded(vtkMRMLNode* node) VTK_OVERRIDE;
   virtual void OnMRMLSceneNodeRemoved(vtkMRMLNode* node) VTK_OVERRIDE;
 
+  void OnWidgetAdded(vtkMRMLMarkupsDisplayNode* markupsDisplayNode, vtkSlicerAbstractWidget* newWidget);
+
+  /// Create a widget.
+  vtkSlicerAbstractWidget* CreateWidget(vtkMRMLMarkupsDisplayNode* node);
+
   /// Called after the corresponding MRML View container was modified
   virtual void OnMRMLDisplayableNodeModifiedEvent(vtkObject* caller) VTK_OVERRIDE;
 
@@ -131,11 +138,6 @@ protected:
   /// Check, if the widget is displayable in the current slice geometry for
   /// this markup, returns true if a 3d displayable manager
   virtual bool IsWidgetDisplayableOnSlice(vtkMRMLMarkupsNode* node);
-
-  /// Observe one node
-  void SetAndObserveNode(vtkMRMLMarkupsNode *markupsNode);
-  /// Observe all associated nodes.
-  void SetAndObserveNodes();
 
   /// Observe the interaction node.
   void AddObserversToInteractionNode();
@@ -175,10 +177,6 @@ protected:
   void GetDisplayToViewportCoordinates(double x, double y, double * viewportCoordinates);
   void GetDisplayToViewportCoordinates(double *displayCoordinates, double * viewportCoordinates);
 
-  /// Create a widget.
-  vtkSlicerAbstractWidget * CreateWidget(vtkMRMLMarkupsDisplayNode* node);
-  /// Gets called when widget was created
-  void OnWidgetCreated(vtkSlicerAbstractWidget * widget, vtkMRMLMarkupsNode * node);
   /// Get the widget of a node.
   vtkAbstractWidget * GetWidget(vtkMRMLMarkupsDisplayNode * node);
 

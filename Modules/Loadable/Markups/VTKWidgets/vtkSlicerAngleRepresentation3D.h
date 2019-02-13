@@ -58,7 +58,6 @@ public:
   /// are the methods that the widget and its representation use to
   /// communicate with each other.
   void BuildRepresentation() VTK_OVERRIDE;
-  int ComputeInteractionState(int X, int Y, int modified=0) VTK_OVERRIDE;
 
   /// Methods to make this class behave as a vtkProp.
   void GetActors(vtkPropCollection *) VTK_OVERRIDE;
@@ -67,11 +66,6 @@ public:
   int RenderOpaqueGeometry(vtkViewport *viewport) VTK_OVERRIDE;
   int RenderTranslucentPolygonalGeometry(vtkViewport *viewport) VTK_OVERRIDE;
   vtkTypeBool HasTranslucentPolygonalGeometry() VTK_OVERRIDE;
-
-  /// Register internal Pickers in the Picking Manager.
-  /// Must be reimplemented by concrete widget representations to register
-  /// their pickers.
-  virtual void RegisterPickers() VTK_OVERRIDE;
 
   /// Return the bounds of the representation
   double *GetBounds() VTK_OVERRIDE;

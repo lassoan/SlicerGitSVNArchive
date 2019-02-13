@@ -651,59 +651,6 @@ void vtkSlicerAbstractRepresentation2D::CanInteractWithLine(int &foundComponentT
   }
 }
 
-//----------------------------------------------------------------------
-int vtkSlicerAbstractRepresentation2D::ActivateNode(int X, int Y)
-{
-  vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
-  if (this->GetNumberOfNodes() == 0)
-    {
-    this->SetActiveNode(-1);
-    return 0;
-    }
-
-  double displayPos[3];
-  displayPos[0] = static_cast<double>(X);
-  displayPos[1] = static_cast<double>(Y);
-  displayPos[2] = 0.;
-
-  this->PixelTolerance = this->ControlPointSize + this->ControlPointSize * this->Tolerance;
-  double scale = this->CalculateViewScaleFactor();
-  this->PixelTolerance *= scale;
-
-  if (this->GetNumberOfNodes() > 2 && this->ClosedLoop &&
-      markupsNode)
-    {
-    // Check if centroid is selected
-    double centroidPosWorld[3], centroidPosDisplay[3];
-    markupsNode->GetCentroidPositionWorld(centroidPosWorld);
-    this->GetWorldToSliceCoordinates(centroidPosWorld, centroidPosDisplay);
-
-    if (vtkMath::Distance2BetweenPoints(centroidPosDisplay, displayPos) <
-        this->PixelTolerance * this->PixelTolerance)
-      {
-      if (this->GetActiveNode() != -3)
-        {
-        this->SetActiveNode(-3);
-        this->NeedToRender = 1;
-        }
-      return 1;
-      }
-    }
-
-  this->BuildLocator();
-
-  double closestDistance2 = VTK_DOUBLE_MAX;
-  int closestNode = static_cast<int> (this->Locator->FindClosestPointWithinRadius(
-    this->PixelTolerance, displayPos, closestDistance2));
-
-  if (closestNode != this->GetActiveNode())
-    {
-    this->SetActiveNode(closestNode);
-    this->NeedToRender = 1;
-    }
-  return (this->GetActiveNode() >= 0);
-}
-
 
 //----------------------------------------------------------------------
 void vtkSlicerAbstractRepresentation2D::GetActors(vtkPropCollection *pc)

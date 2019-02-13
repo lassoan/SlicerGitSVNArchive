@@ -56,31 +56,12 @@ public:
   vtkTypeMacro(vtkSlicerAbstractRepresentation3D,vtkSlicerAbstractRepresentation);
   void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
 
-  /*
-  /// This is the property used when the handle is not active
-  /// (the mouse is not near the handle)
-  vtkGetObjectMacro(Property,vtkProperty);
-
-  /// This is the selected property used when the handle is not active
-  /// (the mouse is not near the handle)
-  vtkGetObjectMacro(SelectedProperty,vtkProperty);
-
-  /// This is the property used when the user is interacting
-  /// with the handle.
-  vtkGetObjectMacro(ActiveProperty,vtkProperty);
-  */
-  /// Given a display position, activate a node. The closest
-  /// node within tolerance will be activated. If a node is
-  /// activated, 1 will be returned, otherwise 0 will be
-  /// returned.
-  virtual int ActivateNode(int X, int Y) VTK_OVERRIDE;
-
   /// Subclasses of vtkSlicerAbstractRepresentation3D must implement these methods. These
   /// are the methods that the widget and its representation use to
   /// communicate with each other.
   void BuildRepresentation() VTK_OVERRIDE;
-  int ComputeInteractionState(int X, int Y, int modified=0) VTK_OVERRIDE;
-  void WidgetInteraction(double eventPos[2]) VTK_OVERRIDE;
+  int ComputeInteractionState(int X, int Y, int modified = 0) VTK_OVERRIDE { return 0; };
+  void WidgetInteraction(double eventPos[2]) VTK_OVERRIDE { return; };
 
   /// Methods to make this class behave as a vtkProp.
   void GetActors(vtkPropCollection *) VTK_OVERRIDE;
@@ -90,23 +71,10 @@ public:
   int RenderTranslucentPolygonalGeometry(vtkViewport *viewport) VTK_OVERRIDE;
   vtkTypeBool HasTranslucentPolygonalGeometry() VTK_OVERRIDE;
 
-
-  /*
-  /// Set/Get the three leaders used to create this representation.
-  /// By obtaining these leaders the user can set the appropriate
-  /// properties, etc.
-  vtkGetObjectMacro(Actor,vtkOpenGLActor);
-  vtkGetObjectMacro(SelectedActor,vtkOpenGLActor);
-  vtkGetObjectMacro(ActiveActor,vtkOpenGLActor);
-  vtkGetObjectMacro(LabelsActor,vtkActor2D);
-  vtkGetObjectMacro(SelectedLabelsActor,vtkActor2D);
-  vtkGetObjectMacro(ActiveLabelsActor,vtkActor2D);
-  */
-
   /// Return the bounds of the representation
   double *GetBounds() VTK_OVERRIDE;
 
-  int CanInteract(const int displayPosition[2], const double worldPosition[3], double &closestDistance2, int &itemIndex) VTK_OVERRIDE;
+  int CanInteract(const int displayPosition[2], const double worldPosition[3], double &closestDistance2, int &componentIndex) VTK_OVERRIDE;
 
   /// Checks if interaction with straight line between visible points is possible.
   /// Can be used on the output of CanInteract, as if no better component is found then the input is returned.
@@ -133,13 +101,6 @@ protected:
 
   ControlPointsPipeline3D* GetControlPointsPipeline(int controlPointType);
 
-  // Methods to manipulate the cursor
-  virtual void TranslateNode(double eventPos[2]);
-  virtual void TranslateWidget(double eventPos[2]);
-  virtual void ScaleWidget(double eventPos[2]);
-  virtual void RotateWidget(double eventPos[2]);
-
-  virtual void CreateDefaultProperties() VTK_OVERRIDE;
   virtual void BuildRepresentationPointsAndLabels();
 
 private:

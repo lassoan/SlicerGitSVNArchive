@@ -21,6 +21,8 @@
 
 // MarkupsModule/MRMLDisplayableManager includes
 #include "vtkMRMLMarkupsDisplayableManagerHelper.h"
+#include "vtkMRMLMarkupsDisplayableManager2D.h"
+#include "vtkMRMLMarkupsDisplayableManager3D.h"
 
 // VTK includes
 #include <vtkCollection.h>
@@ -39,8 +41,11 @@
 #include <vtkSphereHandleRepresentation.h>
 
 // MRML includes
+#include <vtkEventBroker.h>
 #include <vtkMRMLScene.h>
+#include <vtkMRMLAbstractDisplayableManager.h>
 #include <vtkMRMLSliceNode.h>
+#include <vtkMRMLViewNode.h>
 
 // STD includes
 #include <algorithm>
@@ -49,6 +54,7 @@
 
 //---------------------------------------------------------------------------
 vtkStandardNewMacro (vtkMRMLMarkupsDisplayableManagerHelper);
+vtkCxxSetObjectMacro(vtkMRMLMarkupsDisplayableManagerHelper, DisplayableManager, vtkMRMLAbstractDisplayableManager);
 
 //---------------------------------------------------------------------------
 void vtkMRMLMarkupsDisplayableManagerHelper::PrintSelf(ostream& os, vtkIndent indent)
@@ -56,17 +62,10 @@ void vtkMRMLMarkupsDisplayableManagerHelper::PrintSelf(ostream& os, vtkIndent in
   this->Superclass::PrintSelf(os, indent);
   os << indent << "MarkupsDisplayNodeList:" << std::endl;
 
-  for (unsigned int nodesIt = 0;
-       nodesIt < this->MarkupsDisplayNodeList.size();
-       ++nodesIt)
-    {
-    os << indent.GetNextIndent() << this->MarkupsDisplayNodeList[nodesIt]->GetID() << std::endl;
-    }
-
-  os << indent << "Widgets map:" << std::endl;
-  WidgetsIt widgetIterator = this->Widgets.begin();
-  for (widgetIterator =  this->Widgets.begin();
-       widgetIterator != this->Widgets.end();
+  os << indent << "MarkupsDisplayNodesToWidgets map:" << std::endl;
+  DisplayNodeToWidgetIt widgetIterator = this->MarkupsDisplayNodesToWidgets.begin();
+  for (widgetIterator =  this->MarkupsDisplayNodesToWidgets.begin();
+       widgetIterator != this->MarkupsDisplayNodesToWidgets.end();
        ++widgetIterator)
     {
     os << indent.GetNextIndent() << widgetIterator->first->GetID() << " : widget is " << (widgetIterator->second ? "not null" : "null") << std::endl;
@@ -93,6 +92,8 @@ void vtkMRMLMarkupsDisplayableManagerHelper::PrintSelf(ostream& os, vtkIndent in
 //---------------------------------------------------------------------------
 vtkMRMLMarkupsDisplayableManagerHelper::vtkMRMLMarkupsDisplayableManagerHelper()
 {
+  this->DisplayableManager = NULL;
+  this->AddingMarkupsNode = false;
 }
 
 //---------------------------------------------------------------------------
@@ -105,9 +106,11 @@ vtkMRMLMarkupsDisplayableManagerHelper::~vtkMRMLMarkupsDisplayableManagerHelper(
 void vtkMRMLMarkupsDisplayableManagerHelper::UpdateLockedAllWidgetsFromNodes()
 {
   // iterate through the node list
-  for (unsigned int i = 0; i < this->MarkupsDisplayNodeList.size(); i++)
+  for (DisplayNodeToWidgetIt it = this->MarkupsDisplayNodesToWidgets.begin();
+    it != this->MarkupsDisplayNodesToWidgets.end();
+    ++it)
     {
-    vtkMRMLMarkupsDisplayNode *markupsDisplayNode = this->MarkupsDisplayNodeList[i];
+    vtkMRMLMarkupsDisplayNode *markupsDisplayNode = (it->first);
     this->UpdateLocked(markupsDisplayNode);
     }
 }
@@ -117,8 +120,8 @@ void vtkMRMLMarkupsDisplayableManagerHelper::UpdateLockedAllWidgets(bool locked)
 {
   // loop through all widgets and update lock status
   vtkDebugMacro("UpdateLockedAllWidgets: locked = " << locked);
-  for (WidgetsIt it = this->Widgets.begin();
-       it !=  this->Widgets.end();
+  for (DisplayNodeToWidgetIt it = this->MarkupsDisplayNodesToWidgets.begin();
+       it !=  this->MarkupsDisplayNodesToWidgets.end();
        ++it)
     {
     if (it->second)
@@ -136,6 +139,35 @@ void vtkMRMLMarkupsDisplayableManagerHelper::UpdateLockedAllWidgets(bool locked)
 }
 
 //---------------------------------------------------------------------------
+vtkSlicerAbstractWidget* vtkMRMLMarkupsDisplayableManagerHelper::GetWidget(vtkMRMLMarkupsNode * markupsNode)
+{
+  if (!markupsNode)
+  {
+    return nullptr;
+  }
+  // Make sure the map contains a vtkWidget associated with this node
+  MarkupsToDisplayIt it = this->MarkupsToDisplayNodes.find(markupsNode);
+  if (it == this->MarkupsToDisplayNodes.end())
+  {
+    return nullptr;
+  }
+
+  // Return first widget found for a display node
+  std::set< vtkMRMLMarkupsDisplayNode* >::iterator displayNodeIterator;
+  for (displayNodeIterator = (it->second).begin();
+    displayNodeIterator != (it->second).begin();
+    ++displayNodeIterator)
+  {
+    vtkSlicerAbstractWidget* widgetFound = this->GetWidget(*displayNodeIterator);
+    if (widgetFound)
+    {
+      return widgetFound;
+    }
+  }
+  return nullptr;
+}
+
+//---------------------------------------------------------------------------
 vtkSlicerAbstractWidget * vtkMRMLMarkupsDisplayableManagerHelper::GetWidget(vtkMRMLMarkupsDisplayNode * node)
 {
   if (!node)
@@ -144,8 +176,8 @@ vtkSlicerAbstractWidget * vtkMRMLMarkupsDisplayableManagerHelper::GetWidget(vtkM
     }
 
   // Make sure the map contains a vtkWidget associated with this node
-  WidgetsIt it = this->Widgets.find(node);
-  if (it == this->Widgets.end())
+  DisplayNodeToWidgetIt it = this->MarkupsDisplayNodesToWidgets.find(node);
+  if (it == this->MarkupsDisplayNodesToWidgets.end())
     {
     return nullptr;
     }
@@ -153,118 +185,20 @@ vtkSlicerAbstractWidget * vtkMRMLMarkupsDisplayableManagerHelper::GetWidget(vtkM
   return it->second;
 }
 
+
 //---------------------------------------------------------------------------
 void vtkMRMLMarkupsDisplayableManagerHelper::RemoveAllWidgetsAndNodes()
 {
-  WidgetsIt widgetIterator = this->Widgets.begin();
-  for (widgetIterator =  this->Widgets.begin();
-       widgetIterator != this->Widgets.end();
+  DisplayNodeToWidgetIt widgetIterator = this->MarkupsDisplayNodesToWidgets.begin();
+  for (widgetIterator =  this->MarkupsDisplayNodesToWidgets.begin();
+       widgetIterator != this->MarkupsDisplayNodesToWidgets.end();
        ++widgetIterator)
     {
     widgetIterator->second->Off();
     widgetIterator->second->Delete();
     }
-  this->Widgets.clear();
-
-  this->MarkupsDisplayNodeList.clear();
-}
-
-//---------------------------------------------------------------------------
-void vtkMRMLMarkupsDisplayableManagerHelper::RemoveWidgetAndNode(
-    vtkMRMLMarkupsDisplayNode *node)
-{
-  if (!node)
-    {
-    return;
-    }
-
-  // Make sure the map contains a vtkWidget associated with this node
-  WidgetsIt widgetIterator = this->Widgets.find(node);
-  if (widgetIterator != this->Widgets.end())
-    {
-    // Delete and Remove vtkWidget from the map
-    if (this->Widgets[node])
-      {
-      this->Widgets[node]->Off();
-      this->Widgets[node]->Delete();
-      }
-    this->Widgets.erase(node);
-    }
-
-  // go through the list and remove the projection points for it
-  // this can get called after a markup has been removed from the list,
-  // so turn it around and iterate through all the markups in all the lists,
-  // then delete the widget point projections for those that don't match up to
-  // points in the scene
-  vtkCollection *col = nullptr;
-  if (node->GetScene() != nullptr)
-    {
-    col = node->GetScene()->GetNodesByClass("vtkMRMLMarkupsNode");
-    }
-  else
-    {
-    // without a scene to get the other nodes from, default to just using this node
-    col = vtkCollection::New();
-    col->AddItem(node);
-    }
-
- int numberOfMarkupsNodes = col->GetNumberOfItems();
- // use a map so can use find, it's markup id: list node id
- std::map<std::string, std::string> currentMarkupIDs;
- for (int i = 0; i < numberOfMarkupsNodes; ++i)
-   {
-   vtkMRMLMarkupsNode *markupsNode = vtkMRMLMarkupsNode::SafeDownCast(col->GetItemAsObject(i));
-   if (!markupsNode)
-     {
-     continue;
-     }
-   for (int n = 0; n < markupsNode->GetNumberOfControlPoints(); n++)
-    {
-    std::string pointID = markupsNode->GetNthControlPointID(n);
-    currentMarkupIDs[pointID] = std::string(markupsNode->GetID());
-    }
-   }
- col->RemoveAllItems();
- col->Delete();
-
-  vtkMRMLMarkupsDisplayableManagerHelper::MarkupsNodeListIt nodeIterator = std::find(
-      this->MarkupsDisplayNodeList.begin(),
-      this->MarkupsDisplayNodeList.end(),
-      node);
-
-  // Make sure the map contains the markupsNode
-  if (nodeIterator != this->MarkupsDisplayNodeList.end())
-    {
-    //vtkMRMLMarkupsNode* markupsNode = vtkMRMLMarkupsNode::SafeDownCast(*nodeIterator);
-    //if (markupsNode)
-     // {
-      //markupsNode->Delete();
-     // }
-    this->MarkupsDisplayNodeList.erase(nodeIterator);
-    }
-
-  // remove the entry for the node glyph types
-  //this->RemoveNodeGlyphType(node);
-
-}
-
-//---------------------------------------------------------------------------
-void vtkMRMLMarkupsDisplayableManagerHelper::RecordWidgetForNode(vtkSlicerAbstractWidget* widget, vtkMRMLMarkupsDisplayNode *node)
-{
-  if (!widget)
-    {
-    vtkErrorMacro("RecordWidgetForNode: no widget!");
-    return;
-    }
-  if (!node)
-    {
-    vtkErrorMacro("RecordWidgetForNode: no node!");
-    return;
-    }
-  // save the widget to the map indexed by the node
-  this->Widgets[node] = widget;
-  // save the node
-  this->MarkupsDisplayNodeList.push_back(node);
+  this->MarkupsDisplayNodesToWidgets.clear();
+  // TODO: remove observers and MarkupsToDisplayNodes
 }
 
 /*
@@ -353,3 +287,282 @@ void vtkMRMLMarkupsDisplayableManagerHelper::PrintNodeGlyphTypes()
     }
 }
 */
+
+
+//---------------------------------------------------------------------------
+void vtkMRMLMarkupsDisplayableManagerHelper::AddMarkupsNode(vtkMRMLMarkupsNode* node)
+{
+  if (this->AddingMarkupsNode)
+  {
+    return;
+  }
+  this->AddingMarkupsNode = true;
+
+  if (!node)
+  {
+    return;
+  }
+
+  vtkMRMLAbstractViewNode* viewNode = nullptr;
+  vtkMRMLMarkupsDisplayableManager2D* displayableManager2d = vtkMRMLMarkupsDisplayableManager2D::SafeDownCast(this->DisplayableManager);
+  vtkMRMLMarkupsDisplayableManager3D* displayableManager3d = vtkMRMLMarkupsDisplayableManager3D::SafeDownCast(this->DisplayableManager);
+  if (displayableManager2d)
+  {
+    viewNode = displayableManager2d->GetMRMLSliceNode();
+  }
+  else if (displayableManager3d)
+  {
+    viewNode = displayableManager3d->GetMRMLViewNode();
+  }
+  if (!viewNode)
+  {
+    return;
+  }
+
+  this->AddObservations(node);
+
+  // Add Display Nodes
+  int nnodes = node->GetNumberOfDisplayNodes();
+  for (int i = 0; i<nnodes; i++)
+  {
+    vtkMRMLMarkupsDisplayNode *displayNode = vtkMRMLMarkupsDisplayNode::SafeDownCast(node->GetNthDisplayNode(i));
+
+    // Check whether DisplayNode should be shown in this view
+    if (!displayNode
+      || !displayNode->IsA("vtkMRMLMarkupsDisplayNode")
+      || !displayNode->IsDisplayableInView(viewNode->GetID()))
+    {
+      continue;
+    }
+
+    this->MarkupsToDisplayNodes[node].insert(displayNode);
+    this->AddDisplayNode(displayNode);
+  }
+
+  this->AddingMarkupsNode = false;
+}
+
+//---------------------------------------------------------------------------
+void vtkMRMLMarkupsDisplayableManagerHelper::RemoveMarkupsNode(vtkMRMLMarkupsNode* node)
+{
+  if (!node)
+  {
+    return;
+  }
+  vtkMRMLMarkupsDisplayableManagerHelper::MarkupsToDisplayIt displayableIt =
+    this->MarkupsToDisplayNodes.find(node);
+
+  if (displayableIt == this->MarkupsToDisplayNodes.end())
+  {
+    // we do not manage this markup
+    return;
+  }
+
+  std::set< vtkMRMLMarkupsDisplayNode* > dnodes = displayableIt->second;
+  std::set< vtkMRMLMarkupsDisplayNode* >::iterator diter;
+  for (diter = dnodes.begin(); diter != dnodes.end(); ++diter)
+  {
+    this->RemoveDisplayNode(*diter);
+  }
+  this->RemoveObservations(node);
+  this->MarkupsToDisplayNodes.erase(displayableIt);
+}
+
+
+//---------------------------------------------------------------------------
+void vtkMRMLMarkupsDisplayableManagerHelper::AddDisplayNode(vtkMRMLMarkupsDisplayNode* markupsDisplayNode)
+{
+  if (!markupsDisplayNode)
+  {
+    return;
+  }
+
+  vtkMRMLMarkupsDisplayableManager2D* displayableManager2d = vtkMRMLMarkupsDisplayableManager2D::SafeDownCast(this->DisplayableManager);
+  vtkMRMLMarkupsDisplayableManager3D* displayableManager3d = vtkMRMLMarkupsDisplayableManager3D::SafeDownCast(this->DisplayableManager);
+
+  // Do not add the display node if displayNodeIt is already associated with a widget object.
+  // This happens when a segmentation node already associated with a display node
+  // is copied into an other (using vtkMRMLNode::Copy()) and is added to the scene afterward.
+  // Related issue are #3428 and #2608
+  vtkMRMLMarkupsDisplayableManagerHelper::DisplayNodeToWidgetIt displayNodeIt
+    = this->MarkupsDisplayNodesToWidgets.find(markupsDisplayNode);
+  if (displayNodeIt != this->MarkupsDisplayNodesToWidgets.end())
+  {
+    return;
+  }
+
+  // There should not be a widget for the new node
+  if (this->GetWidget(markupsDisplayNode) != nullptr)
+  {
+    vtkErrorMacro("vtkMRMLMarkupsDisplayableManager2D: A widget is already associated to this node");
+    return;
+  }
+
+  vtkSlicerAbstractWidget* newWidget = NULL;
+  vtkMRMLInteractionNode *interactionNode = NULL;
+  if (displayableManager2d)
+  {
+    newWidget = displayableManager2d->CreateWidget(markupsDisplayNode);
+    interactionNode = displayableManager2d->GetInteractionNode();
+  }
+  else if (displayableManager3d)
+  {
+    newWidget = displayableManager3d->CreateWidget(markupsDisplayNode);
+    interactionNode = displayableManager3d->GetInteractionNode();
+  }
+  if (!newWidget)
+  {
+    vtkErrorMacro("vtkMRMLMarkupsDisplayableManager2D: Failed to create widget");
+    return;
+  }
+
+  //Set up widget
+
+  if (interactionNode)
+  {
+    if (interactionNode->GetCurrentInteractionMode() == vtkMRMLInteractionNode::Place)
+    {
+      newWidget->SetManagesCursor(false);
+    }
+    else
+    {
+      newWidget->SetManagesCursor(true);
+    }
+  }
+  //vtkDebugMacro("Fids CreateWidget: Created widget for node " << markupsNode->GetID() << " with a representation");
+
+  // record the mapping between node and widget in the helper
+  this->MarkupsDisplayNodesToWidgets[markupsDisplayNode] = newWidget;
+
+  // Build representation
+  newWidget->BuildRepresentation();
+
+  if (displayableManager2d)
+  {
+    displayableManager2d->OnWidgetAdded(markupsDisplayNode, newWidget);
+    displayableManager2d->RequestRender();
+
+  }
+  else if (displayableManager3d)
+  {
+    displayableManager2d->OnWidgetAdded(markupsDisplayNode, newWidget);
+    displayableManager3d->RequestRender();
+  }
+
+  // Update cached matrices. Calls UpdateWidget
+  //this->UpdateDisplayableTransforms(mNode);
+}
+
+//---------------------------------------------------------------------------
+void vtkMRMLMarkupsDisplayableManagerHelper::RemoveDisplayNode(vtkMRMLMarkupsDisplayNode* markupsDisplayNode)
+{
+  if (!markupsDisplayNode)
+  {
+    return;
+  }
+
+  vtkMRMLMarkupsDisplayableManagerHelper::DisplayNodeToWidgetIt displayNodeIt
+    = this->MarkupsDisplayNodesToWidgets.find(markupsDisplayNode);
+  if (displayNodeIt == this->MarkupsDisplayNodesToWidgets.end())
+  {
+    // no widget found for this display node
+    return;
+  }
+
+  vtkSlicerAbstractWidget* widget = (displayNodeIt->second);
+  if (widget)
+  {
+    widget->Off();
+    widget->Delete();
+  }
+
+  // TODO: remove vtkMarkupsFiducialWidgetCallback2D observers
+
+  this->MarkupsDisplayNodesToWidgets.erase(markupsDisplayNode);
+}
+
+
+//---------------------------------------------------------------------------
+void vtkMRMLMarkupsDisplayableManagerHelper::AddObservations(vtkMRMLMarkupsNode* node)
+{
+  vtkCallbackCommand* callbackCommand = nullptr;
+  vtkMRMLMarkupsDisplayableManager2D* displayableManager2d = vtkMRMLMarkupsDisplayableManager2D::SafeDownCast(this->DisplayableManager);
+  vtkMRMLMarkupsDisplayableManager3D* displayableManager3d = vtkMRMLMarkupsDisplayableManager3D::SafeDownCast(this->DisplayableManager);
+  if (displayableManager2d)
+  {
+    callbackCommand = displayableManager2d->GetMRMLNodesCallbackCommand();
+  }
+  else if (displayableManager3d)
+  {
+    callbackCommand = displayableManager3d->GetMRMLNodesCallbackCommand();
+  }
+
+  vtkEventBroker* broker = vtkEventBroker::GetInstance();
+  if (!broker->GetObservationExist(node, vtkCommand::ModifiedEvent, this, callbackCommand))
+  {
+    broker->AddObservation(node, vtkCommand::ModifiedEvent, this, callbackCommand);
+  }
+  if (!broker->GetObservationExist(node, vtkMRMLTransformableNode::TransformModifiedEvent, this, callbackCommand))
+  {
+    broker->AddObservation(node, vtkMRMLTransformableNode::TransformModifiedEvent, this, callbackCommand);
+  }
+  if (!broker->GetObservationExist(node, vtkMRMLDisplayableNode::DisplayModifiedEvent, this, callbackCommand))
+  {
+    broker->AddObservation(node, vtkMRMLDisplayableNode::DisplayModifiedEvent, this, callbackCommand);
+  }
+  if (!broker->GetObservationExist(node, vtkMRMLMarkupsNode::PointModifiedEvent, this, callbackCommand))
+  {
+    broker->AddObservation(node, vtkMRMLMarkupsNode::PointModifiedEvent, this, callbackCommand);
+  }
+  if (!broker->GetObservationExist(node, vtkMRMLMarkupsNode::PointAddedEvent, this, callbackCommand))
+  {
+    broker->AddObservation(node, vtkMRMLMarkupsNode::PointAddedEvent, this, callbackCommand);
+  }
+  if (!broker->GetObservationExist(node, vtkMRMLMarkupsNode::PointRemovedEvent, this, callbackCommand))
+  {
+    broker->AddObservation(node, vtkMRMLMarkupsNode::PointRemovedEvent, this, callbackCommand);
+  }
+  if (!broker->GetObservationExist(node, vtkMRMLMarkupsNode::AllPointsRemovedEvent, this, callbackCommand))
+  {
+    broker->AddObservation(node, vtkMRMLMarkupsNode::AllPointsRemovedEvent, this, callbackCommand);
+  }
+  if (!broker->GetObservationExist(node, vtkMRMLMarkupsNode::LockModifiedEvent, this, callbackCommand))
+  {
+    broker->AddObservation(node, vtkMRMLMarkupsNode::LockModifiedEvent, this, callbackCommand);
+  }
+}
+
+//---------------------------------------------------------------------------
+void vtkMRMLMarkupsDisplayableManagerHelper::RemoveObservations(vtkMRMLMarkupsNode* node)
+{
+  vtkCallbackCommand* callbackCommand = nullptr;
+  vtkMRMLMarkupsDisplayableManager2D* displayableManager2d = vtkMRMLMarkupsDisplayableManager2D::SafeDownCast(this->DisplayableManager);
+  vtkMRMLMarkupsDisplayableManager3D* displayableManager3d = vtkMRMLMarkupsDisplayableManager3D::SafeDownCast(this->DisplayableManager);
+  if (displayableManager2d)
+  {
+    callbackCommand = displayableManager2d->GetMRMLNodesCallbackCommand();
+  }
+  else if (displayableManager3d)
+  {
+    callbackCommand = displayableManager3d->GetMRMLNodesCallbackCommand();
+  }
+
+  vtkEventBroker* broker = vtkEventBroker::GetInstance();
+  vtkEventBroker::ObservationVector observations;
+  observations = broker->GetObservations(node, vtkCommand::ModifiedEvent, this, callbackCommand);
+  broker->RemoveObservations(observations);
+  observations = broker->GetObservations(node, vtkMRMLTransformableNode::TransformModifiedEvent, this, callbackCommand);
+  broker->RemoveObservations(observations);
+  observations = broker->GetObservations(node, vtkMRMLDisplayableNode::DisplayModifiedEvent, this, callbackCommand);
+  broker->RemoveObservations(observations);
+  observations = broker->GetObservations(node, vtkMRMLMarkupsNode::PointModifiedEvent, this, callbackCommand);
+  broker->RemoveObservations(observations);
+  observations = broker->GetObservations(node, vtkMRMLMarkupsNode::PointAddedEvent, this, callbackCommand);
+  broker->RemoveObservations(observations);
+  observations = broker->GetObservations(node, vtkMRMLMarkupsNode::PointRemovedEvent, this, callbackCommand);
+  broker->RemoveObservations(observations);
+  observations = broker->GetObservations(node, vtkMRMLMarkupsNode::AllPointsRemovedEvent, this, callbackCommand);
+  broker->RemoveObservations(observations);
+  observations = broker->GetObservations(node, vtkMRMLMarkupsNode::LockModifiedEvent, this, callbackCommand);
+  broker->RemoveObservations(observations);
+}
