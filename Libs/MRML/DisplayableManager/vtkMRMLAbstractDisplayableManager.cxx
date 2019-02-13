@@ -999,3 +999,9 @@ bool vtkMRMLAbstractDisplayableManager::CanProcessInteractionEvent(vtkEventData*
 void vtkMRMLAbstractDisplayableManager::ProcessInteractionEvent(vtkEventData* eventData)
 {
 }
+
+//---------------------------------------------------------------------------
+void vtkMRMLAbstractDisplayableManager::SetHasFocus(bool hasFocus)
+{
+  return;
+}

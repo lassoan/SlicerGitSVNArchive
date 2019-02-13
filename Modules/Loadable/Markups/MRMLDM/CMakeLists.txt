@@ -14,13 +14,8 @@ set(${KIT}_INCLUDE_DIRECTORIES
 )
 
 set(displayable_manager_SRCS
-  vtkMRML${MODULE_NAME}DisplayableManager3D.cxx
-  vtkMRML${MODULE_NAME}DisplayableManager2D.cxx
-  vtkMRML${MODULE_NAME}FiducialDisplayableManager3D.cxx
-  vtkMRML${MODULE_NAME}LineDisplayableManager3D.cxx
-  vtkMRML${MODULE_NAME}AngleDisplayableManager3D.cxx
-  vtkMRML${MODULE_NAME}CurveDisplayableManager3D.cxx
-  vtkMRML${MODULE_NAME}ClosedCurveDisplayableManager3D.cxx
+  vtkMRML${MODULE_NAME}DisplayableManager.cxx
+  vtkMRML${MODULE_NAME}DisplayableManager.cxx
   )
 
 SlicerConfigureDisplayableManagerObjectFactory(

@@ -15,8 +15,8 @@
 
 ==============================================================================*/
 
-#ifndef __vtkMRMLMarkupsDisplayableManager2D_h
-#define __vtkMRMLMarkupsDisplayableManager2D_h
+#ifndef __vtkMRMLMarkupsDisplayableManager_h
+#define __vtkMRMLMarkupsDisplayableManager_h
 
 // MarkupsModule includes
 #include "vtkSlicerMarkupsModuleMRMLDisplayableManagerExport.h"
@@ -25,7 +25,7 @@
 #include "vtkMRMLMarkupsDisplayableManagerHelper.h"
 
 // MRMLDisplayableManager includes
-#include <vtkMRMLAbstractSliceViewDisplayableManager.h>
+#include <vtkMRMLAbstractDisplayableManager.h>
 
 // VTK includes
 #include <vtkSlicerAbstractWidget.h>
@@ -38,17 +38,24 @@ class vtkMRMLMarkupsDisplayNode;
 class vtkAbstractWidget;
 
 /// \ingroup Slicer_QtModules_Markups
-class  VTK_SLICER_MARKUPS_MODULE_MRMLDISPLAYABLEMANAGER_EXPORT vtkMRMLMarkupsDisplayableManager2D :
-    public vtkMRMLAbstractSliceViewDisplayableManager
+class  VTK_SLICER_MARKUPS_MODULE_MRMLDISPLAYABLEMANAGER_EXPORT vtkMRMLMarkupsDisplayableManager :
+    public vtkMRMLAbstractDisplayableManager
 {
 public:
 
   // Allow the helper to call protected methods of displayable manager
   friend class vtkMRMLMarkupsDisplayableManagerHelper;
 
-  static vtkMRMLMarkupsDisplayableManager2D *New();
-  vtkTypeMacro(vtkMRMLMarkupsDisplayableManager2D, vtkMRMLAbstractSliceViewDisplayableManager);
+  static vtkMRMLMarkupsDisplayableManager *New();
+  vtkTypeMacro(vtkMRMLMarkupsDisplayableManager, vtkMRMLAbstractDisplayableManager);
   void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
+
+  /// Check if this is a 2d SliceView displayable manager, returns true if so,
+  /// false otherwise. Checks return from GetSliceNode for non null, which means
+  /// it's a 2d displayable manager
+  virtual bool Is2DDisplayableManager();
+  /// Get the sliceNode, if registered. This would mean it is a 2D SliceView displayableManager.
+  vtkMRMLSliceNode * GetMRMLSliceNode();
 
   /// Check if the displayCoordinates are inside the viewport and if not,
   /// correct the displayCoordinates. Coordinates are reset if the normalized
@@ -96,10 +103,17 @@ public:
   void ProcessInteractionEvent(vtkEventData* eventData) VTK_OVERRIDE;
   void SetHasFocus(bool hasFocus) VTK_OVERRIDE;
 
+  // Methods from vtkMRMLAbstractSliceViewDisplayableManager
+
+  /// Convert device coordinates (display) to XYZ coordinates (viewport).
+  /// Parameter \a xyz is double[3]
+  /// \sa ConvertDeviceToXYZ(vtkRenderWindowInteractor *, vtkMRMLSliceNode *, double x, double y, double xyz[3])
+  void ConvertDeviceToXYZ(double x, double y, double xyz[3]);
+
 protected:
 
-  vtkMRMLMarkupsDisplayableManager2D();
-  virtual ~vtkMRMLMarkupsDisplayableManager2D();
+  vtkMRMLMarkupsDisplayableManager();
+  virtual ~vtkMRMLMarkupsDisplayableManager();
 
   vtkSlicerAbstractWidget* FindClosestWidget(vtkEventData *callData, double &closestDistance2);
 
@@ -133,7 +147,7 @@ protected:
   virtual void OnMRMLDisplayableNodeModifiedEvent(vtkObject* caller) VTK_OVERRIDE;
 
   /// Handler for specific SliceView actions, iterate over the widgets in the helper
-  virtual void OnMRMLSliceNodeModifiedEvent() VTK_OVERRIDE;
+  virtual void OnMRMLSliceNodeModifiedEvent();
 
   /// Check, if the widget is displayable in the current slice geometry for
   /// this markup, returns true if a 3d displayable manager
@@ -212,8 +226,8 @@ protected:
   vtkSlicerAbstractWidget* LastActiveWidget;
 
 private:
-  vtkMRMLMarkupsDisplayableManager2D(const vtkMRMLMarkupsDisplayableManager2D&); /// Not implemented
-  void operator=(const vtkMRMLMarkupsDisplayableManager2D&); /// Not Implemented
+  vtkMRMLMarkupsDisplayableManager(const vtkMRMLMarkupsDisplayableManager&); /// Not implemented
+  void operator=(const vtkMRMLMarkupsDisplayableManager&); /// Not Implemented
 
   int DisableInteractorStyleEventsProcessing;
 

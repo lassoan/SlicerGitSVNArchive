@@ -99,6 +99,9 @@ public:
   /// Process an interaction event.
   virtual void ProcessInteractionEvent(vtkEventData* eventData);
 
+  /// Set if the widget gets/loses focus (interaction events are processed by this displayable manager).
+  virtual void SetHasFocus(bool hasFocus);
+
 protected:
 
   vtkMRMLAbstractDisplayableManager();
