@@ -40,7 +40,6 @@ class vtkOpenGLActor;
 class vtkOpenGLPolyDataMapper;
 class vtkPolyData;
 class vtkTubeFilter;
-class vtkPropPicker;
 class vtkOpenGLTextActor;
 class vtkArcSource;
 
@@ -68,28 +67,14 @@ public:
   int RenderTranslucentPolygonalGeometry(vtkViewport *viewport) VTK_OVERRIDE;
   vtkTypeBool HasTranslucentPolygonalGeometry() VTK_OVERRIDE;
 
-  /// Set/Get the three leaders used to create this representation.
-  /// By obtaining these leaders the user can set the appropriate
-  /// properties, etc.
-  vtkGetObjectMacro(LineActor,vtkOpenGLActor);
-
-  /// Register internal Pickers in the Picking Manager.
-  /// Must be reimplemented by concrete widget representations to register
-  /// their pickers.
-  virtual void RegisterPickers() VTK_OVERRIDE;
-
   /// Return the bounds of the representation
   double *GetBounds() VTK_OVERRIDE;
+
+  int CanInteract(const int displayPosition[2], const double worldPosition[3], double &closestDistance2, int &itemIndex) VTK_OVERRIDE;
 
 protected:
   vtkSlicerCurveRepresentation3D();
   ~vtkSlicerCurveRepresentation3D() VTK_OVERRIDE;
-
-  // Methods to manipulate the cursor
-  virtual void TranslateNode(double eventPos[2]) VTK_OVERRIDE;
-  virtual void TranslateWidget(double eventPos[2]) VTK_OVERRIDE;
-  virtual void ScaleWidget(double eventPos[2]) VTK_OVERRIDE;
-  virtual void RotateWidget(double eventPos[2]) VTK_OVERRIDE;
 
   vtkPolyData                *Line;
   vtkOpenGLPolyDataMapper    *LineMapper;
@@ -100,9 +85,6 @@ protected:
   virtual void BuildLines() VTK_OVERRIDE;
 
   vtkAppendPolyData *appendActors;
-
-  // Support picking
-  vtkPropPicker *LinePicker;
 
 private:
   vtkSlicerCurveRepresentation3D(const vtkSlicerCurveRepresentation3D&) = delete;

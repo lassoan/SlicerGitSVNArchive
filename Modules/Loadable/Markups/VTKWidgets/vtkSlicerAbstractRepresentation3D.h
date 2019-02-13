@@ -106,6 +106,12 @@ public:
   /// Return the bounds of the representation
   double *GetBounds() VTK_OVERRIDE;
 
+  int CanInteract(const int displayPosition[2], const double worldPosition[3], double &closestDistance2, int &itemIndex) VTK_OVERRIDE;
+
+  /// Checks if interaction with straight line between visible points is possible.
+  /// Can be used on the output of CanInteract, as if no better component is found then the input is returned.
+  void CanInteractWithLine(int &foundComponentType, const int displayPosition[2], const double worldPosition[3], double &closestDistance2, int &componentIndex);
+
 protected:
   vtkSlicerAbstractRepresentation3D();
   ~vtkSlicerAbstractRepresentation3D() VTK_OVERRIDE;
@@ -124,6 +130,8 @@ protected:
     // the manipulator in general.
     vtkSmartPointer<vtkProperty> Property;
   };
+
+  ControlPointsPipeline3D* GetControlPointsPipeline(int controlPointType);
 
   // Methods to manipulate the cursor
   virtual void TranslateNode(double eventPos[2]);

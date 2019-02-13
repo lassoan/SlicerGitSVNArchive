@@ -75,11 +75,7 @@ vtkSlicerAbstractRepresentation3D::ControlPointsPipeline3D::ControlPointsPipelin
   this->Glypher->SetScaleFactor(1.0);
 
   // By default the Points are rendered as spheres
-  vtkNew<vtkSphereSource> ss;
-  ss->SetRadius(0.5);
-  ss->Update();
-  this->PointMarkerShape = ss->GetOutput();
-  this->Glypher->SetSourceData(this->PointMarkerShape);
+  this->Glypher->SetSourceConnection(this->GlyphSourceSphere->GetOutputPort());
 
   this->Property = vtkSmartPointer<vtkProperty>::New();
   this->Property->SetRepresentationToSurface();
@@ -129,7 +125,7 @@ vtkSlicerAbstractRepresentation3D::vtkSlicerAbstractRepresentation3D()
   this->ControlPoints[Active]->TextProperty->SetColor(0.4, 1.0, 0.); // bright green
   reinterpret_cast<ControlPointsPipeline3D*>(this->ControlPoints[Selected])->Property->SetColor(0.4, 1.0, 0.);
 
-  this->HandleSize = 3;
+  this->ControlPointSize = 3;
 }
 
 //----------------------------------------------------------------------
@@ -208,9 +204,9 @@ void vtkSlicerAbstractRepresentation3D::BuildRepresentationPointsAndLabels()
 
       controlPoints->ControlPoints->InsertNextPoint(worldPos);
 
-      worldPos[0] += this->HandleSize;
-      worldPos[1] += this->HandleSize;
-      worldPos[2] += this->HandleSize;
+      worldPos[0] += this->ControlPointSize;
+      worldPos[1] += this->ControlPointSize;
+      worldPos[2] += this->ControlPointSize;
       controlPoints->LabelControlPoints->InsertNextPoint(worldPos);
 
       this->GetNthNodeOrientation(pointIndex, orientation);
@@ -239,47 +235,71 @@ void vtkSlicerAbstractRepresentation3D::BuildRepresentationPointsAndLabels()
 }
 
 
-
 //----------------------------------------------------------------------
-int vtkSlicerAbstractRepresentation3D::ActivateNode(int X, int Y)
+int vtkSlicerAbstractRepresentation3D::CanInteract(const int displayPosition[2], const double worldPosition[3], double &closestDistance2, int &componentIndex)
 {
-  if (this->GetNumberOfNodes() == 0)
-    {
-    this->SetActiveNode(-1);
-    return 0;
-    }
+  vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
+  if (!markupsNode || markupsNode->GetLocked() || this->GetNumberOfNodes() < 1)
+  {
+    return vtkMRMLMarkupsDisplayNode::ComponentNone;
+  }
 
-  double displayPos[3];
-  displayPos[0] = static_cast<double>(X);
-  displayPos[1] = static_cast<double>(Y);
-  displayPos[2] = 0.;
+  int foundComponentType = vtkMRMLMarkupsDisplayNode::ComponentNone;
 
-  this->PixelTolerance = this->HandleSize + this->HandleSize * this->Tolerance;
+  double displayPosition3[3] = { static_cast<double>(displayPosition[0]), static_cast<double>(displayPosition[1]), 0.0 };
+
+
+  this->PixelTolerance = this->ControlPointSize + this->ControlPointSize * this->Tolerance;
   double scale = this->CalculateViewScaleFactor();
   this->PixelTolerance *= scale;
+  double pixelTolerance2 = this->PixelTolerance * this->PixelTolerance;
 
-  vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
-
-  if (this->GetNumberOfNodes() > 2 && this->ClosedLoop &&
-    markupsNode)
-    {
+  closestDistance2 = VTK_DOUBLE_MAX; // in display coordinate system
+  componentIndex = -1;
+  if (this->GetNumberOfNodes() > 2 && this->ClosedLoop && markupsNode)
+  {
     // Check if centroid is selected
     double centroidPosWorld[3], centroidPosDisplay[3];
     markupsNode->GetCentroidPosition(centroidPosWorld);
     this->Renderer->SetWorldPoint(centroidPosWorld);
     this->Renderer->WorldToDisplay();
     this->Renderer->GetDisplayPoint(centroidPosDisplay);
-    if (vtkMath::Distance2BetweenPoints(centroidPosDisplay, displayPos) <
-        this->PixelTolerance * this->PixelTolerance)
-      {
-      if (this->GetActiveNode() != -3)
-        {
-        this->SetActiveNode(-3);
-        this->NeedToRender = 1;
-        }
-      return 1;
-      }
+    double dist2 = vtkMath::Distance2BetweenPoints(centroidPosDisplay, displayPosition3);
+    if (dist2 < pixelTolerance2)
+    {
+      closestDistance2 = dist2;
+      foundComponentType = vtkMRMLMarkupsDisplayNode::ComponentCentroid;
+      componentIndex = 0;
     }
+  }
+
+  vtkIdType numberOfPoints = this->GetNumberOfNodes();
+  double displayCoordinates[4], worldCoordinates[4];
+
+  double pointDisplayPos[4] = { 0.0, 0.0, 0.0, 1.0 };
+  double pointWorldPos[4] = { 0.0, 0.0, 0.0, 1.0 };
+
+  for (int i = 0; i < numberOfPoints; i++)
+  {
+    if (!markupsNode->GetNthControlPointVisibility(i))
+    {
+      continue;
+    }
+    double centroidPosWorld[3], centroidPosDisplay[3];
+    markupsNode->GetNthControlPointPositionWorld(i, centroidPosWorld);
+    this->Renderer->SetWorldPoint(centroidPosWorld);
+    this->Renderer->WorldToDisplay();
+    this->Renderer->GetDisplayPoint(centroidPosDisplay);
+    double dist2 = vtkMath::Distance2BetweenPoints(centroidPosDisplay, displayPosition3);
+    if (dist2 < pixelTolerance2)
+    {
+      closestDistance2 = dist2;
+      foundComponentType = vtkMRMLMarkupsDisplayNode::ComponentControlPoint;
+      componentIndex = i;
+    }
+  }
+
+  /* This would probably faster for many points:
 
   this->BuildLocator();
 
@@ -293,7 +313,48 @@ int vtkSlicerAbstractRepresentation3D::ActivateNode(int X, int Y)
     this->NeedToRender = 1;
     }
   return (this->GetActiveNode() >= 0);
+  */
+
+  return foundComponentType;
 }
+
+//----------------------------------------------------------------------
+void vtkSlicerAbstractRepresentation3D::CanInteractWithLine(int &foundComponentType,
+  const int displayPosition[2], const double worldPosition[3], double &closestDistance2, int &componentIndex)
+{
+  vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
+  if (!markupsNode || markupsNode->GetLocked() || this->GetNumberOfNodes() < 1)
+  {
+    return;
+  }
+
+  vtkIdType numberOfPoints = this->GetNumberOfNodes();
+
+  double pointWorldPos1[4] = { 0.0, 0.0, 0.0, 1.0 };
+  double pointWorldPos2[4] = { 0.0, 0.0, 0.0, 1.0 };
+
+  double toleranceWorld = this->ControlPointSize * this->ControlPointSize;
+
+  //this->PixelTolerance = this->ControlPointSize + this->ControlPointSize * this->Tolerance;
+  //double scale = this->CalculateViewScaleFactor();
+  //this->PixelTolerance *= scale;
+
+  for (int i = 0; i < numberOfPoints - 1; i++)
+  {
+    markupsNode->GetNthControlPointPositionWorld(i, pointWorldPos1);
+    markupsNode->GetNthControlPointPositionWorld(i + 1, pointWorldPos2);
+
+    double relativePositionAlongLine = -1.0; // between 0.0-1.0 if between the endpoints of the line segment
+    double distance2 = vtkLine::DistanceToLine(worldPosition, pointWorldPos1, pointWorldPos2, relativePositionAlongLine);
+    if (distance2 < toleranceWorld && distance2 < closestDistance2 && relativePositionAlongLine >= 0 && relativePositionAlongLine <= 1)
+    {
+      closestDistance2 = distance2;
+      foundComponentType = vtkMRMLMarkupsDisplayNode::ComponentLine;
+      componentIndex = i;
+    }
+  }
+}
+
 
 //----------------------------------------------------------------------
 void vtkSlicerAbstractRepresentation3D::BuildRepresentation()
@@ -327,7 +388,7 @@ void vtkSlicerAbstractRepresentation3D::BuildRepresentation()
       controlPoints->Mapper->SetRelativeCoincidentTopologyPointOffsetParameter(-1);
       }
 
-    controlPoints->Glypher->SetScaleFactor(this->HandleSize);
+    controlPoints->Glypher->SetScaleFactor(this->ControlPointSize);
     }
   this->BuildRepresentationPointsAndLabels();
 }
@@ -493,4 +554,10 @@ void vtkSlicerAbstractRepresentation3D::PrintSelf(ostream& os,
       os << indent << "Property: (none)\n";
       }
     }
+}
+
+//-----------------------------------------------------------------------------
+vtkSlicerAbstractRepresentation3D::ControlPointsPipeline3D* vtkSlicerAbstractRepresentation3D::GetControlPointsPipeline(int controlPointType)
+{
+  return reinterpret_cast<ControlPointsPipeline3D*>(this->ControlPoints[controlPointType]);
 }

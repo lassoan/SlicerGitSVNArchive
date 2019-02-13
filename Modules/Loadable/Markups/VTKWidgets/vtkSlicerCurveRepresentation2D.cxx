@@ -45,7 +45,6 @@
 #include "vtkFocalPlanePointPlacer.h"
 #include "vtkBezierSlicerLineInterpolator.h"
 #include "vtkSphereSource.h"
-#include "vtkPropPicker.h"
 #include "vtkAppendPolyData.h"
 #include "vtkTubeFilter.h"
 #include "vtkStringArray.h"
@@ -60,211 +59,63 @@ vtkStandardNewMacro(vtkSlicerCurveRepresentation2D);
 //----------------------------------------------------------------------
 vtkSlicerCurveRepresentation2D::vtkSlicerCurveRepresentation2D()
 {
-  this->LineInterpolator = vtkBezierSlicerLineInterpolator::New();
+  this->LineInterpolator = vtkSmartPointer<vtkBezierSlicerLineInterpolator>::New();
 
-  this->Line = vtkPolyData::New();
-  this->TubeFilter = vtkTubeFilter::New();
+  this->Line = vtkSmartPointer<vtkPolyData>::New();
+  this->TubeFilter = vtkSmartPointer<vtkTubeFilter>::New();
   this->TubeFilter->SetInputData(this->Line);
   this->TubeFilter->SetNumberOfSides(20);
   this->TubeFilter->SetRadius(1);
 
-  this->LineMapper = vtkOpenGLPolyDataMapper2D::New();
+  this->LineMapper = vtkSmartPointer<vtkOpenGLPolyDataMapper2D>::New();
   this->LineMapper->SetInputConnection(this->TubeFilter->GetOutputPort());
 
-  this->LineActor = vtkActor2D::New();
+  this->LineActor = vtkSmartPointer<vtkActor2D>::New();
   this->LineActor->SetMapper(this->LineMapper);
-  this->LineActor->SetProperty(this->Property);
-
-  //Manage the picking
-  this->LinePicker = vtkPropPicker::New();
-  this->LinePicker->PickFromListOn();
-  this->LinePicker->InitializePickList();
-  this->LinePicker->AddPickList(this->LineActor);
+  this->LineActor->SetProperty(this->GetControlPointsPipeline(Unselected)->Property);
 }
 
 //----------------------------------------------------------------------
 vtkSlicerCurveRepresentation2D::~vtkSlicerCurveRepresentation2D()
 {
-  this->LineInterpolator->Delete();
-
-  this->Line->Delete();
-  this->LineMapper->Delete();
-  this->LineActor->Delete();
-  this->LinePicker->Delete();
-  this->TubeFilter->Delete();
-}
-
-//----------------------------------------------------------------------
-void vtkSlicerCurveRepresentation2D::TranslateNode(double eventPos[2])
-{
-  this->Superclass::TranslateNode(eventPos);
-
-  if (this->ClosedLoop)
-    {
-    this->UpdateCentroid();
-    }
-}
-
-//----------------------------------------------------------------------
-void vtkSlicerCurveRepresentation2D::TranslateWidget(double eventPos[2])
-{
-  // If any node is locked return
-  for (int i = 0; i < this->GetNumberOfNodes(); i++)
-    {
-    if (this->GetNthNodeLocked(i))
-      {
-      return;
-      }
-    }
-
-  this->Superclass::TranslateWidget(eventPos);
-
-  if (this->ClosedLoop)
-    {
-    this->UpdateCentroid();
-    }
-}
-
-//----------------------------------------------------------------------
-void vtkSlicerCurveRepresentation2D::ScaleWidget(double eventPos[2])
-{
-  if (this->GetActiveNode() == -3)
-    {
-    return;
-    }
-
-  // If any node is locked return
-  for (int i = 0; i < this->GetNumberOfNodes(); i++)
-    {
-    if (this->GetNthNodeLocked(i))
-      {
-      return;
-      }
-    }
-
-  this->Superclass::ScaleWidget(eventPos);
-}
-
-//----------------------------------------------------------------------
-void vtkSlicerCurveRepresentation2D::RotateWidget(double eventPos[2])
-{
-  if (this->GetActiveNode() == -3)
-    {
-    return;
-    }
-
-  // If any node is locked return
-  for (int i = 0; i < this->GetNumberOfNodes(); i++)
-    {
-    if (this->GetNthNodeLocked(i))
-      {
-      return;
-      }
-    }
-
-  this->Superclass::RotateWidget(eventPos);
 }
 
 //----------------------------------------------------------------------
 void vtkSlicerCurveRepresentation2D::BuildLines()
 {
-  vtkNew<vtkPoints> points;
-  vtkNew<vtkCellArray> line;
-
-  int i, j;
-  vtkIdType index = 0;
-
-  int numberOfNodes = this->GetNumberOfNodes();
-  int count = numberOfNodes;
-  for (i = 0; i < numberOfNodes; i++)
-    {
-    count += this->GetNumberOfIntermediatePoints(i);
-    }
-
-  if (this->ClosedLoop)
-    {
-    count++;
-    }
-
-  points->SetNumberOfPoints(count);
-  vtkIdType numLine = count;
-  if (numLine > 0)
-    {
-    vtkIdType *lineIndices = new vtkIdType[numLine];
-
-    double pos[3] = { 0.0 };
-
-    for (i = 0; i < numberOfNodes; i++)
-      {
-      // Add the node
-      this->GetNthNodeDisplayPosition(i, pos);
-      points->InsertPoint(index, pos);
-      lineIndices[index] = index;
-      index++;
-
-      int numIntermediatePoints = this->GetNumberOfIntermediatePoints(i);
-
-      for (j = 0; j < numIntermediatePoints; j++)
-        {
-        this->GetIntermediatePointDisplayPosition(i, j, pos);
-        points->InsertPoint(index, pos);
-        lineIndices[index] = index;
-        index++;
-        }
-      }
-
-    if (this->ClosedLoop)
-      {
-      this->GetNthNodeWorldPosition(0, pos);
-      points->InsertPoint(index, pos);
-      lineIndices[index] = 0;
-      }
-
-    line->InsertNextCell(numLine, lineIndices);
-    delete [] lineIndices;
-    }
-
-  this->Line->SetPoints(points);
-  this->Line->SetLines(line);
+  this->BuildLine(this->Line);
 }
 
 //----------------------------------------------------------------------
 void vtkSlicerCurveRepresentation2D::BuildRepresentation()
 {
   // Make sure we are up to date with any changes made in the placer
-  this->UpdateWidget(true);
+  //this->UpdateWidget(true);
 
-  if (this->MarkupsNode == nullptr)
+  vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
+  if (markupsNode == nullptr)
     {
     return;
     }
 
-  vtkMRMLMarkupsDisplayNode* display = vtkMRMLMarkupsDisplayNode::SafeDownCast
-    (this->MarkupsNode->GetDisplayNode());
-  if (display == nullptr)
+  vtkMRMLMarkupsDisplayNode* markupsDisplayNode = this->GetMarkupsDisplayNode();
+  if (markupsDisplayNode == nullptr)
     {
     return;
-    }
-
-  if (display->GetTextVisibility())
-    {
-    LabelsActor->VisibilityOn();
-    SelectedLabelsActor->VisibilityOn();
-    ActiveLabelsActor->VisibilityOn();
-    }
-  else
-    {
-    LabelsActor->VisibilityOff();
-    SelectedLabelsActor->VisibilityOff();
-    ActiveLabelsActor->VisibilityOff();
     }
 
   double scale = this->CalculateViewScaleFactor();
-  this->Glypher->SetScaleFactor(scale * this->HandleSize);
-  this->SelectedGlypher->SetScaleFactor(scale * this->HandleSize);
-  this->ActiveGlypher->SetScaleFactor(scale * this->HandleSize);
-  this->TubeFilter->SetRadius(scale * this->HandleSize * 0.125);
-  this->BuildRepresentationPointsAndLabels(scale * this->HandleSize);
+
+  for (int controlPointType = 0; controlPointType < NumberOfControlPointTypes; ++controlPointType)
+  {
+    ControlPointsPipeline2D* controlPoints = this->GetControlPointsPipeline(controlPointType);
+    controlPoints->LabelsActor->SetVisibility(this->MarkupsDisplayNode->GetTextVisibility());
+    controlPoints->Glypher->SetScaleFactor(scale * this->ControlPointSize);
+  }
+
+  this->TubeFilter->SetRadius(scale * this->ControlPointSize * 0.125);
+
+  this->BuildRepresentationPointsAndLabels(scale * this->ControlPointSize);
 
   bool allNodeVisibile = true;
   for (int ii = 0; ii < this->GetNumberOfNodes(); ii++)
@@ -289,132 +140,72 @@ void vtkSlicerCurveRepresentation2D::BuildRepresentation()
       }
     }
 
-  if (this->GetActiveNode() == -2)
+  if (markupsDisplayNode->GetActiveComponentType() == vtkMRMLMarkupsDisplayNode::ComponentLine)
     {
-    this->LineActor->SetProperty(this->ActiveProperty);
+    this->LineActor->SetProperty(this->GetControlPointsPipeline(Active)->Property);
     }
   else if (allNodeSelected)
     {
-    this->LineActor->SetProperty(this->SelectedProperty);
+    this->LineActor->SetProperty(this->GetControlPointsPipeline(Selected)->Property);
     }
   else
     {
-    this->LineActor->SetProperty(this->Property);
+    this->LineActor->SetProperty(this->GetControlPointsPipeline(Unselected)->Property);
     }
 
-  bool allNodeNotVisibile = true;
+  bool allNodesHidden = true;
   for (int ii = 0; ii < this->GetNumberOfNodes(); ii++)
     {
     if (this->PointsVisibilityOnSlice->GetValue(ii) &&
         this->GetNthNodeVisibility(ii))
       {
-      allNodeNotVisibile = false;
+      allNodesHidden = false;
       break;
       }
     }
 
-  if (this->ClosedLoop && this->GetNumberOfNodes() > 2 &&
-      this->GetActiveNode() != -3 && !allNodeNotVisibile && this->CentroidVisibilityOnSlice)
-    {
-    double centroidPosWorld[3], centroidPosDisplay[3], orient[3] = {0};
-    this->MarkupsNode->GetCentroidPosition(centroidPosWorld);
+  if (this->ClosedLoop && this->GetNumberOfNodes() > 2 && this->CentroidVisibilityOnSlice && !allNodesHidden)
+  {
+    double centroidPosWorld[3], centroidPosDisplay[3], orient[3] = { 0 };
+    markupsNode->GetCentroidPosition(centroidPosWorld);
     this->GetWorldToSliceCoordinates(centroidPosWorld, centroidPosDisplay);
-
-    if (allNodeSelected)
-      {
-
-      this->SelectedFocalPoint->InsertNextPoint(centroidPosDisplay);
-      this->SelectedFocalData->GetPointData()->GetNormals()->InsertNextTuple(orient);
-
-      this->SelectedFocalPoint->Modified();
-      this->SelectedFocalData->GetPointData()->GetNormals()->Modified();
-      this->SelectedFocalData->Modified();
-      }
-    else
-      {
-      this->FocalPoint->InsertNextPoint(centroidPosDisplay);
-      this->FocalData->GetPointData()->GetNormals()->InsertNextTuple(orient);
-
-      this->FocalPoint->Modified();
-      this->FocalData->GetPointData()->GetNormals()->Modified();
-      this->FocalData->Modified();
-      }
-    }
-  else if (this->ClosedLoop && this->GetActiveNode() == -3 &&
-           !allNodeNotVisibile && this->CentroidVisibilityOnSlice)
+    int centroidControlPointType = allNodeSelected ? Selected : Unselected;
+    if (markupsDisplayNode->GetActiveComponentType() == vtkMRMLMarkupsDisplayNode::ComponentCentroid)
     {
-    double centroidPosWorld[3], centroidPosDisplay[3], orient[3] = {0};
-    this->MarkupsNode->GetCentroidPosition(centroidPosWorld);
-    this->GetWorldToSliceCoordinates(centroidPosWorld, centroidPosDisplay);
-
-    this->ActiveFocalPoint->SetPoint(0, centroidPosDisplay);
-    this->ActiveFocalData->GetPointData()->GetNormals()->SetTuple(0, orient);
-
-    this->ActiveFocalPoint->Modified();
-    this->ActiveFocalData->GetPointData()->GetNormals()->Modified();
-    this->ActiveFocalData->Modified();
-
-    this->ActiveActor->VisibilityOn();
-    this->ActiveLabelsActor->VisibilityOff();
+      centroidControlPointType = Active;
+      this->GetControlPointsPipeline(centroidControlPointType)->ControlPoints->SetNumberOfPoints(0);
+      this->GetControlPointsPipeline(centroidControlPointType)->ControlPointsPolyData->GetPointData()->GetNormals()->SetNumberOfTuples(0);
     }
+    this->GetControlPointsPipeline(centroidControlPointType)->ControlPoints->InsertNextPoint(centroidPosDisplay);
+    this->GetControlPointsPipeline(centroidControlPointType)->ControlPointsPolyData->GetPointData()->GetNormals()->InsertNextTuple(orient);
+
+    this->GetControlPointsPipeline(centroidControlPointType)->ControlPoints->Modified();
+    this->GetControlPointsPipeline(centroidControlPointType)->ControlPointsPolyData->GetPointData()->GetNormals()->Modified();
+    this->GetControlPointsPipeline(centroidControlPointType)->ControlPointsPolyData->Modified();
+    if (centroidControlPointType == Active)
+    {
+      this->GetControlPointsPipeline(centroidControlPointType)->Actor->VisibilityOn();
+      this->GetControlPointsPipeline(centroidControlPointType)->LabelsActor->VisibilityOff();
+    }
+  }
 }
 
 //----------------------------------------------------------------------
-int vtkSlicerCurveRepresentation2D::ComputeInteractionState(int X, int Y, int vtkNotUsed(modified))
+int vtkSlicerCurveRepresentation2D::CanInteract(const int displayPosition[2], const double worldPosition[3], double &closestDistance2, int &componentIndex)
 {
-  if (!this->MarkupsNode || this->MarkupsNode->GetLocked())
-    {
-    this->InteractionState = vtkSlicerAbstractRepresentation::Outside;
-    return this->InteractionState;
-    }
+  vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
+  if (!markupsNode || markupsNode->GetLocked() || this->GetNumberOfNodes() < 1)
+  {
+    return vtkMRMLMarkupsDisplayNode::ComponentNone;
+  }
+  int foundComponentType = Superclass::CanInteract(displayPosition, worldPosition, closestDistance2, componentIndex);
+  if (foundComponentType != vtkMRMLMarkupsDisplayNode::ComponentNone && closestDistance2 == 0.0)
+  {
+    return foundComponentType;
+  }
 
-  int oldActiveNode = this->GetActiveNode();
-
-  this->MarkupsNode->DisableModifiedEventOn();
-  if (this->ActivateNode(X, Y))
-    {
-    if (this->PointsVisibilityOnSlice->GetValue(this->GetActiveNode()))
-      {
-      this->InteractionState = vtkSlicerAbstractRepresentation::OnControlPoint;
-      }
-    else
-      {
-      this->SetActiveNode(-1);
-      this->InteractionState = vtkSlicerAbstractRepresentation::Outside;
-      }
-    }
-  //else if (this->GetAssemblyPath(X, Y, 0, this->LinePicker)) // poor perfomances when widgets > 5
-  /*else if (this->LinePicker->Pick(X, Y, 0, this->Renderer)) // produce many rendering flickering when < 10
-    {
-    this->SetActiveNode(-2);
-    this->InteractionState = vtkSlicerAbstractRepresentation::OnLine;
-    }*/
-  else
-    {
-    this->InteractionState = vtkSlicerAbstractRepresentation::Outside;
-    }
-  this->MarkupsNode->DisableModifiedEventOff();
-
-  if (oldActiveNode != this->GetActiveNode())
-    {
-    this->MarkupsNode->Modified();
-    }
-
-  // This additional render is need only because of the flickering bug due to the vtkPropPicker
-  // remove once it is fixed
-  //this->NeedToRenderOn();
-  return this->InteractionState;
-}
-
-//----------------------------------------------------------------------
-void vtkSlicerCurveRepresentation2D::RegisterPickers()
-{
-  vtkPickingManager* pm = this->GetPickingManager();
-  if (!pm)
-    {
-    return;
-    }
-  pm->AddPicker(this->LinePicker, this);
+  // TODO: implement quick search of nearby points on the curve
+  return foundComponentType;
 }
 
 //----------------------------------------------------------------------

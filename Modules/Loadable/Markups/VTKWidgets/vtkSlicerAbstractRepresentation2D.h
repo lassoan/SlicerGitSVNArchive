@@ -37,11 +37,12 @@
 
 #include "vtkMRMLSliceNode.h"
 
-class vtkProperty2D;
 class vtkActor2D;
-class vtkOpenGLPolyDataMapper2D;
 class vtkGlyph2D;
 class vtkLabelPlacementMapper;
+class vtkMarkupsGlyphSource2D;
+class vtkOpenGLPolyDataMapper2D;
+class vtkProperty2D;
 
 class VTK_SLICER_MARKUPS_MODULE_VTKWIDGETS_EXPORT vtkSlicerAbstractRepresentation2D : public vtkSlicerAbstractRepresentation
 {
@@ -52,6 +53,10 @@ public:
 
   /// Position is displayed (slice) position
   int CanInteract(const int displayPosition[2], const double worldPosition[3], double &closestDistance2, int &itemIndex) VTK_OVERRIDE;
+
+  /// Checks if interaction with straight line between visible points is possible.
+  /// Can be used on the output of CanInteract, as if no better component is found then the input is returned.
+  void CanInteractWithLine(int &foundComponentType, const int displayPosition[2], const double worldPosition[3], double &closestDistance2, int &componentIndex);
 
   /// Given a display position, activate a node. The closest
   /// node within tolerance will be activated. If a node is
@@ -128,12 +133,16 @@ public:
   /// Set the centroid slice visibility (i.e. if it is on the slice).
   virtual void SetCentroidSliceVisibility(bool visibility);
 
+  void GetSliceToWorldCoordinates(const double[2], double[3]);
+  void GetWorldToSliceCoordinates(const double worldPos[3], double slicePos[2]);
+
+  /// Set/Get the 2d scale factor to divide 3D scale by to show 2D elements appropriately (usually set to 300)
+  vtkSetMacro(ScaleFactor2D, double);
+  vtkGetMacro(ScaleFactor2D, double);
+
 protected:
   vtkSlicerAbstractRepresentation2D();
   ~vtkSlicerAbstractRepresentation2D() VTK_OVERRIDE;
-
-  void GetSliceToWorldCoordinates(const double [2], double [3]);
-  void GetWorldToSliceCoordinates(const double worldPos[3], double slicePos[2]);
 
   vtkWeakPointer<vtkMRMLSliceNode> SliceNode;
 
@@ -152,8 +161,13 @@ protected:
     vtkSmartPointer<vtkProperty2D> Property;
   };
 
+  ControlPointsPipeline2D* GetControlPointsPipeline(int controlPointType);
+
   vtkSmartPointer<vtkIntArray> PointsVisibilityOnSlice;
   bool                        CentroidVisibilityOnSlice;
+
+  /// Scale factor for 2d windows
+  double ScaleFactor2D;
 
   virtual void  CreateDefaultProperties() VTK_OVERRIDE;
   virtual void BuildRepresentationPointsAndLabels(double labelsOffset);

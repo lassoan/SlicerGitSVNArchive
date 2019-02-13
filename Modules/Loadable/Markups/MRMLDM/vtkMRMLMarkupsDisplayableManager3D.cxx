@@ -134,8 +134,8 @@ void vtkMRMLMarkupsDisplayableManager3D::SetAndObserveNodes()
 {
   // run through all associated nodes
   vtkMRMLMarkupsDisplayableManagerHelper::MarkupsNodeListIt it;
-  for(it = this->Helper->MarkupsNodeList.begin();
-      it != this->Helper->MarkupsNodeList.end();
+  for(it = this->Helper->MarkupsDisplayNodeList.begin();
+      it != this->Helper->MarkupsDisplayNodeList.end();
       ++it)
     {
     vtkMRMLMarkupsNode* markupsNode = vtkMRMLMarkupsNode::SafeDownCast((*it));
@@ -541,7 +541,7 @@ void vtkMRMLMarkupsDisplayableManager3D::OnMRMLMarkupsDisplayNodeModifiedEvent(v
             spacingScale = (spacing[0] + spacing[1] + spacing[2]) / 3.;
             }
           }
-        rep->SetHandleSize(markupsDisplayNode->GetGlyphScale() * spacingScale);
+        rep->SetControlPointSize(markupsDisplayNode->GetGlyphScale() * spacingScale);
 
         vtkTextProperty *textProp = rep->GetTextProperty();
         if (textProp)

@@ -68,13 +68,6 @@ public:
   int RenderTranslucentPolygonalGeometry(vtkViewport *viewport) VTK_OVERRIDE;
   vtkTypeBool HasTranslucentPolygonalGeometry() VTK_OVERRIDE;
 
-  /// Set/Get the three leaders used to create this representation.
-  /// By obtaining these leaders the user can set the appropriate
-  /// properties, etc.
-  vtkGetObjectMacro(LineActor,vtkOpenGLActor);
-  vtkGetObjectMacro(ArcActor,vtkOpenGLActor);
-  vtkGetObjectMacro(TextActor,vtkOpenGLTextActor);
-
   /// Register internal Pickers in the Picking Manager.
   /// Must be reimplemented by concrete widget representations to register
   /// their pickers.
@@ -83,34 +76,33 @@ public:
   /// Return the bounds of the representation
   double *GetBounds() VTK_OVERRIDE;
 
+  virtual bool GetTransformationReferencePoint(double referencePointWorld[3]) VTK_OVERRIDE;
+
+  int CanInteract(const int displayPosition[2], const double worldPosition[3], double &closestDistance2, int &itemIndex) VTK_OVERRIDE;
+
 protected:
   vtkSlicerAngleRepresentation3D();
   ~vtkSlicerAngleRepresentation3D() VTK_OVERRIDE;
 
-  // Methods to manipulate the cursor
-  virtual void TranslateWidget(double eventPos[2]) VTK_OVERRIDE;
-  virtual void ScaleWidget(double eventPos[2]) VTK_OVERRIDE;
-  virtual void RotateWidget(double eventPos[2]) VTK_OVERRIDE;
+  vtkSmartPointer<vtkPolyData>                Line;
+  vtkSmartPointer<vtkOpenGLPolyDataMapper>    LineMapper;
+  vtkSmartPointer<vtkOpenGLActor>             LineActor;
 
-  vtkPolyData                *Line;
-  vtkOpenGLPolyDataMapper    *LineMapper;
-  vtkOpenGLActor             *LineActor;
+  vtkSmartPointer<vtkArcSource>               Arc;
+  vtkSmartPointer<vtkOpenGLPolyDataMapper>    ArcMapper;
+  vtkSmartPointer<vtkOpenGLActor>             ArcActor;
 
-  vtkArcSource               *Arc;
-  vtkOpenGLPolyDataMapper    *ArcMapper;
-  vtkOpenGLActor             *ArcActor;
+  vtkSmartPointer<vtkOpenGLTextActor>         TextActor;
 
-  vtkOpenGLTextActor         *TextActor;
+  vtkSmartPointer<vtkTubeFilter>              TubeFilter;
+  vtkSmartPointer<vtkTubeFilter>              ArcTubeFilter;
 
-  vtkTubeFilter              *TubeFilter;
-  vtkTubeFilter              *ArcTubeFilter;
-
-  char                       *LabelFormat;
+  std::string LabelFormat;
 
   virtual void BuildLines() VTK_OVERRIDE;
 
   // Support picking
-  vtkPropPicker *LinePicker;
+  vtkSmartPointer<vtkPropPicker> LinePicker;
 
 private:
   vtkSlicerAngleRepresentation3D(const vtkSlicerAngleRepresentation3D&) = delete;

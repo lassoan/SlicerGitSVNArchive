@@ -311,11 +311,6 @@ public:
   /// Get the Nth control point based on it's ID
   ControlPoint* GetNthControlPointByID(const char* controlPointID);
 
-  /// Active control point
-  /// -1 if no point is active
-  void SetActiveControlPoint(int index);
-  vtkGetMacro(ActiveControlPoint, int);
-
   /// Get the Selected flag on the Nth control point,
   /// returns false if control point doesn't exist
   bool GetNthControlPointSelected(int n = 0);
@@ -440,9 +435,6 @@ protected:
 private:
   // Vector of point sets
   std::vector<ControlPoint*> ControlPoints;
-
-  // current active point (hovered by the mouse)
-  int ActiveControlPoint;
 
   // Locks all the points and GUI
   int Locked;

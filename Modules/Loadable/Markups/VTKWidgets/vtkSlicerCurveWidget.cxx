@@ -68,66 +68,10 @@ void vtkSlicerCurveWidget::CreateDefaultRepresentation()
   this->SetRepresentation(rep);
 }
 
-//-------------------------------------------------------------------------
-int vtkSlicerCurveWidget::AddPointToRepresentationFromWorldCoordinate(
-  double worldCoordinates[3], bool persistence /*= false*/)
-{
-  vtkSlicerAbstractRepresentation *rep =
-    reinterpret_cast<vtkSlicerAbstractRepresentation*>(this->WidgetRep);
-
-  if (!rep)
-    {
-    return -1;
-    }
-
-  if (persistence)
-    {
-    if (this->WidgetState == vtkSlicerCurveWidget::Manipulate)
-      {
-      this->FollowCursor = false;
-      rep->DeleteLastNode();
-      }
-    else if (this->FollowCursor)
-      {
-      rep->DeleteLastNode();
-      }
-    }
-  else if (this->FollowCursor)
-    {
-    rep->DeleteLastNode();
-    this->FollowCursor = false;
-    }
-
-  if (rep->AddNodeAtWorldPosition(worldCoordinates))
-    {
-    this->CurrentHandle = rep->GetActiveNode();
-    if (this->WidgetState == vtkSlicerCurveWidget::Start)
-      {
-      this->InvokeEvent(vtkCommand::StartInteractionEvent, &this->CurrentHandle);
-      }
-    this->WidgetState = vtkSlicerCurveWidget::Define;
-    rep->VisibilityOn();
-    this->EventCallbackCommand->SetAbortFlag(1);
-    this->InvokeEvent(vtkCommand::PlacePointEvent, &this->CurrentHandle);
-    this->ReleaseFocus();
-    this->Render();
-    if (!this->FollowCursor)
-      {
-      this->WidgetState = vtkSlicerCurveWidget::Manipulate;
-      this->InvokeEvent(vtkCommand::EndInteractionEvent, &this->CurrentHandle);
-      }
-    else
-      {
-      rep->AddNodeAtWorldPosition(worldCoordinates);
-      }
-    }
-
-  return this->CurrentHandle;
-}
-
 //----------------------------------------------------------------------
 void vtkSlicerCurveWidget::AddPointOnCurveAction(vtkAbstractWidget *w)
 {
+  /* TODO: implement this
   vtkSlicerCurveWidget *self = reinterpret_cast<vtkSlicerCurveWidget*>(w);
   if ( self->WidgetState != vtkSlicerCurveWidget::Manipulate)
     {
@@ -162,5 +106,6 @@ void vtkSlicerCurveWidget::AddPointOnCurveAction(vtkAbstractWidget *w)
     self->Render();
     rep->NeedToRenderOff();
     }
+    */
 }
 

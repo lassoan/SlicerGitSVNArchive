@@ -40,7 +40,6 @@ class vtkOpenGLActor;
 class vtkOpenGLPolyDataMapper;
 class vtkPolyData;
 class vtkTubeFilter;
-class vtkPropPicker;
 
 class VTK_SLICER_MARKUPS_MODULE_VTKWIDGETS_EXPORT vtkSlicerLineRepresentation3D : public vtkSlicerAbstractRepresentation3D
 {
@@ -56,7 +55,8 @@ public:
   /// are the methods that the widget and its representation use to
   /// communicate with each other.
   void BuildRepresentation() VTK_OVERRIDE;
-  int ComputeInteractionState(int X, int Y, int modified=0) VTK_OVERRIDE;
+
+  int CanInteract(const int displayPosition[2], const double worldPosition[3], double &closestDistance2, int &itemIndex) VTK_OVERRIDE;
 
   /// Methods to make this class behave as a vtkProp.
   void GetActors(vtkPropCollection *) VTK_OVERRIDE;
@@ -71,22 +71,12 @@ public:
   /// properties, etc.
   vtkGetObjectMacro(LineActor,vtkOpenGLActor);
 
-  /// Register internal Pickers in the Picking Manager.
-  /// Must be reimplemented by concrete widget representations to register
-  /// their pickers.
-  virtual void RegisterPickers() VTK_OVERRIDE;
-
   /// Return the bounds of the representation
   double *GetBounds() VTK_OVERRIDE;
 
 protected:
   vtkSlicerLineRepresentation3D();
   ~vtkSlicerLineRepresentation3D() VTK_OVERRIDE;
-
-  // Methods to manipulate the cursor
-  virtual void TranslateWidget(double eventPos[2]) VTK_OVERRIDE;
-  virtual void ScaleWidget(double eventPos[2]) VTK_OVERRIDE;
-  virtual void RotateWidget(double eventPos[2]) VTK_OVERRIDE;
 
   vtkPolyData                *Line;
   vtkOpenGLPolyDataMapper    *LineMapper;
@@ -97,9 +87,6 @@ protected:
   virtual void BuildLines() VTK_OVERRIDE;
 
   vtkAppendPolyData *appendActors;
-
-  // Support picking
-  vtkPropPicker *LinePicker;
 
 private:
   vtkSlicerLineRepresentation3D(const vtkSlicerLineRepresentation3D&) = delete;

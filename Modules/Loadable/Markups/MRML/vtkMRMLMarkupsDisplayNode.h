@@ -27,6 +27,7 @@
 #include "vtkSlicerMarkupsModuleMRMLExport.h"
 
 #include "vtkMRMLDisplayNode.h"
+#include "vtkMRMLMarkupsNode.h"
 
 /// \ingroup Slicer_QtModules_Markups
 class  VTK_SLICER_MARKUPS_MODULE_MRML_EXPORT vtkMRMLMarkupsDisplayNode : public vtkMRMLDisplayNode
@@ -62,6 +63,34 @@ public:
   virtual void ProcessMRMLEvents ( vtkObject * /*caller*/,
                                    unsigned long /*event*/,
                                    void * /*callData*/ ) VTK_OVERRIDE;
+
+  /// Convenienve function for getting the displayable markups node
+  vtkMRMLMarkupsNode* GetMarkupsNode();
+
+  /// Active item (item that the mouse is hovered over).
+  /// This propoerty is computed on-the-fly and saved to file.
+  vtkGetMacro(ActiveComponentType, int);
+  enum ComponentType
+  {
+    ComponentNone = 0,
+    ComponentControlPoint,
+    ComponentLine,
+    ComponentCentroid
+  };
+
+  /// Index of active item (item that the mouse is hovered over).
+  /// This propoerty is computed on-the-fly and saved to file.
+  vtkGetMacro(ActiveComponentIndex, int);
+
+  /// Set active component type and index.
+  void SetActiveComponent(int componentType, int componentIndex);
+
+  /// Set active component index to the provided value and component type to ComponentControlPoint.
+  void SetActiveControlPoint(int controlPointIndex);
+
+  /// Returns index of active control point if active component type is ComponentControlPoint,
+  /// -1 otherwise.
+  int GetActiveControlPoint();
 
   /// Set the text scale of the associated text.
   vtkGetMacro(TextScale,double);
@@ -189,6 +218,10 @@ protected:
   ~vtkMRMLMarkupsDisplayNode();
   vtkMRMLMarkupsDisplayNode( const vtkMRMLMarkupsDisplayNode& );
   void operator= ( const vtkMRMLMarkupsDisplayNode& );
+
+  // current active point or widget part (hovered by the mouse)
+  int ActiveComponentType;
+  int ActiveComponentIndex;
 
   bool TextVisibility;
   double TextScale;

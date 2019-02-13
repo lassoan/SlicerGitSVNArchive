@@ -174,9 +174,6 @@ public:
   /// Create the default widget representation if one is not set.
   virtual void CreateDefaultRepresentation() override;
 
-  /// Add a point to the current active Markup at input World coordiantes.
-  int AddPointToRepresentationFromWorldCoordinate(double worldCoordinates [3], bool persistence = false) VTK_OVERRIDE;
-
 protected:
   vtkSlicerCurveWidget();
   ~vtkSlicerCurveWidget() override;

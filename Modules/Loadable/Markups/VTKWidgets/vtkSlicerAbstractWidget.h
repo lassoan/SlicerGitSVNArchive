@@ -102,8 +102,7 @@ public:
   enum {
     Idle, // mouse pointer is outside the widget, click does not do anything
     Define, // click in empty area will place a new point
-    OnControlPoint, // mouse pointer is over a control point, clicking will manipulate it
-    OnWidget, // mouse pointer is over a widget line, clicking will add a point or manipulate the line
+    OnWidget, // mouse pointer is over the widget, clicking will add a point or manipulate the line
     TranslateControlPoint, // translating the active point by mouse move
     Translate, // mouse move transforms the entire widget
     Scale,     // mouse move transforms the entire widget
@@ -120,7 +119,7 @@ public:
   void RemoveLastPreviewPointToRepresentation();
 
   /// Add a point to the current active Markup at input World coordiantes.
-  virtual int AddPointToRepresentationFromWorldCoordinate(double worldCoordinates [3], bool persistence = false) = 0;
+  virtual int AddPointToRepresentationFromWorldCoordinate(double worldCoordinates [3], bool persistence = false);
 
   /// Return true if the displayable manager can process the event.
   /// Distance2 is the squared distance in display coordinates from the closest interaction position.
@@ -136,6 +135,13 @@ public:
   void SetCallbackMethod(vtkEventData *edata, unsigned long widgetEvent, vtkWidgetCallbackMapper::CallbackType f);
   void SetCallbackMethod(unsigned long interactionEvent, int modifiers, unsigned long widgetEvent, vtkWidgetCallbackMapper::CallbackType f);
 
+  enum { RestrictNone = 0, RestrictToX, RestrictToY, RestrictToZ };
+
+  /// Set if translations should be restricted to one of the axes (disabled if
+  /// RestrictNone is specified).
+  vtkSetClampMacro(RestrictFlag, int, RestrictNone, RestrictToZ);
+  vtkGetMacro(RestrictFlag, int);
+
 protected:
   vtkSlicerAbstractWidget();
   ~vtkSlicerAbstractWidget() VTK_OVERRIDE;
@@ -150,9 +156,14 @@ protected:
 
   vtkMRMLMarkupsNode* GetMarkupsNode();
 
+  bool IsAnyControlPointLocked();
+
   int WidgetState;
   //int CurrentHandle;
   vtkTypeBool FollowCursor;
+
+  // Axis restrict flag
+  int RestrictFlag;
 
   // helper methods for cursor management
   void SetCursor(int state) override;

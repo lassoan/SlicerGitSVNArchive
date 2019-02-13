@@ -60,7 +60,7 @@ public:
   /// are the methods that the widget and its representation use to
   /// communicate with each other.
   void BuildRepresentation() VTK_OVERRIDE;
-  int ComputeInteractionState(int X, int Y, int modified=0) VTK_OVERRIDE;
+  int CanInteract(const int displayPosition[2], const double worldPosition[3], double &closestDistance2, int &componentIndex) VTK_OVERRIDE;
 
   /// Methods to make this class behave as a vtkProp.
   void GetActors(vtkPropCollection *) override;
@@ -70,16 +70,6 @@ public:
   int RenderTranslucentPolygonalGeometry(vtkViewport *viewport) override;
   vtkTypeBool HasTranslucentPolygonalGeometry() override;
 
-  /// Set/Get the three leaders used to create this representation.
-  /// By obtaining these leaders the user can set the appropriate
-  /// properties, etc.
-  vtkGetObjectMacro(LineActor,vtkActor2D);
-
-  /// Register internal Pickers in the Picking Manager.
-  /// Must be reimplemented by concrete widget representations to register
-  /// their pickers.
-  virtual void RegisterPickers() VTK_OVERRIDE;
-
   /// Return the bounds of the representation
   double *GetBounds() override;
 
@@ -87,24 +77,15 @@ protected:
   vtkSlicerCurveRepresentation2D();
   ~vtkSlicerCurveRepresentation2D() override;
 
-  // Methods to manipulate the cursor
-  virtual void TranslateNode(double eventPos[2]) VTK_OVERRIDE;
-  virtual void TranslateWidget(double eventPos[2]) VTK_OVERRIDE;
-  virtual void ScaleWidget(double eventPos[2]) VTK_OVERRIDE;
-  virtual void RotateWidget(double eventPos[2]) VTK_OVERRIDE;
+  vtkSmartPointer<vtkPolyData>                  Line;
+  vtkSmartPointer<vtkOpenGLPolyDataMapper2D>    LineMapper;
+  vtkSmartPointer<vtkActor2D>                   LineActor;
 
-  vtkPolyData                  *Line;
-  vtkOpenGLPolyDataMapper2D    *LineMapper;
-  vtkActor2D                   *LineActor;
-
-  vtkTubeFilter                *TubeFilter;
+  vtkSmartPointer<vtkTubeFilter>                TubeFilter;
 
   virtual void BuildLines() override;
 
-  vtkAppendPolyData *appendActors;
-
-  // Support picking
-  vtkPropPicker *LinePicker;
+  vtkSmartPointer<vtkAppendPolyData> *appendActors;
 
 private:
   vtkSlicerCurveRepresentation2D(const vtkSlicerCurveRepresentation2D&) = delete;

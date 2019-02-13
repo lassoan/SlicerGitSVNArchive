@@ -71,13 +71,9 @@ public:
   /// Set mrml parent transform to widgets
   virtual void SetParentTransformToWidget(vtkMRMLMarkupsNode *vtkNotUsed(node), vtkAbstractWidget *vtkNotUsed(widget)){}
 
-  /// Set/Get the 2d scale factor to divide 3D scale by to show 2D elements appropriately (usually set to 300)
-  vtkSetMacro(ScaleFactor2D, double);
-  vtkGetMacro(ScaleFactor2D, double);
-
   /// Create a new widget for this markups node and save it to the helper.
   /// Returns widget on success, null on failure.
-  vtkSlicerAbstractWidget *AddWidget(vtkMRMLMarkupsNode *markupsNode);
+  vtkSlicerAbstractWidget *AddWidget(vtkMRMLMarkupsDisplayNode *markupsDisplayNode);
 
   vtkMRMLMarkupsDisplayableManagerHelper *  GetHelper() { return this->Helper; };
 
@@ -180,11 +176,11 @@ protected:
   void GetDisplayToViewportCoordinates(double *displayCoordinates, double * viewportCoordinates);
 
   /// Create a widget.
-  vtkSlicerAbstractWidget * CreateWidget(vtkMRMLMarkupsNode* node);
+  vtkSlicerAbstractWidget * CreateWidget(vtkMRMLMarkupsDisplayNode* node);
   /// Gets called when widget was created
   void OnWidgetCreated(vtkSlicerAbstractWidget * widget, vtkMRMLMarkupsNode * node);
   /// Get the widget of a node.
-  vtkAbstractWidget * GetWidget(vtkMRMLMarkupsNode * node);
+  vtkAbstractWidget * GetWidget(vtkMRMLMarkupsDisplayNode * node);
 
   /// Check if it is the right displayManager
   virtual bool IsCorrectDisplayableManager();
@@ -224,9 +220,6 @@ private:
   int DisableInteractorStyleEventsProcessing;
 
   vtkMRMLSliceNode * SliceNode;
-
-  /// Scale factor for 2d windows
-  double ScaleFactor2D;
 };
 
 #endif

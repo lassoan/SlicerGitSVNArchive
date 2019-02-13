@@ -19,6 +19,7 @@
 #include "vtkSlicerAbstractRepresentation.h"
 #include "vtkSlicerAbstractRepresentation2D.h"
 #include "vtkCleanPolyData.h"
+#include "vtkMarkupsGlyphSource2D.h"
 #include "vtkOpenGLPolyDataMapper2D.h"
 #include "vtkActor2D.h"
 #include "vtkRenderer.h"
@@ -70,11 +71,7 @@ vtkSlicerAbstractRepresentation2D::ControlPointsPipeline2D::ControlPointsPipelin
   this->Glypher->SetScaleFactor(1.0);
 
   // By default the Points are rendered as spheres
-  vtkNew<vtkSphereSource> ss;
-  ss->SetRadius(0.5);
-  ss->Update();
-  this->PointMarkerShape = ss->GetOutput();
-  this->Glypher->SetSourceData(this->PointMarkerShape);
+  this->Glypher->SetSourceConnection(this->GlyphSourceSphere->GetOutputPort());
 
   this->Property = vtkSmartPointer<vtkProperty2D>::New();
   this->Property->SetColor(0.4, 1.0, 1.0);
@@ -131,8 +128,10 @@ vtkSlicerAbstractRepresentation2D::vtkSlicerAbstractRepresentation2D()
 
   this->SliceNode = nullptr;
 
+  // by default, multiply the display node scale by this when setting scale on elements in 2d windows
+  // 2d glyphs and text need to be scaled by 1/60 to show up properly in the 2d slice windows
+  this->ScaleFactor2D = 0.01667;
 
-  this->HandleSize = 3;
 }
 
 //----------------------------------------------------------------------
@@ -459,18 +458,69 @@ void vtkSlicerAbstractRepresentation2D::AddNodeAtPositionInternal(const double w
 void vtkSlicerAbstractRepresentation2D::BuildRepresentation()
 {
   // Make sure we are up to date with any changes made in the placer
-  this->UpdateWidget();
+  //this->UpdateWidget();
 
   vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
   if (!markupsNode)
     {
     return;
     }
-
-  if (!this->MarkupsDisplayNode)
+  vtkMRMLMarkupsDisplayNode* markupsDisplayNode = this->MarkupsDisplayNode;
+  if (!markupsDisplayNode)
     {
     return;
     }
+
+  if (!markupsDisplayNode->GetVisibility() || !markupsDisplayNode->IsDisplayableInView(this->SliceNode->GetID()))
+    {
+    this->VisibilityOff();
+    return;
+    }
+
+  vtkProperty2D *unselectedProp = this->GetControlPointsPipeline(Unselected)->Property;
+  unselectedProp->SetColor(markupsDisplayNode->GetColor());
+  unselectedProp->SetOpacity(markupsDisplayNode->GetOpacity());
+
+  vtkProperty2D *selectedProp = this->GetControlPointsPipeline(Selected)->Property;
+  selectedProp->SetColor(markupsDisplayNode->GetSelectedColor());
+  selectedProp->SetOpacity(markupsDisplayNode->GetOpacity());
+
+  vtkProperty2D *activeProp = this->GetControlPointsPipeline(Active)->Property;
+  activeProp->SetColor(0.4, 1.0, 0.);  // bright green
+  activeProp->SetOpacity(markupsDisplayNode->GetOpacity());
+
+  vtkTextProperty *unselectedTextProp = this->GetControlPointsPipeline(Unselected)->TextProperty;
+  unselectedTextProp->SetColor(markupsDisplayNode->GetColor());
+  unselectedTextProp->SetOpacity(markupsDisplayNode->GetOpacity());
+  unselectedTextProp->SetFontSize(static_cast<int>(5. * markupsDisplayNode->GetTextScale()));
+
+  vtkTextProperty *selectedTextProp = this->GetControlPointsPipeline(Selected)->TextProperty;
+  selectedTextProp->SetColor(markupsDisplayNode->GetSelectedColor());
+  selectedTextProp->SetOpacity(markupsDisplayNode->GetOpacity());
+  selectedTextProp->SetFontSize(static_cast<int>(5. * markupsDisplayNode->GetTextScale()));
+
+  vtkTextProperty *activeTextProp = this->GetControlPointsPipeline(Active)->TextProperty;
+  activeTextProp->SetColor(0.4, 1.0, 0.); // bright green
+  activeTextProp->SetOpacity(markupsDisplayNode->GetOpacity());
+  activeTextProp->SetFontSize(static_cast<int>(5. * markupsDisplayNode->GetTextScale()));
+
+
+  for (int controlPointType = 0; controlPointType < NumberOfControlPointTypes; ++controlPointType)
+  {
+    if (markupsDisplayNode->GlyphTypeIs3D())
+    {
+      this->GetControlPointsPipeline(controlPointType)->Glypher->SetSourceConnection(
+        this->GetControlPointsPipeline(controlPointType)->GlyphSourceSphere->GetOutputPort());
+    }
+    else
+    {
+      vtkMarkupsGlyphSource2D* glyphSource = this->GetControlPointsPipeline(controlPointType)->GlyphSource2D;
+      glyphSource->SetGlyphType(markupsDisplayNode->GetGlyphType());
+      this->GetControlPointsPipeline(controlPointType)->Glypher->SetSourceConnection(glyphSource->GetOutputPort());
+    }
+  }
+
+  this->ControlPointSize = markupsDisplayNode->GetGlyphScale() * this->ScaleFactor2D;
 
   double scale = this->CalculateViewScaleFactor();
 
@@ -478,38 +528,33 @@ void vtkSlicerAbstractRepresentation2D::BuildRepresentation()
   {
     ControlPointsPipeline2D* controlPoints = reinterpret_cast<ControlPointsPipeline2D*>(this->ControlPoints[controlPointType]);
     controlPoints->LabelsActor->SetVisibility(this->MarkupsDisplayNode->GetTextVisibility());
-    controlPoints->Glypher->SetScaleFactor(scale * this->HandleSize);
+    controlPoints->Glypher->SetScaleFactor(scale * this->ControlPointSize);
   }
 
-  this->BuildRepresentationPointsAndLabels(scale * this->HandleSize);
+  this->BuildRepresentationPointsAndLabels(scale * this->ControlPointSize);
+
+  this->VisibilityOn();
+
 }
 
 //----------------------------------------------------------------------
-int vtkSlicerAbstractRepresentation2D::CanInteract(const int displayPosition[2], const double worldPosition[3], double &closestDistance2, int &itemIndex)
+int vtkSlicerAbstractRepresentation2D::CanInteract(const int displayPosition[2], const double worldPosition[3], double &closestDistance2, int &componentIndex)
 {
-  int interactResult = InteractNone;
   vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
-  if (!markupsNode)
-    {
-    return interactResult;
-    }
-  if (this->GetNumberOfNodes() < 1)
-    {
-    return interactResult;
-    }
-  if (markupsNode->GetLocked())
-    {
-    return interactResult;
-    }
+  if (!markupsNode || markupsNode->GetLocked() || this->GetNumberOfNodes() < 1)
+  {
+    return vtkMRMLMarkupsDisplayNode::ComponentNone;
+  }
+
+  int foundComponentType = vtkMRMLMarkupsDisplayNode::ComponentNone;
 
   double displayPosition3[3] = { static_cast<double>(displayPosition[0]), static_cast<double>(displayPosition[1]), 0.0 };
 
-  this->PixelTolerance = this->HandleSize * (1.0 + this->Tolerance) * this->CalculateViewScaleFactor();
+  this->PixelTolerance = this->ControlPointSize * (1.0 + this->Tolerance) * this->CalculateViewScaleFactor();
   double pixelTolerance2 = this->PixelTolerance * this->PixelTolerance;
 
   closestDistance2 = VTK_DOUBLE_MAX; // in display coordinate system
-  itemIndex = -1;
-  bool canProcess = false;
+  componentIndex = -1;
   if (this->GetNumberOfNodes() > 2 && this->ClosedLoop && markupsNode && this->CentroidVisibilityOnSlice)
     {
     // Check if centroid is selected
@@ -521,8 +566,8 @@ int vtkSlicerAbstractRepresentation2D::CanInteract(const int displayPosition[2],
     if ( dist2 < pixelTolerance2)
       {
       closestDistance2 = dist2;
-      canProcess = true;
-      interactResult = InteractCentroid;
+      foundComponentType = vtkMRMLMarkupsDisplayNode::ComponentCentroid;
+      componentIndex = 0;
       }
     }
 
@@ -546,13 +591,64 @@ int vtkSlicerAbstractRepresentation2D::CanInteract(const int displayPosition[2],
     if (dist2 < pixelTolerance2)
       {
       closestDistance2 = dist2;
-      canProcess = true;
-      interactResult = InteractControlPoint;
-      itemIndex = i;
+      foundComponentType = vtkMRMLMarkupsDisplayNode::ComponentControlPoint;
+      componentIndex = i;
       }
     }
 
-  return canProcess;
+  return foundComponentType;
+}
+
+//----------------------------------------------------------------------
+void vtkSlicerAbstractRepresentation2D::CanInteractWithLine(int &foundComponentType,
+  const int displayPosition[2], const double worldPosition[3], double &closestDistance2, int &componentIndex)
+{
+  vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
+  if (!markupsNode || markupsNode->GetLocked() || this->GetNumberOfNodes() < 1)
+  {
+    return;
+  }
+
+  double displayPosition3[3] = { static_cast<double>(displayPosition[0]), static_cast<double>(displayPosition[1]), 0.0 };
+
+  this->PixelTolerance = this->ControlPointSize * (1.0 + this->Tolerance) * this->CalculateViewScaleFactor();
+  double pixelTolerance2 = this->PixelTolerance * this->PixelTolerance;
+
+  vtkIdType numberOfPoints = this->GetNumberOfNodes();
+  double sliceCoordinates[4], worldCoordinates[4];
+
+  double pointDisplayPos1[4] = { 0.0, 0.0, 0.0, 1.0 };
+  double pointWorldPos1[4] = { 0.0, 0.0, 0.0, 1.0 };
+  double pointDisplayPos2[4] = { 0.0, 0.0, 0.0, 1.0 };
+  double pointWorldPos2[4] = { 0.0, 0.0, 0.0, 1.0 };
+
+  vtkNew<vtkMatrix4x4> rasToxyMatrix;
+  this->SliceNode->GetXYToRAS()->Invert(this->SliceNode->GetXYToRAS(), rasToxyMatrix.GetPointer());
+  for (int i = 0; i < numberOfPoints - 1; i++)
+  {
+    if (!this->PointsVisibilityOnSlice->GetValue(i))
+    {
+      continue;
+    }
+    if (!this->PointsVisibilityOnSlice->GetValue(i + 1))
+    {
+      i++; // skip one more, as the next iteration would use (i+1)-th point
+      continue;
+    }
+    markupsNode->GetNthControlPointPositionWorld(i, pointWorldPos1);
+    rasToxyMatrix->MultiplyPoint(pointWorldPos1, pointDisplayPos1);
+    markupsNode->GetNthControlPointPositionWorld(i + 1, pointWorldPos2);
+    rasToxyMatrix->MultiplyPoint(pointWorldPos2, pointDisplayPos2);
+
+    double relativePositionAlongLine = -1.0; // between 0.0-1.0 if between the endpoints of the line segment
+    double distance2 = vtkLine::DistanceToLine(displayPosition3, pointDisplayPos1, pointDisplayPos2, relativePositionAlongLine);
+    if (distance2 < pixelTolerance2 && distance2 < closestDistance2 && relativePositionAlongLine >= 0 && relativePositionAlongLine <= 1)
+    {
+      closestDistance2 = distance2;
+      foundComponentType = vtkMRMLMarkupsDisplayNode::ComponentLine;
+      componentIndex = i;
+    }
+  }
 }
 
 //----------------------------------------------------------------------
@@ -570,7 +666,7 @@ int vtkSlicerAbstractRepresentation2D::ActivateNode(int X, int Y)
   displayPos[1] = static_cast<double>(Y);
   displayPos[2] = 0.;
 
-  this->PixelTolerance = this->HandleSize + this->HandleSize * this->Tolerance;
+  this->PixelTolerance = this->ControlPointSize + this->ControlPointSize * this->Tolerance;
   double scale = this->CalculateViewScaleFactor();
   this->PixelTolerance *= scale;
 
@@ -755,4 +851,12 @@ void vtkSlicerAbstractRepresentation2D::PrintSelf(ostream& os,
       os << indent << "Property: (none)\n";
     }
   }
+
+  os << indent << "ScaleFactor2D = " << this->ScaleFactor2D << std::endl;
+}
+
+//-----------------------------------------------------------------------------
+vtkSlicerAbstractRepresentation2D::ControlPointsPipeline2D* vtkSlicerAbstractRepresentation2D::GetControlPointsPipeline(int controlPointType)
+{
+  return reinterpret_cast<ControlPointsPipeline2D*>(this->ControlPoints[controlPointType]);
 }

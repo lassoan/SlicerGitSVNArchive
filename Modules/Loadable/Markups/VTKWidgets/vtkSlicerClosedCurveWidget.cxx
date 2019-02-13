@@ -68,71 +68,11 @@ void vtkSlicerClosedCurveWidget::CreateDefaultRepresentation()
   this->SetRepresentation(rep);
 }
 
-//-------------------------------------------------------------------------
-int vtkSlicerClosedCurveWidget::AddPointToRepresentationFromWorldCoordinate(
-  double worldCoordinates[3], bool persistence /*= false*/)
-{
-  vtkSlicerAbstractRepresentation *rep =
-    reinterpret_cast<vtkSlicerAbstractRepresentation*>(this->WidgetRep);
-
-  if (!rep)
-    {
-    return -1;
-    }
-
-  if (persistence)
-    {
-    if (this->WidgetState == vtkSlicerClosedCurveWidget::Manipulate)
-      {
-      this->FollowCursor = false;
-      rep->DeleteLastNode();
-      }
-    else if (this->FollowCursor)
-      {
-      rep->DeleteLastNode();
-      }
-    }
-  else if (this->FollowCursor)
-    {
-    rep->DeleteLastNode();
-    this->FollowCursor = false;
-    }
-
-  if (rep->AddNodeAtWorldPosition(worldCoordinates))
-    {
-    this->CurrentHandle = rep->GetActiveNode();
-    if (this->WidgetState == vtkSlicerClosedCurveWidget::Start)
-      {
-      this->InvokeEvent(vtkCommand::StartInteractionEvent, &this->CurrentHandle);
-      }
-    this->WidgetState = vtkSlicerClosedCurveWidget::Define;
-    rep->VisibilityOn();
-    this->EventCallbackCommand->SetAbortFlag(1);
-    this->InvokeEvent(vtkCommand::PlacePointEvent, &this->CurrentHandle);
-    this->ReleaseFocus();
-    this->Render();
-    if (!this->FollowCursor)
-      {
-      this->WidgetState = vtkSlicerClosedCurveWidget::Manipulate;
-      this->InvokeEvent(vtkCommand::EndInteractionEvent, &this->CurrentHandle);
-      }
-    else
-      {
-      rep->AddNodeAtWorldPosition(worldCoordinates);
-      }
-    }
-
-  if (rep->GetNumberOfNodes() > 2)
-    {
-    rep->UpdateCentroid();
-    }
-
-  return this->CurrentHandle;
-}
-
 //----------------------------------------------------------------------
 void vtkSlicerClosedCurveWidget::AddPointOnCurveAction(vtkAbstractWidget *w)
 {
+  /* TODO: implement this
+
   vtkSlicerClosedCurveWidget *self = reinterpret_cast<vtkSlicerClosedCurveWidget*>(w);
   if ( self->WidgetState != vtkSlicerClosedCurveWidget::Manipulate)
     {
@@ -167,4 +107,5 @@ void vtkSlicerClosedCurveWidget::AddPointOnCurveAction(vtkAbstractWidget *w)
     self->Render();
     rep->NeedToRenderOff();
   }
+  */
 }

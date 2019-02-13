@@ -19,6 +19,7 @@
 #include "vtkSlicerAbstractRepresentation.h"
 #include "vtkCleanPolyData.h"
 #include "vtkGeneralTransform.h"
+#include "vtkMarkupsGlyphSource2D.h"
 #include "vtkMRMLTransformNode.h"
 #include "vtkPolyDataMapper.h"
 #include "vtkActor.h"
@@ -121,11 +122,18 @@ vtkSlicerAbstractRepresentation::ControlPointsPipeline::ControlPointsPipeline()
   this->PointSetToLabelHierarchyFilter->SetLabelArrayName("labels");
   this->PointSetToLabelHierarchyFilter->SetPriorityArrayName("priority");
   this->PointSetToLabelHierarchyFilter->SetInputData(this->LabelControlPointsPolyData);
+
+  this->GlyphSource2D = vtkSmartPointer<vtkMarkupsGlyphSource2D>::New();
+
+  this->GlyphSourceSphere = vtkSmartPointer<vtkSphereSource>::New();
+  this->GlyphSourceSphere->SetRadius(0.5);
+
 };
 
 //----------------------------------------------------------------------
 vtkSlicerAbstractRepresentation::vtkSlicerAbstractRepresentation()
 {
+  this->ControlPointSize = 3.0;
   this->Tolerance                = 0.4;
   this->PixelTolerance           = 1;
   this->Locator                  = nullptr;
@@ -144,7 +152,6 @@ vtkSlicerAbstractRepresentation::vtkSlicerAbstractRepresentation()
 
   this->AlwaysOnTop = 0;
 
-  this->RestrictFlag = RestrictNone;
 }
 
 //----------------------------------------------------------------------
@@ -352,25 +359,22 @@ int vtkSlicerAbstractRepresentation::SetActiveNodeToDisplayPosition(int X, int Y
 //----------------------------------------------------------------------
 int vtkSlicerAbstractRepresentation::GetActiveNode()
 {
-  vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
-  if (!markupsNode)
+  if (!this->MarkupsDisplayNode || this->MarkupsDisplayNode->GetActiveComponentType() != vtkMRMLMarkupsDisplayNode::ComponentControlPoint)
   {
     return -1;
   }
 
-  return markupsNode->GetActiveControlPoint();
+  return this->MarkupsDisplayNode->GetActiveComponentIndex();
 }
 
 //----------------------------------------------------------------------
 void vtkSlicerAbstractRepresentation::SetActiveNode(int index)
 {
-  vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
-  if (!markupsNode)
+  if (!this->MarkupsDisplayNode)
   {
     return;
   }
-
-  markupsNode->SetActiveControlPoint(index);
+  this->MarkupsDisplayNode->SetActiveControlPoint(index);
 }
 
 //----------------------------------------------------------------------
@@ -1644,25 +1648,7 @@ void vtkSlicerAbstractRepresentation::AddActorsBounds(vtkBoundingBox& boundingBo
 //-----------------------------------------------------------------------------
 int vtkSlicerAbstractRepresentation::CanInteract(const int displayPosition[2], const double position[3], double &closestDistance2, int &itemIndex)
 {
-  return InteractNone;
-}
-
-//-----------------------------------------------------------------------------
-vtkTextProperty* vtkSlicerAbstractRepresentation::GetUnselectedTextProperty()
-{
-  return this->ControlPoints[Unselected]->TextProperty;
-}
-
-//-----------------------------------------------------------------------------
-vtkTextProperty* vtkSlicerAbstractRepresentation::GetSelectedTextProperty()
-{
-  return this->ControlPoints[Selected]->TextProperty;
-}
-
-//-----------------------------------------------------------------------------
-vtkTextProperty* vtkSlicerAbstractRepresentation::GetActiveTextProperty()
-{
-  return this->ControlPoints[Active]->TextProperty;
+  return vtkMRMLMarkupsDisplayNode::ComponentNone;
 }
 
 //-----------------------------------------------------------------------------
@@ -1698,4 +1684,74 @@ void vtkSlicerAbstractRepresentation::SetLineInterpolator(vtkSlicerLineInterpola
   }
   this->LineInterpolator = interpolator;
   this->Modified();
+}
+
+//----------------------------------------------------------------------
+bool vtkSlicerAbstractRepresentation::GetTransformationReferencePoint(double referencePointWorld[3])
+{
+  vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
+  if (!markupsNode)
+  {
+    return false;
+  }
+  this->UpdateCentroid();
+  markupsNode->GetCentroidPosition(referencePointWorld);
+  return true;
+}
+
+//----------------------------------------------------------------------
+void vtkSlicerAbstractRepresentation::BuildLine(vtkPolyData* linePolyData)
+{
+  vtkNew<vtkPoints> points;
+  vtkNew<vtkCellArray> line;
+
+  int i, j;
+  vtkIdType index = 0;
+
+  int numberOfNodes = this->GetNumberOfNodes();
+  int count = numberOfNodes;
+  for (i = 0; i < numberOfNodes; i++)
+  {
+    count += this->GetNumberOfIntermediatePoints(i);
+  }
+
+  points->SetNumberOfPoints(count);
+  vtkIdType numLine = count;
+  double pos[3];
+  if (numLine > 0)
+  {
+    vtkIdType *lineIndices = new vtkIdType[numLine];
+
+    for (i = 0; i < numberOfNodes; i++)
+    {
+      // Add the node
+      this->GetNthNodeWorldPosition(i, pos);
+      points->InsertPoint(index, pos);
+      lineIndices[index] = index;
+      index++;
+
+      int numIntermediatePoints = this->GetNumberOfIntermediatePoints(i);
+
+      for (j = 0; j < numIntermediatePoints; j++)
+      {
+        this->GetIntermediatePointWorldPosition(i, j, pos);
+        points->InsertPoint(index, pos);
+        lineIndices[index] = index;
+        index++;
+      }
+    }
+
+    if (this->ClosedLoop)
+    {
+      this->GetNthNodeWorldPosition(0, pos);
+      points->InsertPoint(index, pos);
+      lineIndices[index] = 0;
+    }
+
+    line->InsertNextCell(numLine, lineIndices);
+    delete[] lineIndices;
+  }
+
+  linePolyData->SetPoints(points);
+  linePolyData->SetLines(line);
 }

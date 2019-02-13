@@ -84,6 +84,9 @@ vtkMRMLMarkupsDisplayNode::vtkMRMLMarkupsDisplayNode()
   this->SliceProjectionOpacity = 0.6;
 
   this->TextVisibility = true;
+
+  this->ActiveComponentType = ComponentNone;
+  this->ActiveComponentIndex = -1;
 }
 
 //----------------------------------------------------------------------------
@@ -296,4 +299,43 @@ void vtkMRMLMarkupsDisplayNode::SetGlyphScale(double scale)
   vtkDebugMacro(<< this->GetClassName() << " (" << this << "): setting GlyphScale to " << scale);
   this->GlyphScale = scale;
   this->Modified();
+}
+
+//---------------------------------------------------------------------------
+void vtkMRMLMarkupsDisplayNode::SetActiveComponent(int componentType, int componentIndex)
+{
+  if (this->ActiveComponentIndex == componentIndex
+    && this->ActiveComponentType == componentType)
+  {
+    // no change
+    return;
+  }
+  this->ActiveComponentIndex = componentIndex;
+  this->ActiveComponentType = componentType;
+  this->Modified();
+}
+
+//---------------------------------------------------------------------------
+void vtkMRMLMarkupsDisplayNode::SetActiveControlPoint(int controlPointIndex)
+{
+  this->SetActiveComponent(ComponentControlPoint, controlPointIndex);
+}
+
+//---------------------------------------------------------------------------
+int vtkMRMLMarkupsDisplayNode::GetActiveControlPoint()
+{
+  if (this->ActiveComponentType == ComponentControlPoint)
+  {
+    return this->ActiveComponentIndex;
+  }
+  else
+  {
+    return -1;
+  }
+}
+
+//---------------------------------------------------------------------------
+vtkMRMLMarkupsNode* vtkMRMLMarkupsDisplayNode::GetMarkupsNode()
+{
+  return vtkMRMLMarkupsNode::SafeDownCast(this->GetDisplayableNode());
 }

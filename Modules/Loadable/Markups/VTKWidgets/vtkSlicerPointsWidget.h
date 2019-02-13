@@ -159,9 +159,6 @@ public:
   /// NOTE: the representation needs also a Markup object from the MRMLMarkupsNode
   void CreateDefaultRepresentation() VTK_OVERRIDE;
 
-  /// Add a point to the current active Markup at input World coordiantes.
-  int AddPointToRepresentationFromWorldCoordinate(double worldCoordinates[3], bool persistence = false) VTK_OVERRIDE;
-
 protected:
   vtkSlicerPointsWidget();
   ~vtkSlicerPointsWidget() VTK_OVERRIDE;

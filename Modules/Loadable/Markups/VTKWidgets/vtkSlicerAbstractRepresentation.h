@@ -44,6 +44,7 @@
 
 #include <vector> // STL Header; Required for vector
 
+class vtkMarkupsGlyphSource2D;
 class vtkPolyData;
 class vtkPoints;
 
@@ -53,6 +54,7 @@ class vtkPointPlacer;
 class vtkPolyData;
 class vtkIdList;
 class vtkPointSetToLabelHierarchy;
+class vtkSphereSource;
 class vtkStringArray;
 class vtkTextProperty;
 
@@ -66,18 +68,6 @@ public:
   /// Standard methods for instances of this class.
   vtkTypeMacro(vtkSlicerAbstractRepresentation,vtkWidgetRepresentation);
   void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
-
-  /// This is the property used for the text when the handle is not active
-  /// (the mouse is not near the handle)
-  vtkTextProperty* GetUnselectedTextProperty();
-
-  /// This is the selected property used for the text when the handle is not active
-  /// (the mouse is not near the handle)
-  vtkTextProperty* GetSelectedTextProperty();
-
-  /// This is the property used for the text when the user is interacting
-  /// with the handle.
-  vtkTextProperty* GetActiveTextProperty();
 
   /// Add a node at a specific world position. Returns 0 if the
   /// node could not be added, 1 otherwise.
@@ -310,13 +300,6 @@ public:
   /// Handle when rebuilding the locator
   vtkSetMacro(RebuildLocator,bool);
 
-  enum { RestrictNone = 0, RestrictToX, RestrictToY, RestrictToZ };
-
-  /// Set if translations should be restricted to one of the axes (disabled if
-  /// RestrictNone is specified).
-  vtkSetClampMacro(RestrictFlag, int, RestrictNone, RestrictToZ);
-  vtkGetMacro(RestrictFlag, int);
-
   /// Initialize with poly data
   ///
   //virtual void Initialize(vtkPolyData *);
@@ -340,18 +323,13 @@ public:
   /// and it also updates automatically the centroid pos stored in the Markups node
   virtual void UpdateCentroid();
 
-  enum
-  {
-    InteractNone,
-    InteractControlPoint,
-    InteractLine,
-    InteractCentroid
-  };
+  /// Translation, rotation, scaling will happen around this position
+  virtual bool GetTransformationReferencePoint(double referencePointWorld[3]);
 
-  /// Return true if interaction is possible.
+  /// Return found component type (as vtkMRMLMarkupsDisplayNode::ComponentType).
   /// closestDistance2 is the squared distance in display coordinates from the closest position where interaction is possible.
-  /// itemIndex returns control point index if return value is InteractControlPoint.
-  virtual int CanInteract(const int displayPosition[2], const double worldPosition[3], double &closestDistance2, int &itemIndex);
+  /// componentIndex returns index of the found component (e.g., if control point is found then control point index is returned).
+  virtual int CanInteract(const int displayPosition[2], const double worldPosition[3], double &closestDistance2, int &componentIndex);
 
 protected:
   vtkSlicerAbstractRepresentation();
@@ -366,7 +344,9 @@ protected:
     /// Keep in mind that the shape will be
     /// aligned with the constraining plane by orienting it such that
     /// the x axis of the geometry lies along the normal of the plane.
-    vtkSmartPointer<vtkPolyData> PointMarkerShape;
+    //vtkSmartPointer<vtkPolyData> PointMarkerShape;
+    vtkSmartPointer<vtkMarkupsGlyphSource2D> GlyphSource2D;
+    vtkSmartPointer<vtkSphereSource> GlyphSourceSphere;
 
     vtkSmartPointer<vtkPolyData> ControlPointsPolyData;
     vtkSmartPointer<vtkPoints> ControlPoints;
@@ -377,6 +357,8 @@ protected:
     vtkSmartPointer<vtkStringArray> LabelsPriority;
     vtkSmartPointer<vtkTextProperty> TextProperty;
   };
+
+  double ControlPointSize;
 
   /// Helper function to add bounds of all listed actors to the supplied bounding box.
   /// additionalBounds is for convenience only, it allows defining additional bounds.
@@ -413,6 +395,9 @@ protected:
 
   virtual void BuildLines()=0;
 
+  // Utility function
+  void BuildLine(vtkPolyData* linePolyData);
+
   // This method is called when something changes in the point placer.
   // It will cause all points to be updated, and all lines to be regenerated.
   // It should be extended to detect changes in the line interpolator too.
@@ -440,9 +425,6 @@ protected:
   virtual void BuildLocator();
 
   bool RebuildLocator;
-
-  // Axis restrict flag
-  int RestrictFlag;
 
   enum
   {

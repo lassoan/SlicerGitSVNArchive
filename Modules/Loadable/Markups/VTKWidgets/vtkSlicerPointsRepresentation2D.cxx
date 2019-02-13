@@ -64,18 +64,3 @@ void vtkSlicerPointsRepresentation2D::BuildLines()
 {
   return;
 }
-
-//----------------------------------------------------------------------
-void vtkSlicerPointsRepresentation2D::RotateWidget(double eventPos[2])
-{
-  // If any node is locked return
-  for (int i = 0; i < this->GetNumberOfNodes(); i++)
-    {
-    if (this->GetNthNodeLocked(i))
-      {
-      return;
-      }
-    }
-
-  this->Superclass::ScaleWidget(eventPos);
-}

@@ -54,7 +54,6 @@ vtkMRMLMarkupsNode::vtkMRMLMarkupsNode()
   this->MaximumNumberOfControlPoints = 0;
   this->MarkupLabelFormat = std::string("%N-%d");
   this->LastUsedControlPointNumber = 0;
-  this->ActiveControlPoint = -1;
   this->centroidPos.Set(0,0,0);
 }
 
@@ -76,7 +75,6 @@ void vtkMRMLMarkupsNode::WriteXML(ostream& of, int nIndent)
     {
     of << " MaximumNumberOfControlPoints=\"" << this->MaximumNumberOfControlPoints << "\"";
     }
-  of << " ActiveControlPoint=\"" << this->ActiveControlPoint << "\"";
 
   of << " markupLabelFormat=\"" << this->MarkupLabelFormat.c_str() << "\"";
 
@@ -119,10 +117,6 @@ void vtkMRMLMarkupsNode::ReadXMLAttributes(const char** atts)
       this->SetMaximumNumberOfControlPoints(atoi(attValue));
       maximumNumberOfControlPointsSpecified = true;
       }
-    else if (!strcmp(attName, "ActiveControlPoint"))
-      {
-      this->SetActiveControlPoint(atoi(attValue));
-      }
     else if (!strcmp(attName, "markupLabelFormat"))
       {
       this->SetMarkupLabelFormat(attValue);
@@ -153,7 +147,6 @@ void vtkMRMLMarkupsNode::Copy(vtkMRMLNode *anode)
   this->SetLocked(node->GetLocked());
   this->SetMaximumNumberOfControlPoints(node->GetMaximumNumberOfControlPoints());
   this->TextList->DeepCopy(node->TextList);
-  this->SetActiveControlPoint(node->GetActiveControlPoint());
 
   // BUG: When fiducial nodes appear in scene views as of Slicer 4.1 the per
   // fiducial information (visibility, position etc) is saved to the file on
@@ -219,7 +212,6 @@ void vtkMRMLMarkupsNode::PrintSelf(ostream& os, vtkIndent indent)
     }
   os << indent << "MarkupLabelFormat: " << this->MarkupLabelFormat.c_str() << "\n";
   os << indent << "NumberOfControlPoints: " << this->GetNumberOfControlPoints() << "\n";
-  os << indent << "ActiveControlPoint: " << this->ActiveControlPoint << "\n";
 
   for (int controlPointIndex = 0; controlPointIndex < this->GetNumberOfControlPoints(); controlPointIndex++)
     {
@@ -513,7 +505,6 @@ int vtkMRMLMarkupsNode::AddControlPoint(ControlPoint *controlPoint)
   this->LastUsedControlPointNumber++;
 
   int controlPointIndex = this->GetNumberOfControlPoints() - 1;
-  this->ActiveControlPoint = controlPointIndex;
 
   this->Modified();
   this->InvokeCustomModifiedEvent(vtkMRMLMarkupsNode::PointAddedEvent,  static_cast<void*>(&controlPointIndex));
@@ -1029,18 +1020,6 @@ ControlPoint* vtkMRMLMarkupsNode::GetNthControlPointByID(const char* controlPoin
     return this->GetNthControlPoint(controlPointIndex);
     }
   return nullptr;
-}
-
-//-----------------------------------------------------------
-void vtkMRMLMarkupsNode::SetActiveControlPoint(int index)
-{
-  if (this->ActiveControlPoint == index)
-    {
-    return;
-    }
-
-  this->ActiveControlPoint = index;
-  this->Modified();
 }
 
 //-----------------------------------------------------------

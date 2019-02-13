@@ -41,7 +41,6 @@ class vtkOpenGLPolyDataMapper2D;
 class vtkPolyData;
 class vtkProperty2D;
 class vtkTubeFilter;
-class vtkPropPicker;
 class vtkArcSource;
 class vtkOpenGLTextActor;
 class vtkVectorText;
@@ -70,49 +69,33 @@ public:
   int RenderTranslucentPolygonalGeometry(vtkViewport *viewport) override;
   vtkTypeBool HasTranslucentPolygonalGeometry() override;
 
-  /// Set/Get the three leaders used to create this representation.
-  /// By obtaining these leaders the user can set the appropriate
-  /// properties, etc.
-  vtkGetObjectMacro(LineActor,vtkActor2D);
-  vtkGetObjectMacro(ArcActor,vtkActor2D);
-  vtkGetObjectMacro(TextActor,vtkOpenGLTextActor);
-
-  /// Register internal Pickers in the Picking Manager.
-  /// Must be reimplemented by concrete widget representations to register
-  /// their pickers.
-  virtual void RegisterPickers() VTK_OVERRIDE;
-
   /// Return the bounds of the representation
   double *GetBounds() override;
+
+  int CanInteract(const int displayPosition[2], const double worldPosition[3], double &closestDistance2, int &itemIndex) VTK_OVERRIDE;
+
+  virtual bool GetTransformationReferencePoint(double referencePointWorld[3]) VTK_OVERRIDE;
 
 protected:
   vtkSlicerAngleRepresentation2D();
   ~vtkSlicerAngleRepresentation2D() override;
 
-  // Methods to manipulate the cursor
-  virtual void TranslateWidget(double eventPos[2]) VTK_OVERRIDE;
-  virtual void ScaleWidget(double eventPos[2]) VTK_OVERRIDE;
-  virtual void RotateWidget(double eventPos[2]) VTK_OVERRIDE;
+  vtkSmartPointer<vtkPolyData>                  Line;
+  vtkSmartPointer<vtkOpenGLPolyDataMapper2D>    LineMapper;
+  vtkSmartPointer<vtkActor2D>                   LineActor;
 
-  vtkPolyData                  *Line;
-  vtkOpenGLPolyDataMapper2D    *LineMapper;
-  vtkActor2D                   *LineActor;
+  vtkSmartPointer<vtkArcSource>                 Arc;
+  vtkSmartPointer<vtkOpenGLPolyDataMapper2D>    ArcMapper;
+  vtkSmartPointer<vtkActor2D>                   ArcActor;
 
-  vtkArcSource                 *Arc;
-  vtkOpenGLPolyDataMapper2D    *ArcMapper;
-  vtkActor2D                   *ArcActor;
+  vtkSmartPointer<vtkOpenGLTextActor>           TextActor;
 
-  vtkOpenGLTextActor           *TextActor;
+  vtkSmartPointer<vtkTubeFilter>                TubeFilter;
+  vtkSmartPointer<vtkTubeFilter>                ArcTubeFilter;
 
-  vtkTubeFilter                *TubeFilter;
-  vtkTubeFilter                *ArcTubeFilter;
-
-  char                         *LabelFormat;
+  std::string LabelFormat;
 
   virtual void BuildLines() override;
-
-  // Support picking
-  vtkPropPicker *LinePicker;
 
 private:
   vtkSlicerAngleRepresentation2D(const vtkSlicerAngleRepresentation2D&) = delete;
