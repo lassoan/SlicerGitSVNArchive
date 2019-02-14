@@ -45,8 +45,7 @@
 #include "vtkMRMLSliceNode.h"
 
 // MRMLDM includes
-#include "vtkMRMLMarkupsDisplayableManager2D.h"
-#include "vtkMRMLMarkupsDisplayableManager3D.h"
+#include "vtkMRMLMarkupsDisplayableManager.h"
 
 // Markups includes
 #include "qSlicerMarkupsModule.h"
@@ -1634,27 +1633,22 @@ void qSlicerMarkupsModuleWidget::onAddMarkupPushButtonClicked()
   if (listNode)
     {
     listNode->AddFiducial(0,0,0);
-    listNode->SetActiveControlPoint(-1);
     }
   else if (lineNode)
     {
     lineNode->AddPoint(0,0,0);
-    lineNode->SetActiveControlPoint(-1);
     }
   else if (angleNode)
     {
     angleNode->AddPoint(0,0,0);
-    angleNode->SetActiveControlPoint(-1);
     }
   else if (curveNode)
     {
     curveNode->AddPoint(0,0,0);
-    curveNode->SetActiveControlPoint(-1);
     }
   else if (closedCurveNode)
     {
     closedCurveNode->AddPoint(0,0,0);
-    closedCurveNode->SetActiveControlPoint(-1);
     }
 }
 

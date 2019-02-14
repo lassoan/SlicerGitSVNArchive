@@ -43,7 +43,7 @@
 // STL includes
 #include <set>
 
-class vtkMRMLAbstractDisplayableManager;
+class vtkMRMLMarkupsDisplayableManager;
 class vtkMRMLMarkupsDisplayNode;
 class vtkMRMLInteractionNode;
 
@@ -57,23 +57,19 @@ public:
   vtkTypeMacro(vtkMRMLMarkupsDisplayableManagerHelper, vtkObject);
   void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
 
-  vtkGetObjectMacro(DisplayableManager, vtkMRMLAbstractDisplayableManager);
-  void SetDisplayableManager(vtkMRMLAbstractDisplayableManager*);
+  vtkGetObjectMacro(DisplayableManager, vtkMRMLMarkupsDisplayableManager);
+  void SetDisplayableManager(vtkMRMLMarkupsDisplayableManager*);
 
   /// Lock/Unlock all widgets based on the state of the nodes
   void UpdateLockedAllWidgetsFromNodes();
   /// Lock/Unlock all widgets
   void UpdateLockedAllWidgets(bool locked);
-  /// Lock/Unlock a widget. If no interaction node is passed in, don't take the
-  /// mouse mode into account, if it is passed in, widgets get locked while in
-  /// Place mode
-  void UpdateLocked(vtkMRMLMarkupsDisplayNode* node);
 
   /// Update all widget status
   void UpdateAllWidgetsFromInteractionNode(vtkMRMLInteractionNode* interactionNode);
 
   /// Set all widget status to manipulate
-  void SetAllWidgetsToManipulate();
+  //void SetAllWidgetsToManipulate();
 
   /// Get a vtkSlicerAbstractWidget* given a node
   vtkSlicerAbstractWidget * GetWidget(vtkMRMLMarkupsDisplayNode * markupsDisplayNode);
@@ -84,13 +80,13 @@ public:
   void RemoveAllWidgetsAndNodes();
 
   /// Map of vtkWidget indexed using associated node ID
-  typedef std::map < vtkMRMLMarkupsDisplayNode*, vtkSlicerAbstractWidget* > DisplayNodeToWidgetType;
-  typedef std::map < vtkMRMLMarkupsDisplayNode*, vtkSlicerAbstractWidget* >::iterator DisplayNodeToWidgetIt;
-  DisplayNodeToWidgetType MarkupsDisplayNodesToWidgets;
+  typedef std::map < vtkSmartPointer<vtkMRMLMarkupsDisplayNode>, vtkSlicerAbstractWidget* > DisplayNodeToWidgetType;
+  typedef std::map < vtkSmartPointer<vtkMRMLMarkupsDisplayNode>, vtkSlicerAbstractWidget* >::iterator DisplayNodeToWidgetIt;
+  DisplayNodeToWidgetType MarkupsDisplayNodesToWidgets;  // display nodes with widgets assigned
 
-  typedef std::map < vtkMRMLMarkupsNode*, std::set< vtkMRMLMarkupsDisplayNode* > > MarkupsToDisplayType;
-  typedef std::map < vtkMRMLMarkupsNode*, std::set< vtkMRMLMarkupsDisplayNode* > >::iterator  MarkupsToDisplayIt;
-  MarkupsToDisplayType MarkupsToDisplayNodes;
+  typedef std::set < vtkSmartPointer<vtkMRMLMarkupsNode> > MarkupsNodesType;
+  typedef std::set < vtkSmartPointer<vtkMRMLMarkupsNode> >::iterator MarkupsNodesIt;
+  MarkupsNodesType MarkupsNodes; // observed markups nodes
 
 
   //----------------------------------------------------------------------------------
@@ -112,6 +108,8 @@ public:
   void RemoveMarkupsNode(vtkMRMLMarkupsNode* node);
   void AddDisplayNode(vtkMRMLMarkupsDisplayNode* displayNode);
   void RemoveDisplayNode(vtkMRMLMarkupsDisplayNode* displayNode);
+
+  void DeleteWidget(vtkSlicerAbstractWidget* widget);
 
   void AddObservations(vtkMRMLMarkupsNode* node);
   void RemoveObservations(vtkMRMLMarkupsNode* node);
@@ -135,7 +133,9 @@ private:
 
   bool AddingMarkupsNode;
 
-  vtkMRMLAbstractDisplayableManager* DisplayableManager;
+  std::vector<unsigned long> ObservedMarkupNodeEvents;
+
+  vtkMRMLMarkupsDisplayableManager* DisplayableManager;
 };
 
 #endif /* VTKMRMLMARKUPSDISPLAYABLEMANAGERHELPER_H_ */

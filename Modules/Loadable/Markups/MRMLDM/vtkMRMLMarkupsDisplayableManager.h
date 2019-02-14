@@ -81,12 +81,6 @@ public:
   /// Set mrml parent transform to widgets
   virtual void SetParentTransformToWidget(vtkMRMLMarkupsNode *vtkNotUsed(node), vtkAbstractWidget *vtkNotUsed(widget)){}
 
-  /// Create a new widget for this markups node and save it to the helper.
-  /// Returns widget on success, null on failure.
-  vtkSlicerAbstractWidget* AddWidget(vtkMRMLMarkupsDisplayNode *markupsDisplayNode);
-
-  void RemoveWidget(vtkMRMLMarkupsDisplayNode *markupsDisplayNode);
-
   vtkMRMLMarkupsDisplayableManagerHelper *  GetHelper() { return this->Helper; };
 
   /// Checks if this 2D displayable manager is in light box mode. Returns true

@@ -73,24 +73,6 @@ public:
   int RenderTranslucentPolygonalGeometry(vtkViewport *viewport) VTK_OVERRIDE;
   vtkTypeBool HasTranslucentPolygonalGeometry() VTK_OVERRIDE;
 
-  /// Specify the cursor shape. Keep in mind that the shape will be
-  /// aligned with the constraining plane by orienting it such that
-  /// the x axis of the geometry lies along the normal of the plane.
-  void SetPointMarkerShape(vtkPolyData *pointMarkerShape);
-  vtkPolyData *GetPointMarkerShape();
-
-  /// Specify the cursor shape. Keep in mind that the shape will be
-  /// aligned with the constraining plane by orienting it such that
-  /// the x axis of the geometry lies along the normal of the plane.
-  void SetSelectedPointMarkerShape(vtkPolyData *selectedShape);
-  vtkPolyData *GetSelectedPointMarkerShape();
-
-  /// Specify the shape of the cursor (handle) when it is active.
-  /// This is the geometry that will be used when the mouse is
-  /// close to the handle or if the user is manipulating the handle.
-  void SetActivePointMarkerShape(vtkPolyData *activeShape);
-  vtkPolyData *GetActivePointMarkerShape();
-
   /// Set/Get method to the sliceNode connected to this representation
   void SetSliceNode(vtkMRMLSliceNode *sliceNode);
   vtkMRMLSliceNode *GetSliceNode();

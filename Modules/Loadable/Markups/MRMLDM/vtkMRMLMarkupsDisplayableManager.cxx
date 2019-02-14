@@ -322,44 +322,86 @@ void vtkMRMLMarkupsDisplayableManager::UpdateFromMRML()
     return;
     }
 
-  std::vector<vtkMRMLNode*> nodes;
-  this->GetMRMLScene()->GetNodesByClass("vtkMRMLMarkupsDisplayNode", nodes);
-
-  // check if there are any of these nodes in the scene
-  if (nodes.size() < 1)
-    {
-    return;
-    }
-
   // turn off update from mrml requested, as we're doing it now, and create
   // widget requests a render which checks this flag before calling update
   // from mrml again
   this->SetUpdateFromMRMLRequested(0);
 
-  // loop over the nodes for which this manager provides widgets
-  for (std::vector< vtkMRMLNode* >::iterator nodeIt = nodes.begin(); nodeIt != nodes.end(); ++nodeIt)
+  std::vector<vtkMRMLNode*> markupNodes;
+  this->GetMRMLScene()->GetNodesByClass("vtkMRMLMarkupsNode", markupNodes);
+  for (std::vector< vtkMRMLNode* >::iterator nodeIt = markupNodes.begin(); nodeIt != markupNodes.end(); ++nodeIt)
+  {
+    vtkMRMLMarkupsNode *markupsNode = vtkMRMLMarkupsNode::SafeDownCast(*nodeIt);
+    if (!markupsNode)
     {
+      continue;
+    }
+    if (this->GetHelper()->MarkupsNodes.find(markupsNode) != this->GetHelper()->MarkupsNodes.end())
+    {
+      // node added already
+      continue;
+    }
+    this->GetHelper()->AddMarkupsNode(markupsNode);
+  }
+
+  std::vector<vtkMRMLNode*> markupsDisplayNodes;
+  this->GetMRMLScene()->GetNodesByClass("vtkMRMLMarkupsDisplayNode", markupsDisplayNodes);
+  for (std::vector< vtkMRMLNode* >::iterator nodeIt = markupsDisplayNodes.begin(); nodeIt != markupsDisplayNodes.end(); ++nodeIt)
+  {
     vtkMRMLMarkupsDisplayNode *markupsDisplayNode = vtkMRMLMarkupsDisplayNode::SafeDownCast(*nodeIt);
     if (!markupsDisplayNode)
     {
       continue;
     }
-    if (!vtkMRMLMarkupsDisplayableManager::IsManageable(markupsDisplayNode->GetMarkupsNode()))
-      {
+    if (this->GetHelper()->MarkupsDisplayNodesToWidgets.find(markupsDisplayNode) != this->GetHelper()->MarkupsDisplayNodesToWidgets.end())
+    {
+      // node added already
       continue;
-      }
-    // do we  have a widget for it?
-    if (this->GetWidget(markupsDisplayNode) == nullptr)
-      {
-      vtkDebugMacro("UpdateFromMRML: creating a widget for node " << markupsDisplayNode->GetID());
-      vtkAbstractWidget *widget = this->AddWidget(markupsDisplayNode);
-      if (!widget)
-        {
-        vtkErrorMacro("UpdateFromMRML: failed to create a widget for node " << markupsDisplayNode->GetID());
-        }
-      }
-    this->OnMRMLMarkupsDisplayNodeModifiedEvent(markupsDisplayNode);
     }
+    this->GetHelper()->AddDisplayNode(markupsDisplayNode);
+  }
+
+  // Remove observed markups nodes that have been deleted from the scene
+  for (vtkMRMLMarkupsDisplayableManagerHelper::MarkupsNodesIt markupsIterator = this->Helper->MarkupsNodes.begin();
+    markupsIterator != this->Helper->MarkupsNodes.end();
+    /*upon deletion the increment is done already, so don't increment here*/)
+  {
+    vtkMRMLMarkupsNode *markupsNode = *markupsIterator;
+    if (this->GetMRMLScene()->IsNodePresent(markupsNode))
+    {
+      ++markupsIterator;
+    }
+    else
+    {
+      // display node is not in the scene anymore, delete the widget
+      vtkMRMLMarkupsDisplayableManagerHelper::MarkupsNodesIt markupsIteratorToRemove = markupsIterator;
+      ++markupsIterator;
+      this->Helper->RemoveMarkupsNode(*markupsIteratorToRemove);
+      this->Helper->MarkupsNodes.erase(markupsIteratorToRemove);
+    }
+  }
+
+  // Remove widgets corresponding deleted display nodes
+  for (vtkMRMLMarkupsDisplayableManagerHelper::DisplayNodeToWidgetIt widgetIterator = this->Helper->MarkupsDisplayNodesToWidgets.begin();
+    widgetIterator != this->Helper->MarkupsDisplayNodesToWidgets.end();
+    /*upon deletion the increment is done already, so don't increment here*/)
+  {
+    vtkMRMLMarkupsDisplayNode *markupsDisplayNode = widgetIterator->first;
+    if (this->GetMRMLScene()->IsNodePresent(markupsDisplayNode))
+    {
+      ++widgetIterator;
+    }
+    else
+    {
+      // display node is not in the scene anymore, delete the widget
+      vtkMRMLMarkupsDisplayableManagerHelper::DisplayNodeToWidgetIt widgetIteratorToRemove = widgetIterator;
+      ++widgetIterator;
+      vtkSlicerAbstractWidget* widgetToRemove = widgetIteratorToRemove->second;
+      this->Helper->DeleteWidget(widgetToRemove);
+      this->Helper->MarkupsDisplayNodesToWidgets.erase(widgetIteratorToRemove);
+    }
+  }
+
 }
 
 //---------------------------------------------------------------------------
@@ -482,7 +524,7 @@ void vtkMRMLMarkupsDisplayableManager::OnMRMLSceneEndImport()
 {
   this->SetUpdateFromMRMLRequested(1);
   this->UpdateFromMRMLScene();
-  this->Helper->SetAllWidgetsToManipulate();
+  //this->Helper->SetAllWidgetsToManipulate();
   this->RequestRender();
 }
 
@@ -1139,7 +1181,13 @@ void vtkMRMLMarkupsDisplayableManager::OnMRMLMarkupsNodeLockModifiedEvent(vtkMRM
   for (int displayNodeIndex = 0; displayNodeIndex < markupsNode->GetNumberOfDisplayNodes(); displayNodeIndex++)
   {
     vtkMRMLMarkupsDisplayNode* displayNode = vtkMRMLMarkupsDisplayNode::SafeDownCast(markupsNode->GetNthDisplayNode(displayNodeIndex));
-    this->Helper->UpdateLocked(displayNode);
+    vtkSlicerAbstractWidget* widget = this->Helper->GetWidget(displayNode);
+    if (!widget)
+    {
+      continue;
+    }
+    // TODO: it could be more efficient if we only updated locked state
+    widget->GetRepresentation()->BuildRepresentation();
   }
 }
 

@@ -15,7 +15,6 @@ set(${KIT}_INCLUDE_DIRECTORIES
 
 set(displayable_manager_SRCS
   vtkMRML${MODULE_NAME}DisplayableManager.cxx
-  vtkMRML${MODULE_NAME}DisplayableManager.cxx
   )
 
 SlicerConfigureDisplayableManagerObjectFactory(
