@@ -75,15 +75,13 @@ protected:
   vtkSlicerCurveRepresentation3D();
   ~vtkSlicerCurveRepresentation3D() VTK_OVERRIDE;
 
-  vtkPolyData                *Line;
-  vtkOpenGLPolyDataMapper    *LineMapper;
-  vtkOpenGLActor             *LineActor;
+  vtkSmartPointer<vtkPolyData> Line;
+  vtkSmartPointer<vtkOpenGLPolyDataMapper> LineMapper;
+  vtkSmartPointer<vtkOpenGLActor> LineActor;
 
-  vtkTubeFilter              *TubeFilter;
+  vtkSmartPointer<vtkTubeFilter> TubeFilter;
 
   virtual void BuildLines() VTK_OVERRIDE;
-
-  vtkAppendPolyData *appendActors;
 
 private:
   vtkSlicerCurveRepresentation3D(const vtkSlicerCurveRepresentation3D&) = delete;

@@ -301,26 +301,26 @@ void vtkMRMLMarkupsDisplayableManagerHelper::PrintNodeGlyphTypes()
 //---------------------------------------------------------------------------
 void vtkMRMLMarkupsDisplayableManagerHelper::AddMarkupsNode(vtkMRMLMarkupsNode* node)
 {
+  if (!node)
+  {
+    return;
+  }
+  vtkMRMLAbstractViewNode* viewNode = vtkMRMLAbstractViewNode::SafeDownCast(this->DisplayableManager->GetMRMLDisplayableNode());
+  if (!viewNode)
+  {
+    return;
+  }
+
   if (this->AddingMarkupsNode)
   {
     return;
   }
   this->AddingMarkupsNode = true;
 
-  if (!node)
-  {
-    return;
-  }
-
   this->AddObservations(node);
   this->MarkupsNodes.insert(node);
 
   // Add Display Nodes
-  vtkMRMLAbstractViewNode* viewNode = vtkMRMLAbstractViewNode::SafeDownCast(this->DisplayableManager->GetMRMLDisplayableNode());
-  if (!viewNode)
-  {
-    return;
-  }
   int nnodes = node->GetNumberOfDisplayNodes();
   for (int i = 0; i<nnodes; i++)
   {

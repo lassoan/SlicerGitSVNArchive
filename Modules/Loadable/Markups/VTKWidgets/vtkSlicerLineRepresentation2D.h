@@ -76,18 +76,13 @@ protected:
   vtkSlicerLineRepresentation2D();
   ~vtkSlicerLineRepresentation2D() override;
 
-  vtkPolyData                  *Line;
-  vtkOpenGLPolyDataMapper2D    *LineMapper;
-  vtkActor2D                   *LineActor;
+  vtkSmartPointer<vtkPolyData> Line;
+  vtkSmartPointer<vtkOpenGLPolyDataMapper2D> LineMapper;
+  vtkSmartPointer<vtkActor2D> LineActor;
 
-  vtkTubeFilter  *TubeFilter;
+  vtkSmartPointer<vtkTubeFilter> TubeFilter;
 
   virtual void BuildLines() override;
-
-  vtkAppendPolyData *appendActors;
-
-  // Support picking
-  vtkPropPicker *LinePicker;
 
 private:
   vtkSlicerLineRepresentation2D(const vtkSlicerLineRepresentation2D&) = delete;

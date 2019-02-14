@@ -95,7 +95,7 @@ vtkSlicerAngleRepresentation2D::vtkSlicerAngleRepresentation2D()
   this->TextActor->SetInput("0");
   this->TextActor->SetTextProperty(this->GetControlPointsPipeline(Unselected)->TextProperty);
 
-  this->LabelFormat = "%s","%-#6.3g";
+  this->LabelFormat = "%-#6.3g";
 }
 
 //----------------------------------------------------------------------
@@ -113,7 +113,7 @@ bool vtkSlicerAngleRepresentation2D::GetTransformationReferencePoint(double refe
 //----------------------------------------------------------------------
 void vtkSlicerAngleRepresentation2D::BuildLines()
 {
-  this->BuildLine(this->Line);
+  this->BuildLine(this->Line, true);
 
   // Build Arc
   if (this->GetNumberOfNodes() != 3)
@@ -161,7 +161,7 @@ void vtkSlicerAngleRepresentation2D::BuildLines()
   this->Arc->SetCenter(arcc);
   this->Arc->Update();
 
-  char string[512];
+  char string[80] = { 0 };
   snprintf(string, sizeof(string), this->LabelFormat.c_str(), vtkMath::DegreesFromRadians(angle));
   this->TextActor->SetInput( string );
 
@@ -184,6 +184,8 @@ void vtkSlicerAngleRepresentation2D::BuildRepresentation()
   // Make sure we are up to date with any changes made in the placer
   //this->UpdateWidget(true);
 
+  Superclass::BuildRepresentation();
+
   vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
   if (!markupsNode)
   {
@@ -196,18 +198,20 @@ void vtkSlicerAngleRepresentation2D::BuildRepresentation()
 
   double scale = this->CalculateViewScaleFactor();
 
+  /*
   for (int controlPointType = 0; controlPointType < NumberOfControlPointTypes; ++controlPointType)
   {
     ControlPointsPipeline2D* controlPoints = this->GetControlPointsPipeline(controlPointType);
     controlPoints->LabelsActor->SetVisibility(this->MarkupsDisplayNode->GetTextVisibility());
     controlPoints->Glypher->SetScaleFactor(scale * this->ControlPointSize);
   }
+  */
 
   this->TextActor->SetVisibility(this->MarkupsDisplayNode->GetTextVisibility());
 
   this->TubeFilter->SetRadius(scale * this->ControlPointSize * 0.125);
   this->ArcTubeFilter->SetRadius(scale * this->ControlPointSize * 0.125);
-  this->BuildRepresentationPointsAndLabels(scale * this->ControlPointSize);
+  //this->BuildRepresentationPointsAndLabels(scale * this->ControlPointSize); called by superclass
 
   bool lineVisibility = true;
   for (int ii = 0; ii < this->GetNumberOfNodes(); ii++)

@@ -134,7 +134,7 @@ bool vtkSlicerAngleRepresentation3D::GetTransformationReferencePoint(double refe
 //----------------------------------------------------------------------
 void vtkSlicerAngleRepresentation3D::BuildLines()
 {
-  this->BuildLine(this->Line);
+  this->BuildLine(this->Line, false);
 
   // Build Arc
   if (this->GetNumberOfNodes() != 3)

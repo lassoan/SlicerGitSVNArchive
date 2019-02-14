@@ -97,6 +97,22 @@ public:
   void ProcessInteractionEvent(vtkEventData* eventData) VTK_OVERRIDE;
   void SetHasFocus(bool hasFocus) VTK_OVERRIDE;
 
+  // Updates markup point preview position.
+  // Returns true if the event is processed.
+  bool UpdatePointPlacePreview(const int displayPosition[2], const double worldPosition[3]);
+
+  // Remove previewed markup point.
+  // Returns true if the event is processed.
+  bool RemovePointPlacePreview();
+
+  vtkMRMLMarkupsNode* GetActiveMarkupsNode(bool forPlacement=false);
+
+  int GetCurrentInteractionMode();
+
+  // Places a new markup point.
+  // Returns true if the event is processed.
+  bool PlacePoint(const int displayPosition[2], const double worldPosition[3], std::string associatedNodeID);
+
   // Methods from vtkMRMLAbstractSliceViewDisplayableManager
 
   /// Convert device coordinates (display) to XYZ coordinates (viewport).
@@ -110,8 +126,6 @@ protected:
   virtual ~vtkMRMLMarkupsDisplayableManager();
 
   vtkSlicerAbstractWidget* FindClosestWidget(vtkEventData *callData, double &closestDistance2);
-
-  bool UpdatePointPlacePreview(const int displayPosition[2], const double worldPosition[3]);
 
   virtual void ProcessMRMLNodesEvents(vtkObject *caller, unsigned long event, void *callData) VTK_OVERRIDE;
 
@@ -170,12 +184,7 @@ protected:
   /// enum for action at click events
   enum {AddPoint = 0,AddPreview,RemovePreview};
 
-  /// Get the coordinates of a click in the RenderWindow
-  /// It calls OnClickInRenderWindow.
-  void OnClickInRenderWindowGetCoordinates();
-  /// Callback for click in RenderWindow
-  void OnClickInRenderWindow(double x, double y,
-                                     const char *associatedNodeID = NULL);
+  std::string GetAssociatedNodeID(vtkEventData* eventData);
 
   /// Convert display to world coordinates
   void GetWorldToDisplayCoordinates(double r, double a, double s, double * displayCoordinates);

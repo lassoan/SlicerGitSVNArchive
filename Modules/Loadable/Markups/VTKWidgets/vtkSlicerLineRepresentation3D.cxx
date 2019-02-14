@@ -87,7 +87,7 @@ vtkSlicerLineRepresentation3D::~vtkSlicerLineRepresentation3D()
 //----------------------------------------------------------------------
 void vtkSlicerLineRepresentation3D::BuildLines()
 {
-  this->BuildLine(this->Line);
+  this->BuildLine(this->Line, false);
 }
 
 //----------------------------------------------------------------------

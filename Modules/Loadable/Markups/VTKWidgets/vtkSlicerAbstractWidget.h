@@ -116,10 +116,11 @@ public:
   void UpdatePreviewPointPositionFromWorldCoordinate(const double worldCoordinates[3]);
 
   /// Remove the point preview to the current active Markup.
-  void RemoveLastPreviewPointToRepresentation();
+  /// Returns true is preview point existed and now it is removed.
+  bool RemovePreviewPoint();
 
   /// Add a point to the current active Markup at input World coordiantes.
-  virtual int AddPointToRepresentationFromWorldCoordinate(double worldCoordinates [3], bool persistence = false);
+  virtual int AddPointFromWorldCoordinate(const double worldCoordinates[3]);
 
   /// Return true if the displayable manager can process the event.
   /// Distance2 is the squared distance in display coordinates from the closest interaction position.
@@ -173,7 +174,7 @@ protected:
   static void ControlPointMoveAction(vtkAbstractWidget*);
   static void PickAction(vtkAbstractWidget*);
   static void TranslateAction(vtkAbstractWidget*);
-  static void MoveAction(vtkAbstractWidget *w);
+  static void MouseMoveAction(vtkAbstractWidget *w);
   static void RotateAction(vtkAbstractWidget*);
   static void ScaleAction(vtkAbstractWidget*);
   static void EndAction(vtkAbstractWidget*);

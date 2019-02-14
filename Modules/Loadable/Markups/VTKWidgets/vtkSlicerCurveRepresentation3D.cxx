@@ -90,7 +90,7 @@ vtkSlicerCurveRepresentation3D::~vtkSlicerCurveRepresentation3D()
 //----------------------------------------------------------------------
 void vtkSlicerCurveRepresentation3D::BuildLines()
 {
-  this->BuildLine(this->Line);
+  this->BuildLine(this->Line, false);
 }
 
 //----------------------------------------------------------------------

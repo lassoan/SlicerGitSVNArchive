@@ -26,7 +26,7 @@
 // MRML includes
 #include "vtkMRMLDisplayableManagerExport.h"
 
-class vtkMRMLAbstractSliceViewDisplayableManager;
+class vtkMRMLAbstractDisplayableManager;
 class vtkMRMLSegmentationDisplayNode;
 class vtkMRMLSliceLogic;
 class vtkMRMLDisplayableManagerGroup;
@@ -38,7 +38,8 @@ class VTK_MRML_DISPLAYABLEMANAGER_EXPORT vtkSlicerInteractionEventData : public 
 {
 public:
   vtkTypeMacro(vtkSlicerInteractionEventData, vtkEventData);
-  static vtkSlicerInteractionEventData *New() {
+  static vtkSlicerInteractionEventData *New()
+  {
     vtkSlicerInteractionEventData *ret = new vtkSlicerInteractionEventData;
     ret->InitializeObjectBase();
     return ret;
@@ -49,10 +50,12 @@ public:
   void SetModifiers(int v) { this->Modifiers = v; }
   int GetModifiers() { return this->Modifiers; }
 
-  void GetWorldPosition(double v[3]) const {
+  void GetWorldPosition(double v[3]) const
+  {
     std::copy(this->WorldPosition, this->WorldPosition + 3, v);
   }
-  const double *GetWorldPosition() const {
+  const double *GetWorldPosition() const
+  {
     return this->WorldPosition;
   }
   void SetWorldPosition(const double p[3])
@@ -71,10 +74,12 @@ public:
     this->WorldPositionValid = false;
   }
 
-  void GetDisplayPosition(int v[2]) const {
+  void GetDisplayPosition(int v[2]) const
+  {
     std::copy(this->DisplayPosition, this->DisplayPosition + 2, v);
   }
-  const int *GetDisplayPosition() const {
+  const int *GetDisplayPosition() const
+  {
     return this->DisplayPosition;
   }
   void SetDisplayPosition(const int p[2])
@@ -99,9 +104,10 @@ protected:
   bool DisplayPositionValid;
   bool WorldPositionValid;
 
-  bool Equivalent(const vtkEventData *e) const override {
+  bool Equivalent(const vtkEventData *e) const override
+  {
     const vtkSlicerInteractionEventData *edd = static_cast<const vtkSlicerInteractionEventData *>(e);
-    return (this->Type == edd->Type) && (this->Modifiers == edd->Modifiers);
+    return (this->Type == edd->Type) && (edd->Modifiers < 0 || (this->Modifiers == edd->Modifiers));
   };
 
   vtkSlicerInteractionEventData()
@@ -291,7 +297,7 @@ protected:
   vtkMRMLSliceLogic *SliceLogic;
 
   vtkWeakPointer<vtkMRMLDisplayableManagerGroup> DisplayableManagers;
-  vtkMRMLAbstractSliceViewDisplayableManager* FocusedDisplayableManager;
+  vtkMRMLAbstractDisplayableManager* FocusedDisplayableManager;
 
 private:
   vtkSliceViewInteractorStyle(const vtkSliceViewInteractorStyle&);  /// Not implemented.

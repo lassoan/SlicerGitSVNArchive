@@ -297,6 +297,10 @@ double vtkSliceViewInteractorStyle::GetLabelOpacity()
 //----------------------------------------------------------------------------
 void vtkSliceViewInteractorStyle::OnRightButtonDown()
 {
+  if (this->ForwardInteractionEventToDisplayableManagers(vtkCommand::LeftButtonPressEvent))
+    {
+    return;
+    }
   if (!this->GetActionEnabled(vtkSliceViewInteractorStyle::Zoom))
     {
     this->Superclass::OnRightButtonDown();
@@ -316,7 +320,10 @@ void vtkSliceViewInteractorStyle::OnRightButtonUp()
 {
   this->SetActionState(vtkSliceViewInteractorStyle::None);
   this->SliceLogic->EndSliceNodeInteraction();
-  this->InvokeEvent(vtkCommand::RightButtonReleaseEvent,nullptr);
+  if (!this->ForwardInteractionEventToDisplayableManagers(vtkCommand::LeftButtonReleaseEvent))
+  {
+    this->InvokeEvent(vtkCommand::RightButtonReleaseEvent, nullptr);
+  }
 }
 
 //----------------------------------------------------------------------------
@@ -647,7 +654,10 @@ void vtkSliceViewInteractorStyle::OnConfigure()
 //----------------------------------------------------------------------------
 void vtkSliceViewInteractorStyle::OnEnter()
 {
-  this->Superclass::OnEnter();
+  if (!this->ForwardInteractionEventToDisplayableManagers(vtkCommand::EnterEvent))
+  {
+    this->Superclass::OnEnter();
+  }
 
   // Forcing the refresh of the view interactors.
   // TODO: Not sure why this hack was added
@@ -672,7 +682,10 @@ void vtkSliceViewInteractorStyle::OnLeave()
     {
     crosshairNode->SetCursorPositionInvalid();
     }
-  this->Superclass::OnLeave();
+  if (!this->ForwardInteractionEventToDisplayableManagers(vtkCommand::LeaveEvent))
+  {
+    this->Superclass::OnLeave();
+  }
 }
 
 //----------------------------------------------------------------------------
@@ -988,7 +1001,7 @@ bool vtkSliceViewInteractorStyle::ForwardInteractionEventToDisplayableManagers(v
     }
   double canProcessEvent = false;
   double closestDistance2 = VTK_DOUBLE_MAX;
-  vtkMRMLAbstractSliceViewDisplayableManager* closestDisplayableManager = NULL;
+  vtkMRMLAbstractDisplayableManager* closestDisplayableManager = NULL;
   int numberOfDisplayableManagers = this->DisplayableManagers->GetDisplayableManagerCount();
 
   // Get display and world position
@@ -1015,7 +1028,7 @@ bool vtkSliceViewInteractorStyle::ForwardInteractionEventToDisplayableManagers(v
   // Find the most suitable displayable manager
   for (int displayableManagerIndex = 0; displayableManagerIndex < numberOfDisplayableManagers; ++displayableManagerIndex)
     {
-    vtkMRMLAbstractSliceViewDisplayableManager* displayableManager = vtkMRMLAbstractSliceViewDisplayableManager::SafeDownCast(
+    vtkMRMLAbstractDisplayableManager* displayableManager = vtkMRMLAbstractDisplayableManager::SafeDownCast(
       this->DisplayableManagers->GetNthDisplayableManager(displayableManagerIndex));
     if (!displayableManager)
       {
@@ -1034,7 +1047,7 @@ bool vtkSliceViewInteractorStyle::ForwardInteractionEventToDisplayableManagers(v
     }
 
   // Notify displayable managers about focus change
-  vtkMRMLAbstractSliceViewDisplayableManager* oldFocusedDisplayableManager = this->FocusedDisplayableManager;
+  vtkMRMLAbstractDisplayableManager* oldFocusedDisplayableManager = this->FocusedDisplayableManager;
   if (oldFocusedDisplayableManager != closestDisplayableManager)
     {
     if (oldFocusedDisplayableManager != nullptr)

@@ -760,10 +760,6 @@ bool vtkSlicerAbstractRepresentation::NodeExists(int n)
   {
     return false;
   }
-  if (!this->NodeExists(n))
-  {
-    return false;
-  }
 
   return markupsNode->ControlPointExists(n);
 }
@@ -1700,7 +1696,7 @@ bool vtkSlicerAbstractRepresentation::GetTransformationReferencePoint(double ref
 }
 
 //----------------------------------------------------------------------
-void vtkSlicerAbstractRepresentation::BuildLine(vtkPolyData* linePolyData)
+void vtkSlicerAbstractRepresentation::BuildLine(vtkPolyData* linePolyData, bool displayPosition)
 {
   vtkNew<vtkPoints> points;
   vtkNew<vtkCellArray> line;
@@ -1717,7 +1713,7 @@ void vtkSlicerAbstractRepresentation::BuildLine(vtkPolyData* linePolyData)
 
   points->SetNumberOfPoints(count);
   vtkIdType numLine = count;
-  double pos[3];
+  double pos[3] = { 0.0 };
   if (numLine > 0)
   {
     vtkIdType *lineIndices = new vtkIdType[numLine];
@@ -1725,7 +1721,14 @@ void vtkSlicerAbstractRepresentation::BuildLine(vtkPolyData* linePolyData)
     for (i = 0; i < numberOfNodes; i++)
     {
       // Add the node
-      this->GetNthNodeWorldPosition(i, pos);
+      if (displayPosition)
+      {
+        this->GetNthNodeDisplayPosition(i, pos);
+      }
+      else
+      {
+        this->GetNthNodeWorldPosition(i, pos);
+      }
       points->InsertPoint(index, pos);
       lineIndices[index] = index;
       index++;
@@ -1734,7 +1737,14 @@ void vtkSlicerAbstractRepresentation::BuildLine(vtkPolyData* linePolyData)
 
       for (j = 0; j < numIntermediatePoints; j++)
       {
-        this->GetIntermediatePointWorldPosition(i, j, pos);
+        if (displayPosition)
+        {
+          this->GetIntermediatePointDisplayPosition(i, j, pos);
+        }
+        else
+        {
+          this->GetIntermediatePointWorldPosition(i, j, pos);
+        }
         points->InsertPoint(index, pos);
         lineIndices[index] = index;
         index++;
@@ -1743,7 +1753,15 @@ void vtkSlicerAbstractRepresentation::BuildLine(vtkPolyData* linePolyData)
 
     if (this->ClosedLoop)
     {
-      this->GetNthNodeWorldPosition(0, pos);
+      if (displayPosition)
+      {
+        this->GetNthNodeDisplayPosition(0, pos);
+      }
+      else
+      {
+        this->GetNthNodeWorldPosition(0, pos);
+      }
+
       points->InsertPoint(index, pos);
       lineIndices[index] = 0;
     }

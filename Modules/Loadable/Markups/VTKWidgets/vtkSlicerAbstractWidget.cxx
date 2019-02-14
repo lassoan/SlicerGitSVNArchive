@@ -60,7 +60,7 @@ vtkSlicerAbstractWidget::vtkSlicerAbstractWidget()
   //this->SetCallbackMethod(vtkCommand::RightButtonPressEvent, vtkEvent::NoModifier, vtkWidgetEvent::EndScale, vtkSlicerAbstractWidget::EndAction);
   //this->SetCallbackMethod(vtkCommand::RightButtonReleaseEvent, vtkEvent::AnyModifier, vtkWidgetEvent::EndScale, vtkSlicerAbstractWidget::EndAction);
 
-  this->SetCallbackMethod(vtkCommand::MouseMoveEvent, vtkEvent::AnyModifier, vtkWidgetEvent::Move3D, vtkSlicerAbstractWidget::MoveAction);
+  this->SetCallbackMethod(vtkCommand::MouseMoveEvent, vtkEvent::AnyModifier, vtkWidgetEvent::Move3D, vtkSlicerAbstractWidget::MouseMoveAction);
 
   this->SetCallbackMethod(vtkCommand::LeftButtonDoubleClickEvent, vtkEvent::AnyModifier, vtkWidgetEvent::Pick, vtkSlicerAbstractWidget::PickAction);
   this->SetCallbackMethod(vtkCommand::MiddleButtonDoubleClickEvent, vtkEvent::AnyModifier, vtkWidgetEvent::Pick, vtkSlicerAbstractWidget::PickAction);
@@ -412,7 +412,7 @@ void vtkSlicerAbstractWidget::TranslateAction(vtkAbstractWidget *w)
 }
 
 //-------------------------------------------------------------------------
-void vtkSlicerAbstractWidget::MoveAction(vtkAbstractWidget *w)
+void vtkSlicerAbstractWidget::MouseMoveAction(vtkAbstractWidget *w)
 {
   vtkSlicerAbstractWidget *self = reinterpret_cast<vtkSlicerAbstractWidget*>(w);
   vtkSlicerAbstractRepresentation *rep =
@@ -455,7 +455,18 @@ void vtkSlicerAbstractWidget::MoveAction(vtkAbstractWidget *w)
     double closestDistance2 = 0.0;
     int componentIndex = -1;
     int foundComponent = rep->CanInteract(displayPosition, worldPosition, closestDistance2, componentIndex);
-    self->SetWidgetState(foundComponent == vtkMRMLMarkupsDisplayNode::ComponentNone ? Idle : OnWidget);
+    if (foundComponent == vtkMRMLMarkupsDisplayNode::ComponentNone)
+    {
+      self->SetWidgetState(Idle);
+    }
+    else
+    {
+      self->SetWidgetState(OnWidget);
+      if (foundComponent == vtkMRMLMarkupsDisplayNode::ComponentControlPoint)
+      {
+        rep->SetActiveNode(componentIndex);
+      }
+    }
   }
   else
   {
@@ -660,21 +671,23 @@ void vtkSlicerAbstractWidget::UpdatePreviewPointPositionFromWorldCoordinate(cons
 }
 
 //-------------------------------------------------------------------------
-void vtkSlicerAbstractWidget::RemoveLastPreviewPointToRepresentation()
+bool vtkSlicerAbstractWidget::RemovePreviewPoint()
 {
   vtkSlicerAbstractRepresentation *rep =
     reinterpret_cast<vtkSlicerAbstractRepresentation*>(this->WidgetRep);
 
   if (!rep)
     {
-    return;
+    return false;
     }
 
-  if (this->FollowCursor)
-    {
-    rep->DeleteLastNode();
-    this->FollowCursor = false;
-    }
+  if (!this->FollowCursor)
+  {
+    return false;
+  }
+  rep->DeleteLastNode();
+  this->FollowCursor = false;
+  return true;
 }
 
 //----------------------------------------------------------------------
@@ -727,7 +740,7 @@ bool vtkSlicerAbstractWidget::CanProcessInteractionEvent(vtkEventData* eventData
 //-----------------------------------------------------------------------------
 void vtkSlicerAbstractWidget::Leave()
 {
-  this->RemoveLastPreviewPointToRepresentation();
+  this->RemovePreviewPoint();
   vtkSlicerAbstractRepresentation *rep = reinterpret_cast<vtkSlicerAbstractRepresentation*>(this->WidgetRep);
   if (!rep)
     {
@@ -820,7 +833,6 @@ void vtkSlicerAbstractWidget::TranslateNode(double eventPos[2])
   if (rep2d)
   {
     // 2D view
-    double worldPos[3];
     rep2d->GetSliceToWorldCoordinates(eventPos, worldPos);
   }
   else
@@ -865,7 +877,7 @@ void vtkSlicerAbstractWidget::TranslateWidget(double eventPos[2])
   if (rep2d)
   {
     // 2D view
-    double slicePos[2] = { 0. };
+    double slicePos[3] = { 0. };
     slicePos[0] = this->LastEventPosition[0];
     slicePos[1] = this->LastEventPosition[1];
     rep2d->GetSliceToWorldCoordinates(slicePos, ref);
@@ -958,7 +970,7 @@ void vtkSlicerAbstractWidget::ScaleWidget(double eventPos[2])
   vtkSlicerAbstractRepresentation2D* rep2d = vtkSlicerAbstractRepresentation2D::SafeDownCast(rep);
   if (rep2d)
   {
-    double slicePos[2] = { 0. };
+    double slicePos[3] = { 0. };
     slicePos[0] = this->LastEventPosition[0];
     slicePos[1] = this->LastEventPosition[1];
     rep2d->GetSliceToWorldCoordinates(slicePos, ref);
@@ -1050,7 +1062,7 @@ void vtkSlicerAbstractWidget::RotateWidget(double eventPos[2])
   vtkSlicerAbstractRepresentation2D* rep2d = vtkSlicerAbstractRepresentation2D::SafeDownCast(rep);
   if (rep2d)
   {
-    double slicePos[2] = { 0. };
+    double slicePos[3] = { 0. };
     slicePos[0] = this->LastEventPosition[0];
     slicePos[1] = this->LastEventPosition[1];
 
@@ -1164,8 +1176,7 @@ bool vtkSlicerAbstractWidget::IsAnyControlPointLocked()
 }
 
 //-------------------------------------------------------------------------
-int vtkSlicerAbstractWidget::AddPointToRepresentationFromWorldCoordinate(
-  double worldCoordinates[3], bool persistence /*= false*/)
+int vtkSlicerAbstractWidget::AddPointFromWorldCoordinate(const double worldCoordinates[3])
 {
   vtkSlicerAbstractRepresentation *rep =
     reinterpret_cast<vtkSlicerAbstractRepresentation*>(this->WidgetRep);
@@ -1175,29 +1186,6 @@ int vtkSlicerAbstractWidget::AddPointToRepresentationFromWorldCoordinate(
     return -1;
   }
 
-  /*
-  if (persistence)
-  {
-  if (this->WidgetState == vtkSlicerPointsWidget::Manipulate)
-  {
-  this->FollowCursor = false;
-  rep->DeleteLastNode();
-  }
-  else if (this->FollowCursor)
-  {
-  rep->DeleteLastNode();
-  }
-  else
-  {
-  this->FollowCursor = true;
-  }
-  }
-  else if (this->FollowCursor)
-  {
-  rep->DeleteLastNode();
-  this->FollowCursor = false;
-  }
-  */
   if (this->FollowCursor)
   {
     // convert point preview to final point

@@ -260,7 +260,7 @@ std::string vtkMRMLMarkupsFiducialNode::GetNthFiducialAssociatedNodeID(int n)
 //-------------------------------------------------------------------------
 void vtkMRMLMarkupsFiducialNode::SetNthFiducialAssociatedNodeID(int n, const char* id)
 {
-  this->SetNthControlPointAssociatedNodeID(n, std::string(id));
+  this->SetNthControlPointAssociatedNodeID(n, (id ? std::string(id) : ""));
 }
 
 //-------------------------------------------------------------------------

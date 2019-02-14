@@ -389,8 +389,11 @@ protected:
 
   virtual void BuildLines()=0;
 
-  // Utility function
-  void BuildLine(vtkPolyData* linePolyData);
+  // Utility function to build lines between control points.
+  // If displayPosition is true then positions will be computed in display coordinate system,
+  // otherwise in world coordinate system.
+  // displayPosition is normally set to true in 2D, and to false in 3D representations.
+  void BuildLine(vtkPolyData* linePolyData, bool displayPosition);
 
   // This method is called when something changes in the point placer.
   // It will cause all points to be updated, and all lines to be regenerated.

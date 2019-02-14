@@ -83,7 +83,7 @@ vtkSlicerCurveRepresentation2D::~vtkSlicerCurveRepresentation2D()
 //----------------------------------------------------------------------
 void vtkSlicerCurveRepresentation2D::BuildLines()
 {
-  this->BuildLine(this->Line);
+  this->BuildLine(this->Line, true);
 }
 
 //----------------------------------------------------------------------
@@ -91,6 +91,8 @@ void vtkSlicerCurveRepresentation2D::BuildRepresentation()
 {
   // Make sure we are up to date with any changes made in the placer
   //this->UpdateWidget(true);
+
+  Superclass::BuildRepresentation();
 
   vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
   if (markupsNode == nullptr)
@@ -106,16 +108,18 @@ void vtkSlicerCurveRepresentation2D::BuildRepresentation()
 
   double scale = this->CalculateViewScaleFactor();
 
+  /*
   for (int controlPointType = 0; controlPointType < NumberOfControlPointTypes; ++controlPointType)
   {
     ControlPointsPipeline2D* controlPoints = this->GetControlPointsPipeline(controlPointType);
     controlPoints->LabelsActor->SetVisibility(this->MarkupsDisplayNode->GetTextVisibility());
     controlPoints->Glypher->SetScaleFactor(scale * this->ControlPointSize);
   }
+  */
 
   this->TubeFilter->SetRadius(scale * this->ControlPointSize * 0.125);
 
-  this->BuildRepresentationPointsAndLabels(scale * this->ControlPointSize);
+  //this->BuildRepresentationPointsAndLabels(scale * this->ControlPointSize);
 
   bool allNodeVisibile = true;
   for (int ii = 0; ii < this->GetNumberOfNodes(); ii++)

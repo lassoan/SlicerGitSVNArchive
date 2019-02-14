@@ -66,11 +66,6 @@ public:
   int RenderTranslucentPolygonalGeometry(vtkViewport *viewport) VTK_OVERRIDE;
   vtkTypeBool HasTranslucentPolygonalGeometry() VTK_OVERRIDE;
 
-  /// Set/Get the three leaders used to create this representation.
-  /// By obtaining these leaders the user can set the appropriate
-  /// properties, etc.
-  vtkGetObjectMacro(LineActor,vtkOpenGLActor);
-
   /// Return the bounds of the representation
   double *GetBounds() VTK_OVERRIDE;
 
@@ -78,15 +73,13 @@ protected:
   vtkSlicerLineRepresentation3D();
   ~vtkSlicerLineRepresentation3D() VTK_OVERRIDE;
 
-  vtkPolyData                *Line;
-  vtkOpenGLPolyDataMapper    *LineMapper;
-  vtkOpenGLActor             *LineActor;
+  vtkSmartPointer<vtkPolyData> Line;
+  vtkSmartPointer<vtkOpenGLPolyDataMapper> LineMapper;
+  vtkSmartPointer<vtkOpenGLActor> LineActor;
 
-  vtkTubeFilter  *TubeFilter;
+  vtkSmartPointer<vtkTubeFilter> TubeFilter;
 
   virtual void BuildLines() VTK_OVERRIDE;
-
-  vtkAppendPolyData *appendActors;
 
 private:
   vtkSlicerLineRepresentation3D(const vtkSlicerLineRepresentation3D&) = delete;
