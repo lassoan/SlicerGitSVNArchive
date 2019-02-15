@@ -123,7 +123,7 @@ vtkSlicerAbstractRepresentation3D::vtkSlicerAbstractRepresentation3D()
   reinterpret_cast<ControlPointsPipeline3D*>(this->ControlPoints[Selected])->Property->SetColor(1.0, 0.5, 0.5);
 
   this->ControlPoints[Active]->TextProperty->SetColor(0.4, 1.0, 0.); // bright green
-  reinterpret_cast<ControlPointsPipeline3D*>(this->ControlPoints[Selected])->Property->SetColor(0.4, 1.0, 0.);
+  reinterpret_cast<ControlPointsPipeline3D*>(this->ControlPoints[Active])->Property->SetColor(0.4, 1.0, 0.);
 
   this->ControlPointSize = 3;
 }

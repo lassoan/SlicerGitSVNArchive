@@ -85,8 +85,6 @@ protected:
 
   virtual void BuildLines() override;
 
-  vtkSmartPointer<vtkAppendPolyData> *appendActors;
-
 private:
   vtkSlicerCurveRepresentation2D(const vtkSlicerCurveRepresentation2D&) = delete;
   void operator=(const vtkSlicerCurveRepresentation2D&) = delete;

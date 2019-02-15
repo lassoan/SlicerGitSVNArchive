@@ -117,7 +117,7 @@ vtkSlicerAbstractRepresentation2D::vtkSlicerAbstractRepresentation2D()
   reinterpret_cast<ControlPointsPipeline2D*>(this->ControlPoints[Selected])->Property->SetColor(1.0, 0.5, 0.5);
 
   this->ControlPoints[Active]->TextProperty->SetColor(0.4, 1.0, 0.); // bright green
-  reinterpret_cast<ControlPointsPipeline2D*>(this->ControlPoints[Selected])->Property->SetColor(0.4, 1.0, 0.);
+  reinterpret_cast<ControlPointsPipeline2D*>(this->ControlPoints[Active])->Property->SetColor(0.4, 1.0, 0.);
 
 
   this->PointsVisibilityOnSlice = vtkSmartPointer<vtkIntArray>::New();
@@ -213,7 +213,7 @@ void vtkSlicerAbstractRepresentation2D::BuildRepresentationPointsAndLabels(doubl
     if (controlPointType == Active)
     {
       if (this->GetActiveNode() >= 0 && this->GetActiveNode() < numPoints &&
-        this->GetNthNodeVisibility(this->GetActiveNode()))
+        this->GetNthNodeVisibility(this->GetActiveNode()) && this->PointsVisibilityOnSlice->GetValue(this->GetActiveNode()))
       {
         startIndex = this->GetActiveNode();
         stopIndex = startIndex;
@@ -228,7 +228,7 @@ void vtkSlicerAbstractRepresentation2D::BuildRepresentationPointsAndLabels(doubl
 
     for (int pointIndex = startIndex; pointIndex <= stopIndex; pointIndex++)
       {
-      if (!this->GetNthNodeVisibility(pointIndex))
+      if (!this->GetNthNodeVisibility(pointIndex) || !this->PointsVisibilityOnSlice->GetValue(pointIndex))
       {
         continue;
       }
@@ -447,11 +447,11 @@ void vtkSlicerAbstractRepresentation2D::AddNodeAtPositionInternal(const double w
     return;
     }
 
+  int wasModified = markupsNode->StartModify();
+
   // Add a new point at this position
   vtkVector3d pos(worldPos[0], worldPos[1], worldPos[2]);
-  markupsNode->DisableModifiedEventOn();
   markupsNode->AddControlPointWorld(pos);
-  markupsNode->DisableModifiedEventOff();
 
   if (this->GetNumberOfNodes() - 1 >= this->PointsVisibilityOnSlice->GetNumberOfValues())
     {
@@ -461,6 +461,8 @@ void vtkSlicerAbstractRepresentation2D::AddNodeAtPositionInternal(const double w
     {
     this->PointsVisibilityOnSlice->InsertNextValue(1);
     }
+
+  markupsNode->EndModify(wasModified);
 
   this->UpdateLines(this->GetNumberOfNodes() - 1);
 

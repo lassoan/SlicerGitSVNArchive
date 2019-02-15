@@ -297,7 +297,7 @@ double vtkSliceViewInteractorStyle::GetLabelOpacity()
 //----------------------------------------------------------------------------
 void vtkSliceViewInteractorStyle::OnRightButtonDown()
 {
-  if (this->ForwardInteractionEventToDisplayableManagers(vtkCommand::LeftButtonPressEvent))
+  if (this->ForwardInteractionEventToDisplayableManagers(vtkCommand::RightButtonPressEvent))
     {
     return;
     }
@@ -320,7 +320,7 @@ void vtkSliceViewInteractorStyle::OnRightButtonUp()
 {
   this->SetActionState(vtkSliceViewInteractorStyle::None);
   this->SliceLogic->EndSliceNodeInteraction();
-  if (!this->ForwardInteractionEventToDisplayableManagers(vtkCommand::LeftButtonReleaseEvent))
+  if (!this->ForwardInteractionEventToDisplayableManagers(vtkCommand::RightButtonReleaseEvent))
   {
     this->InvokeEvent(vtkCommand::RightButtonReleaseEvent, nullptr);
   }

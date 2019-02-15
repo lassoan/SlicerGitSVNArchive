@@ -1199,6 +1199,7 @@ int vtkSlicerAbstractWidget::AddPointFromWorldCoordinate(const double worldCoord
       return -1;
     }
   }
+  rep->SetActiveNode(rep->GetNumberOfNodes() - 1);
 
   return rep->GetNumberOfNodes() - 1;
 }

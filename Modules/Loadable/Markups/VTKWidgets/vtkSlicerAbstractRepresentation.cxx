@@ -231,15 +231,17 @@ void vtkSlicerAbstractRepresentation::AddNodeAtPositionInternal(const double wor
 {
   vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
   if (!markupsNode)
-    {
+  {
     return;
-    }
+  }
+
+  int wasModified = markupsNode->StartModify();
 
   // Add a new point at this position
   vtkVector3d pos(worldPos[0], worldPos[1], worldPos[2]);
-  markupsNode->DisableModifiedEventOn();
-  markupsNode->AddControlPoint(pos);
-  markupsNode->DisableModifiedEventOff();
+  markupsNode->AddControlPointWorld(pos);
+
+  markupsNode->EndModify(wasModified);
 
   this->UpdateLines(this->GetNumberOfNodes() - 1);
   this->NeedToRender = 1;
@@ -1701,12 +1703,11 @@ void vtkSlicerAbstractRepresentation::BuildLine(vtkPolyData* linePolyData, bool 
   vtkNew<vtkPoints> points;
   vtkNew<vtkCellArray> line;
 
-  int i, j;
   vtkIdType index = 0;
 
   int numberOfNodes = this->GetNumberOfNodes();
   int count = numberOfNodes;
-  for (i = 0; i < numberOfNodes; i++)
+  for (int i = 0; i < numberOfNodes; i++)
   {
     count += this->GetNumberOfIntermediatePoints(i);
   }
@@ -1714,11 +1715,19 @@ void vtkSlicerAbstractRepresentation::BuildLine(vtkPolyData* linePolyData, bool 
   points->SetNumberOfPoints(count);
   vtkIdType numLine = count;
   double pos[3] = { 0.0 };
+
+  // Check if a closing line segment should be added
+  bool loop = (this->ClosedLoop && numberOfNodes > 2);
+  if (loop)
+  {
+    numLine++;
+  }
+
   if (numLine > 0)
   {
     vtkIdType *lineIndices = new vtkIdType[numLine];
 
-    for (i = 0; i < numberOfNodes; i++)
+    for (int i = 0; i < numberOfNodes; i++)
     {
       // Add the node
       if (displayPosition)
@@ -1735,7 +1744,7 @@ void vtkSlicerAbstractRepresentation::BuildLine(vtkPolyData* linePolyData, bool 
 
       int numIntermediatePoints = this->GetNumberOfIntermediatePoints(i);
 
-      for (j = 0; j < numIntermediatePoints; j++)
+      for (int j = 0; j < numIntermediatePoints; j++)
       {
         if (displayPosition)
         {
@@ -1751,7 +1760,7 @@ void vtkSlicerAbstractRepresentation::BuildLine(vtkPolyData* linePolyData, bool 
       }
     }
 
-    if (this->ClosedLoop)
+    if (loop)
     {
       if (displayPosition)
       {
