@@ -58,7 +58,7 @@ public:
   /// Subclasses of vtkContourCurveRepresentation must implement these methods. These
   /// are the methods that the widget and its representation use to
   /// communicate with each other.
-  void BuildRepresentation() VTK_OVERRIDE;
+  void UpdateFromMRML() VTK_OVERRIDE;
 
   /// Methods to make this class behave as a vtkProp.
   void GetActors(vtkPropCollection *) override;
@@ -94,7 +94,7 @@ protected:
 
   std::string LabelFormat;
 
-  virtual void BuildLines() override;
+  virtual void UpdateLinesFromMRML() override;
 
 private:
   vtkSlicerAngleRepresentation2D(const vtkSlicerAngleRepresentation2D&) = delete;

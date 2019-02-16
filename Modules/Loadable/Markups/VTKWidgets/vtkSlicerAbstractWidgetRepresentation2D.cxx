@@ -470,7 +470,7 @@ void vtkSlicerAbstractWidgetRepresentation2D::AddNodeAtPositionInternal(const do
 }
 
 //----------------------------------------------------------------------
-void vtkSlicerAbstractWidgetRepresentation2D::BuildRepresentation()
+void vtkSlicerAbstractWidgetRepresentation2D::UpdateFromMRML()
 {
   // Make sure we are up to date with any changes made in the placer
   //this->UpdateWidget();
@@ -538,6 +538,19 @@ void vtkSlicerAbstractWidgetRepresentation2D::BuildRepresentation()
   this->ControlPointSize = markupsDisplayNode->GetGlyphScale() * this->ScaleFactor2D;
 
   double scale = this->CalculateViewScaleFactor();
+
+  // Points widgets have only one Markup/Representation
+  for (int PointIndex = 0; PointIndex < markupsNode->GetNumberOfControlPoints(); PointIndex++)
+  {
+    bool visibility = this->IsPointDisplayableOnSlice(markupsNode, PointIndex);
+    this->SetNthPointSliceVisibility(PointIndex, visibility);
+  }
+  if (this->GetClosedLoop())
+  {
+    bool visibility = this->IsCentroidDisplayableOnSlice(markupsNode);
+    this->SetCentroidSliceVisibility(visibility);
+  }
+
 
   for (int controlPointType = 0; controlPointType < NumberOfControlPointTypes; ++controlPointType)
   {
@@ -716,7 +729,7 @@ int vtkSlicerAbstractWidgetRepresentation2D::RenderOpaqueGeometry(
 {
   // Since we know RenderOpaqueGeometry gets called first, will do the
   // build here
-  this->BuildRepresentation();
+  this->UpdateFromMRML();
 
   int count = 0;
   for (int i = 0; i < NumberOfControlPointTypes; i++)
@@ -822,4 +835,155 @@ void vtkSlicerAbstractWidgetRepresentation2D::PrintSelf(ostream& os,
 vtkSlicerAbstractWidgetRepresentation2D::ControlPointsPipeline2D* vtkSlicerAbstractWidgetRepresentation2D::GetControlPointsPipeline(int controlPointType)
 {
   return reinterpret_cast<ControlPointsPipeline2D*>(this->ControlPoints[controlPointType]);
+}
+
+//---------------------------------------------------------------------------
+bool vtkSlicerAbstractWidgetRepresentation2D::IsPointDisplayableOnSlice(vtkMRMLMarkupsNode *markupsNode, int pointIndex)
+{
+  if (!this->SliceNode)
+    {
+    return false;
+    }
+
+  // if there's no node, it's not visible
+  if (!markupsNode)
+    {
+    vtkErrorMacro("IsWidgetDisplayableOnSlice: Could not get the markups node.")
+    return false;
+    }
+
+  bool showPoint = true;
+
+  // allow annotations to appear only in designated viewers
+  vtkMRMLDisplayNode *displayNode = markupsNode->GetDisplayNode();
+  if (!displayNode)
+  {
+    return false;
+  }
+
+  double transformedWorldCoordinates[4];
+  markupsNode->GetNthControlPointPositionWorld(pointIndex, transformedWorldCoordinates);
+
+  // now get the displayCoordinates for the transformed worldCoordinates
+  double displayCoordinates[4];
+  this->GetWorldToDisplayCoordinates(transformedWorldCoordinates, displayCoordinates);
+
+  // check if the point is close enough to the slice to be shown
+  if (showPoint)
+  {
+    // the third coordinate of the displayCoordinates is the distance to the slice
+    double distanceToSlice = displayCoordinates[2];
+    double maxDistance = 0.5 + (this->SliceNode->GetDimensions()[2] - 1);
+    /*vtkDebugMacro("Slice node " << sliceNode->GetName()
+      << ": distance to slice = " << distanceToSlice
+      << ", maxDistance = " << maxDistance
+      << "\n\tslice node dimensions[2] = "
+      << sliceNode->GetDimensions()[2]);*/
+    if (distanceToSlice < -0.5 || distanceToSlice >= maxDistance)
+    {
+      // if the distance to the slice is more than 0.5mm, we know that at least one coordinate of the widget is outside the current activeSlice
+      // hence, we do not want to show this widget
+      showPoint = false;
+    }
+  }
+
+  return showPoint;
+}
+
+//---------------------------------------------------------------------------
+bool vtkSlicerAbstractWidgetRepresentation2D::IsCentroidDisplayableOnSlice(vtkMRMLMarkupsNode *markupsNode)
+{
+  // if no slice node, it doesn't constrain the visibility, so return that
+  // it's visible
+  if (!this->SliceNode)
+  {
+    vtkErrorMacro("IsWidgetDisplayableOnSlice: Could not get the sliceNode.")
+    return false;
+  }
+
+  // if there's no node, it's not visible
+  if (!markupsNode)
+  {
+    vtkErrorMacro("IsWidgetDisplayableOnSlice: Could not get the markups node.")
+    return false;
+  }
+
+  bool showPoint = true;
+
+  // allow annotations to appear only in designated viewers
+  vtkMRMLDisplayNode *displayNode = markupsNode->GetDisplayNode();
+  if (displayNode && !displayNode->IsDisplayableInView(this->SliceNode->GetID()))
+  {
+    return 0;
+  }
+
+  // down cast the node as a controlpoints node to get the coordinates
+  double transformedWorldCoordinates[4];
+  markupsNode->GetCentroidPositionWorld(transformedWorldCoordinates);
+
+  // now get the displayCoordinates for the transformed worldCoordinates
+  double displayCoordinates[4];
+  this->GetWorldToDisplayCoordinates(transformedWorldCoordinates, displayCoordinates);
+
+  // check if the point is close enough to the slice to be shown
+  if (showPoint)
+  {
+    // the third coordinate of the displayCoordinates is the distance to the slice
+    double distanceToSlice = displayCoordinates[2];
+    double maxDistance = 0.5 + (this->SliceNode->GetDimensions()[2] - 1);
+    /*vtkDebugMacro("Slice node " << sliceNode->GetName()
+      << ": distance to slice = " << distanceToSlice
+      << ", maxDistance = " << maxDistance
+      << "\n\tslice node dimensions[2] = "
+      << sliceNode->GetDimensions()[2]);*/
+    if (distanceToSlice < -0.5 || distanceToSlice >= maxDistance)
+    {
+      // if the distance to the slice is more than 0.5mm, we know that at least one coordinate of the widget is outside the current activeSlice
+      // hence, we do not want to show this widget
+      showPoint = false;
+    }
+  }
+
+  return showPoint;
+}
+
+
+//---------------------------------------------------------------------------
+/// Convert world to display coordinates
+void vtkSlicerAbstractWidgetRepresentation2D::GetWorldToDisplayCoordinates(double r, double a, double s, double * displayCoordinates)
+{
+  if (!this->SliceNode)
+  {
+    vtkErrorMacro("GetWorldToDisplayCoordinates: no slice node!");
+    return;
+  }
+
+  // we will get the transformation matrix to convert world coordinates to the display coordinates of the specific sliceNode
+
+  vtkMatrix4x4 * xyToRasMatrix = this->SliceNode->GetXYToRAS();
+  vtkNew<vtkMatrix4x4> rasToXyMatrix;
+
+  // we need to invert this matrix
+  xyToRasMatrix->Invert(xyToRasMatrix, rasToXyMatrix.GetPointer());
+
+  double worldCoordinates[4];
+  worldCoordinates[0] = r;
+  worldCoordinates[1] = a;
+  worldCoordinates[2] = s;
+  worldCoordinates[3] = 1;
+
+  rasToXyMatrix->MultiplyPoint(worldCoordinates, displayCoordinates);
+  xyToRasMatrix = nullptr;
+}
+
+//---------------------------------------------------------------------------
+// Convert world to display coordinates
+void vtkSlicerAbstractWidgetRepresentation2D::GetWorldToDisplayCoordinates(double * worldCoordinates, double * displayCoordinates)
+{
+  if (worldCoordinates == nullptr)
+  {
+    return;
+  }
+
+  this->GetWorldToDisplayCoordinates(worldCoordinates[0], worldCoordinates[1], worldCoordinates[2], displayCoordinates);
 }

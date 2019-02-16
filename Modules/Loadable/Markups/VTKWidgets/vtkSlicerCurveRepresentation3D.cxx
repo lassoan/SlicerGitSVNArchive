@@ -88,13 +88,13 @@ vtkSlicerCurveRepresentation3D::~vtkSlicerCurveRepresentation3D()
 }
 
 //----------------------------------------------------------------------
-void vtkSlicerCurveRepresentation3D::BuildLines()
+void vtkSlicerCurveRepresentation3D::UpdateLinesFromMRML()
 {
   this->BuildLine(this->Line, false);
 }
 
 //----------------------------------------------------------------------
-void vtkSlicerCurveRepresentation3D::BuildRepresentation()
+void vtkSlicerCurveRepresentation3D::UpdateFromMRML()
 {
   // Make sure we are up to date with any changes made in the placer
   //this->UpdateWidget(true);
@@ -258,7 +258,7 @@ int vtkSlicerCurveRepresentation3D::RenderOpaqueGeometry(
 {
   // Since we know RenderOpaqueGeometry gets called first, will do the
   // build here
-  this->BuildRepresentation();
+  this->UpdateFromMRML();
 
   int count=0;
   count = this->Superclass::RenderOpaqueGeometry(viewport);

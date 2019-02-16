@@ -18,6 +18,7 @@
 
 #include "vtkSlicerAbstractWidgetRepresentation.h"
 #include "vtkCleanPolyData.h"
+#include "vtkCommand.h"
 #include "vtkGeneralTransform.h"
 #include "vtkMarkupsGlyphSource2D.h"
 #include "vtkMRMLTransformNode.h"
@@ -133,6 +134,24 @@ vtkSlicerAbstractWidgetRepresentation::ControlPointsPipeline::ControlPointsPipel
 //----------------------------------------------------------------------
 vtkSlicerAbstractWidgetRepresentation::vtkSlicerAbstractWidgetRepresentation()
 {
+  /*
+  this->MRMLObserverManager = vtkSmartPointer<vtkObserverManager>::New();
+  this->MRMLObserverManager->AssignOwner(this);
+  this->MRMLObserverManager->GetCallbackCommand()->SetClientData(reinterpret_cast<void *> (this));
+  this->MRMLObserverManager->GetCallbackCommand()->SetCallback(vtkSlicerAbstractWidgetRepresentation::MRMLNodesCallback);
+  this->InMRMLNodesCallbackFlag = false;
+
+  this->ObservedNodeEvents = vtkSmartPointer<vtkIntArray>::New();
+  this->ObservedNodeEvents->InsertNextValue(vtkCommand::StartEvent);
+  this->ObservedNodeEvents->InsertNextValue(vtkCommand::ModifiedEvent);
+  this->ObservedNodeEvents->InsertNextValue(vtkCommand::EndEvent);
+  this->ObservedNodeEvents->InsertNextValue(vtkCommand::StartInteractionEvent);
+  this->ObservedNodeEvents->InsertNextValue(vtkCommand::InteractionEvent);
+  this->ObservedNodeEvents->InsertNextValue(vtkCommand::EndInteractionEvent);
+
+  this->MarkupsNode = NULL;
+  */
+
   this->ControlPointSize = 3.0;
   this->Tolerance                = 0.4;
   this->PixelTolerance           = 1;
@@ -162,7 +181,43 @@ vtkSlicerAbstractWidgetRepresentation::~vtkSlicerAbstractWidgetRepresentation()
     delete this->ControlPoints[i];
     this->ControlPoints[i] = nullptr;
   }
+
+  //vtkSetAndObserveMRMLObjectEventsMacro(this->MarkupsNode, NULL, this->ObservedNodeEvents);
 }
+
+/*
+//----------------------------------------------------------------------
+void vtkSlicerAbstractWidgetRepresentation::MRMLNodesCallback(
+  vtkObject* caller, unsigned long eid, void* clientData, void* callData)
+{
+  vtkSlicerAbstractWidgetRepresentation *self =
+    reinterpret_cast<vtkSlicerAbstractWidgetRepresentation *>(clientData);
+
+  if (self->InMRMLNodesCallbackFlag)
+    {
+    return;
+    }
+
+  self->InMRMLNodesCallbackFlag = true;
+  self->ProcessMRMLNodesEvents(caller, eid, callData);
+  self->InMRMLNodesCallbackFlag = false;
+}
+
+//---------------------------------------------------------------------------
+void vtkSlicerAbstractWidgetRepresentation::ProcessMRMLNodesEvents(
+  vtkObject* caller, unsigned long event, void* vtkNotUsed(callData))
+{
+  vtkMRMLNode * node = vtkMRMLNode::SafeDownCast(caller);
+  switch (event)
+  {
+  case vtkCommand::ModifiedEvent:
+    //this->OnMRMLNodeModified(node);
+    break;
+  default:
+    break;
+  }
+}
+*/
 
 //----------------------------------------------------------------------
 void vtkSlicerAbstractWidgetRepresentation::ResetLocator()
@@ -220,7 +275,7 @@ double vtkSlicerAbstractWidgetRepresentation::CalculateViewScaleFactor()
 void vtkSlicerAbstractWidgetRepresentation::ClearAllNodes()
 {
   this->ResetLocator();
-  this->BuildLines();
+  this->UpdateLinesFromMRML();
   this->BuildLocator();
   this->NeedToRender = true;
   this->Modified();
@@ -1191,7 +1246,7 @@ void vtkSlicerAbstractWidgetRepresentation::UpdateLines(int index)
     this->GetNthNode(idx)->IntermediatePositions.clear();
     }
 
-  this->BuildLines();
+  this->UpdateLinesFromMRML();
   this->RebuildLocator = true;
 }
 
@@ -1310,7 +1365,7 @@ int vtkSlicerAbstractWidgetRepresentation::UpdateWidget(bool force /*=false*/)
     {
     this->UpdateLine(this->GetNumberOfNodes() - 1, 0);
     }
-  this->BuildLines();
+  this->UpdateLinesFromMRML();
   this->RebuildLocator = true;
 
   this->WidgetBuildTime.Modified();
@@ -1408,7 +1463,7 @@ void vtkSlicerAbstractWidgetRepresentation::Initialize(vtkPolyData * pd)
     {
     this->UpdateLines(i);
     }
-  this->BuildRepresentation();
+  this->UpdateFromMRML();
 
   // Show the widget.
   this->VisibilityOn();
@@ -1561,6 +1616,8 @@ void vtkSlicerAbstractWidgetRepresentation::SetMarkupsDisplayNode(vtkMRMLMarkups
   }
 
   this->MarkupsDisplayNode = markupsDisplayNode;
+
+  //vtkSetAndObserveMRMLObjectEventsMacro(this->MarkupsNode, this->MarkupsDisplayNode->GetDisplayableNode(), this->ObservedNodeEvents);
 }
 
 //----------------------------------------------------------------------

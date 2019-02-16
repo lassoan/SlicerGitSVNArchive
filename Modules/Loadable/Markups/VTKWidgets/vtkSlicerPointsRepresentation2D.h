@@ -48,7 +48,7 @@ protected:
   vtkSlicerPointsRepresentation2D();
   ~vtkSlicerPointsRepresentation2D() VTK_OVERRIDE;
 
-  virtual void BuildLines() VTK_OVERRIDE;
+  virtual void UpdateLinesFromMRML() VTK_OVERRIDE;
 
   vtkAppendPolyData *appendActors;
 

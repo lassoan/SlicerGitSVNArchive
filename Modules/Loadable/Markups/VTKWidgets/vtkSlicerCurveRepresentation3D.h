@@ -56,7 +56,7 @@ public:
   /// Subclasses of vtkSlicerAbstractWidgetRepresentation must implement these methods. These
   /// are the methods that the widget and its representation use to
   /// communicate with each other.
-  void BuildRepresentation() VTK_OVERRIDE;
+  void UpdateFromMRML() VTK_OVERRIDE;
 
   /// Methods to make this class behave as a vtkProp.
   void GetActors(vtkPropCollection *) VTK_OVERRIDE;
@@ -81,7 +81,7 @@ protected:
 
   vtkSmartPointer<vtkTubeFilter> TubeFilter;
 
-  virtual void BuildLines() VTK_OVERRIDE;
+  virtual void UpdateLinesFromMRML() VTK_OVERRIDE;
 
 private:
   vtkSlicerCurveRepresentation3D(const vtkSlicerCurveRepresentation3D&) = delete;

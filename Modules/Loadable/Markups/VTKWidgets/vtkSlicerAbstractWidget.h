@@ -68,7 +68,7 @@ public:
   virtual vtkSlicerAbstractWidgetRepresentation *GetRepresentation();
 
   /// Build the actors of the representation with the info stored in the vtkMRMLMarkupsNode
-  virtual void BuildRepresentation();
+  virtual void UpdateFromMRML();
 
   /// Build the locator with the info stored in the vtkMRMLMarkupsNode
   virtual void BuildLocator();

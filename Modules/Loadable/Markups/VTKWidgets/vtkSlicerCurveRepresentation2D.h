@@ -59,7 +59,7 @@ public:
   /// Subclasses of vtkContourCurveRepresentation must implement these methods. These
   /// are the methods that the widget and its representation use to
   /// communicate with each other.
-  void BuildRepresentation() VTK_OVERRIDE;
+  void UpdateFromMRML() VTK_OVERRIDE;
   int CanInteract(const int displayPosition[2], const double worldPosition[3], double &closestDistance2, int &componentIndex) VTK_OVERRIDE;
 
   /// Methods to make this class behave as a vtkProp.
@@ -83,7 +83,7 @@ protected:
 
   vtkSmartPointer<vtkTubeFilter>                TubeFilter;
 
-  virtual void BuildLines() override;
+  virtual void UpdateLinesFromMRML() override;
 
 private:
   vtkSlicerCurveRepresentation2D(const vtkSlicerCurveRepresentation2D&) = delete;

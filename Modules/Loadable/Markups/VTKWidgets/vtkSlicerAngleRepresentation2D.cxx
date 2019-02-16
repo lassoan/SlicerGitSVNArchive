@@ -111,7 +111,7 @@ bool vtkSlicerAngleRepresentation2D::GetTransformationReferencePoint(double refe
 }
 
 //----------------------------------------------------------------------
-void vtkSlicerAngleRepresentation2D::BuildLines()
+void vtkSlicerAngleRepresentation2D::UpdateLinesFromMRML()
 {
   this->BuildLine(this->Line, true);
 
@@ -179,12 +179,12 @@ void vtkSlicerAngleRepresentation2D::BuildLines()
 }
 
 //----------------------------------------------------------------------
-void vtkSlicerAngleRepresentation2D::BuildRepresentation()
+void vtkSlicerAngleRepresentation2D::UpdateFromMRML()
 {
   // Make sure we are up to date with any changes made in the placer
   //this->UpdateWidget(true);
 
-  Superclass::BuildRepresentation();
+  Superclass::UpdateFromMRML();
 
   vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
   if (!markupsNode)
@@ -353,7 +353,7 @@ int vtkSlicerAngleRepresentation2D::RenderOpaqueGeometry(
 {
   // Since we know RenderOpaqueGeometry gets called first, will do the
   // build here
-  this->BuildRepresentation();
+  this->UpdateFromMRML();
 
   int count=0;
   if (this->LineActor->GetVisibility())

@@ -81,18 +81,18 @@ vtkSlicerCurveRepresentation2D::~vtkSlicerCurveRepresentation2D()
 }
 
 //----------------------------------------------------------------------
-void vtkSlicerCurveRepresentation2D::BuildLines()
+void vtkSlicerCurveRepresentation2D::UpdateLinesFromMRML()
 {
   this->BuildLine(this->Line, true);
 }
 
 //----------------------------------------------------------------------
-void vtkSlicerCurveRepresentation2D::BuildRepresentation()
+void vtkSlicerCurveRepresentation2D::UpdateFromMRML()
 {
   // Make sure we are up to date with any changes made in the placer
   //this->UpdateWidget(true);
 
-  Superclass::BuildRepresentation();
+  Superclass::UpdateFromMRML();
 
   vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
   if (markupsNode == nullptr)
@@ -246,7 +246,7 @@ int vtkSlicerCurveRepresentation2D::RenderOpaqueGeometry(
 {
   // Since we know RenderOpaqueGeometry gets called first, will do the
   // build here
-  this->BuildRepresentation();
+  this->UpdateFromMRML();
 
   int count=0;
   if (this->LineActor->GetVisibility())

@@ -85,7 +85,7 @@ vtkSlicerLineRepresentation3D::~vtkSlicerLineRepresentation3D()
 }
 
 //----------------------------------------------------------------------
-void vtkSlicerLineRepresentation3D::BuildLines()
+void vtkSlicerLineRepresentation3D::UpdateLinesFromMRML()
 {
   this->BuildLine(this->Line, false);
 }
@@ -123,7 +123,7 @@ int vtkSlicerLineRepresentation3D::RenderOpaqueGeometry(
 {
   // Since we know RenderOpaqueGeometry gets called first, will do the
   // build here
-  this->BuildRepresentation();
+  this->UpdateFromMRML();
 
   int count=0;
   count = this->Superclass::RenderOpaqueGeometry(viewport);
@@ -170,7 +170,7 @@ double *vtkSlicerLineRepresentation3D::GetBounds()
 }
 
 //----------------------------------------------------------------------
-void vtkSlicerLineRepresentation3D::BuildRepresentation()
+void vtkSlicerLineRepresentation3D::UpdateFromMRML()
 {
   // Make sure we are up to date with any changes made in the placer
   //this->UpdateWidget(true);

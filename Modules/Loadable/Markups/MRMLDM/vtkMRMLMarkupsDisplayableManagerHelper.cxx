@@ -383,7 +383,7 @@ void vtkMRMLMarkupsDisplayableManagerHelper::AddDisplayNode(vtkMRMLMarkupsDispla
   this->MarkupsDisplayNodesToWidgets[markupsDisplayNode] = newWidget;
 
   // Build representation
-  newWidget->BuildRepresentation();
+  newWidget->UpdateFromMRML();
 
   this->DisplayableManager->RequestRender();
 

@@ -54,7 +54,7 @@ public:
   /// Subclasses of vtkSlicerAbstractWidgetRepresentation must implement these methods. These
   /// are the methods that the widget and its representation use to
   /// communicate with each other.
-  void BuildRepresentation() VTK_OVERRIDE;
+  void UpdateFromMRML() VTK_OVERRIDE;
 
   int CanInteract(const int displayPosition[2], const double worldPosition[3], double &closestDistance2, int &itemIndex) VTK_OVERRIDE;
 
@@ -79,7 +79,7 @@ protected:
 
   vtkSmartPointer<vtkTubeFilter> TubeFilter;
 
-  virtual void BuildLines() VTK_OVERRIDE;
+  virtual void UpdateLinesFromMRML() VTK_OVERRIDE;
 
 private:
   vtkSlicerLineRepresentation3D(const vtkSlicerLineRepresentation3D&) = delete;

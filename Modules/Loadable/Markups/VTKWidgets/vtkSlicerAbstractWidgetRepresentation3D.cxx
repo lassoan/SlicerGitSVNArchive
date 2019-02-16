@@ -358,7 +358,7 @@ void vtkSlicerAbstractWidgetRepresentation3D::CanInteractWithLine(int &foundComp
 
 
 //----------------------------------------------------------------------
-void vtkSlicerAbstractWidgetRepresentation3D::BuildRepresentation()
+void vtkSlicerAbstractWidgetRepresentation3D::UpdateFromMRML()
 {
   // Make sure we are up to date with any changes made in the placer
   this->UpdateWidget();
@@ -442,7 +442,7 @@ int vtkSlicerAbstractWidgetRepresentation3D::RenderOpaqueGeometry(
 {
   // Since we know RenderOpaqueGeometry gets called first, will do the
   // build here
-  this->BuildRepresentation();
+  this->UpdateFromMRML();
 
   int count=0;
   for (int i = 0; i < NumberOfControlPointTypes; i++)

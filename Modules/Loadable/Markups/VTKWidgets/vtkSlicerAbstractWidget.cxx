@@ -130,7 +130,7 @@ void vtkSlicerAbstractWidget::SetRepresentation(vtkSlicerAbstractWidgetRepresent
 
   this->WidgetRep = rep;
 
-  if (this->Renderer)
+  if (this->Renderer != nullptr && this->WidgetRep != nullptr)
   {
     this->WidgetRep->SetRenderer(this->Renderer);
     this->Renderer->AddViewProp(this->WidgetRep);
@@ -144,14 +144,14 @@ vtkSlicerAbstractWidgetRepresentation* vtkSlicerAbstractWidget::GetRepresentatio
 }
 
 //-------------------------------------------------------------------------
-void vtkSlicerAbstractWidget::BuildRepresentation()
+void vtkSlicerAbstractWidget::UpdateFromMRML()
 {
   if (!this->WidgetRep)
     {
     return;
     }
 
-  this->WidgetRep->BuildRepresentation();
+  this->WidgetRep->UpdateFromMRML();
 }
 
 //-------------------------------------------------------------------------
@@ -1066,7 +1066,7 @@ void vtkSlicerAbstractWidget::SetRenderer(vtkRenderer* renderer)
 
   this->Renderer = renderer;
 
-  if (this->WidgetRep)
+  if (this->WidgetRep != nullptr && this->Renderer != nullptr)
   {
     this->WidgetRep->SetRenderer(this->Renderer);
     this->Renderer->AddViewProp(this->WidgetRep);

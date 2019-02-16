@@ -48,7 +48,7 @@ protected:
   vtkSlicerPointsRepresentation3D();
   ~vtkSlicerPointsRepresentation3D() VTK_OVERRIDE;
 
-  virtual void BuildLines() VTK_OVERRIDE;
+  virtual void UpdateLinesFromMRML() VTK_OVERRIDE;
 
 private:
   vtkSlicerPointsRepresentation3D(const vtkSlicerPointsRepresentation3D&) = delete;

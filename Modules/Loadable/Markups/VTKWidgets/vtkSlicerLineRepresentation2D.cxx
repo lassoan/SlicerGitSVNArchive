@@ -79,12 +79,12 @@ vtkSlicerLineRepresentation2D::~vtkSlicerLineRepresentation2D()
 }
 
 //----------------------------------------------------------------------
-void vtkSlicerLineRepresentation2D::BuildRepresentation()
+void vtkSlicerLineRepresentation2D::UpdateFromMRML()
 {
   // Make sure we are up to date with any changes made in the placer
   //this->UpdateWidget(true);
 
-  Superclass::BuildRepresentation();
+  Superclass::UpdateFromMRML();
 
   vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
   if (!markupsNode)
@@ -160,7 +160,7 @@ int vtkSlicerLineRepresentation2D::CanInteract(const int displayPosition[2], con
 }
 
 //----------------------------------------------------------------------
-void vtkSlicerLineRepresentation2D::BuildLines()
+void vtkSlicerLineRepresentation2D::UpdateLinesFromMRML()
 {
   this->BuildLine(this->Line, true);
 }
@@ -199,7 +199,7 @@ int vtkSlicerLineRepresentation2D::RenderOpaqueGeometry(
 {
   // Since we know RenderOpaqueGeometry gets called first, will do the
   // build here
-  this->BuildRepresentation();
+  this->UpdateFromMRML();
 
   int count=0;
   if (this->LineActor->GetVisibility())

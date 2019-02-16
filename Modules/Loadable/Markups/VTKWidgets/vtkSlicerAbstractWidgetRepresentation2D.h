@@ -61,7 +61,7 @@ public:
   /// Subclasses of vtkSlicerAbstractWidgetRepresentation2D must implement these methods. These
   /// are the methods that the widget and its representation use to
   /// communicate with each other.
-  virtual void BuildRepresentation();
+  virtual void UpdateFromMRML();
 
   /// Methods to make this class behave as a vtkProp.
   void GetActors(vtkPropCollection *) VTK_OVERRIDE;
@@ -117,6 +117,16 @@ public:
 protected:
   vtkSlicerAbstractWidgetRepresentation2D();
   ~vtkSlicerAbstractWidgetRepresentation2D() VTK_OVERRIDE;
+
+  /// Check, if the point is displayable in the current slice geometry
+  virtual bool IsPointDisplayableOnSlice(vtkMRMLMarkupsNode* node, int pointIndex = 0);
+
+  /// Check, if the point is displayable in the current slice geometry
+  virtual bool IsCentroidDisplayableOnSlice(vtkMRMLMarkupsNode* node);
+
+  /// Convert display to world coordinates
+  void GetWorldToDisplayCoordinates(double r, double a, double s, double * displayCoordinates);
+  void GetWorldToDisplayCoordinates(double * worldCoordinates, double * displayCoordinates);
 
   vtkWeakPointer<vtkMRMLSliceNode> SliceNode;
 

@@ -86,7 +86,7 @@ public:
   * Use the widget's SetCurrentRenderer() method in most cases;
   * otherwise there is a risk of inconsistent behavior as events
   * and drawing may be performed in different viewports.
-  * BuildRepresentation() - update the geometry of the widget based on its
+  * UpdateFromMRML() - update the geometry of the widget based on its
   * current state.
   * </pre>
   * WARNING: The renderer is NOT reference counted by the representation,
@@ -95,7 +95,7 @@ public:
   */
   virtual void SetRenderer(vtkRenderer *ren);
   virtual vtkRenderer* GetRenderer();
-  virtual void BuildRepresentation() = 0;
+  virtual void UpdateFromMRML() = 0;
   //@}
 
 
@@ -387,8 +387,19 @@ protected:
   vtkSlicerAbstractWidgetRepresentation();
   ~vtkSlicerAbstractWidgetRepresentation() VTK_OVERRIDE;
 
+  /*
+  static void MRMLNodesCallback(vtkObject* caller, unsigned long eid, void* clientData, void* callData);
+  virtual void ProcessMRMLNodesEvents(vtkObject* caller, unsigned long event, void* callData);
+  */
+
   // The renderer in which this widget is placed
   vtkWeakPointer<vtkRenderer> Renderer;
+
+  /*
+  vtkSmartPointer<vtkObserverManager> MRMLObserverManager;
+  vtkSmartPointer<vtkIntArray> ObservedNodeEvents;
+  bool InMRMLNodesCallbackFlag;
+  */
 
   class ControlPointsPipeline
   {
@@ -420,6 +431,7 @@ protected:
   void AddActorsBounds(vtkBoundingBox& bounds, const std::vector<vtkProp*> &actors, double* additionalBounds = nullptr);
 
   vtkWeakPointer<vtkMRMLMarkupsDisplayNode> MarkupsDisplayNode;
+  //vtkMRMLMarkupsNode* MarkupsNode;
 
   // Selection tolerance for the picking of points
   double Tolerance;
@@ -450,7 +462,7 @@ protected:
                                        double worldPos[3],
                                        int *idx);
 
-  virtual void BuildLines()=0;
+  virtual void UpdateLinesFromMRML()=0;
 
   // Utility function to build lines between control points.
   // If displayPosition is true then positions will be computed in display coordinate system,

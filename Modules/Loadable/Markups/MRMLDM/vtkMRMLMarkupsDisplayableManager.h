@@ -88,11 +88,6 @@ public:
   /// and false otherwise.
   bool IsInLightboxMode();
 
-  /// Gets the world coordinate of the markups node point, transforms it to
-  /// display coordinates, takes the z element to calculate the light box index.
-  /// Returns -1 if not in lightbox mode or the indices are out of range.
-  int GetLightboxIndex(vtkMRMLMarkupsNode *node, int pointIndex);
-
   bool CanProcessInteractionEvent(vtkSlicerInteractionEventData* eventData, double &closestDistance2) VTK_OVERRIDE;
   void ProcessInteractionEvent(vtkSlicerInteractionEventData* eventData) VTK_OVERRIDE;
 
@@ -158,19 +153,10 @@ protected:
   /// Handler for specific SliceView actions, iterate over the widgets in the helper
   virtual void OnMRMLSliceNodeModifiedEvent();
 
-  /// Check, if the widget is displayable in the current slice geometry for
-  /// this markup, returns true if a 3d displayable manager
-  virtual bool IsWidgetDisplayableOnSlice(vtkMRMLMarkupsNode* node);
-
   /// Observe the interaction node.
   void AddObserversToInteractionNode();
   void RemoveObserversFromInteractionNode();
 
-  /// Check, if the point is displayable in the current slice geometry
-  virtual bool IsPointDisplayableOnSlice(vtkMRMLMarkupsNode* node, int pointIndex = 0);
-
-  /// Check, if the point is displayable in the current slice geometry
-  virtual bool IsCentroidDisplayableOnSlice(vtkMRMLMarkupsNode* node);
 
   /// Preset functions for certain events.
   virtual void OnMRMLMarkupsNodeModifiedEvent(vtkMRMLNode* node);
@@ -186,10 +172,6 @@ protected:
   enum {AddPoint = 0,AddPreview,RemovePreview};
 
   std::string GetAssociatedNodeID(vtkSlicerInteractionEventData* eventData);
-
-  /// Convert display to world coordinates
-  void GetWorldToDisplayCoordinates(double r, double a, double s, double * displayCoordinates);
-  void GetWorldToDisplayCoordinates(double * worldCoordinates, double * displayCoordinates);
 
   /// Convert display to viewport coordinates
   void GetDisplayToViewportCoordinates(double x, double y, double * viewportCoordinates);

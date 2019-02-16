@@ -62,7 +62,7 @@ vtkSlicerPointsRepresentation3D::~vtkSlicerPointsRepresentation3D()
 }
 
 //----------------------------------------------------------------------
-void vtkSlicerPointsRepresentation3D::BuildLines()
+void vtkSlicerPointsRepresentation3D::UpdateLinesFromMRML()
 {
   return;
 }

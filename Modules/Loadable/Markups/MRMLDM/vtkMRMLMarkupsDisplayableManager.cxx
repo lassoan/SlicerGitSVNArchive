@@ -478,317 +478,6 @@ void vtkMRMLMarkupsDisplayableManager::RemoveObserversFromInteractionNode()
   }
 }
 
-//---------------------------------------------------------------------------
-bool vtkMRMLMarkupsDisplayableManager::IsPointDisplayableOnSlice(vtkMRMLMarkupsNode *node, int pointIndex)
-{
-  if (this->IsInLightboxMode())
-    {
-    // TBD: issue 1690: disable angle in light box mode as they appear
-    // in the wrong location
-    return false;
-    }
-
-  vtkMRMLSliceNode* sliceNode = this->GetMRMLSliceNode();
-  // if no slice node, it doesn't constrain the visibility, so return that
-  // it's visible
-  if (!sliceNode)
-    {
-    // 3D view
-    return 1;
-    }
-
-  // if there's no node, it's not visible
-  if (!node)
-    {
-    vtkErrorMacro("IsWidgetDisplayableOnSlice: Could not get the markups node.")
-    return 0;
-    }
-
-  bool showPoint = true;
-
-  // allow annotations to appear only in designated viewers
-  vtkMRMLDisplayNode *displayNode = node->GetDisplayNode();
-  if (displayNode && !displayNode->IsDisplayableInView(sliceNode->GetID()))
-    {
-    return 0;
-    }
-
-  // down cast the node as a controlpoints node to get the coordinates
-  vtkMRMLMarkupsNode *markupsNode = vtkMRMLMarkupsNode::SafeDownCast(node);
-  if (!markupsNode)
-    {
-    vtkErrorMacro("IsWidgetDisplayableOnSlice: Could not get the controlpoints node.")
-    return 0;
-    }
-
-  double transformedWorldCoordinates[4];
-  markupsNode->GetNthControlPointPositionWorld(pointIndex, transformedWorldCoordinates);
-
-  // now get the displayCoordinates for the transformed worldCoordinates
-  double displayCoordinates[4];
-  this->GetWorldToDisplayCoordinates(transformedWorldCoordinates,displayCoordinates);
-
-  if (this->IsInLightboxMode())
-    {
-    //
-    // Lightbox specific code
-    //
-    // get the corresponding lightbox index for this display coordinate and
-    // check if it's in the range of the current number of light boxes being
-    // displayed in the grid rows/columns.
-    int lightboxIndex = this->GetLightboxIndex(markupsNode, pointIndex);
-    int numberOfLightboxes = sliceNode->GetLayoutGridColumns() * sliceNode->GetLayoutGridRows();
-    if (lightboxIndex < 0 ||
-        lightboxIndex >= numberOfLightboxes)
-      {
-      showPoint = false;
-      }
-    }
-  // check if the point is close enough to the slice to be shown
-  if (showPoint)
-    {
-    if (this->IsInLightboxMode())
-      {
-      // get the volume's spacing to determine the distance between the slice
-      // location and the markup
-      // default to spacing 1.0 in case can't get volume slice spacing from
-      // the logic as that will be a multiplicative no-op
-      double spacing = 1.0;
-      vtkMRMLSliceLogic *sliceLogic = nullptr;
-      vtkMRMLApplicationLogic *mrmlAppLogic = this->GetMRMLApplicationLogic();
-      if (mrmlAppLogic)
-        {
-        sliceLogic = mrmlAppLogic->GetSliceLogic(sliceNode);
-        }
-      if (sliceLogic)
-        {
-        double *volumeSliceSpacing = sliceLogic->GetLowestVolumeSliceSpacing();
-        if (volumeSliceSpacing != nullptr)
-          {
-          vtkDebugMacro("Slice node " << sliceNode->GetName()
-                        << ": volumeSliceSpacing = "
-                        << volumeSliceSpacing[0] << ", "
-                        << volumeSliceSpacing[1] << ", "
-                        << volumeSliceSpacing[2]);
-          spacing = volumeSliceSpacing[2];
-          }
-        }
-      vtkDebugMacro("displayCoordinates: "
-                    << displayCoordinates[0] << ","
-                    << displayCoordinates[1] << ","
-                    << displayCoordinates[2] << "\n\tworld coords: "
-                    << transformedWorldCoordinates[0] << ","
-                    << transformedWorldCoordinates[1] << ","
-                    << transformedWorldCoordinates[2]);
-      // calculate the distance from the point in world space to the
-      // plane defined by the slice node normal and origin (using same
-      // convention as the vtkMRMLThreeDReformatDisplayableManager)
-      vtkMatrix4x4 *sliceToRAS = sliceNode->GetSliceToRAS();
-      double slicePlaneNormal[3], slicePlaneOrigin[3];
-      slicePlaneNormal[0] = sliceToRAS->GetElement(0,2);
-      slicePlaneNormal[1] = sliceToRAS->GetElement(1,2);
-      slicePlaneNormal[2] = sliceToRAS->GetElement(2,2);
-      slicePlaneOrigin[0] = sliceToRAS->GetElement(0,3);
-      slicePlaneOrigin[1] = sliceToRAS->GetElement(1,3);
-      slicePlaneOrigin[2] = sliceToRAS->GetElement(2,3);
-      double distanceToPlane = slicePlaneNormal[0]*(transformedWorldCoordinates[0]-slicePlaneOrigin[0]) +
-        slicePlaneNormal[1]*(transformedWorldCoordinates[1]-slicePlaneOrigin[1]) +
-        slicePlaneNormal[2]*(transformedWorldCoordinates[2]-slicePlaneOrigin[2]);
-      // this gives the distance to light box plane 0, but have to offset by
-      // number of light box planes (as determined by the light box index) times the volume
-      // slice spacing
-      int lightboxIndex = this->GetLightboxIndex(markupsNode, pointIndex);
-      double lightboxOffset = lightboxIndex * spacing;
-      double distanceToSlice = distanceToPlane - lightboxOffset;
-      double maxDistance = 0.5;
-      vtkDebugMacro("\n\tdistance to plane = " << distanceToPlane
-                    << "\n\tlightboxIndex = " << lightboxIndex
-                    << "\n\tlightboxOffset = " << lightboxOffset
-                    << "\n\tdistance to slice = " << distanceToSlice);
-      // check that it's within 0.5mm
-      if (distanceToSlice < -0.5 || distanceToSlice >= maxDistance)
-        {
-        vtkDebugMacro("Distance to slice is greater than max distance, not showing the widget");
-        showPoint = false;
-        }
-      }
-    else
-      {
-      // the third coordinate of the displayCoordinates is the distance to the slice
-      double distanceToSlice = displayCoordinates[2];
-      double maxDistance = 0.5 + (sliceNode->GetDimensions()[2] - 1);
-      vtkDebugMacro("Slice node " << sliceNode->GetName()
-                    << ": distance to slice = " << distanceToSlice
-                    << ", maxDistance = " << maxDistance
-                    << "\n\tslice node dimensions[2] = "
-                    << sliceNode->GetDimensions()[2]);
-      if (distanceToSlice < -0.5 || distanceToSlice >= maxDistance)
-        {
-        // if the distance to the slice is more than 0.5mm, we know that at least one coordinate of the widget is outside the current activeSlice
-        // hence, we do not want to show this widget
-        showPoint = false;
-        }
-      }
-    }
-
-  return showPoint;
-}
-
-//---------------------------------------------------------------------------
-bool vtkMRMLMarkupsDisplayableManager::IsCentroidDisplayableOnSlice(vtkMRMLMarkupsNode *node)
-{
-  if (this->IsInLightboxMode())
-    {
-    // TBD: issue 1690: disable angle in light box mode as they appear
-    // in the wrong location
-    return false;
-    }
-
-  vtkMRMLSliceNode* sliceNode = this->GetMRMLSliceNode();
-  // if no slice node, it doesn't constrain the visibility, so return that
-  // it's visible
-  if (!sliceNode)
-    {
-    vtkErrorMacro("IsWidgetDisplayableOnSlice: Could not get the sliceNode.")
-    return 1;
-    }
-
-  // if there's no node, it's not visible
-  if (!node)
-    {
-    vtkErrorMacro("IsWidgetDisplayableOnSlice: Could not get the markups node.")
-    return 0;
-    }
-
-  bool showPoint = true;
-
-  // allow annotations to appear only in designated viewers
-  vtkMRMLDisplayNode *displayNode = node->GetDisplayNode();
-  if (displayNode && !displayNode->IsDisplayableInView(sliceNode->GetID()))
-    {
-    return 0;
-    }
-
-  // down cast the node as a controlpoints node to get the coordinates
-  vtkMRMLMarkupsNode *markupsNode = vtkMRMLMarkupsNode::SafeDownCast(node);
-  if (!markupsNode)
-    {
-    vtkErrorMacro("IsWidgetDisplayableOnSlice: Could not get the controlpoints node.")
-    return 0;
-    }
-
-  double transformedWorldCoordinates[4];
-  markupsNode->GetCentroidPositionWorld(transformedWorldCoordinates);
-
-  // now get the displayCoordinates for the transformed worldCoordinates
-  double displayCoordinates[4];
-  this->GetWorldToDisplayCoordinates(transformedWorldCoordinates,displayCoordinates);
-
-  if (this->IsInLightboxMode())
-    {
-    //
-    // Lightbox specific code
-    //
-    // get the corresponding lightbox index for this display coordinate and
-    // check if it's in the range of the current number of light boxes being
-    // displayed in the grid rows/columns.
-    int lightboxIndex = this->GetLightboxIndex(markupsNode, -3);
-    int numberOfLightboxes = sliceNode->GetLayoutGridColumns() * sliceNode->GetLayoutGridRows();
-    if (lightboxIndex < 0 ||
-        lightboxIndex >= numberOfLightboxes)
-      {
-      showPoint = false;
-      }
-    }
-  // check if the point is close enough to the slice to be shown
-  if (showPoint)
-    {
-    if (this->IsInLightboxMode())
-      {
-      // get the volume's spacing to determine the distance between the slice
-      // location and the markup
-      // default to spacing 1.0 in case can't get volume slice spacing from
-      // the logic as that will be a multiplicative no-op
-      double spacing = 1.0;
-      vtkMRMLSliceLogic *sliceLogic = nullptr;
-      vtkMRMLApplicationLogic *mrmlAppLogic = this->GetMRMLApplicationLogic();
-      if (mrmlAppLogic)
-        {
-        sliceLogic = mrmlAppLogic->GetSliceLogic(sliceNode);
-        }
-      if (sliceLogic)
-        {
-        double *volumeSliceSpacing = sliceLogic->GetLowestVolumeSliceSpacing();
-        if (volumeSliceSpacing != nullptr)
-          {
-          vtkDebugMacro("Slice node " << sliceNode->GetName()
-                        << ": volumeSliceSpacing = "
-                        << volumeSliceSpacing[0] << ", "
-                        << volumeSliceSpacing[1] << ", "
-                        << volumeSliceSpacing[2]);
-          spacing = volumeSliceSpacing[2];
-          }
-        }
-      vtkDebugMacro("displayCoordinates: "
-                    << displayCoordinates[0] << ","
-                    << displayCoordinates[1] << ","
-                    << displayCoordinates[2] << "\n\tworld coords: "
-                    << transformedWorldCoordinates[0] << ","
-                    << transformedWorldCoordinates[1] << ","
-                    << transformedWorldCoordinates[2]);
-      // calculate the distance from the point in world space to the
-      // plane defined by the slice node normal and origin (using same
-      // convention as the vtkMRMLThreeDReformatDisplayableManager)
-      vtkMatrix4x4 *sliceToRAS = sliceNode->GetSliceToRAS();
-      double slicePlaneNormal[3], slicePlaneOrigin[3];
-      slicePlaneNormal[0] = sliceToRAS->GetElement(0,2);
-      slicePlaneNormal[1] = sliceToRAS->GetElement(1,2);
-      slicePlaneNormal[2] = sliceToRAS->GetElement(2,2);
-      slicePlaneOrigin[0] = sliceToRAS->GetElement(0,3);
-      slicePlaneOrigin[1] = sliceToRAS->GetElement(1,3);
-      slicePlaneOrigin[2] = sliceToRAS->GetElement(2,3);
-      double distanceToPlane = slicePlaneNormal[0]*(transformedWorldCoordinates[0]-slicePlaneOrigin[0]) +
-        slicePlaneNormal[1]*(transformedWorldCoordinates[1]-slicePlaneOrigin[1]) +
-        slicePlaneNormal[2]*(transformedWorldCoordinates[2]-slicePlaneOrigin[2]);
-      // this gives the distance to light box plane 0, but have to offset by
-      // number of light box planes (as determined by the light box index) times the volume
-      // slice spacing
-      int lightboxIndex = this->GetLightboxIndex(markupsNode, -3);
-      double lightboxOffset = lightboxIndex * spacing;
-      double distanceToSlice = distanceToPlane - lightboxOffset;
-      double maxDistance = 0.5;
-      vtkDebugMacro("\n\tdistance to plane = " << distanceToPlane
-                    << "\n\tlightboxIndex = " << lightboxIndex
-                    << "\n\tlightboxOffset = " << lightboxOffset
-                    << "\n\tdistance to slice = " << distanceToSlice);
-      // check that it's within 0.5mm
-      if (distanceToSlice < -0.5 || distanceToSlice >= maxDistance)
-        {
-        vtkDebugMacro("Distance to slice is greater than max distance, not showing the widget");
-        showPoint = false;
-        }
-      }
-    else
-      {
-      // the third coordinate of the displayCoordinates is the distance to the slice
-      double distanceToSlice = displayCoordinates[2];
-      double maxDistance = 0.5 + (sliceNode->GetDimensions()[2] - 1);
-      vtkDebugMacro("Slice node " << sliceNode->GetName()
-                    << ": distance to slice = " << distanceToSlice
-                    << ", maxDistance = " << maxDistance
-                    << "\n\tslice node dimensions[2] = "
-                    << sliceNode->GetDimensions()[2]);
-      if (distanceToSlice < -0.5 || distanceToSlice >= maxDistance)
-        {
-        // if the distance to the slice is more than 0.5mm, we know that at least one coordinate of the widget is outside the current activeSlice
-        // hence, we do not want to show this widget
-        showPoint = false;
-        }
-      }
-    }
-
-  return showPoint;
-}
 
 //---------------------------------------------------------------------------
 void vtkMRMLMarkupsDisplayableManager::OnMRMLSceneNodeRemoved(vtkMRMLNode* node)
@@ -834,26 +523,7 @@ void vtkMRMLMarkupsDisplayableManager::OnMRMLMarkupsNodeModifiedEvent(vtkMRMLNod
       continue;
     }
 
-    // Points widgets have only one Markup/Representation
-    vtkSlicerAbstractWidgetRepresentation2D *rep = vtkSlicerAbstractWidgetRepresentation2D::SafeDownCast
-      (widget->GetRepresentation());
-    if (!rep)
-      {
-      continue;
-      }
-
-    for (int PointIndex = 0; PointIndex < markupsNode->GetNumberOfControlPoints(); PointIndex++)
-      {
-      bool visibility = this->IsPointDisplayableOnSlice(markupsNode, PointIndex);
-      rep->SetNthPointSliceVisibility(PointIndex, visibility);
-      }
-    if (rep->GetClosedLoop())
-      {
-      bool visibility = this->IsCentroidDisplayableOnSlice(markupsNode);
-      rep->SetCentroidSliceVisibility(visibility);
-      }
-
-    widget->BuildRepresentation();
+    widget->UpdateFromMRML();
     }
 
   this->RequestRender();
@@ -879,7 +549,7 @@ void vtkMRMLMarkupsDisplayableManager::OnMRMLMarkupsDisplayNodeModifiedEvent(vtk
     }
     else
     {
-      widget->BuildRepresentation();
+      widget->UpdateFromMRML();
     }
   }
   this->RequestRender();
@@ -900,26 +570,11 @@ void vtkMRMLMarkupsDisplayableManager::OnMRMLMarkupsNthPointModifiedEvent(vtkMRM
     vtkMRMLMarkupsDisplayNode* displayNode = vtkMRMLMarkupsDisplayNode::SafeDownCast(markupsNode->GetNthDisplayNode(displayNodeIndex));
     vtkSlicerAbstractWidget *widget = this->Helper->GetWidget(displayNode);
     if (!widget)
-    {
-      continue;
-    }
-
-    // Check if the Point is on the slice
-    bool visibility = this->IsPointDisplayableOnSlice(markupsNode, n);
-    vtkSlicerAbstractWidgetRepresentation2D *rep = vtkSlicerAbstractWidgetRepresentation2D::SafeDownCast
-    (widget->GetRepresentation());
-    if (rep && rep->GetVisibility())
-    {
-      rep->SetNthPointSliceVisibility(n, visibility);
-      if (rep->GetClosedLoop())
       {
-        visibility = this->IsCentroidDisplayableOnSlice(markupsNode);
-        rep->SetCentroidSliceVisibility(visibility);
+      continue;
       }
-    }
-
     // Rebuild representation
-    widget->BuildRepresentation();
+    widget->UpdateFromMRML();
   }
 
   this->RequestRender();
@@ -949,28 +604,8 @@ void vtkMRMLMarkupsDisplayableManager::OnMRMLMarkupsPointAddedEvent(vtkMRMLNode 
       continue;
       }
 
-    // widgets have only one Markup/Representation
-    vtkSlicerAbstractWidgetRepresentation2D *rep = vtkSlicerAbstractWidgetRepresentation2D::SafeDownCast
-      (widget->GetRepresentation());
-    if (!rep)
-      {
-      continue;
-      }
-
-    // TODO: move these to the representation class
-    for (int PointIndex = 0; PointIndex < markupsNode->GetNumberOfControlPoints(); PointIndex++)
-      {
-      bool visibility = this->IsPointDisplayableOnSlice(markupsNode, PointIndex);
-      rep->SetNthPointSliceVisibility(PointIndex, visibility);
-      }
-    if (rep->GetClosedLoop())
-      {
-      bool visibility = this->IsCentroidDisplayableOnSlice(markupsNode);
-      rep->SetCentroidSliceVisibility(visibility);
-      }
-
     // Rebuild representation
-    widget->BuildRepresentation();
+    widget->UpdateFromMRML();
     }
   this->RequestRender();
 }
@@ -993,7 +628,7 @@ void vtkMRMLMarkupsDisplayableManager::OnMRMLMarkupsPointRemovedEvent(vtkMRMLNod
       continue;
     }
     // Rebuild representation
-    widget->BuildRepresentation();
+    widget->UpdateFromMRML();
   }
   this->RequestRender();
 }
@@ -1016,7 +651,7 @@ void vtkMRMLMarkupsDisplayableManager::OnMRMLMarkupsAllPointsRemovedEvent(vtkMRM
       continue;
     }
     // Rebuild representation
-    widget->BuildRepresentation();
+    widget->UpdateFromMRML();
   }
   this->RequestRender();
 }
@@ -1040,7 +675,7 @@ void vtkMRMLMarkupsDisplayableManager::OnMRMLMarkupsNodeTransformModifiedEvent(v
     }
     // Rebuild representation
     widget->BuildLocator(); // transform changes points positions therefore locator needs to be updated
-    widget->BuildRepresentation();
+    widget->UpdateFromMRML();
   }
   this->RequestRender();
 }
@@ -1065,7 +700,7 @@ void vtkMRMLMarkupsDisplayableManager::OnMRMLMarkupsNodeLockModifiedEvent(vtkMRM
       continue;
     }
     // TODO: it could be more efficient if we only updated locked state
-    widget->GetRepresentation()->BuildRepresentation();
+    widget->GetRepresentation()->UpdateFromMRML();
   }
 }
 
@@ -1085,7 +720,7 @@ void vtkMRMLMarkupsDisplayableManager::OnMRMLDisplayableNodeModifiedEvent(vtkObj
     {
     // the associated renderWindow is a 2D SliceView
     // this is the entry point for all events fired by one of the three sliceviews
-    // (f.e. change slice number, zoom etc.)
+    // (e.g. change slice number, zoom etc.)
 
     // we remember that this instance of the displayableManager deals with 2D
     // this is important for widget creation etc. and save the actual SliceNode
@@ -1117,36 +752,14 @@ void vtkMRMLMarkupsDisplayableManager::OnMRMLSliceNodeModifiedEvent()
   bool requestRender = false;
   while(it != this->Helper->MarkupsDisplayNodesToWidgets.end())
     {
-    // we loop through all nodes
+    // we loop through all widgets
     vtkMRMLMarkupsDisplayNode * markupsDisplayNode = (it->first);
-
-    vtkSlicerAbstractWidget* widget = this->Helper->GetWidget(markupsDisplayNode);
+    vtkSlicerAbstractWidget* widget = (it->second);
     if (widget)
       {
-      // Rebuild representation
-      vtkSlicerAbstractWidgetRepresentation2D *rep = vtkSlicerAbstractWidgetRepresentation2D::SafeDownCast
-        (widget->GetRepresentation());
-      if (!rep)
-        {
-        return;
-        }
-      vtkMRMLMarkupsNode* markupsNode = markupsDisplayNode->GetMarkupsNode();
-      for (int PointIndex = 0; PointIndex < markupsNode->GetNumberOfControlPoints(); PointIndex++)
-        {
-        bool visibility = this->IsPointDisplayableOnSlice(markupsNode, PointIndex);
-        rep->SetNthPointSliceVisibility(PointIndex, visibility);
-        }
-
-      if (rep->GetClosedLoop())
-        {
-        bool visibility = this->IsCentroidDisplayableOnSlice(markupsNode);
-        rep->SetCentroidSliceVisibility(visibility);
-        }
-
-      widget->BuildRepresentation();
+      widget->UpdateFromMRML();
       requestRender = true;
       }
-
     ++it;
     }
 
@@ -1154,200 +767,6 @@ void vtkMRMLMarkupsDisplayableManager::OnMRMLSliceNodeModifiedEvent()
     {
     this->RequestRender();
     }
-}
-
-//---------------------------------------------------------------------------
-bool vtkMRMLMarkupsDisplayableManager::IsWidgetDisplayableOnSlice(vtkMRMLMarkupsNode* node)
-{
-  if (this->IsInLightboxMode())
-    {
-    // TBD: issue 1690: disable fiducials in light box mode as they appear
-    // in the wrong location
-    return false;
-    }
-
-  vtkMRMLSliceNode* sliceNode = this->GetMRMLSliceNode();
-  // if no slice node, it doesn't constrain the visibility, so return that
-  // it's visible
-  if (!sliceNode)
-    {
-    vtkErrorMacro("IsWidgetDisplayableOnSlice: Could not get the sliceNode.")
-    return 1;
-    }
-
-  // if there's no node, it's not visible
-  if (!node)
-    {
-    vtkErrorMacro("IsWidgetDisplayableOnSlice: Could not get the markups node.")
-    return 0;
-    }
-
-  bool showWidget = true;
-  bool inViewport = false;
-
-  // allow annotations to appear only in designated viewers
-  vtkMRMLDisplayNode *displayNode = node->GetDisplayNode();
-  if (displayNode && !displayNode->IsDisplayableInView(sliceNode->GetID()))
-    {
-    return 0;
-    }
-
-  // down cast the node as a controlpoints node to get the coordinates
-  vtkMRMLMarkupsNode * controlPointsNode = vtkMRMLMarkupsNode::SafeDownCast(node);
-
-  if (!controlPointsNode)
-    {
-    vtkErrorMacro("IsWidgetDisplayableOnSlice: Could not get the controlpoints node.")
-    return 0;
-    }
-
-  int numberOfControlPoints = controlPointsNode->GetNumberOfControlPoints();
-  for (int i=0; i < numberOfControlPoints; i++)
-    {
-    // we loop through all controlpoints of each node
-    double transformedWorldCoordinates[4];
-    controlPointsNode->GetNthControlPointPositionWorld(i, transformedWorldCoordinates);
-
-    // now get the displayCoordinates for the transformed worldCoordinates
-    double displayCoordinates[4];
-    this->GetWorldToDisplayCoordinates(transformedWorldCoordinates,displayCoordinates);
-
-    if (this->IsInLightboxMode())
-      {
-      //
-      // Lightbox specific code
-      //
-      // get the corresponding lightbox index for this display coordinate and
-      // check if it's in the range of the current number of light boxes being
-      // displayed in the grid rows/columns.
-      int lightboxIndex = this->GetLightboxIndex(controlPointsNode, i);
-      int numberOfLightboxes = sliceNode->GetLayoutGridColumns() * sliceNode->GetLayoutGridRows();
-      if (lightboxIndex < 0 ||
-          lightboxIndex >= numberOfLightboxes)
-        {
-        showWidget = false;
-        }
-      }
-    // check if the markup is close enough to the slice to be shown
-    if (showWidget)
-      {
-      if (this->IsInLightboxMode())
-        {
-        // get the volume's spacing to determine the distance between the slice
-        // location and the markup
-        // default to spacing 1.0 in case can't get volume slice spacing from
-        // the logic as that will be a multiplicative no-op
-        double spacing = 1.0;
-        vtkMRMLSliceLogic *sliceLogic = nullptr;
-        vtkMRMLApplicationLogic *mrmlAppLogic = this->GetMRMLApplicationLogic();
-        if (mrmlAppLogic)
-          {
-          sliceLogic = mrmlAppLogic->GetSliceLogic(sliceNode);
-          }
-        if (sliceLogic)
-          {
-          double *volumeSliceSpacing = sliceLogic->GetLowestVolumeSliceSpacing();
-          if (volumeSliceSpacing != nullptr)
-            {
-            vtkDebugMacro("Slice node " << sliceNode->GetName()
-                          << ": volumeSliceSpacing = "
-                          << volumeSliceSpacing[0] << ", "
-                          << volumeSliceSpacing[1] << ", "
-                          << volumeSliceSpacing[2]);
-            spacing = volumeSliceSpacing[2];
-            }
-          }
-        vtkDebugMacro("displayCoordinates: "
-                      << displayCoordinates[0] << ","
-                      << displayCoordinates[1] << ","
-                      << displayCoordinates[2] << "\n\tworld coords: "
-                      << transformedWorldCoordinates[0] << ","
-                      << transformedWorldCoordinates[1] << ","
-                      << transformedWorldCoordinates[2]);
-        // calculate the distance from the point in world space to the
-        // plane defined by the slice node normal and origin (using same
-        // convention as the vtkMRMLThreeDReformatDisplayableManager)
-        vtkMatrix4x4 *sliceToRAS = sliceNode->GetSliceToRAS();
-        double slicePlaneNormal[3], slicePlaneOrigin[3];
-        slicePlaneNormal[0] = sliceToRAS->GetElement(0,2);
-        slicePlaneNormal[1] = sliceToRAS->GetElement(1,2);
-        slicePlaneNormal[2] = sliceToRAS->GetElement(2,2);
-        slicePlaneOrigin[0] = sliceToRAS->GetElement(0,3);
-        slicePlaneOrigin[1] = sliceToRAS->GetElement(1,3);
-        slicePlaneOrigin[2] = sliceToRAS->GetElement(2,3);
-        double distanceToPlane = slicePlaneNormal[0]*(transformedWorldCoordinates[0]-slicePlaneOrigin[0]) +
-          slicePlaneNormal[1]*(transformedWorldCoordinates[1]-slicePlaneOrigin[1]) +
-          slicePlaneNormal[2]*(transformedWorldCoordinates[2]-slicePlaneOrigin[2]);
-        // this gives the distance to light box plane 0, but have to offset by
-        // number of light box planes (as determined by the light box index) times the volume
-        // slice spacing
-        int lightboxIndex = this->GetLightboxIndex(controlPointsNode, i);
-        double lightboxOffset = lightboxIndex * spacing;
-        double distanceToSlice = distanceToPlane - lightboxOffset;
-        double maxDistance = 0.5;
-        vtkDebugMacro("\n\tdistance to plane = " << distanceToPlane
-                      << "\n\tlightboxIndex = " << lightboxIndex
-                      << "\n\tlightboxOffset = " << lightboxOffset
-                      << "\n\tdistance to slice = " << distanceToSlice);
-        // check that it's within 0.5mm
-        if (distanceToSlice < -0.5 || distanceToSlice >= maxDistance)
-          {
-          vtkDebugMacro("Distance to slice is greater than max distance, not showing the widget");
-          showWidget = false;
-          break;
-          }
-        }
-      else
-        {
-        // the third coordinate of the displayCoordinates is the distance to the slice
-        double distanceToSlice = displayCoordinates[2];
-        double maxDistance = 0.5 + (sliceNode->GetDimensions()[2] - 1);
-        vtkDebugMacro("Slice node " << sliceNode->GetName()
-                      << ": distance to slice = " << distanceToSlice
-                      << ", maxDistance = " << maxDistance
-                      << "\n\tslice node dimensions[2] = "
-                      << sliceNode->GetDimensions()[2]);
-        if (distanceToSlice < -0.5 || distanceToSlice >= maxDistance)
-          {
-          // if the distance to the slice is more than 0.5mm, we know that at least one coordinate of the widget is outside the current activeSlice
-          // hence, we do not want to show this widget
-          showWidget = false;
-          // we don't even need to continue parsing the controlpoints, because we know the widget will not be shown
-          break;
-          }
-        }
-      }
-
-    // -----------------------------------------
-    // special cases when the slices get panned:
-
-    // if all of the controlpoints are outside the viewport coordinates, the widget should not be shown
-    // if one controlpoint is inside the viewport coordinates, the widget should be shown
-
-    // we need to check if we are inside the viewport
-    double coords[2] = {displayCoordinates[0], displayCoordinates[1]};
-
-    vtkRenderer* pokedRenderer = this->GetInteractor()->
-      FindPokedRenderer(static_cast<int> (coords[0]), static_cast<int> (coords[1]));
-    if (!pokedRenderer)
-      {
-      vtkErrorMacro("IsWidgetDisplayableOnSlice: Could not find the poked renderer!")
-      return false;
-      }
-
-    pokedRenderer->DisplayToNormalizedDisplay(coords[0],coords[1]);
-    pokedRenderer->NormalizedDisplayToViewport(coords[0],coords[1]);
-    pokedRenderer->ViewportToNormalizedViewport(coords[0],coords[1]);
-
-    if ((coords[0]>0.0) && (coords[0]<1.0) && (coords[1]>0.0) && (coords[1]<1.0))
-      {
-      // current point is inside of view
-      inViewport = true;
-      }
-
-    } // end of for loop through control points
-
-  return showWidget && inViewport;
 }
 
 //---------------------------------------------------------------------------
@@ -1447,45 +866,6 @@ void vtkMRMLMarkupsDisplayableManager::GetDisplayToWorldCoordinates(double * dis
 
 }
 
-//---------------------------------------------------------------------------
-/// Convert world to display coordinates
-void vtkMRMLMarkupsDisplayableManager::GetWorldToDisplayCoordinates(double r, double a, double s, double * displayCoordinates)
-{
-  if (!this->GetMRMLSliceNode())
-    {
-    vtkErrorMacro("GetWorldToDisplayCoordinates: no slice node!");
-    return;
-    }
-
-  // we will get the transformation matrix to convert world coordinates to the display coordinates of the specific sliceNode
-
-  vtkMatrix4x4 * xyToRasMatrix = this->GetMRMLSliceNode()->GetXYToRAS();
-  vtkNew<vtkMatrix4x4> rasToXyMatrix;
-
-  // we need to invert this matrix
-  xyToRasMatrix->Invert(xyToRasMatrix, rasToXyMatrix.GetPointer());
-
-  double worldCoordinates[4];
-  worldCoordinates[0] = r;
-  worldCoordinates[1] = a;
-  worldCoordinates[2] = s;
-  worldCoordinates[3] = 1;
-
-  rasToXyMatrix->MultiplyPoint(worldCoordinates,displayCoordinates);
-  xyToRasMatrix = nullptr;
-}
-
-//---------------------------------------------------------------------------
-// Convert world to display coordinates
-void vtkMRMLMarkupsDisplayableManager::GetWorldToDisplayCoordinates(double * worldCoordinates, double * displayCoordinates)
-{
-  if (worldCoordinates == nullptr)
-    {
-    return;
-    }
-
-  this->GetWorldToDisplayCoordinates(worldCoordinates[0], worldCoordinates[1], worldCoordinates[2], displayCoordinates);
-}
 
 //---------------------------------------------------------------------------
 // Convert display to viewport coordinates
@@ -1725,34 +1105,6 @@ bool vtkMRMLMarkupsDisplayableManager::IsInLightboxMode()
     }
   return flag;
 }
-
-//---------------------------------------------------------------------------
-int  vtkMRMLMarkupsDisplayableManager::GetLightboxIndex(vtkMRMLMarkupsNode *node, int pointIndex)
-{
-  if (pointIndex == -3)
-    {
-    double transformedWorldCoordinates[4], displayCoordinates[4];
-    node->GetCentroidPositionWorld(transformedWorldCoordinates);
-    this->GetWorldToDisplayCoordinates(transformedWorldCoordinates,displayCoordinates);
-
-    return static_cast<int> (floor(displayCoordinates[2]+0.5));
-    }
-
-  int index = -1;
-
-  if (!node || !this->IsInLightboxMode() ||
-      !node->ControlPointExists(pointIndex))
-    {
-    return index;
-    }
-
-  double transformedWorldCoordinates[4], displayCoordinates[4];
-  node->GetNthControlPointPositionWorld(pointIndex, transformedWorldCoordinates);
-  this->GetWorldToDisplayCoordinates(transformedWorldCoordinates,displayCoordinates);
-
-  return static_cast<int> (floor(displayCoordinates[2]+0.5));
-}
-
 
 
 
@@ -2039,39 +1391,52 @@ bool vtkMRMLMarkupsDisplayableManager::UpdatePointPlacePreview(const int display
   }
 
   // Check if the active markups node is already the right class, and if yes then use that
-  vtkMRMLMarkupsNode *activeMarkupNode = this->GetActiveMarkupsNode(true);
+  vtkMRMLMarkupsNode *activeMarkupsNode = this->GetActiveMarkupsNode(true);
 
-  // If there is no active markups node then create a new one
-  if (!activeMarkupNode)
+  if (activeMarkupsNode && activeMarkupsNode->GetMaximumNumberOfControlPoints() > 0
+    && activeMarkupsNode->GetNumberOfControlPoints() >= activeMarkupsNode->GetMaximumNumberOfControlPoints())
   {
-    activeMarkupNode = this->CreateNewMarkupsNode(placeNodeClassName);
-    selectionNode->SetActivePlaceNodeID(activeMarkupNode->GetID());
+    // maybe reached maximum number of points - if yes, then create a new widget
+    if (activeMarkupsNode->GetNumberOfControlPoints() == activeMarkupsNode->GetMaximumNumberOfControlPoints())
+    {
+      // one more point than the maximum
+      vtkSlicerAbstractWidget *slicerWidget = this->Helper->GetWidget(activeMarkupsNode);
+      if (slicerWidget && !slicerWidget->GetFollowCursor())
+      {
+        // no preview is shown, so the widget is actually complete
+        activeMarkupsNode = nullptr;
+      }
+
+    }
+    else
+    {
+      // clearly over the maximum number of points
+      activeMarkupsNode = nullptr;
+    }
+
   }
 
-  if (!activeMarkupNode)
+  // If there is no active markups node then create a new one
+  if (!activeMarkupsNode)
+  {
+    activeMarkupsNode = this->CreateNewMarkupsNode(placeNodeClassName);
+    selectionNode->SetActivePlaceNodeID(activeMarkupsNode->GetID());
+  }
+
+  if (!activeMarkupsNode)
   {
     return false;
   }
-  vtkSlicerAbstractWidget *slicerWidget = this->Helper->GetWidget(activeMarkupNode);
+  vtkSlicerAbstractWidget *slicerWidget = this->Helper->GetWidget(activeMarkupsNode);
   if (!slicerWidget)
   {
     return false;
   }
 
-  // Check if the widget has been already placed
-  // if yes, set again to define
-  /*
-  if (interactionNode->GetCurrentInteractionMode() == vtkMRMLInteractionNode::Place
-  && slicerWidget->GetWidgetState() == vtkSlicerAbstractWidget::Manipulate)
-  {
-  slicerWidget->SetWidgetState(vtkSlicerAbstractWidget::Define);
-  slicerWidget->SetManagesCursor(false);
-  }
-  */
   slicerWidget->UpdatePreviewPointPositionFromWorldCoordinate(worldPosition);
 
   // force update of widgets on other views
-  activeMarkupNode->GetMarkupsDisplayNode()->Modified();
+  activeMarkupsNode->GetMarkupsDisplayNode()->Modified();
   return true;
 }
 

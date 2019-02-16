@@ -132,7 +132,7 @@ bool vtkSlicerAngleRepresentation3D::GetTransformationReferencePoint(double refe
 }
 
 //----------------------------------------------------------------------
-void vtkSlicerAngleRepresentation3D::BuildLines()
+void vtkSlicerAngleRepresentation3D::UpdateLinesFromMRML()
 {
   this->BuildLine(this->Line, false);
 
@@ -203,7 +203,7 @@ void vtkSlicerAngleRepresentation3D::BuildLines()
 }
 
 //----------------------------------------------------------------------
-void vtkSlicerAngleRepresentation3D::BuildRepresentation()
+void vtkSlicerAngleRepresentation3D::UpdateFromMRML()
 {
   // Make sure we are up to date with any changes made in the placer
   //this->UpdateWidget(true);
@@ -347,7 +347,7 @@ int vtkSlicerAngleRepresentation3D::RenderOpaqueGeometry(
 {
   // Since we know RenderOpaqueGeometry gets called first, will do the
   // build here
-  this->BuildRepresentation();
+  this->UpdateFromMRML();
 
   int count=0;
   count = this->Superclass::RenderOpaqueGeometry(viewport);
