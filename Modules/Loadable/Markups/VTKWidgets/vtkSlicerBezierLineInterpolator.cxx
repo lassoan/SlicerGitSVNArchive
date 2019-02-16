@@ -16,28 +16,28 @@
 
 =========================================================================*/
 
-#include "vtkBezierSlicerLineInterpolator.h"
+#include "vtkSlicerBezierLineInterpolator.h"
 
-#include "vtkSlicerAbstractRepresentation.h"
+#include "vtkSlicerAbstractWidgetRepresentation.h"
 #include "vtkMath.h"
 #include "vtkObjectFactory.h"
 #include "vtkRenderer.h"
 #include "vtkIntArray.h"
 
-vtkStandardNewMacro(vtkBezierSlicerLineInterpolator);
+vtkStandardNewMacro(vtkSlicerBezierLineInterpolator);
 
 //----------------------------------------------------------------------
-vtkBezierSlicerLineInterpolator::vtkBezierSlicerLineInterpolator()
+vtkSlicerBezierLineInterpolator::vtkSlicerBezierLineInterpolator()
 {
   this->MaximumCurveError        = 0.005;
   this->MaximumCurveLineSegments = 100;
 }
 
 //----------------------------------------------------------------------
-vtkBezierSlicerLineInterpolator::~vtkBezierSlicerLineInterpolator() = default;
+vtkSlicerBezierLineInterpolator::~vtkSlicerBezierLineInterpolator() = default;
 
 //----------------------------------------------------------------------
-int vtkBezierSlicerLineInterpolator::InterpolateLine(vtkSlicerAbstractRepresentation *rep,
+int vtkSlicerBezierLineInterpolator::InterpolateLine(vtkSlicerAbstractWidgetRepresentation *rep,
                                                      int idx1, int idx2)
 {
   int maxRecursion = 0;
@@ -173,9 +173,9 @@ int vtkBezierSlicerLineInterpolator::InterpolateLine(vtkSlicerAbstractRepresenta
 }
 
 //----------------------------------------------------------------------
-void vtkBezierSlicerLineInterpolator::GetSpan(int nodeIndex,
+void vtkSlicerBezierLineInterpolator::GetSpan(int nodeIndex,
                                               vtkIntArray *nodeIndices,
-                                              vtkSlicerAbstractRepresentation *rep)
+                                              vtkSlicerAbstractWidgetRepresentation *rep)
 {
   int start = nodeIndex - 2;
   int end   = nodeIndex - 1;
@@ -220,7 +220,7 @@ void vtkBezierSlicerLineInterpolator::GetSpan(int nodeIndex,
 }
 
 //----------------------------------------------------------------------
-void vtkBezierSlicerLineInterpolator::PrintSelf(ostream& os, vtkIndent indent)
+void vtkSlicerBezierLineInterpolator::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os,indent);
 
@@ -228,4 +228,3 @@ void vtkBezierSlicerLineInterpolator::PrintSelf(ostream& os, vtkIndent indent)
   os << indent << "Maximum Curve Line Segments: "
      << this->MaximumCurveLineSegments << "\n";
 }
-

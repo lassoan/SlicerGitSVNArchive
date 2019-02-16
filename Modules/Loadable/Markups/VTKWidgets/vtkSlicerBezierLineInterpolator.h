@@ -17,7 +17,7 @@
 =========================================================================*/
 
 /**
- * @class   vtkBezierSlicerLineInterpolator
+ * @class   vtkSlicerBezierLineInterpolator
  * @brief   Interpolates supplied nodes with bezier line segments
  *
  * The line interpolator interpolates supplied nodes (see InterpolateLine)
@@ -28,25 +28,25 @@
  * vtkSlicerLineInterpolator
 */
 
-#ifndef vtkBezierSlicerLineInterpolator_h
-#define vtkBezierSlicerLineInterpolator_h
+#ifndef vtkSlicerBezierLineInterpolator_h
+#define vtkSlicerBezierLineInterpolator_h
 
 #include "vtkSlicerMarkupsModuleVTKWidgetsExport.h"
 #include "vtkSlicerLineInterpolator.h"
 
-class VTK_SLICER_MARKUPS_MODULE_VTKWIDGETS_EXPORT vtkBezierSlicerLineInterpolator
+class VTK_SLICER_MARKUPS_MODULE_VTKWIDGETS_EXPORT vtkSlicerBezierLineInterpolator
                           : public vtkSlicerLineInterpolator
 {
 public:
   /// Instantiate this class.
-  static vtkBezierSlicerLineInterpolator *New();
+  static vtkSlicerBezierLineInterpolator *New();
 
   /// Standard methods for instances of this class.
-  vtkTypeMacro(vtkBezierSlicerLineInterpolator, vtkSlicerLineInterpolator);
+  vtkTypeMacro(vtkSlicerBezierLineInterpolator, vtkSlicerLineInterpolator);
   void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
 
   /// Interpolate the line between two nodes.
-  int InterpolateLine(vtkSlicerAbstractRepresentation *rep,
+  int InterpolateLine(vtkSlicerAbstractWidgetRepresentation *rep,
                       int idx1, int idx2) VTK_OVERRIDE;
 
   /// The difference between a line segment connecting two points and the curve
@@ -73,11 +73,11 @@ public:
   /// The node span is returned in a vtkIntArray. The node span returned by
   /// this interpolator will be a 2-tuple with a span of 4.
   void GetSpan(int nodeIndex, vtkIntArray *nodeIndices,
-               vtkSlicerAbstractRepresentation *rep) VTK_OVERRIDE;
+               vtkSlicerAbstractWidgetRepresentation *rep) VTK_OVERRIDE;
 
 protected:
-  vtkBezierSlicerLineInterpolator();
-  ~vtkBezierSlicerLineInterpolator() VTK_OVERRIDE;
+  vtkSlicerBezierLineInterpolator();
+  ~vtkSlicerBezierLineInterpolator() VTK_OVERRIDE;
 
   void ComputeMidpoint(double p1[3], double p2[3], double mid[3])
   {
@@ -90,8 +90,8 @@ protected:
   int    MaximumCurveLineSegments;
 
 private:
-  vtkBezierSlicerLineInterpolator(const vtkBezierSlicerLineInterpolator&) = delete;
-  void operator=(const vtkBezierSlicerLineInterpolator&) = delete;
+  vtkSlicerBezierLineInterpolator(const vtkSlicerBezierLineInterpolator&) = delete;
+  void operator=(const vtkSlicerBezierLineInterpolator&) = delete;
 };
 
 #endif

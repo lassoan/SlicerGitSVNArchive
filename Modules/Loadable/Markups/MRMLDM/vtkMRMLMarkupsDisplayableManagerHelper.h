@@ -60,11 +60,6 @@ public:
   vtkGetObjectMacro(DisplayableManager, vtkMRMLMarkupsDisplayableManager);
   void SetDisplayableManager(vtkMRMLMarkupsDisplayableManager*);
 
-  /// Lock/Unlock all widgets based on the state of the nodes
-  void UpdateLockedAllWidgetsFromNodes();
-  /// Lock/Unlock all widgets
-  void UpdateLockedAllWidgets(bool locked);
-
   /// Update all widget status
   void UpdateAllWidgetsFromInteractionNode(vtkMRMLInteractionNode* interactionNode);
 

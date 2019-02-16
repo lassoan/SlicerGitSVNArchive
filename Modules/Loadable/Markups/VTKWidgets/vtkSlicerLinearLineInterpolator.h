@@ -17,7 +17,7 @@
 =========================================================================*/
 
 /**
- * @class   vtkLinearSlicerLineInterpolator
+ * @class   vtkSlicerLinearLineInterpolator
  * @brief   Interpolates supplied nodes with line segments
  *
  * The line interpolator interpolates supplied nodes (see InterpolateLine)
@@ -28,34 +28,34 @@
  * vtkSlicerLineInterpolator
 */
 
-#ifndef vtkLinearSlicerLineInterpolator_h
-#define vtkLinearSlicerLineInterpolator_h
+#ifndef vtkSlicerLinearLineInterpolator_h
+#define vtkSlicerLinearLineInterpolator_h
 
 #include "vtkSlicerMarkupsModuleVTKWidgetsExport.h"
 #include "vtkSlicerLineInterpolator.h"
 
-class VTK_SLICER_MARKUPS_MODULE_VTKWIDGETS_EXPORT vtkLinearSlicerLineInterpolator
+class VTK_SLICER_MARKUPS_MODULE_VTKWIDGETS_EXPORT vtkSlicerLinearLineInterpolator
                           : public vtkSlicerLineInterpolator
 {
 public:
   /// Instantiate this class.
-  static vtkLinearSlicerLineInterpolator *New();
+  static vtkSlicerLinearLineInterpolator *New();
 
   /// Standard methods for instances of this class.
-  vtkTypeMacro(vtkLinearSlicerLineInterpolator,vtkSlicerLineInterpolator);
+  vtkTypeMacro(vtkSlicerLinearLineInterpolator,vtkSlicerLineInterpolator);
   void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
 
   /// Interpolate the line between two nodes.
-  int InterpolateLine(vtkSlicerAbstractRepresentation *rep,
+  int InterpolateLine(vtkSlicerAbstractWidgetRepresentation *rep,
                       int idx1, int idx2) VTK_OVERRIDE;
 
 protected:
-  vtkLinearSlicerLineInterpolator();
-  ~vtkLinearSlicerLineInterpolator() VTK_OVERRIDE;
+  vtkSlicerLinearLineInterpolator();
+  ~vtkSlicerLinearLineInterpolator() VTK_OVERRIDE;
 
 private:
-  vtkLinearSlicerLineInterpolator(const vtkLinearSlicerLineInterpolator&) = delete;
-  void operator=(const vtkLinearSlicerLineInterpolator&) = delete;
+  vtkSlicerLinearLineInterpolator(const vtkSlicerLinearLineInterpolator&) = delete;
+  void operator=(const vtkSlicerLinearLineInterpolator&) = delete;
 };
 
 #endif

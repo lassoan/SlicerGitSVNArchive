@@ -92,6 +92,9 @@ public:
   /// \sa viewColor()
   void setViewColor(const QColor& newViewColor);
 
+  /// Set cursor in the 3D view area
+  Q_INVOKABLE void setViewCursor(const QCursor &);
+
   /// propagates the logics to the qMRMLThreeDControllerWidget
   Q_INVOKABLE void setViewLogics(vtkCollection* logics);
 

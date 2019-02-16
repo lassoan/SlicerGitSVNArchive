@@ -45,6 +45,14 @@ public:
     return ret;
   };
 
+  /// Extends vtkCommand events
+  enum SlicerInteractionEvents
+  {
+    LeftButtonClickEvent = vtkCommand::UserEvent + 300, // button press and release without moving mouse
+    MiddleButtonClickEvent,
+    RightButtonClickEvent
+  };
+
   void SetType(unsigned long v) { this->Type = v; }
 
   void SetModifiers(int v) { this->Modifiers = v; }
@@ -97,6 +105,13 @@ public:
     this->DisplayPositionValid = false;
   }
 
+  void SetKeyCode(char v) { this->KeyCode = v; }
+  char GetKeyCode() { return this->KeyCode; }
+  void SetKeyRepeatCount(char v) { this->KeyRepeatCount = v; }
+  int GetKeyRepeatCount() { return this->KeyRepeatCount; }
+  void SetKeySym(const std::string &v) { this->KeySym = v; }
+  const std::string& GetKeySym() { return this->KeySym; }
+
 protected:
   int Modifiers;
   int DisplayPosition[2];
@@ -104,10 +119,23 @@ protected:
   bool DisplayPositionValid;
   bool WorldPositionValid;
 
+  // For KeyPressEvent
+  char KeyCode;
+  int KeyRepeatCount;
+  std::string KeySym;
+
   bool Equivalent(const vtkEventData *e) const override
   {
     const vtkSlicerInteractionEventData *edd = static_cast<const vtkSlicerInteractionEventData *>(e);
-    return (this->Type == edd->Type) && (edd->Modifiers < 0 || (this->Modifiers == edd->Modifiers));
+    if (this->Type != edd->Type)
+    {
+      return false;
+    }
+    if (edd->Modifiers >= 0 && (this->Modifiers != edd->Modifiers))
+    {
+      return false;
+    }
+    return true;
   };
 
   vtkSlicerInteractionEventData()
@@ -260,7 +288,7 @@ public:
 
   /// Give a chance to displayable managers to process the event.
   /// Return true if the event is processed.
-  bool ForwardInteractionEventToDisplayableManagers(vtkCommand::EventIds event);
+  bool ForwardInteractionEventToDisplayableManagers(unsigned long event);
 
 protected:
 
@@ -298,6 +326,8 @@ protected:
 
   vtkWeakPointer<vtkMRMLDisplayableManagerGroup> DisplayableManagers;
   vtkMRMLAbstractDisplayableManager* FocusedDisplayableManager;
+
+  bool MouseMovedSinceButtonDown;
 
 private:
   vtkSliceViewInteractorStyle(const vtkSliceViewInteractorStyle&);  /// Not implemented.

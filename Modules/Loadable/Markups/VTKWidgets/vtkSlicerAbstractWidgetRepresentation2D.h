@@ -17,7 +17,7 @@
 =========================================================================*/
 
 /**
- * @class   vtkSlicerAbstractRepresentation2D
+ * @class   vtkSlicerAbstractWidgetRepresentation2D
  * @brief   Default representation for the slicer markups widget
  *
  * This class provides the default concrete representation for the
@@ -25,15 +25,15 @@
  * vtkSlicerLineInterpolator and vtkPointPlacer. See vtkSlicerAbstractWidget
  * for details.
  * @sa
- * vtkSlicerAbstractRepresentation2D vtkSlicerAbstractWidget vtkPointPlacer
+ * vtkSlicerAbstractWidgetRepresentation2D vtkSlicerAbstractWidget vtkPointPlacer
  * vtkSlicerLineInterpolator
 */
 
-#ifndef vtkSlicerAbstractRepresentation2D_h
-#define vtkSlicerAbstractRepresentation2D_h
+#ifndef vtkSlicerAbstractWidgetRepresentation2D_h
+#define vtkSlicerAbstractWidgetRepresentation2D_h
 
 #include "vtkSlicerMarkupsModuleVTKWidgetsExport.h"
-#include "vtkSlicerAbstractRepresentation.h"
+#include "vtkSlicerAbstractWidgetRepresentation.h"
 
 #include "vtkMRMLSliceNode.h"
 
@@ -44,11 +44,11 @@ class vtkMarkupsGlyphSource2D;
 class vtkOpenGLPolyDataMapper2D;
 class vtkProperty2D;
 
-class VTK_SLICER_MARKUPS_MODULE_VTKWIDGETS_EXPORT vtkSlicerAbstractRepresentation2D : public vtkSlicerAbstractRepresentation
+class VTK_SLICER_MARKUPS_MODULE_VTKWIDGETS_EXPORT vtkSlicerAbstractWidgetRepresentation2D : public vtkSlicerAbstractWidgetRepresentation
 {
 public:
   /// Standard methods for instances of this class.
-  vtkTypeMacro(vtkSlicerAbstractRepresentation2D,vtkSlicerAbstractRepresentation);
+  vtkTypeMacro(vtkSlicerAbstractWidgetRepresentation2D,vtkSlicerAbstractWidgetRepresentation);
   void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
 
   /// Position is displayed (slice) position
@@ -58,12 +58,10 @@ public:
   /// Can be used on the output of CanInteract, as if no better component is found then the input is returned.
   void CanInteractWithLine(int &foundComponentType, const int displayPosition[2], const double worldPosition[3], double &closestDistance2, int &componentIndex);
 
-  /// Subclasses of vtkSlicerAbstractRepresentation2D must implement these methods. These
+  /// Subclasses of vtkSlicerAbstractWidgetRepresentation2D must implement these methods. These
   /// are the methods that the widget and its representation use to
   /// communicate with each other.
-  void BuildRepresentation() VTK_OVERRIDE;
-  int ComputeInteractionState(int X, int Y, int modified = 0) VTK_OVERRIDE { return 0; };
-  void WidgetInteraction(double eventPos[2]) VTK_OVERRIDE { return; };
+  virtual void BuildRepresentation();
 
   /// Methods to make this class behave as a vtkProp.
   void GetActors(vtkPropCollection *) VTK_OVERRIDE;
@@ -117,8 +115,8 @@ public:
   vtkGetMacro(ScaleFactor2D, double);
 
 protected:
-  vtkSlicerAbstractRepresentation2D();
-  ~vtkSlicerAbstractRepresentation2D() VTK_OVERRIDE;
+  vtkSlicerAbstractWidgetRepresentation2D();
+  ~vtkSlicerAbstractWidgetRepresentation2D() VTK_OVERRIDE;
 
   vtkWeakPointer<vtkMRMLSliceNode> SliceNode;
 
@@ -150,8 +148,8 @@ protected:
   virtual void AddNodeAtPositionInternal(const double worldPos[3]) VTK_OVERRIDE;
 
 private:
-  vtkSlicerAbstractRepresentation2D(const vtkSlicerAbstractRepresentation2D&) = delete;
-  void operator=(const vtkSlicerAbstractRepresentation2D&) = delete;
+  vtkSlicerAbstractWidgetRepresentation2D(const vtkSlicerAbstractWidgetRepresentation2D&) = delete;
+  void operator=(const vtkSlicerAbstractWidgetRepresentation2D&) = delete;
 };
 
 #endif

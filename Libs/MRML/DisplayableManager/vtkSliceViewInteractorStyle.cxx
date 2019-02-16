@@ -54,6 +54,8 @@ vtkSliceViewInteractorStyle::vtkSliceViewInteractorStyle()
 {
   this->FocusedDisplayableManager = nullptr;
 
+  this->MouseMovedSinceButtonDown = false;
+
   this->ActionState = vtkSliceViewInteractorStyle::None;
   this->ActionsEnabled = vtkSliceViewInteractorStyle::AllActionsMask;
   this->ShiftKeyUsedForPreviousAction = false;
@@ -98,6 +100,11 @@ void vtkSliceViewInteractorStyle::PrintSelf(ostream& os, vtkIndent indent)
 //----------------------------------------------------------------------------
 void vtkSliceViewInteractorStyle::OnKeyPress()
 {
+  if (this->ForwardInteractionEventToDisplayableManagers(vtkCommand::KeyPressEvent))
+    {
+    return;
+    }
+
   char *key = this->Interactor->GetKeySym();
 
   // Note: up/down/left/right keys don't come via OnChar, so handle
@@ -119,6 +126,10 @@ void vtkSliceViewInteractorStyle::OnKeyPress()
 //----------------------------------------------------------------------------
 void vtkSliceViewInteractorStyle::OnKeyRelease()
 {
+  if (this->ForwardInteractionEventToDisplayableManagers(vtkCommand::KeyReleaseEvent))
+    {
+    return;
+    }
 
   std::string key = this->Interactor->GetKeySym();
 
@@ -132,6 +143,11 @@ void vtkSliceViewInteractorStyle::OnKeyRelease()
 //----------------------------------------------------------------------------
 void vtkSliceViewInteractorStyle::OnChar()
 {
+  if (this->ForwardInteractionEventToDisplayableManagers(vtkCommand::CharEvent))
+    {
+    return;
+    }
+
   vtkMRMLSliceNode *sliceNode = this->SliceLogic->GetSliceNode();
   vtkMRMLSliceCompositeNode *sliceCompositeNode = this->SliceLogic->GetSliceCompositeNode();
 
@@ -297,53 +313,79 @@ double vtkSliceViewInteractorStyle::GetLabelOpacity()
 //----------------------------------------------------------------------------
 void vtkSliceViewInteractorStyle::OnRightButtonDown()
 {
+  this->MouseMovedSinceButtonDown = false;
   if (this->ForwardInteractionEventToDisplayableManagers(vtkCommand::RightButtonPressEvent))
     {
     return;
     }
-  if (!this->GetActionEnabled(vtkSliceViewInteractorStyle::Zoom))
+
+  if (this->GetActionEnabled(vtkSliceViewInteractorStyle::Zoom))
     {
-    this->Superclass::OnRightButtonDown();
-    return;
+    this->SliceLogic->GetMRMLScene()->SaveStateForUndo(this->SliceLogic->GetSliceNode());
+    this->SetActionState(vtkSliceViewInteractorStyle::Zoom);
+    this->SliceLogic->StartSliceNodeInteraction(vtkMRMLSliceNode::FieldOfViewFlag);
+    vtkMRMLSliceNode *sliceNode = this->SliceLogic->GetSliceNode();
+    sliceNode->GetFieldOfView(this->StartActionFOV);
     }
-  this->SliceLogic->GetMRMLScene()->SaveStateForUndo(this->SliceLogic->GetSliceNode());
-  this->SetActionState(vtkSliceViewInteractorStyle::Zoom);
-  this->SliceLogic->StartSliceNodeInteraction(vtkMRMLSliceNode::FieldOfViewFlag);
-  vtkMRMLSliceNode *sliceNode = this->SliceLogic->GetSliceNode();
-  sliceNode->GetFieldOfView(this->StartActionFOV);
+  else
+    {
+    this->InvokeEvent(vtkCommand::RightButtonPressEvent, nullptr);
+    }
+
   this->GetInteractor()->GetEventPosition(this->StartActionEventPosition);
   this->GetInteractor()->GetEventPosition(this->LastEventPosition);
-  this->InvokeEvent(vtkCommand::RightButtonPressEvent,nullptr);
 }
 //----------------------------------------------------------------------------
 void vtkSliceViewInteractorStyle::OnRightButtonUp()
 {
   this->SetActionState(vtkSliceViewInteractorStyle::None);
   this->SliceLogic->EndSliceNodeInteraction();
+
   if (!this->ForwardInteractionEventToDisplayableManagers(vtkCommand::RightButtonReleaseEvent))
-  {
+    {
     this->InvokeEvent(vtkCommand::RightButtonReleaseEvent, nullptr);
-  }
+    }
+  if (!this->MouseMovedSinceButtonDown)
+    {
+    this->ForwardInteractionEventToDisplayableManagers(vtkSlicerInteractionEventData::RightButtonClickEvent);
+    }
 }
 
 //----------------------------------------------------------------------------
 void vtkSliceViewInteractorStyle::OnMiddleButtonDown()
 {
-  if (!this->GetActionEnabled(vtkSliceViewInteractorStyle::Translate))
+  this->MouseMovedSinceButtonDown = false;
+  if (this->ForwardInteractionEventToDisplayableManagers(vtkCommand::MiddleButtonPressEvent))
     {
-    this->Superclass::OnMiddleButtonDown();
     return;
     }
-  this->StartTranslate();
+
+  if (this->GetActionEnabled(vtkSliceViewInteractorStyle::Translate))
+    {
+    this->StartTranslate();
+    }
+  else
+    {
+    this->InvokeEvent(vtkCommand::MiddleButtonReleaseEvent, nullptr);
+    }
+
   this->GetInteractor()->GetEventPosition(this->StartActionEventPosition);
   this->GetInteractor()->GetEventPosition(this->LastEventPosition);
-  this->InvokeEvent(vtkCommand::MiddleButtonPressEvent,nullptr);
 }
+
 //----------------------------------------------------------------------------
 void vtkSliceViewInteractorStyle::OnMiddleButtonUp()
 {
   this->EndTranslate();
-  this->InvokeEvent(vtkCommand::MiddleButtonReleaseEvent,nullptr);
+
+  if (!this->ForwardInteractionEventToDisplayableManagers(vtkCommand::RightButtonReleaseEvent))
+    {
+    this->InvokeEvent(vtkCommand::MiddleButtonReleaseEvent, nullptr);
+    }
+  if (!this->MouseMovedSinceButtonDown)
+    {
+    this->ForwardInteractionEventToDisplayableManagers(vtkSlicerInteractionEventData::MiddleButtonClickEvent);
+    }
 }
 
 //----------------------------------------------------------------------------
@@ -373,6 +415,7 @@ int vtkSliceViewInteractorStyle::GetMouseInteractionMode()
 //----------------------------------------------------------------------------
 void vtkSliceViewInteractorStyle::OnLeftButtonDown()
 {
+  this->MouseMovedSinceButtonDown = false;
   if (this->ForwardInteractionEventToDisplayableManagers(vtkCommand::LeftButtonPressEvent))
     {
     return;
@@ -386,21 +429,22 @@ void vtkSliceViewInteractorStyle::OnLeftButtonDown()
     {
     this->StartBlend();
     }
-  else
+  else if (this->GetMouseInteractionMode() == vtkMRMLInteractionNode::ViewTransform)
     {
     // Only adjust window/level in the default mouse mode.
     // Without this window/level could be changed accidentally while in place mode
     // and accidentally dragging the mouse while placing a new markup.
     // (in the future it may make sense to add a special mouse mode for window/level)
-    if (this->GetMouseInteractionMode() == vtkMRMLInteractionNode::ViewTransform)
-      {
-      this->StartAdjustWindowLevel(); // enabled action mask is checked in StartAdjustWindowLevel
-      }
+    this->StartAdjustWindowLevel(); // enabled action mask is checked in StartAdjustWindowLevel
+    }
+  else
+    {
+    this->InvokeEvent(vtkCommand::LeftButtonPressEvent, nullptr);
     }
   this->GetInteractor()->GetEventPosition(this->StartActionEventPosition);
   this->GetInteractor()->GetEventPosition(this->LastEventPosition);
-  this->Superclass::OnLeftButtonDown();
 }
+
 //----------------------------------------------------------------------------
 void vtkSliceViewInteractorStyle::OnLeftButtonUp()
 {
@@ -417,10 +461,15 @@ void vtkSliceViewInteractorStyle::OnLeftButtonUp()
     {
     this->EndAdjustWindowLevel();
     }
+
   if (!this->ForwardInteractionEventToDisplayableManagers(vtkCommand::LeftButtonReleaseEvent))
-  {
-    this->Superclass::OnLeftButtonUp();
-  }
+    {
+    this->InvokeEvent(vtkCommand::LeftButtonReleaseEvent, nullptr);
+    }
+  if (!this->MouseMovedSinceButtonDown)
+    {
+    this->ForwardInteractionEventToDisplayableManagers(vtkSlicerInteractionEventData::LeftButtonClickEvent);
+    }
 }
 
 //----------------------------------------------------------------------------
@@ -467,6 +516,8 @@ void vtkSliceViewInteractorStyle::ScaleZoom(double zoomScaleFactor)
 //----------------------------------------------------------------------------
 void vtkSliceViewInteractorStyle::OnMouseMove()
 {
+  this->MouseMovedSinceButtonDown = true;
+
   vtkMRMLSliceNode *sliceNode = this->SliceLogic->GetSliceNode();
   vtkMRMLSliceCompositeNode *sliceCompositeNode = this->SliceLogic->GetSliceCompositeNode();
   int eventPosition[2] = { 0 };
@@ -614,6 +665,11 @@ void vtkSliceViewInteractorStyle::OnMouseMove()
 //----------------------------------------------------------------------------
 void vtkSliceViewInteractorStyle::OnMouseWheelForward()
 {
+  if (this->ForwardInteractionEventToDisplayableManagers(vtkCommand::MouseWheelForwardEvent))
+    {
+    return;
+    }
+
   if (this->Interactor->GetControlKey() && this->GetActionEnabled(vtkSliceViewInteractorStyle::Zoom))
     {
     this->ScaleZoom(0.8);
@@ -622,12 +678,18 @@ void vtkSliceViewInteractorStyle::OnMouseWheelForward()
     {
     this->IncrementSlice();
     }
+
   this->Superclass::OnMouseWheelForward();
 }
 
 //----------------------------------------------------------------------------
 void vtkSliceViewInteractorStyle::OnMouseWheelBackward()
 {
+  if (this->ForwardInteractionEventToDisplayableManagers(vtkCommand::MouseWheelBackwardEvent))
+    {
+    return;
+    }
+
   if (this->Interactor->GetControlKey() && this->GetActionEnabled(vtkSliceViewInteractorStyle::Zoom))
     {
     this->ScaleZoom(1.2);
@@ -655,9 +717,9 @@ void vtkSliceViewInteractorStyle::OnConfigure()
 void vtkSliceViewInteractorStyle::OnEnter()
 {
   if (!this->ForwardInteractionEventToDisplayableManagers(vtkCommand::EnterEvent))
-  {
+    {
     this->Superclass::OnEnter();
-  }
+    }
 
   // Forcing the refresh of the view interactors.
   // TODO: Not sure why this hack was added
@@ -993,7 +1055,7 @@ void vtkSliceViewInteractorStyle::SetDisplayableManagers(vtkMRMLDisplayableManag
 }
 
 //----------------------------------------------------------------------------
-bool vtkSliceViewInteractorStyle::ForwardInteractionEventToDisplayableManagers(vtkCommand::EventIds event)
+bool vtkSliceViewInteractorStyle::ForwardInteractionEventToDisplayableManagers(unsigned long event)
 {
   if (!this->DisplayableManagers)
     {

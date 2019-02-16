@@ -24,25 +24,25 @@
  * vtkSlicerPointsWidget. It works in conjunction with the
  * vtkPointPlacer. See vtkSlicerPointsWidget for details.
  * @sa
- * vtkSlicerAbstractRepresentation3D vtkSlicerPointsWidget vtkPointPlacer
+ * vtkSlicerAbstractWidgetRepresentation3D vtkSlicerPointsWidget vtkPointPlacer
 */
 
 #ifndef vtkSlicerPointsRepresentation3D_h
 #define vtkSlicerPointsRepresentation3D_h
 
 #include "vtkSlicerMarkupsModuleVTKWidgetsExport.h"
-#include "vtkSlicerAbstractRepresentation3D.h"
+#include "vtkSlicerAbstractWidgetRepresentation3D.h"
 
 class vtkAppendPolyData;
 
-class VTK_SLICER_MARKUPS_MODULE_VTKWIDGETS_EXPORT vtkSlicerPointsRepresentation3D : public vtkSlicerAbstractRepresentation3D
+class VTK_SLICER_MARKUPS_MODULE_VTKWIDGETS_EXPORT vtkSlicerPointsRepresentation3D : public vtkSlicerAbstractWidgetRepresentation3D
 {
 public:
   /// Instantiate this class.
   static vtkSlicerPointsRepresentation3D *New();
 
   /// Standard methods for instances of this class.
-  vtkTypeMacro(vtkSlicerPointsRepresentation3D,vtkSlicerAbstractRepresentation3D);
+  vtkTypeMacro(vtkSlicerPointsRepresentation3D,vtkSlicerAbstractWidgetRepresentation3D);
 
 protected:
   vtkSlicerPointsRepresentation3D();

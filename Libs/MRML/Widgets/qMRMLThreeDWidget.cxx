@@ -214,3 +214,15 @@ void qMRMLThreeDWidget::getDisplayableManagers(vtkCollection* displayableManager
   Q_D(qMRMLThreeDWidget);
   d->ThreeDView->getDisplayableManagers(displayableManagers);
 }
+
+// --------------------------------------------------------------------------
+void qMRMLThreeDWidget::setViewCursor(const QCursor &cursor)
+{
+#if VTK_MAJOR_VERSION >= 9 || (VTK_MAJOR_VERSION >= 8 && VTK_MINOR_VERSION >= 2)
+  Q_D(const qMRMLSliceWidget);
+  if (d->SliceView != NULL && d->SliceView->VTKWidget() != NULL)
+  {
+    d->SliceView->VTKWidget()->setQVTKCursor(cursor);
+  }
+#endif
+}

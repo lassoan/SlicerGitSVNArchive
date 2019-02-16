@@ -12,12 +12,12 @@ set(${KIT}_INCLUDE_DIRECTORIES
 set(${KIT}_SRCS
   vtk${MODULE_NAME}GlyphSource2D.cxx
   vtk${MODULE_NAME}GlyphSource2D.h
-  vtkSlicerAbstractRepresentation.cxx
-  vtkSlicerAbstractRepresentation.h
-  vtkSlicerAbstractRepresentation3D.cxx
-  vtkSlicerAbstractRepresentation3D.h
-  vtkSlicerAbstractRepresentation2D.cxx
-  vtkSlicerAbstractRepresentation2D.h
+  vtkSlicerAbstractWidgetRepresentation.cxx
+  vtkSlicerAbstractWidgetRepresentation.h
+  vtkSlicerAbstractWidgetRepresentation3D.cxx
+  vtkSlicerAbstractWidgetRepresentation3D.h
+  vtkSlicerAbstractWidgetRepresentation2D.cxx
+  vtkSlicerAbstractWidgetRepresentation2D.h
   vtkSlicerAbstractWidget.cxx
   vtkSlicerAbstractWidget.h
   vtkSlicerAngleRepresentation2D.cxx
@@ -46,10 +46,10 @@ set(${KIT}_SRCS
   vtkSlicerPointsRepresentation2D.h
   vtkSlicerPointsWidget.cxx
   vtkSlicerPointsWidget.h
-  vtkBezierSlicerLineInterpolator.cxx
-  vtkBezierSlicerLineInterpolator.h
-  vtkLinearSlicerLineInterpolator.cxx
-  vtkLinearSlicerLineInterpolator.h
+  vtkSlicerBezierLineInterpolator.cxx
+  vtkSlicerBezierLineInterpolator.h
+  vtkSlicerLinearLineInterpolator.cxx
+  vtkSlicerLinearLineInterpolator.h
   vtkSlicerLineInterpolator.cxx
   vtkSlicerLineInterpolator.h
   )

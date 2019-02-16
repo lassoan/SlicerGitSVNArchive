@@ -36,19 +36,13 @@ vtkStandardNewMacro(vtkSlicerLineWidget);
 //----------------------------------------------------------------------
 vtkSlicerLineWidget::vtkSlicerLineWidget()
 {
-  this->CallbackMapper->SetCallbackMethod(vtkCommand::LeftButtonPressEvent,
-                                          vtkEvent::AltModifier, 0, 0, nullptr,
-                                          vtkWidgetEvent::Rotate,
-                                          this, vtkSlicerAbstractWidget::RotateAction);
+  this->SetEventTranslation(vtkCommand::LeftButtonPressEvent, vtkEvent::AltModifier, WidgetRotateStart);
+  this->SetEventTranslation(vtkCommand::LeftButtonReleaseEvent, vtkEvent::AnyModifier, WidgetRotateEnd);
 
-  this->CallbackMapper->SetCallbackMethod(vtkCommand::RightButtonPressEvent,
-                                          vtkEvent::NoModifier, 0, 0, nullptr,
-                                          vtkWidgetEvent::Pick,
-                                          this, vtkSlicerAbstractWidget::PickAction);
-  this->CallbackMapper->SetCallbackMethod(vtkCommand::RightButtonPressEvent,
-                                          vtkEvent::AltModifier, 0, 0, nullptr,
-                                          vtkWidgetEvent::Scale,
-                                          this, vtkSlicerAbstractWidget::ScaleAction);
+  this->SetEventTranslation(vtkCommand::RightButtonPressEvent, vtkEvent::AltModifier, WidgetScaleStart);
+  this->SetEventTranslation(vtkCommand::RightButtonReleaseEvent, vtkEvent::AnyModifier, WidgetScaleEnd);
+
+  this->SetEventTranslation(vtkCommand::RightButtonPressEvent, vtkEvent::NoModifier, WidgetPick);
 }
 
 //----------------------------------------------------------------------
@@ -59,7 +53,6 @@ vtkSlicerLineWidget::~vtkSlicerLineWidget()
 //----------------------------------------------------------------------
 void vtkSlicerLineWidget::CreateDefaultRepresentation()
 {
-  vtkSlicerLineRepresentation3D *rep = vtkSlicerLineRepresentation3D::New();
-  rep->SetRenderer(this->GetCurrentRenderer());
+  vtkNew<vtkSlicerLineRepresentation3D> rep;
   this->SetRepresentation(rep);
 }

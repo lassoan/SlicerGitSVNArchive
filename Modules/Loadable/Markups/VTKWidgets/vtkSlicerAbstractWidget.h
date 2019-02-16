@@ -18,11 +18,23 @@
 
 /**
  * @class   vtkSlicerAbstractWidget
- * @brief   create a contour with a set of points
+ * @brief   Process interaction events to update state of MRML widget nodes
  *
- * The vtkSlicerAbstractWidget is the abstract class for the Points, Line, Angle
- * and Curve widgets. The widget handles all processing of widget
- * events (that are triggered by VTK events). See child classes for more informations.
+ * vtkSlicerAbstractWidget is the abstract class that handles interaction events
+ * received from the displayable manager. To decide which widget gets the chance
+ * to process an interaction event, this class does not use VTK picking manager,
+ * but interactor style class queries displayable managers about what events they can
+ * process, displayable manager queries its widgets, and based on the returned
+ * information, interactor style selects a displayable manager and the displayable
+ * manager selects a widget.
+ *
+ * vtkAbstractWidget uses vtkSlicerWidgetEventTranslator to translate VTK
+ * interaction events (defined in vtkCommand.h) into widget events (defined in
+ * vtkSlicerAbstractWidget.h and subclasses). This class allows modification
+ * of event bindings.
+ *
+ * @sa
+ * vtkSlicerWidgetRepresentation vtkSlicerWidgetEventTranslator
  *
 */
 
@@ -35,29 +47,25 @@
 
 #include "vtkMRMLMarkupsNode.h"
 
-class vtkSlicerAbstractRepresentation;
-class vtkEventData;
+class vtkSlicerAbstractWidgetRepresentation;
+class vtkSlicerInteractionEventData;
 class vtkPolyData;
 class vtkIdList;
 
 
-class VTK_SLICER_MARKUPS_MODULE_VTKWIDGETS_EXPORT vtkSlicerAbstractWidget : public vtkAbstractWidget
+class VTK_SLICER_MARKUPS_MODULE_VTKWIDGETS_EXPORT vtkSlicerAbstractWidget : public vtkObject
 {
 public:
   /// Standard methods for a VTK class.
-  vtkTypeMacro(vtkSlicerAbstractWidget,vtkAbstractWidget);
+  vtkTypeMacro(vtkSlicerAbstractWidget, vtkObject);
   virtual void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
 
-  /// The method for activating and deactivating this widget. This method
-  /// must be overridden because it is a composite widget and does more than
-  /// its superclasses' vtkAbstractWidget::SetEnabled() method.
-  virtual void SetEnabled(int) VTK_OVERRIDE;
-
-  /// Set the representation
-  virtual void SetRepresentation(vtkSlicerAbstractRepresentation *r);
+  /// Set the representation.
+  /// The widget takes over the ownership of this actor.
+  virtual void SetRepresentation(vtkSlicerAbstractWidgetRepresentation *r);
 
   /// Get the representation
-  virtual vtkSlicerAbstractRepresentation *GetRepresentation();
+  virtual vtkSlicerAbstractWidgetRepresentation *GetRepresentation();
 
   /// Build the actors of the representation with the info stored in the vtkMRMLMarkupsNode
   virtual void BuildRepresentation();
@@ -99,7 +107,8 @@ public:
   vtkGetMacro(DepthActiveKeyCode, char);
 
   /// The state of the widget
-  enum {
+  enum
+  {
     Idle, // mouse pointer is outside the widget, click does not do anything
     Define, // click in empty area will place a new point
     OnWidget, // mouse pointer is over the widget, clicking will add a point or manipulate the line
@@ -107,6 +116,37 @@ public:
     Translate, // mouse move transforms the entire widget
     Scale,     // mouse move transforms the entire widget
     Rotate,     // mouse move transforms the entire widget
+  };
+
+  /// Widget events
+  enum WidgetEvents
+  {
+    WidgetNoEvent,
+    WidgetMouseMove,
+    WidgetControlPointMoveStart,
+    WidgetControlPointMoveEnd,
+    WidgetControlPointDelete,
+    WidgetTranslateStart,
+    WidgetTranslateEnd,
+    WidgetRotateStart,
+    WidgetRotateEnd,
+    WidgetScaleStart,
+    WidgetScaleEnd,
+    WidgetControlPointInsert,
+    // MRML events
+    WidgetPick, // generates a MRML Pick event (e.g., on left click)
+    WidgetAction, // generates a MRML Action event (e.g., left double-click)
+    WidgetCustomAction1, // generates a MRML CustomAction1 event (allows modules to define custom widget actions and get notification via MRML node event)
+    WidgetCustomAction2, // generates a MRML CustomAction1 event
+    WidgetCustomAction3, // generates a MRML CustomAction1 event
+    WidgetSelect, // change MRML node Selected attribute
+    WidgetUnselect, // change MRML node Selected attribute
+    WidgetToggleSelect, // change MRML node Selected attribute
+    // Other actions
+    WidgetMenu, // show context menu
+    WidgetReset, // reset widget to initial state (clear all points)
+
+
   };
 
   /// Add a point preview to the current active Markup at input World coordiantes.
@@ -122,32 +162,47 @@ public:
   /// Add a point to the current active Markup at input World coordiantes.
   virtual int AddPointFromWorldCoordinate(const double worldCoordinates[3]);
 
-  /// Return true if the displayable manager can process the event.
+  /// Return true if the widget can process the event.
   /// Distance2 is the squared distance in display coordinates from the closest interaction position.
   /// The displayable manager with the closest distance will get the chance to process the interaction event.
-  virtual bool CanProcessInteractionEvent(vtkEventData* eventData, double &distance2);
+  virtual bool CanProcessInteractionEvent(vtkSlicerInteractionEventData* eventData, double &distance2);
 
-  /// Allows injecting interaction events for processing, without directly observing window interactor events
-  virtual void ProcessInteractionEvent(vtkEventData* eventData);
+  /// Allows injecting interaction events for processing, without directly observing window interactor events.
+  /// Return true if the widget processed the event.
+  virtual bool ProcessInteractionEvent(vtkSlicerInteractionEventData* eventData);
+
+  virtual unsigned long TranslateInteractionEventToWidgetEvent(vtkSlicerInteractionEventData* eventData);
 
   /// Called when the the widget loses the focus.
   virtual void Leave();
 
-  void SetCallbackMethod(vtkEventData *edata, unsigned long widgetEvent, vtkWidgetCallbackMapper::CallbackType f);
-  void SetCallbackMethod(unsigned long interactionEvent, int modifiers, unsigned long widgetEvent, vtkWidgetCallbackMapper::CallbackType f);
+  void SetEventTranslation(unsigned long interactionEvent, int modifiers, unsigned long widgetEvent);
+  void SetKeyboardEventTranslation(int modifier, char keyCode, int repeatCount, const char* keySym, unsigned long widgetEvent);
 
-  enum { RestrictNone = 0, RestrictToX, RestrictToY, RestrictToZ };
+  void SetRenderer(vtkRenderer* renderer);
+  vtkGetMacro(Renderer, vtkRenderer*);
 
-  /// Set if translations should be restricted to one of the axes (disabled if
-  /// RestrictNone is specified).
-  vtkSetClampMacro(RestrictFlag, int, RestrictNone, RestrictToZ);
-  vtkGetMacro(RestrictFlag, int);
+  // Allows the widget to request a cursor shape
+  virtual int GetCursor();
+
+  // Allows the widget to request grabbing of all events (even when the mouse pointer moves out of view)
+  virtual bool GetGrabFocus();
+
+  // Allows the widget to request interactive mode (faster updates)
+  virtual bool GetInteractive();
+
 
 protected:
   vtkSlicerAbstractWidget();
   ~vtkSlicerAbstractWidget() VTK_OVERRIDE;
 
-  void StartWidgetInteraction();
+  /// Render immediately
+  void Render();
+
+  /// Request render (may be slightly delayed)
+  void RequestRender();
+
+  void StartWidgetInteraction(vtkSlicerInteractionEventData* eventData);
   void EndWidgetInteraction();
 
   virtual void TranslateNode(double eventPos[2]);
@@ -156,32 +211,33 @@ protected:
   virtual void RotateWidget(double eventPos[2]);
 
   vtkMRMLMarkupsNode* GetMarkupsNode();
+  vtkMRMLMarkupsDisplayNode* GetMarkupsDisplayNode();
+  int GetActiveControlPoint();
 
   bool IsAnyControlPointLocked();
 
+  vtkRenderer* Renderer;
+
+  // Translates interaction event to widget event.
+  // In the future, a vector of event translators could be added
+  // (one for each state) to be able to define events
+  // that are only allowed in a specific state.
+  vtkSmartPointer<vtkWidgetEventTranslator> EventTranslator;
+
   int WidgetState;
-  //int CurrentHandle;
   vtkTypeBool FollowCursor;
-
-  // Axis restrict flag
-  int RestrictFlag;
-
-  // helper methods for cursor management
-  void SetCursor(int state) override;
 
   // Callback interface to capture events when
   // placing the widget.
-  static void ControlPointMoveAction(vtkAbstractWidget*);
-  static void PickAction(vtkAbstractWidget*);
-  static void TranslateAction(vtkAbstractWidget*);
-  static void MouseMoveAction(vtkAbstractWidget *w);
-  static void RotateAction(vtkAbstractWidget*);
-  static void ScaleAction(vtkAbstractWidget*);
-  static void EndAction(vtkAbstractWidget*);
-  static void ResetAction(vtkAbstractWidget*);
-  static void DeleteAction(vtkAbstractWidget*);
-
-  bool ProcessMoveEvent(double displayPosition[3], double worldPosition[3]);
+  // Return true if the event is processed.
+  bool ProcessMouseMove(vtkSlicerInteractionEventData* eventData);
+  bool ProcessControlPointDelete(vtkSlicerInteractionEventData* eventData);
+  bool ProcessControlPointMove(vtkSlicerInteractionEventData* eventData);
+  bool ProcessEndMouseDrag(vtkSlicerInteractionEventData* eventData);
+  bool ProcessWidgetReset(vtkSlicerInteractionEventData* eventData);
+  bool ProcessWidgetRotate(vtkSlicerInteractionEventData* eventData);
+  bool ProcessWidgetScale(vtkSlicerInteractionEventData* eventData);
+  bool ProcessWidgetTranslate(vtkSlicerInteractionEventData* eventData);
 
   // Manual axis constrain
   char HorizontalActiveKeyCode;
@@ -193,6 +249,8 @@ protected:
   // Variables for translate/rotate/scale
   double LastEventPosition[2];
   double StartEventOffsetPosition[2];
+
+  vtkSmartPointer<vtkSlicerAbstractWidgetRepresentation> WidgetRep;
 
 private:
   vtkSlicerAbstractWidget(const vtkSlicerAbstractWidget&) = delete;

@@ -60,8 +60,7 @@
 #include <vtkRenderer.h>
 #include <vtkRenderWindow.h>
 #include <vtkRenderWindowInteractor.h>
-#include <vtkSlicerAbstractRepresentation.h>
-#include <vtkSlicerAbstractRepresentation2D.h>
+#include <vtkSlicerAbstractWidgetRepresentation2D.h>
 #include <vtkSlicerAbstractWidget.h>
 #include <vtkSphereSource.h>
 #include <vtkTextProperty.h>
@@ -104,134 +103,6 @@ typedef void (*fp)(void);
 
 //---------------------------------------------------------------------------
 vtkStandardNewMacro (vtkMRMLMarkupsDisplayableManager);
-
-
-//---------------------------------------------------------------------------
-// vtkMRMLMarkupsDisplayableManager Callback
-/// \ingroup Slicer_QtModules_Markups
-class vtkMarkupsFiducialWidgetCallback2D : public vtkCommand
-{
-public:
-  static vtkMarkupsFiducialWidgetCallback2D *New()
-  {
-    return new vtkMarkupsFiducialWidgetCallback2D;
-  }
-
-  vtkMarkupsFiducialWidgetCallback2D()
-    : Widget(nullptr)
-    , Node(nullptr)
-    , DisplayableManager(nullptr)
-    , LastInteractionEventMarkupIndex(-1)
-    , SelectionButton(0)
-    , PointMovedSinceStartInteraction(false)
-  {
-  }
-
-  virtual void Execute(vtkObject *vtkNotUsed(caller), unsigned long event, void *callData)
-  {
-
-    // sanity checks
-    if (!this->DisplayableManager)
-    {
-      return;
-    }
-    if (!this->Node)
-    {
-      return;
-    }
-    if (!this->Widget)
-    {
-      return;
-    }
-
-    // If calldata is NULL, invoking an event may cause a crash (e.g., Python observer
-    // tries to dereference the NULL pointer), therefore it's important to always pass a valid pointer
-    // and indicate invalidity with value (-1).
-    this->LastInteractionEventMarkupIndex = (callData ? *(reinterpret_cast<int *>(callData)) : -1);
-    if (event == vtkCommand::PlacePointEvent)
-    {
-      this->Node->InvokeEvent(vtkMRMLMarkupsNode::PointAddedEvent, &this->LastInteractionEventMarkupIndex);
-    }
-    else if (event == vtkCommand::DeletePointEvent)
-    {
-      this->Node->InvokeEvent(vtkMRMLMarkupsNode::PointRemovedEvent, &this->LastInteractionEventMarkupIndex);
-    }
-    else if (event == vtkCommand::StartInteractionEvent)
-    {
-      // save the state of the node when starting interaction
-      if (this->Node->GetScene())
-      {
-        this->Node->GetScene()->SaveStateForUndo();
-      }
-
-      this->PointMovedSinceStartInteraction = false;
-      this->Node->InvokeEvent(vtkMRMLMarkupsNode::PointStartInteractionEvent, &this->LastInteractionEventMarkupIndex);
-      if (this->Widget)
-      {
-        this->SelectionButton = this->Widget->GetSelectionButton();
-      }
-      // no need to propagate to MRML, just notify external observers that the user selected a markup
-      return;
-    }
-    else if (event == vtkCommand::EndInteractionEvent)
-    {
-      this->Node->InvokeEvent(vtkMRMLMarkupsNode::PointEndInteractionEvent, &this->LastInteractionEventMarkupIndex);
-      if (!this->PointMovedSinceStartInteraction)
-      {
-        if (this->SelectionButton == vtkSlicerAbstractWidget::LeftButton)
-        {
-          this->Node->InvokeEvent(vtkMRMLMarkupsNode::PointLeftClickedEvent, &this->LastInteractionEventMarkupIndex);
-        }
-        else if (this->SelectionButton == vtkSlicerAbstractWidget::MiddleButton)
-        {
-          this->Node->InvokeEvent(vtkMRMLMarkupsNode::PointMiddleClickedEvent, &this->LastInteractionEventMarkupIndex);
-        }
-        else if (this->SelectionButton == vtkSlicerAbstractWidget::RightButton)
-        {
-          this->Node->InvokeEvent(vtkMRMLMarkupsNode::PointRightClickedEvent, &this->LastInteractionEventMarkupIndex);
-        }
-        else if (this->SelectionButton == vtkSlicerAbstractWidget::LeftButtonDoubleClick)
-        {
-          this->Node->InvokeEvent(vtkMRMLMarkupsNode::PointLeftDoubleClickedEvent, &this->LastInteractionEventMarkupIndex);
-        }
-        else if (this->SelectionButton == vtkSlicerAbstractWidget::MiddleButtonDoubleClick)
-        {
-          this->Node->InvokeEvent(vtkMRMLMarkupsNode::PointMiddleDoubleClickedEvent, &this->LastInteractionEventMarkupIndex);
-        }
-        else if (this->SelectionButton == vtkSlicerAbstractWidget::RightButtonDoubleClick)
-        {
-          this->Node->InvokeEvent(vtkMRMLMarkupsNode::PointRightDoubleClickedEvent, &this->LastInteractionEventMarkupIndex);
-        }
-      }
-      this->LastInteractionEventMarkupIndex = -1;
-    }
-    else if (event == vtkCommand::InteractionEvent)
-    {
-      this->PointMovedSinceStartInteraction = true;
-      this->Node->InvokeEvent(vtkMRMLMarkupsNode::PointModifiedEvent, &this->LastInteractionEventMarkupIndex);
-    }
-  }
-
-  void SetWidget(vtkSlicerAbstractWidget *w)
-  {
-    this->Widget = w;
-  }
-  void SetNode(vtkMRMLMarkupsNode *n)
-  {
-    this->Node = n;
-  }
-  void SetDisplayableManager(vtkMRMLMarkupsDisplayableManager * dm)
-  {
-    this->DisplayableManager = dm;
-  }
-
-  vtkSlicerAbstractWidget * Widget;
-  vtkMRMLMarkupsNode * Node;
-  vtkMRMLMarkupsDisplayableManager * DisplayableManager;
-  int LastInteractionEventMarkupIndex;
-  int SelectionButton;
-  bool PointMovedSinceStartInteraction;
-};
 
 //---------------------------------------------------------------------------
 // vtkMRMLMarkupsDisplayableManager methods
@@ -484,7 +355,7 @@ void vtkMRMLMarkupsDisplayableManager
       vtkSlicerAbstractWidget *widget = this->Helper->GetWidget(displayNode);
       if (widget)
         {
-        vtkSlicerAbstractRepresentation2D *rep = vtkSlicerAbstractRepresentation2D::SafeDownCast(widget->GetRepresentation());
+        vtkSlicerAbstractWidgetRepresentation2D *rep = vtkSlicerAbstractWidgetRepresentation2D::SafeDownCast(widget->GetRepresentation());
         if (rep)
           {
           if (rep->GetNeedToRender())
@@ -964,7 +835,7 @@ void vtkMRMLMarkupsDisplayableManager::OnMRMLMarkupsNodeModifiedEvent(vtkMRMLNod
     }
 
     // Points widgets have only one Markup/Representation
-    vtkSlicerAbstractRepresentation2D *rep = vtkSlicerAbstractRepresentation2D::SafeDownCast
+    vtkSlicerAbstractWidgetRepresentation2D *rep = vtkSlicerAbstractWidgetRepresentation2D::SafeDownCast
       (widget->GetRepresentation());
     if (!rep)
       {
@@ -1035,7 +906,7 @@ void vtkMRMLMarkupsDisplayableManager::OnMRMLMarkupsNthPointModifiedEvent(vtkMRM
 
     // Check if the Point is on the slice
     bool visibility = this->IsPointDisplayableOnSlice(markupsNode, n);
-    vtkSlicerAbstractRepresentation2D *rep = vtkSlicerAbstractRepresentation2D::SafeDownCast
+    vtkSlicerAbstractWidgetRepresentation2D *rep = vtkSlicerAbstractWidgetRepresentation2D::SafeDownCast
     (widget->GetRepresentation());
     if (rep && rep->GetVisibility())
     {
@@ -1079,7 +950,7 @@ void vtkMRMLMarkupsDisplayableManager::OnMRMLMarkupsPointAddedEvent(vtkMRMLNode 
       }
 
     // widgets have only one Markup/Representation
-    vtkSlicerAbstractRepresentation2D *rep = vtkSlicerAbstractRepresentation2D::SafeDownCast
+    vtkSlicerAbstractWidgetRepresentation2D *rep = vtkSlicerAbstractWidgetRepresentation2D::SafeDownCast
       (widget->GetRepresentation());
     if (!rep)
       {
@@ -1253,7 +1124,7 @@ void vtkMRMLMarkupsDisplayableManager::OnMRMLSliceNodeModifiedEvent()
     if (widget)
       {
       // Rebuild representation
-      vtkSlicerAbstractRepresentation2D *rep = vtkSlicerAbstractRepresentation2D::SafeDownCast
+      vtkSlicerAbstractWidgetRepresentation2D *rep = vtkSlicerAbstractWidgetRepresentation2D::SafeDownCast
         (widget->GetRepresentation());
       if (!rep)
         {
@@ -1487,20 +1358,19 @@ void vtkMRMLMarkupsDisplayableManager::OnInteractorStyleEvent(int eventid)
 }
 
 //---------------------------------------------------------------------------
-vtkAbstractWidget * vtkMRMLMarkupsDisplayableManager::GetWidget(vtkMRMLMarkupsDisplayNode * node)
+vtkSlicerAbstractWidget* vtkMRMLMarkupsDisplayableManager::GetWidget(vtkMRMLMarkupsDisplayNode * node)
 {
   return this->Helper->GetWidget(node);
 }
 
 //---------------------------------------------------------------------------
-std::string vtkMRMLMarkupsDisplayableManager::GetAssociatedNodeID(vtkEventData* eventData)
+std::string vtkMRMLMarkupsDisplayableManager::GetAssociatedNodeID(vtkSlicerInteractionEventData* eventData)
 {
-  vtkSlicerInteractionEventData* interactionEventData = vtkSlicerInteractionEventData::SafeDownCast(eventData);
-  if (interactionEventData)
+  if (eventData)
   {
     double windowWidth = this->GetInteractor()->GetRenderWindow()->GetSize()[0];
     double windowHeight = this->GetInteractor()->GetRenderWindow()->GetSize()[1];
-    const int* displayPosition = interactionEventData->GetDisplayPosition();
+    const int* displayPosition = eventData->GetDisplayPosition();
     if (displayPosition[0] < windowWidth || displayPosition[1] < windowHeight)
     {
       return "";
@@ -1929,7 +1799,7 @@ vtkMRMLMarkupsNode* vtkMRMLMarkupsDisplayableManager::CreateNewMarkupsNode(
 }
 
 //---------------------------------------------------------------------------
-vtkSlicerAbstractWidget* vtkMRMLMarkupsDisplayableManager::FindClosestWidget(vtkEventData *callData, double &closestDistance2)
+vtkSlicerAbstractWidget* vtkMRMLMarkupsDisplayableManager::FindClosestWidget(vtkSlicerInteractionEventData *callData, double &closestDistance2)
 {
   vtkSlicerAbstractWidget* closestWidget = NULL;
   closestDistance2 = VTK_DOUBLE_MAX;
@@ -1956,7 +1826,7 @@ vtkSlicerAbstractWidget* vtkMRMLMarkupsDisplayableManager::FindClosestWidget(vtk
 }
 
 //---------------------------------------------------------------------------
-bool vtkMRMLMarkupsDisplayableManager::CanProcessInteractionEvent(vtkEventData* eventData, double &closestDistance2)
+bool vtkMRMLMarkupsDisplayableManager::CanProcessInteractionEvent(vtkSlicerInteractionEventData* eventData, double &closestDistance2)
 {
   // New point can be placed anywhere
   int eventid = eventData->GetType();
@@ -1986,7 +1856,7 @@ bool vtkMRMLMarkupsDisplayableManager::CanProcessInteractionEvent(vtkEventData* 
 }
 
 //---------------------------------------------------------------------------
-void vtkMRMLMarkupsDisplayableManager::ProcessInteractionEvent(vtkEventData* eventData)
+void vtkMRMLMarkupsDisplayableManager::ProcessInteractionEvent(vtkSlicerInteractionEventData* eventData)
 {
   if (this->GetDisableInteractorStyleEventsProcessing())
   {
@@ -2263,18 +2133,15 @@ void vtkMRMLMarkupsDisplayableManager::SetHasFocus(bool hasFocus)
 }
 
 //---------------------------------------------------------------------------
-void vtkMRMLMarkupsDisplayableManager::OnWidgetAdded(vtkMRMLMarkupsDisplayNode* markupsDisplayNode, vtkSlicerAbstractWidget* newWidget)
+bool vtkMRMLMarkupsDisplayableManager::GetGrabFocus()
 {
-  // Add callback to the widget to be able to save undo states
-  vtkNew<vtkMarkupsFiducialWidgetCallback2D> myCallback;
-  myCallback->SetNode(markupsDisplayNode->GetMarkupsNode());
-  myCallback->SetWidget(newWidget);
-  myCallback->SetDisplayableManager(this);
-  newWidget->AddObserver(vtkCommand::StartInteractionEvent, myCallback);
-  newWidget->AddObserver(vtkCommand::EndInteractionEvent, myCallback);
-  newWidget->AddObserver(vtkCommand::InteractionEvent, myCallback);
-  newWidget->AddObserver(vtkCommand::PlacePointEvent, myCallback);
-  newWidget->AddObserver(vtkCommand::DeletePointEvent, myCallback);
+  return (this->LastActiveWidget != NULL && this->LastActiveWidget->GetGrabFocus());
+}
+
+//---------------------------------------------------------------------------
+bool vtkMRMLMarkupsDisplayableManager::GetInteractive()
+{
+  return (this->LastActiveWidget != NULL && this->LastActiveWidget->GetInteractive());
 }
 
 //---------------------------------------------------------------------------
@@ -2293,7 +2160,7 @@ vtkSlicerAbstractWidget * vtkMRMLMarkupsDisplayableManager::CreateWidget(vtkMRML
   vtkMRMLMarkupsClosedCurveNode* closedCurveNode = vtkMRMLMarkupsClosedCurveNode::SafeDownCast(markupsNode);
 
   vtkSlicerAbstractWidget* widget = NULL;
-  vtkSmartPointer<vtkSlicerAbstractRepresentation> rep = NULL;
+  vtkSmartPointer<vtkSlicerAbstractWidgetRepresentation> rep = NULL;
   if (fiducialNode)
   {
     widget = vtkSlicerPointsWidget::New();
@@ -2360,19 +2227,18 @@ vtkSlicerAbstractWidget * vtkMRMLMarkupsDisplayableManager::CreateWidget(vtkMRML
     return nullptr;
   }
 
-  widget->SetInteractor(this->GetInteractor());
-  widget->SetCurrentRenderer(this->GetRenderer());
+  //widget->SetInteractor(this->GetInteractor());
+  widget->SetRenderer(this->GetRenderer());
 
   // Set up representation
   rep->SetRenderer(this->GetRenderer());
-  if (vtkSlicerAbstractRepresentation2D::SafeDownCast(rep))
+  if (vtkSlicerAbstractWidgetRepresentation2D::SafeDownCast(rep))
   {
-    vtkSlicerAbstractRepresentation2D::SafeDownCast(rep)->SetSliceNode(this->GetMRMLSliceNode());
+    vtkSlicerAbstractWidgetRepresentation2D::SafeDownCast(rep)->SetSliceNode(this->GetMRMLSliceNode());
   }
 
   rep->SetMarkupsDisplayNode(markupsDisplayNode);
   widget->SetRepresentation(rep);
-  widget->On();
 
   return widget;
 }

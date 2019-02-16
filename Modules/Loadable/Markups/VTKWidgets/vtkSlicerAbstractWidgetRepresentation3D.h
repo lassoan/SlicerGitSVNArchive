@@ -17,7 +17,7 @@
 =========================================================================*/
 
 /**
- * @class   vtkSlicerAbstractRepresentation3D
+ * @class   vtkSlicerAbstractWidgetRepresentation3D
  * @brief   Default representation for the slicer markups widget
  *
  * This class provides the default concrete representation for the
@@ -25,15 +25,15 @@
  * vtkSlicerLineInterpolator and vtkPointPlacer. See vtkSlicerAbstractWidget
  * for details.
  * @sa
- * vtkSlicerAbstractRepresentation3D vtkSlicerAbstractWidget vtkPointPlacer
+ * vtkSlicerAbstractWidgetRepresentation3D vtkSlicerAbstractWidget vtkPointPlacer
  * vtkSlicerLineInterpolator
 */
 
-#ifndef vtkSlicerAbstractRepresentation3D_h
-#define vtkSlicerAbstractRepresentation3D_h
+#ifndef vtkSlicerAbstractWidgetRepresentation3D_h
+#define vtkSlicerAbstractWidgetRepresentation3D_h
 
 #include "vtkSlicerMarkupsModuleVTKWidgetsExport.h"
-#include "vtkSlicerAbstractRepresentation.h"
+#include "vtkSlicerAbstractWidgetRepresentation.h"
 
 #include "vtkMRMLMarkupsNode.h"
 
@@ -49,19 +49,17 @@ class vtkStringArray;
 class vtkActor2D;
 class vtkTextProperty;
 
-class VTK_SLICER_MARKUPS_MODULE_VTKWIDGETS_EXPORT vtkSlicerAbstractRepresentation3D : public vtkSlicerAbstractRepresentation
+class VTK_SLICER_MARKUPS_MODULE_VTKWIDGETS_EXPORT vtkSlicerAbstractWidgetRepresentation3D : public vtkSlicerAbstractWidgetRepresentation
 {
 public:
   /// Standard methods for instances of this class.
-  vtkTypeMacro(vtkSlicerAbstractRepresentation3D,vtkSlicerAbstractRepresentation);
+  vtkTypeMacro(vtkSlicerAbstractWidgetRepresentation3D,vtkSlicerAbstractWidgetRepresentation);
   void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
 
-  /// Subclasses of vtkSlicerAbstractRepresentation3D must implement these methods. These
+  /// Subclasses of vtkSlicerAbstractWidgetRepresentation3D must implement these methods. These
   /// are the methods that the widget and its representation use to
   /// communicate with each other.
   void BuildRepresentation() VTK_OVERRIDE;
-  int ComputeInteractionState(int X, int Y, int modified = 0) VTK_OVERRIDE { return 0; };
-  void WidgetInteraction(double eventPos[2]) VTK_OVERRIDE { return; };
 
   /// Methods to make this class behave as a vtkProp.
   void GetActors(vtkPropCollection *) VTK_OVERRIDE;
@@ -81,8 +79,8 @@ public:
   void CanInteractWithLine(int &foundComponentType, const int displayPosition[2], const double worldPosition[3], double &closestDistance2, int &componentIndex);
 
 protected:
-  vtkSlicerAbstractRepresentation3D();
-  ~vtkSlicerAbstractRepresentation3D() VTK_OVERRIDE;
+  vtkSlicerAbstractWidgetRepresentation3D();
+  ~vtkSlicerAbstractWidgetRepresentation3D() VTK_OVERRIDE;
 
   class ControlPointsPipeline3D : public ControlPointsPipeline
   {
@@ -104,8 +102,8 @@ protected:
   virtual void BuildRepresentationPointsAndLabels();
 
 private:
-  vtkSlicerAbstractRepresentation3D(const vtkSlicerAbstractRepresentation3D&) = delete;
-  void operator=(const vtkSlicerAbstractRepresentation3D&) = delete;
+  vtkSlicerAbstractWidgetRepresentation3D(const vtkSlicerAbstractWidgetRepresentation3D&) = delete;
+  void operator=(const vtkSlicerAbstractWidgetRepresentation3D&) = delete;
 };
 
 #endif

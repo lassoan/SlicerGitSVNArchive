@@ -31,7 +31,7 @@
 #include <vtkProperty.h>
 #include <vtkPickingManager.h>
 #include <vtkRenderWindowInteractor.h>
-#include <vtkSlicerAbstractRepresentation.h>
+#include <vtkSlicerAbstractWidgetRepresentation.h>
 #include <vtkSlicerAbstractWidget.h>
 #include <vtkSlicerPointsWidget.h>
 #include <vtkSlicerLineWidget.h>
@@ -93,7 +93,8 @@ void vtkMRMLMarkupsDisplayableManagerHelper::PrintSelf(ostream& os, vtkIndent in
     if (widgetIterator->second &&
       widgetIterator->second->GetRepresentation())
     {
-      vtkSlicerAbstractRepresentation * abstractRepresentation = vtkSlicerAbstractRepresentation::SafeDownCast(widgetIterator->second->GetRepresentation());
+      vtkSlicerAbstractWidgetRepresentation * abstractRepresentation =
+        vtkSlicerAbstractWidgetRepresentation::SafeDownCast(widgetIterator->second->GetRepresentation());
       int numberOfNodes = 0;
       if (abstractRepresentation)
       {
@@ -103,48 +104,11 @@ void vtkMRMLMarkupsDisplayableManagerHelper::PrintSelf(ostream& os, vtkIndent in
       {
         vtkWarningMacro("PrintSelf: no representation for widget assoc with markups node " << widgetIterator->first->GetID());
       }
-      os << indent.GetNextIndent().GetNextIndent() << "enabled = "
-        << widgetIterator->second->GetEnabled()
-        << ", number of nodes = " << numberOfNodes << std::endl;
+      os << indent.GetNextIndent().GetNextIndent() << "number of nodes = " << numberOfNodes << std::endl;
     }
   }
 };
 
-//---------------------------------------------------------------------------
-void vtkMRMLMarkupsDisplayableManagerHelper::UpdateLockedAllWidgetsFromNodes()
-{
-  // iterate through the node list
-  for (DisplayNodeToWidgetIt it = this->MarkupsDisplayNodesToWidgets.begin();
-    it != this->MarkupsDisplayNodesToWidgets.end();
-    ++it)
-    {
-    // TODO: we could be more efficient by only updating lock state
-    (it->second)->GetRepresentation()->BuildRepresentation();
-    }
-}
-
-//---------------------------------------------------------------------------
-void vtkMRMLMarkupsDisplayableManagerHelper::UpdateLockedAllWidgets(bool locked)
-{
-  // loop through all widgets and update lock status
-  vtkDebugMacro("UpdateLockedAllWidgets: locked = " << locked);
-  for (DisplayNodeToWidgetIt it = this->MarkupsDisplayNodesToWidgets.begin();
-       it !=  this->MarkupsDisplayNodesToWidgets.end();
-       ++it)
-    {
-    if (it->second)
-      {
-      if (locked)
-        {
-        it->second->ProcessEventsOff();
-        }
-      else
-        {
-        it->second->ProcessEventsOn();
-        }
-      }
-    }
-}
 
 //---------------------------------------------------------------------------
 vtkSlicerAbstractWidget* vtkMRMLMarkupsDisplayableManagerHelper::GetWidget(vtkMRMLMarkupsNode * markupsNode)
@@ -203,7 +167,6 @@ void vtkMRMLMarkupsDisplayableManagerHelper::RemoveAllWidgetsAndNodes()
        widgetIterator != this->MarkupsDisplayNodesToWidgets.end();
        ++widgetIterator)
     {
-    widgetIterator->second->Off();
     widgetIterator->second->Delete();
     }
   this->MarkupsDisplayNodesToWidgets.clear();
@@ -416,28 +379,12 @@ void vtkMRMLMarkupsDisplayableManagerHelper::AddDisplayNode(vtkMRMLMarkupsDispla
     return;
   }
 
-  //Set up widget
-  vtkMRMLInteractionNode* interactionNode = this->DisplayableManager->GetInteractionNode();
-  if (interactionNode)
-  {
-    if (interactionNode->GetCurrentInteractionMode() == vtkMRMLInteractionNode::Place)
-    {
-      newWidget->SetManagesCursor(false);
-    }
-    else
-    {
-      newWidget->SetManagesCursor(true);
-    }
-  }
-  //vtkDebugMacro("Fids CreateWidget: Created widget for node " << markupsNode->GetID() << " with a representation");
-
   // record the mapping between node and widget in the helper
   this->MarkupsDisplayNodesToWidgets[markupsDisplayNode] = newWidget;
 
   // Build representation
   newWidget->BuildRepresentation();
 
-  this->DisplayableManager->OnWidgetAdded(markupsDisplayNode, newWidget);
   this->DisplayableManager->RequestRender();
 
   // Update cached matrices. Calls UpdateWidget
@@ -474,7 +421,6 @@ void vtkMRMLMarkupsDisplayableManagerHelper::DeleteWidget(vtkSlicerAbstractWidge
     return;
   }
   // TODO: remove vtkMarkupsFiducialWidgetCallback2D observers
-  widget->Off();
   widget->Delete();
 }
 

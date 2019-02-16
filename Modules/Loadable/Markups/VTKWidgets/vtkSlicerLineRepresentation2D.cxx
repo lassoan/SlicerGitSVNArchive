@@ -43,7 +43,7 @@
 #include "vtkPoints.h"
 #include "vtkCellArray.h"
 #include "vtkFocalPlanePointPlacer.h"
-#include "vtkLinearSlicerLineInterpolator.h"
+#include "vtkSlicerLinearLineInterpolator.h"
 #include "vtkSphereSource.h"
 #include "vtkPropPicker.h"
 #include "vtkAppendPolyData.h"
@@ -57,7 +57,7 @@ vtkStandardNewMacro(vtkSlicerLineRepresentation2D);
 //----------------------------------------------------------------------
 vtkSlicerLineRepresentation2D::vtkSlicerLineRepresentation2D()
 {
-  this->LineInterpolator = vtkSmartPointer<vtkLinearSlicerLineInterpolator>::New();
+  this->LineInterpolator = vtkSmartPointer<vtkSlicerLinearLineInterpolator>::New();
 
   this->Line = vtkSmartPointer<vtkPolyData>::New();
   this->TubeFilter = vtkSmartPointer<vtkTubeFilter>::New();

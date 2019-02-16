@@ -16,8 +16,8 @@
 
 =========================================================================*/
 
-#include "vtkSlicerAbstractRepresentation.h"
-#include "vtkSlicerAbstractRepresentation3D.h"
+#include "vtkSlicerAbstractWidgetRepresentation.h"
+#include "vtkSlicerAbstractWidgetRepresentation3D.h"
 #include "vtkCleanPolyData.h"
 #include "vtkOpenGLPolyDataMapper.h"
 #include "vtkOpenGLActor.h"
@@ -45,7 +45,7 @@
 #include "vtkCellArray.h"
 #include "vtkFocalPlanePointPlacer.h"
 #include "vtkSlicerLineInterpolator.h"
-#include "vtkBezierSlicerLineInterpolator.h"
+#include "vtkSlicerBezierLineInterpolator.h"
 #include "vtkSphereSource.h"
 #include "vtkBox.h"
 #include "vtkIntArray.h"
@@ -64,7 +64,7 @@
 #include "vtkLabelHierarchy.h"
 #include "vtkMRMLMarkupsDisplayNode.h"
 
-vtkSlicerAbstractRepresentation3D::ControlPointsPipeline3D::ControlPointsPipeline3D()
+vtkSlicerAbstractWidgetRepresentation3D::ControlPointsPipeline3D::ControlPointsPipeline3D()
 {
   this->Glypher = vtkSmartPointer<vtkGlyph3D>::New();
   this->Glypher->SetInputData(this->ControlPointsPolyData);
@@ -112,7 +112,7 @@ vtkSlicerAbstractRepresentation3D::ControlPointsPipeline3D::ControlPointsPipelin
 };
 
 //----------------------------------------------------------------------
-vtkSlicerAbstractRepresentation3D::vtkSlicerAbstractRepresentation3D()
+vtkSlicerAbstractWidgetRepresentation3D::vtkSlicerAbstractWidgetRepresentation3D()
 {
   for (int i = 0; i<NumberOfControlPointTypes; i++)
   {
@@ -129,12 +129,12 @@ vtkSlicerAbstractRepresentation3D::vtkSlicerAbstractRepresentation3D()
 }
 
 //----------------------------------------------------------------------
-vtkSlicerAbstractRepresentation3D::~vtkSlicerAbstractRepresentation3D()
+vtkSlicerAbstractWidgetRepresentation3D::~vtkSlicerAbstractWidgetRepresentation3D()
 {
 }
 
 //----------------------------------------------------------------------
-void vtkSlicerAbstractRepresentation3D::BuildRepresentationPointsAndLabels()
+void vtkSlicerAbstractWidgetRepresentation3D::BuildRepresentationPointsAndLabels()
 {
   int numPoints = this->GetNumberOfNodes();
 
@@ -236,7 +236,8 @@ void vtkSlicerAbstractRepresentation3D::BuildRepresentationPointsAndLabels()
 
 
 //----------------------------------------------------------------------
-int vtkSlicerAbstractRepresentation3D::CanInteract(const int displayPosition[2], const double worldPosition[3], double &closestDistance2, int &componentIndex)
+int vtkSlicerAbstractWidgetRepresentation3D::CanInteract(const int displayPosition[2],
+  const double worldPosition[3], double &closestDistance2, int &componentIndex)
 {
   vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
   if (!markupsNode || markupsNode->GetLocked() || this->GetNumberOfNodes() < 1)
@@ -319,7 +320,7 @@ int vtkSlicerAbstractRepresentation3D::CanInteract(const int displayPosition[2],
 }
 
 //----------------------------------------------------------------------
-void vtkSlicerAbstractRepresentation3D::CanInteractWithLine(int &foundComponentType,
+void vtkSlicerAbstractWidgetRepresentation3D::CanInteractWithLine(int &foundComponentType,
   const int displayPosition[2], const double worldPosition[3], double &closestDistance2, int &componentIndex)
 {
   vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
@@ -357,7 +358,7 @@ void vtkSlicerAbstractRepresentation3D::CanInteractWithLine(int &foundComponentT
 
 
 //----------------------------------------------------------------------
-void vtkSlicerAbstractRepresentation3D::BuildRepresentation()
+void vtkSlicerAbstractWidgetRepresentation3D::BuildRepresentation()
 {
   // Make sure we are up to date with any changes made in the placer
   this->UpdateWidget();
@@ -394,7 +395,7 @@ void vtkSlicerAbstractRepresentation3D::BuildRepresentation()
 }
 
 //----------------------------------------------------------------------
-void vtkSlicerAbstractRepresentation3D::GetActors(vtkPropCollection *pc)
+void vtkSlicerAbstractWidgetRepresentation3D::GetActors(vtkPropCollection *pc)
 {
   for (int i = 0; i < NumberOfControlPointTypes; i++)
   {
@@ -405,7 +406,7 @@ void vtkSlicerAbstractRepresentation3D::GetActors(vtkPropCollection *pc)
 }
 
 //----------------------------------------------------------------------
-void vtkSlicerAbstractRepresentation3D::ReleaseGraphicsResources(
+void vtkSlicerAbstractWidgetRepresentation3D::ReleaseGraphicsResources(
   vtkWindow *win)
 {
   for (int i = 0; i < NumberOfControlPointTypes; i++)
@@ -417,7 +418,7 @@ void vtkSlicerAbstractRepresentation3D::ReleaseGraphicsResources(
 }
 
 //----------------------------------------------------------------------
-int vtkSlicerAbstractRepresentation3D::RenderOverlay(vtkViewport *viewport)
+int vtkSlicerAbstractWidgetRepresentation3D::RenderOverlay(vtkViewport *viewport)
 {
   int count=0;
   for (int i = 0; i < NumberOfControlPointTypes; i++)
@@ -436,7 +437,7 @@ int vtkSlicerAbstractRepresentation3D::RenderOverlay(vtkViewport *viewport)
 }
 
 //-----------------------------------------------------------------------------
-int vtkSlicerAbstractRepresentation3D::RenderOpaqueGeometry(
+int vtkSlicerAbstractWidgetRepresentation3D::RenderOpaqueGeometry(
   vtkViewport *viewport)
 {
   // Since we know RenderOpaqueGeometry gets called first, will do the
@@ -460,7 +461,7 @@ int vtkSlicerAbstractRepresentation3D::RenderOpaqueGeometry(
 }
 
 //-----------------------------------------------------------------------------
-int vtkSlicerAbstractRepresentation3D::RenderTranslucentPolygonalGeometry(
+int vtkSlicerAbstractWidgetRepresentation3D::RenderTranslucentPolygonalGeometry(
   vtkViewport *viewport)
 {
   int count=0;
@@ -480,7 +481,7 @@ int vtkSlicerAbstractRepresentation3D::RenderTranslucentPolygonalGeometry(
 }
 
 //-----------------------------------------------------------------------------
-vtkTypeBool vtkSlicerAbstractRepresentation3D::HasTranslucentPolygonalGeometry()
+vtkTypeBool vtkSlicerAbstractWidgetRepresentation3D::HasTranslucentPolygonalGeometry()
 {
   for (int i = 0; i < NumberOfControlPointTypes; i++)
   {
@@ -504,7 +505,7 @@ vtkTypeBool vtkSlicerAbstractRepresentation3D::HasTranslucentPolygonalGeometry()
 }
 
 //-----------------------------------------------------------------------------
-double *vtkSlicerAbstractRepresentation3D::GetBounds()
+double *vtkSlicerAbstractWidgetRepresentation3D::GetBounds()
 {
   vtkBoundingBox boundingBox;
   const std::vector<vtkProp*> actors(
@@ -519,7 +520,7 @@ double *vtkSlicerAbstractRepresentation3D::GetBounds()
 }
 
 //-----------------------------------------------------------------------------
-void vtkSlicerAbstractRepresentation3D::PrintSelf(ostream& os,
+void vtkSlicerAbstractWidgetRepresentation3D::PrintSelf(ostream& os,
                                                       vtkIndent indent)
 {
   //Superclass typedef defined in vtkTypeMacro() found in vtkSetGet.h
@@ -557,7 +558,7 @@ void vtkSlicerAbstractRepresentation3D::PrintSelf(ostream& os,
 }
 
 //-----------------------------------------------------------------------------
-vtkSlicerAbstractRepresentation3D::ControlPointsPipeline3D* vtkSlicerAbstractRepresentation3D::GetControlPointsPipeline(int controlPointType)
+vtkSlicerAbstractWidgetRepresentation3D::ControlPointsPipeline3D* vtkSlicerAbstractWidgetRepresentation3D::GetControlPointsPipeline(int controlPointType)
 {
   return reinterpret_cast<ControlPointsPipeline3D*>(this->ControlPoints[controlPointType]);
 }

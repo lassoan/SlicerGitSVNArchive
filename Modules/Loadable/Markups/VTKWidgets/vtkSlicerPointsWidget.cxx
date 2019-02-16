@@ -36,9 +36,7 @@ vtkStandardNewMacro(vtkSlicerPointsWidget);
 //----------------------------------------------------------------------
 vtkSlicerPointsWidget::vtkSlicerPointsWidget()
 {
-  this->CallbackMapper->SetCallbackMethod(vtkCommand::RightButtonPressEvent,
-                                          vtkWidgetEvent::Pick,
-                                          this, vtkSlicerAbstractWidget::PickAction);
+  this->SetEventTranslation(vtkCommand::RightButtonPressEvent, vtkEvent::NoModifier, WidgetPick);
 }
 
 //----------------------------------------------------------------------
@@ -49,7 +47,6 @@ vtkSlicerPointsWidget::~vtkSlicerPointsWidget()
 //----------------------------------------------------------------------
 void vtkSlicerPointsWidget::CreateDefaultRepresentation()
 {
-  vtkSlicerPointsRepresentation3D *rep = vtkSlicerPointsRepresentation3D::New();
-  rep->SetRenderer(this->GetCurrentRenderer());
+  vtkNew<vtkSlicerPointsRepresentation3D> rep;
   this->SetRepresentation(rep);
 }

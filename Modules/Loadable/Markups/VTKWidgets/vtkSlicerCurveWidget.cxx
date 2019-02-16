@@ -36,23 +36,15 @@ vtkStandardNewMacro(vtkSlicerCurveWidget);
 //----------------------------------------------------------------------
 vtkSlicerCurveWidget::vtkSlicerCurveWidget()
 {
-  this->CallbackMapper->SetCallbackMethod(vtkCommand::LeftButtonPressEvent,
-                                          vtkEvent::AltModifier, 0, 0, nullptr,
-                                          vtkWidgetEvent::Rotate,
-                                          this, vtkSlicerAbstractWidget::RotateAction);
-  this->CallbackMapper->SetCallbackMethod(vtkCommand::LeftButtonPressEvent,
-                                          vtkEvent::ControlModifier, 0, 0, nullptr,
-                                          vtkWidgetEvent::AddPoint,
-                                          this, vtkSlicerCurveWidget::AddPointOnCurveAction);
+  this->SetEventTranslation(vtkCommand::LeftButtonPressEvent, vtkEvent::AltModifier, WidgetRotateStart);
+  this->SetEventTranslation(vtkCommand::LeftButtonReleaseEvent, vtkEvent::AnyModifier, WidgetRotateEnd);
 
-  this->CallbackMapper->SetCallbackMethod(vtkCommand::RightButtonPressEvent,
-                                          vtkEvent::NoModifier, 0, 0, nullptr,
-                                          vtkWidgetEvent::Pick,
-                                          this, vtkSlicerAbstractWidget::PickAction);
-  this->CallbackMapper->SetCallbackMethod(vtkCommand::RightButtonPressEvent,
-                                          vtkEvent::AltModifier, 0, 0, nullptr,
-                                          vtkWidgetEvent::Scale,
-                                          this, vtkSlicerAbstractWidget::ScaleAction);
+  this->SetEventTranslation(vtkCommand::RightButtonPressEvent, vtkEvent::AltModifier, WidgetScaleStart);
+  this->SetEventTranslation(vtkCommand::RightButtonReleaseEvent, vtkEvent::AnyModifier, WidgetScaleEnd);
+
+  this->SetEventTranslation(vtkCommand::RightButtonPressEvent, vtkEvent::NoModifier, WidgetPick);
+
+  this->SetEventTranslation(vtkCommand::LeftButtonPressEvent, vtkEvent::ControlModifier, WidgetControlPointInsert);
 }
 
 //----------------------------------------------------------------------
@@ -64,7 +56,7 @@ vtkSlicerCurveWidget::~vtkSlicerCurveWidget()
 void vtkSlicerCurveWidget::CreateDefaultRepresentation()
 {
   vtkSlicerCurveRepresentation3D *rep = vtkSlicerCurveRepresentation3D::New();
-  rep->SetRenderer(this->GetCurrentRenderer());
+  rep->SetRenderer(this->GetRenderer());
   this->SetRepresentation(rep);
 }
 
@@ -78,8 +70,8 @@ void vtkSlicerCurveWidget::AddPointOnCurveAction(vtkAbstractWidget *w)
     return;
     }
 
-  vtkSlicerAbstractRepresentation *rep =
-    reinterpret_cast<vtkSlicerAbstractRepresentation*>(self->WidgetRep);
+  vtkSlicerAbstractWidgetRepresentation *rep =
+    reinterpret_cast<vtkSlicerAbstractWidgetRepresentation*>(self->WidgetRep);
 
   int X = self->Interactor->GetEventPosition()[0];
   int Y = self->Interactor->GetEventPosition()[1];

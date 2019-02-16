@@ -93,9 +93,12 @@ public:
   /// Returns -1 if not in lightbox mode or the indices are out of range.
   int GetLightboxIndex(vtkMRMLMarkupsNode *node, int pointIndex);
 
-  bool CanProcessInteractionEvent(vtkEventData* eventData, double &closestDistance2) VTK_OVERRIDE;
-  void ProcessInteractionEvent(vtkEventData* eventData) VTK_OVERRIDE;
+  bool CanProcessInteractionEvent(vtkSlicerInteractionEventData* eventData, double &closestDistance2) VTK_OVERRIDE;
+  void ProcessInteractionEvent(vtkSlicerInteractionEventData* eventData) VTK_OVERRIDE;
+
   void SetHasFocus(bool hasFocus) VTK_OVERRIDE;
+  bool GetGrabFocus() VTK_OVERRIDE;
+  bool GetInteractive() VTK_OVERRIDE;
 
   // Updates markup point preview position.
   // Returns true if the event is processed.
@@ -125,7 +128,7 @@ protected:
   vtkMRMLMarkupsDisplayableManager();
   virtual ~vtkMRMLMarkupsDisplayableManager();
 
-  vtkSlicerAbstractWidget* FindClosestWidget(vtkEventData *callData, double &closestDistance2);
+  vtkSlicerAbstractWidget* FindClosestWidget(vtkSlicerInteractionEventData *callData, double &closestDistance2);
 
   virtual void ProcessMRMLNodesEvents(vtkObject *caller, unsigned long event, void *callData) VTK_OVERRIDE;
 
@@ -145,8 +148,6 @@ protected:
   virtual void OnMRMLSceneEndImport() VTK_OVERRIDE;
   virtual void OnMRMLSceneNodeAdded(vtkMRMLNode* node) VTK_OVERRIDE;
   virtual void OnMRMLSceneNodeRemoved(vtkMRMLNode* node) VTK_OVERRIDE;
-
-  void OnWidgetAdded(vtkMRMLMarkupsDisplayNode* markupsDisplayNode, vtkSlicerAbstractWidget* newWidget);
 
   /// Create a widget.
   vtkSlicerAbstractWidget* CreateWidget(vtkMRMLMarkupsDisplayNode* node);
@@ -184,7 +185,7 @@ protected:
   /// enum for action at click events
   enum {AddPoint = 0,AddPreview,RemovePreview};
 
-  std::string GetAssociatedNodeID(vtkEventData* eventData);
+  std::string GetAssociatedNodeID(vtkSlicerInteractionEventData* eventData);
 
   /// Convert display to world coordinates
   void GetWorldToDisplayCoordinates(double r, double a, double s, double * displayCoordinates);
@@ -195,7 +196,7 @@ protected:
   void GetDisplayToViewportCoordinates(double *displayCoordinates, double * viewportCoordinates);
 
   /// Get the widget of a node.
-  vtkAbstractWidget * GetWidget(vtkMRMLMarkupsDisplayNode * node);
+  vtkSlicerAbstractWidget* GetWidget(vtkMRMLMarkupsDisplayNode * node);
 
   /// Check if it is the right displayManager
   virtual bool IsCorrectDisplayableManager();

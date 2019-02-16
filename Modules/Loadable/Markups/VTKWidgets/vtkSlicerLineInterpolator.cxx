@@ -18,7 +18,7 @@
 
 #include "vtkSlicerLineInterpolator.h"
 
-#include "vtkSlicerAbstractRepresentation.h"
+#include "vtkSlicerAbstractWidgetRepresentation.h"
 #include "vtkIntArray.h"
 
 //----------------------------------------------------------------------
@@ -30,7 +30,7 @@ vtkSlicerLineInterpolator::~vtkSlicerLineInterpolator() = default;
 //----------------------------------------------------------------------
 void vtkSlicerLineInterpolator::GetSpan(int nodeIndex,
                                         vtkIntArray *nodeIndices,
-                                        vtkSlicerAbstractRepresentation *rep)
+                                        vtkSlicerAbstractWidgetRepresentation *rep)
 {
   int start = nodeIndex - 1;
   int end   = nodeIndex;

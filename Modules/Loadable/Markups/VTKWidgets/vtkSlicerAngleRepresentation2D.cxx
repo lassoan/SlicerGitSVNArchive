@@ -43,7 +43,7 @@
 #include "vtkPoints.h"
 #include "vtkCellArray.h"
 #include "vtkFocalPlanePointPlacer.h"
-#include "vtkLinearSlicerLineInterpolator.h"
+#include "vtkSlicerLinearLineInterpolator.h"
 #include "vtkSphereSource.h"
 #include "vtkAppendPolyData.h"
 #include "vtkTextProperty.h"
@@ -61,7 +61,7 @@ vtkStandardNewMacro(vtkSlicerAngleRepresentation2D);
 //----------------------------------------------------------------------
 vtkSlicerAngleRepresentation2D::vtkSlicerAngleRepresentation2D()
 {
-  this->LineInterpolator = vtkSmartPointer<vtkLinearSlicerLineInterpolator>::New();
+  this->LineInterpolator = vtkSmartPointer<vtkSlicerLinearLineInterpolator>::New();
 
   this->Line = vtkSmartPointer<vtkPolyData>::New();
   this->Arc = vtkSmartPointer<vtkArcSource>::New();
@@ -249,7 +249,8 @@ void vtkSlicerAngleRepresentation2D::BuildRepresentation()
 }
 
 //----------------------------------------------------------------------
-int vtkSlicerAngleRepresentation2D::CanInteract(const int displayPosition[2], const double worldPosition[3], double &closestDistance2, int &componentIndex)
+int vtkSlicerAngleRepresentation2D::CanInteract(const int displayPosition[2],
+  const double worldPosition[3], double &closestDistance2, int &componentIndex)
 {
   vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
   if (!markupsNode || markupsNode->GetLocked() || this->GetNumberOfNodes() < 1)

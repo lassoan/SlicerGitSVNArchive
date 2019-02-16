@@ -22,18 +22,18 @@
  *
  * This class provides the default concrete representation for the
  * vtkSlicerAngleWidget. It works in conjunction with the
- * vtkLinearSlicerLineInterpolator and vtkPointPlacer. See vtkSlicerAngleWidget
+ * vtkSlicerLinearLineInterpolator and vtkPointPlacer. See vtkSlicerAngleWidget
  * for details.
  * @sa
- * vtkSlicerAbstractRepresentation2D vtkSlicerAngleWidget vtkPointPlacer
- * vtkLinearSlicerLineInterpolator
+ * vtkSlicerAbstractWidgetRepresentation2D vtkSlicerAngleWidget vtkPointPlacer
+ * vtkSlicerLinearLineInterpolator
 */
 
 #ifndef vtkSlicerAngleRepresentation2D_h
 #define vtkSlicerAngleRepresentation2D_h
 
 #include "vtkSlicerMarkupsModuleVTKWidgetsExport.h"
-#include "vtkSlicerAbstractRepresentation2D.h"
+#include "vtkSlicerAbstractWidgetRepresentation2D.h"
 
 class vtkActor2D;
 class vtkAppendPolyData;
@@ -45,14 +45,14 @@ class vtkArcSource;
 class vtkOpenGLTextActor;
 class vtkVectorText;
 
-class VTK_SLICER_MARKUPS_MODULE_VTKWIDGETS_EXPORT vtkSlicerAngleRepresentation2D : public vtkSlicerAbstractRepresentation2D
+class VTK_SLICER_MARKUPS_MODULE_VTKWIDGETS_EXPORT vtkSlicerAngleRepresentation2D : public vtkSlicerAbstractWidgetRepresentation2D
 {
 public:
   /// Instantiate this class.
   static vtkSlicerAngleRepresentation2D *New();
 
   /// Standard methods for instances of this class.
-  vtkTypeMacro(vtkSlicerAngleRepresentation2D,vtkSlicerAbstractRepresentation2D);
+  vtkTypeMacro(vtkSlicerAngleRepresentation2D,vtkSlicerAbstractWidgetRepresentation2D);
   void PrintSelf(ostream& os, vtkIndent indent) override;
 
   /// Subclasses of vtkContourCurveRepresentation must implement these methods. These

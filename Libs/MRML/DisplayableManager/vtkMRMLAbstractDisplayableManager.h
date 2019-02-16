@@ -26,7 +26,7 @@
 
 #include "vtkMRMLDisplayableManagerExport.h"
 
-class vtkEventData;
+class vtkSlicerInteractionEventData;
 class vtkMRMLInteractionNode;
 class vtkMRMLSelectionNode;
 class vtkMRMLDisplayableManagerGroup;
@@ -94,13 +94,19 @@ public:
   /// Return true if the displayable manager can process the event.
   /// Distance2 is the squared distance in display coordinates from the closest interaction position.
   /// The displayable manager with the closest distance will get the chance to process the interaction event.
-  virtual bool CanProcessInteractionEvent(vtkEventData* eventData, double &distance2);
+  virtual bool CanProcessInteractionEvent(vtkSlicerInteractionEventData* eventData, double &distance2);
 
   /// Process an interaction event.
-  virtual void ProcessInteractionEvent(vtkEventData* eventData);
+  virtual void ProcessInteractionEvent(vtkSlicerInteractionEventData* eventData);
 
   /// Set if the widget gets/loses focus (interaction events are processed by this displayable manager).
   virtual void SetHasFocus(bool hasFocus);
+
+  /// Displayable manager can indicate that it would like to get all events (even when mouse pointer is outside the window).
+  virtual bool GetGrabFocus();
+
+  /// Displayable manager can indicate that the window is in interactive mode (faster updates).
+  virtual bool GetInteractive();
 
 protected:
 

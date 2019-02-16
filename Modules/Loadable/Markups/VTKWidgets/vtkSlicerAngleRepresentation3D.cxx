@@ -45,7 +45,7 @@
 #include "vtkPoints.h"
 #include "vtkCellArray.h"
 #include "vtkFocalPlanePointPlacer.h"
-#include "vtkLinearSlicerLineInterpolator.h"
+#include "vtkSlicerLinearLineInterpolator.h"
 #include "vtkSphereSource.h"
 #include "vtkPropPicker.h"
 #include "vtkPickingManager.h"
@@ -63,7 +63,7 @@ vtkStandardNewMacro(vtkSlicerAngleRepresentation3D);
 //----------------------------------------------------------------------
 vtkSlicerAngleRepresentation3D::vtkSlicerAngleRepresentation3D()
 {
-  this->LineInterpolator = vtkSmartPointer<vtkLinearSlicerLineInterpolator>::New();
+  this->LineInterpolator = vtkSmartPointer<vtkSlicerLinearLineInterpolator>::New();
 
   this->Line = vtkSmartPointer<vtkPolyData>::New();
   this->Arc = vtkSmartPointer<vtkArcSource>::New();

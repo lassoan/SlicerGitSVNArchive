@@ -22,18 +22,18 @@
  *
  * This class provides the default concrete representation for the
  * vtkSlicerCurveWidget. It works in conjunction with the
- * vtkLinearSlicerLineInterpolator and vtkPointPlacer. See vtkSlicerCurveWidget
+ * vtkSlicerLinearLineInterpolator and vtkPointPlacer. See vtkSlicerCurveWidget
  * for details.
  * @sa
- * vtkSlicerAbstractRepresentation vtkSlicerCurveWidget vtkPointPlacer
- * vtkLinearSlicerLineInterpolator
+ * vtkSlicerAbstractWidgetRepresentation vtkSlicerCurveWidget vtkPointPlacer
+ * vtkSlicerLinearLineInterpolator
 */
 
 #ifndef vtkSlicerCurveRepresentation3D_h
 #define vtkSlicerCurveRepresentation3D_h
 
 #include "vtkSlicerMarkupsModuleVTKWidgetsExport.h"
-#include "vtkSlicerAbstractRepresentation3D.h"
+#include "vtkSlicerAbstractWidgetRepresentation3D.h"
 
 class vtkAppendPolyData;
 class vtkOpenGLActor;
@@ -43,17 +43,17 @@ class vtkTubeFilter;
 class vtkOpenGLTextActor;
 class vtkArcSource;
 
-class VTK_SLICER_MARKUPS_MODULE_VTKWIDGETS_EXPORT vtkSlicerCurveRepresentation3D : public vtkSlicerAbstractRepresentation3D
+class VTK_SLICER_MARKUPS_MODULE_VTKWIDGETS_EXPORT vtkSlicerCurveRepresentation3D : public vtkSlicerAbstractWidgetRepresentation3D
 {
 public:
   /// Instantiate this class.
   static vtkSlicerCurveRepresentation3D *New();
 
   /// Standard methods for instances of this class.
-  vtkTypeMacro(vtkSlicerCurveRepresentation3D,vtkSlicerAbstractRepresentation3D);
+  vtkTypeMacro(vtkSlicerCurveRepresentation3D,vtkSlicerAbstractWidgetRepresentation3D);
   void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
 
-  /// Subclasses of vtkSlicerAbstractRepresentation must implement these methods. These
+  /// Subclasses of vtkSlicerAbstractWidgetRepresentation must implement these methods. These
   /// are the methods that the widget and its representation use to
   /// communicate with each other.
   void BuildRepresentation() VTK_OVERRIDE;

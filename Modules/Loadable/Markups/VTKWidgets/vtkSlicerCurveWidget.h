@@ -158,7 +158,7 @@
 #include "vtkSlicerMarkupsModuleVTKWidgetsExport.h"
 #include "vtkSlicerAbstractWidget.h"
 
-class vtkSlicerAbstractRepresentation;
+class vtkSlicerAbstractWidgetRepresentation;
 class vtkPolyData;
 class vtkIdList;
 

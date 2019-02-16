@@ -16,20 +16,20 @@
 
 =========================================================================*/
 
-#include "vtkSlicerAbstractRepresentation.h"
-#include "vtkLinearSlicerLineInterpolator.h"
+#include "vtkSlicerAbstractWidgetRepresentation.h"
+#include "vtkSlicerLinearLineInterpolator.h"
 #include "vtkObjectFactory.h"
 
-vtkStandardNewMacro(vtkLinearSlicerLineInterpolator);
+vtkStandardNewMacro(vtkSlicerLinearLineInterpolator);
 
 //----------------------------------------------------------------------
-vtkLinearSlicerLineInterpolator::vtkLinearSlicerLineInterpolator() = default;
+vtkSlicerLinearLineInterpolator::vtkSlicerLinearLineInterpolator() = default;
 
 //----------------------------------------------------------------------
-vtkLinearSlicerLineInterpolator::~vtkLinearSlicerLineInterpolator() = default;
+vtkSlicerLinearLineInterpolator::~vtkSlicerLinearLineInterpolator() = default;
 
 //----------------------------------------------------------------------
-int vtkLinearSlicerLineInterpolator::InterpolateLine(vtkSlicerAbstractRepresentation *rep,
+int vtkSlicerLinearLineInterpolator::InterpolateLine(vtkSlicerAbstractWidgetRepresentation *rep,
                                                      int idx1, int idx2)
 {
   double p1[3] = {0}, p2[3] = {0};
@@ -41,8 +41,7 @@ int vtkLinearSlicerLineInterpolator::InterpolateLine(vtkSlicerAbstractRepresenta
 }
 
 //----------------------------------------------------------------------
-void vtkLinearSlicerLineInterpolator::PrintSelf(ostream& os, vtkIndent indent)
+void vtkSlicerLinearLineInterpolator::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os,indent);
 }
-

@@ -22,18 +22,18 @@
  *
  * This class provides the default concrete representation for the
  * vtkSlicerLineWidget. It works in conjunction with the
- * vtkLinearSlicerLineInterpolator and vtkPointPlacer. See vtkSlicerLineWidget
+ * vtkSlicerLinearLineInterpolator and vtkPointPlacer. See vtkSlicerLineWidget
  * for details.
  * @sa
- * vtkSlicerAbstractRepresentation2D vtkSlicerLineWidget vtkPointPlacer
- * vtkLinearSlicerLineInterpolator
+ * vtkSlicerAbstractWidgetRepresentation2D vtkSlicerLineWidget vtkPointPlacer
+ * vtkSlicerLinearLineInterpolator
 */
 
 #ifndef vtkSlicerLineRepresentation2D_h
 #define vtkSlicerLineRepresentation2D_h
 
 #include "vtkSlicerMarkupsModuleVTKWidgetsExport.h"
-#include "vtkSlicerAbstractRepresentation2D.h"
+#include "vtkSlicerAbstractWidgetRepresentation2D.h"
 
 class vtkActor2D;
 class vtkAppendPolyData;
@@ -43,14 +43,14 @@ class vtkProperty2D;
 class vtkTubeFilter;
 class vtkPropPicker;
 
-class VTK_SLICER_MARKUPS_MODULE_VTKWIDGETS_EXPORT vtkSlicerLineRepresentation2D : public vtkSlicerAbstractRepresentation2D
+class VTK_SLICER_MARKUPS_MODULE_VTKWIDGETS_EXPORT vtkSlicerLineRepresentation2D : public vtkSlicerAbstractWidgetRepresentation2D
 {
 public:
   /// Instantiate this class.
   static vtkSlicerLineRepresentation2D *New();
 
   /// Standard methods for instances of this class.
-  vtkTypeMacro(vtkSlicerLineRepresentation2D,vtkSlicerAbstractRepresentation2D);
+  vtkTypeMacro(vtkSlicerLineRepresentation2D,vtkSlicerAbstractWidgetRepresentation2D);
   void PrintSelf(ostream& os, vtkIndent indent) override;
 
   /// Subclasses of vtkContourCurveRepresentation must implement these methods. These

@@ -17,19 +17,25 @@
 =========================================================================*/
 
 /**
- * @class   vtkSlicerAbstractRepresentation
- * @brief   Default representation for the slicer markups widget
+ * @class   vtkSlicerAbstractWidgetRepresentation
+ * @brief   Class for rendering a markups node
  *
- * This class provides the default concrete representation for the
- * vtkSlicerAbstractWidget. It works in conjunction with the
- * vtkSlicerLineInterpolator and vtkPointPlacer. See vtkSlicerAbstractWidget
- * for details.
+ * This class can display a markups node in the scene.
+ * It plays a similar role to vtkWidgetRepresentation, but it is
+ * simplified and specialized for optimal use in Slicer.
+ * It state is stored in the associated MRML display node to
+ * avoid extra synchronization mechanisms.
+ * The representation only observes MRML node changes,
+ * it does not directly process any interaction events directly
+ * (interaction events are processed by vtkSlicerAbstractWidget,
+ * which then modifies MRML nodes).
  *
- * Point picking is done using the vtkIncrementalOctreePointLocator
- * Line picking with vtkCellPicker (see child classes)
- *
+ * This class (and subclasses) are a type of
+ * vtkProp; meaning that they can be associated with a vtkRenderer end
+ * embedded in a scene like any other vtkActor.
+*
  * @sa
- * vtkSlicerAbstractRepresentation vtkSlicerAbstractWidget vtkPointPlacer
+ * vtkSlicerAbstractWidgetRepresentation vtkSlicerAbstractWidget vtkPointPlacer
  * vtkSlicerLineInterpolator
 */
 
@@ -62,12 +68,57 @@ class vtkTextProperty;
 
 class ControlPointsPipeline;
 
-class VTK_SLICER_MARKUPS_MODULE_VTKWIDGETS_EXPORT vtkSlicerAbstractRepresentation : public vtkWidgetRepresentation
+class VTK_SLICER_MARKUPS_MODULE_VTKWIDGETS_EXPORT vtkSlicerAbstractWidgetRepresentation : public vtkProp
 {
 public:
   /// Standard methods for instances of this class.
-  vtkTypeMacro(vtkSlicerAbstractRepresentation,vtkWidgetRepresentation);
+  vtkTypeMacro(vtkSlicerAbstractWidgetRepresentation, vtkProp);
   void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
+
+
+  //@{
+  /**
+  * Subclasses of vtkWidgetRepresentation must implement these methods. This is
+  * considered the minimum API for a widget representation.
+  * <pre>
+  * SetRenderer() - the renderer in which the representations draws itself.
+  * Typically the renderer is set by the associated widget.
+  * Use the widget's SetCurrentRenderer() method in most cases;
+  * otherwise there is a risk of inconsistent behavior as events
+  * and drawing may be performed in different viewports.
+  * BuildRepresentation() - update the geometry of the widget based on its
+  * current state.
+  * </pre>
+  * WARNING: The renderer is NOT reference counted by the representation,
+  * in order to avoid reference loops.  Be sure that the representation
+  * lifetime does not extend beyond the renderer lifetime.
+  */
+  virtual void SetRenderer(vtkRenderer *ren);
+  virtual vtkRenderer* GetRenderer();
+  virtual void BuildRepresentation() = 0;
+  //@}
+
+
+  /**
+  * Methods to make this class behave as a vtkProp. They are repeated here (from the
+  * vtkProp superclass) as a reminder to the widget implementor. Failure to implement
+  * these methods properly may result in the representation not appearing in the scene
+  * (i.e., not implementing the Render() methods properly) or leaking graphics resources
+  * (i.e., not implementing ReleaseGraphicsResources() properly).
+  */
+  double *GetBounds() VTK_SIZEHINT(6) override { return nullptr; }
+  void ShallowCopy(vtkProp *prop) override;
+  void GetActors(vtkPropCollection *) override {}
+  void GetActors2D(vtkPropCollection *) override {}
+  void GetVolumes(vtkPropCollection *) override {}
+  void ReleaseGraphicsResources(vtkWindow *) override {}
+  int RenderOverlay(vtkViewport *vtkNotUsed(viewport)) override { return 0; }
+  int RenderOpaqueGeometry(vtkViewport *vtkNotUsed(viewport)) override { return 0; }
+  int RenderTranslucentPolygonalGeometry(vtkViewport *vtkNotUsed(viewport)) override { return 0; }
+  int RenderVolumetricGeometry(vtkViewport *vtkNotUsed(viewport)) override { return 0; }
+  vtkTypeBool HasTranslucentPolygonalGeometry() override { return 0; }
+
+
 
   /// Add a node at a specific world position. Returns 0 if the
   /// node could not be added, 1 otherwise.
@@ -309,9 +360,6 @@ public:
   virtual vtkMRMLMarkupsDisplayNode* GetMarkupsDisplayNode();
   virtual vtkMRMLMarkupsNode* GetMarkupsNode();
 
-  /// Set the renderer
-  virtual void SetRenderer(vtkRenderer *ren) VTK_OVERRIDE;
-
   /// Compute the centroid by sampling the points along
   /// the polyline of the widget at equal distances.
   /// and it also updates automatically the centroid pos stored in the Markups node
@@ -325,9 +373,22 @@ public:
   /// componentIndex returns index of the found component (e.g., if control point is found then control point index is returned).
   virtual int CanInteract(const int displayPosition[2], const double worldPosition[3], double &closestDistance2, int &componentIndex);
 
+  //@{
+  /**
+  * This data member is used to keep track of whether to render
+  * or not (i.e., to minimize the total number of renders).
+  */
+  vtkGetMacro(NeedToRender, bool);
+  vtkSetMacro(NeedToRender, bool);
+  vtkBooleanMacro(NeedToRender, bool);
+  //@}
+
 protected:
-  vtkSlicerAbstractRepresentation();
-  ~vtkSlicerAbstractRepresentation() VTK_OVERRIDE;
+  vtkSlicerAbstractWidgetRepresentation();
+  ~vtkSlicerAbstractWidgetRepresentation() VTK_OVERRIDE;
+
+  // The renderer in which this widget is placed
+  vtkWeakPointer<vtkRenderer> Renderer;
 
   class ControlPointsPipeline
   {
@@ -363,6 +424,8 @@ protected:
   // Selection tolerance for the picking of points
   double Tolerance;
   double PixelTolerance;
+
+  bool NeedToRender;
 
   vtkSmartPointer<vtkPointPlacer> PointPlacer;
   vtkSmartPointer<vtkSlicerLineInterpolator> LineInterpolator;
@@ -439,8 +502,8 @@ protected:
   double Bounds[6];
 
 private:
-  vtkSlicerAbstractRepresentation(const vtkSlicerAbstractRepresentation&) = delete;
-  void operator=(const vtkSlicerAbstractRepresentation&) = delete;
+  vtkSlicerAbstractWidgetRepresentation(const vtkSlicerAbstractWidgetRepresentation&) = delete;
+  void operator=(const vtkSlicerAbstractWidgetRepresentation&) = delete;
 };
 
 #endif

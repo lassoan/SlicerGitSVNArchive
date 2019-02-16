@@ -989,14 +989,14 @@ vtkRenderer* vtkMRMLAbstractDisplayableManager::GetRenderer(int idx)
 }
 
 //---------------------------------------------------------------------------
-bool vtkMRMLAbstractDisplayableManager::CanProcessInteractionEvent(vtkEventData* eventData, double &distance2)
+bool vtkMRMLAbstractDisplayableManager::CanProcessInteractionEvent(vtkSlicerInteractionEventData* eventData, double &distance2)
 {
   distance2 = VTK_DOUBLE_MAX;
   return false;
 }
 
 //---------------------------------------------------------------------------
-void vtkMRMLAbstractDisplayableManager::ProcessInteractionEvent(vtkEventData* eventData)
+void vtkMRMLAbstractDisplayableManager::ProcessInteractionEvent(vtkSlicerInteractionEventData* eventData)
 {
 }
 
@@ -1004,4 +1004,16 @@ void vtkMRMLAbstractDisplayableManager::ProcessInteractionEvent(vtkEventData* ev
 void vtkMRMLAbstractDisplayableManager::SetHasFocus(bool hasFocus)
 {
   return;
+}
+
+//---------------------------------------------------------------------------
+bool vtkMRMLAbstractDisplayableManager::GetGrabFocus()
+{
+  return false;
+}
+
+//---------------------------------------------------------------------------
+bool vtkMRMLAbstractDisplayableManager::GetInteractive()
+{
+  return false;
 }
