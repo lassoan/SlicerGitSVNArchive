@@ -102,6 +102,7 @@ void vtkSlicerCurveRepresentation3D::UpdateFromMRML(vtkMRMLNode* caller, unsigne
 
   // Line geometry
 
+  this->UpdateAllInterpolatedPoints(); // TODO: call this->UpdateInterpolatedPoints(n) if possible, to improve performance
   this->BuildLine(this->Line, false);
 
   // Line display

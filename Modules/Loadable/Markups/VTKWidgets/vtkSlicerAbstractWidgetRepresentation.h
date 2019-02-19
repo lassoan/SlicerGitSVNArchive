@@ -294,8 +294,9 @@ protected:
   void GetRendererComputedDisplayPositionFromWorldPosition(const double worldPos[3],
                                                            double displayPos[2]);
 
-  virtual void UpdateLines(int index);
-  void UpdateLine(int idx1, int idx2);
+  virtual void UpdateInterpolatedPoints(int index);
+  virtual void UpdateAllInterpolatedPoints();
+  //void UpdateLine(int idx1, int idx2);
 
   // Utility function to build lines between control points.
   // If displayPosition is true then positions will be computed in display coordinate system,

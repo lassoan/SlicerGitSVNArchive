@@ -91,7 +91,7 @@ protected:
 
   std::string LabelFormat;
 
-  void UpdateLinesFromMRML();
+  void BuildArc();
 
   // Support picking
   vtkSmartPointer<vtkPropPicker> LinePicker;

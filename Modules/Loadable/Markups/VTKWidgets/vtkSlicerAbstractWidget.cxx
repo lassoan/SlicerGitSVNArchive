@@ -398,9 +398,13 @@ int vtkSlicerAbstractWidget::AddPreviewPointToRepresentationFromWorldCoordinate(
 
   this->FollowCursor = true;
   this->WidgetState = vtkSlicerAbstractWidget::Define;
-  markupsNode->AddControlPointWorld(vtkVector3d(worldCoordinates));
-
-  return markupsNode->GetNumberOfControlPoints() - 1;
+  int activeControlPointIndex = markupsNode->AddControlPointWorld(vtkVector3d(worldCoordinates));
+  vtkMRMLMarkupsDisplayNode* markupsDisplayNode = this->GetMarkupsDisplayNode();
+  if (markupsDisplayNode)
+  {
+    markupsDisplayNode->SetActiveControlPoint(activeControlPointIndex);
+  }
+  return activeControlPointIndex;
 }
 
 //-------------------------------------------------------------------------

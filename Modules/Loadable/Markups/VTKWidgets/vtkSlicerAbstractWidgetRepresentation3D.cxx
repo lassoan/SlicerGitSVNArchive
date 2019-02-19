@@ -140,7 +140,7 @@ void vtkSlicerAbstractWidgetRepresentation3D::UpdateNthPointAndLabelFromMRML(int
   {
     this->PointsVisibilityOnSlice->InsertNextValue(1);
   }
-  this->UpdateLines(markupsNode->GetNumberOfControlPoints() - 1);
+  this->UpdateInterpolatedPoints(markupsNode->GetNumberOfControlPoints() - 1);
   */
 }
 //----------------------------------------------------------------------

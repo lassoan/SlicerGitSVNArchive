@@ -448,6 +448,8 @@ protected:
   /// have been in this list
   std::string GenerateUniqueControlPointID();
 
+  std::string GenerateControlPointLabel(int controlPointIndex);
+
   // Used for limiting number of markups that may be placed.
   int MaximumNumberOfControlPoints;
   int PreferredNumberOfControlPoints;

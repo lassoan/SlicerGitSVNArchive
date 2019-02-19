@@ -744,7 +744,7 @@ int vtkSlicerAbstractWidgetRepresentation::FindClosestPointOnWidget(
 }
 
 //----------------------------------------------------------------------
-void vtkSlicerAbstractWidgetRepresentation::UpdateLines(int index)
+void vtkSlicerAbstractWidgetRepresentation::UpdateInterpolatedPoints(int index)
 {
   vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
   if (!markupsNode)
@@ -763,7 +763,8 @@ void vtkSlicerAbstractWidgetRepresentation::UpdateLines(int index)
     for (int i = 0; i < nNodes; i++)
       {
       arr->GetTypedTuple(i, indices);
-      this->UpdateLine(indices[0], indices[1]);
+      (*markupsNode->GetControlPoints())[indices[0]]->IntermediatePositions.clear();
+      this->LineInterpolator->InterpolateLine(*markupsNode->GetControlPoints(), this->ClosedLoop, indices[0], indices[1]);
       }
     }
 
@@ -775,7 +776,37 @@ void vtkSlicerAbstractWidgetRepresentation::UpdateLines(int index)
     this->GetNthNode(idx)->IntermediatePositions.clear();
     }
 
-  //this->UpdateLinesFromMRML();
+  this->RebuildLocator = true;
+}
+
+//---------------------------------------------------------------------
+void vtkSlicerAbstractWidgetRepresentation::UpdateAllInterpolatedPoints()
+{
+  vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
+  if (!markupsNode)
+  {
+    return;
+  }
+  for (int i = 0; (i + 1) < markupsNode->GetNumberOfControlPoints(); i++)
+  {
+    (*markupsNode->GetControlPoints())[i]->IntermediatePositions.clear();
+    this->LineInterpolator->InterpolateLine(*markupsNode->GetControlPoints(), this->ClosedLoop, i, i + 1);
+  }
+
+  // Update last line segment
+  if (markupsNode->GetNumberOfControlPoints() > 0)
+  {
+    if (this->ClosedLoop)
+    {
+      (*markupsNode->GetControlPoints())[markupsNode->GetNumberOfControlPoints() - 1]->IntermediatePositions.clear();
+      this->LineInterpolator->InterpolateLine(*markupsNode->GetControlPoints(), this->ClosedLoop, markupsNode->GetNumberOfControlPoints() - 1, 0);
+    }
+    else
+    {
+      (*markupsNode->GetControlPoints())[markupsNode->GetNumberOfControlPoints() - 1]->IntermediatePositions.clear();
+    }
+  }
+
   this->RebuildLocator = true;
 }
 
@@ -795,6 +826,7 @@ int vtkSlicerAbstractWidgetRepresentation::AddIntermediatePointWorldPosition(int
   return 1;
 }
 
+/*
 //----------------------------------------------------------------------
 void vtkSlicerAbstractWidgetRepresentation::UpdateLine(int idx1, int idx2)
 {
@@ -811,52 +843,6 @@ void vtkSlicerAbstractWidgetRepresentation::UpdateLine(int idx1, int idx2)
   // Clear all the points at idx1
   (*markupsNode->GetControlPoints())[idx1]->IntermediatePositions.clear();
   this->LineInterpolator->InterpolateLine(*markupsNode->GetControlPoints(), this->ClosedLoop, idx1, idx2);
-}
-
-/*
-//---------------------------------------------------------------------
-int vtkSlicerAbstractWidgetRepresentation::UpdateWidget(bool force)
-{
-  if (!this->Locator || !this->PointPlacer)
-    {
-    return 0;
-    }
-
-  this->PointPlacer->UpdateInternalState();
-
-  //even if just the camera has moved we need to mark the locator
-  //as needing to be rebuilt
-  if (this->Locator->GetMTime() < this->Renderer->GetActiveCamera()->GetMTime())
-    {
-    this->RebuildLocator = true;
-    }
-  if (this->Locator->GetMTime() < this->MarkupsTransformModifiedTime.GetMTime())
-    {
-    this->RebuildLocator = true;
-    }
-
-
-  if (this->WidgetBuildTime > this->PointPlacer->GetMTime() && !force)
-    {
-    // Widget does not need to be rebuilt
-    return 0;
-    }
-
-  for(int i = 0; (i + 1) < markupsNode->GetNumberOfControlPoints(); i++)
-    {
-    this->UpdateLine(i, i + 1);
-    }
-
-  if (this->ClosedLoop)
-    {
-    this->UpdateLine(markupsNode->GetNumberOfControlPoints() - 1, 0);
-    }
-  this->UpdateLinesFromMRML();
-  this->RebuildLocator = true;
-
-  this->WidgetBuildTime.Modified();
-
-  return 1;
 }
 */
 
@@ -986,7 +972,7 @@ void vtkSlicerAbstractWidgetRepresentation::SetClosedLoop(vtkTypeBool val)
     vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
     if (markupsNode)
       {
-      this->UpdateLines(markupsNode->GetNumberOfControlPoints() - 1);
+      this->UpdateInterpolatedPoints(markupsNode->GetNumberOfControlPoints() - 1);
       }
     this->NeedToRender = true;
     this->Modified();
@@ -1292,6 +1278,8 @@ void vtkSlicerAbstractWidgetRepresentation::UpdateFromMRML(vtkMRMLNode* caller, 
   {
     this->MarkupsTransformModifiedTime.Modified();
   }
+
+  this->NeedToRenderOn(); // TODO: call this only if actually needed to improve performance
 }
 
 //-----------------------------------------------------------------------------

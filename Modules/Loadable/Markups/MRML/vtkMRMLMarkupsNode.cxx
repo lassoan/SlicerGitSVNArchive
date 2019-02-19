@@ -462,12 +462,21 @@ int vtkMRMLMarkupsNode::AddControlPoint(ControlPoint *controlPoint)
     return -1;
     }
 
-  this->ControlPoints.push_back(controlPoint);
+  // generate a unique id based on list policy
+  if (controlPoint->ID.empty())
+    {
+    controlPoint->ID = this->GenerateUniqueControlPointID();
+    }
   this->LastUsedControlPointNumber++;
+  if (controlPoint->Label.empty())
+    {
+    controlPoint->Label = this->GenerateControlPointLabel(this->LastUsedControlPointNumber);
+    }
 
-  int controlPointIndex = this->GetNumberOfControlPoints() - 1;
+  this->ControlPoints.push_back(controlPoint);
 
   this->Modified();
+  int controlPointIndex = this->GetNumberOfControlPoints() - 1;
   this->InvokeCustomModifiedEvent(vtkMRMLMarkupsNode::PointAddedEvent,  static_cast<void*>(&controlPointIndex));
   return controlPointIndex;
 }
@@ -600,14 +609,12 @@ bool vtkMRMLMarkupsNode::InsertControlPoint(ControlPoint *controlPoint, int targ
     controlPoint->ID = this->GenerateUniqueControlPointID();
     }
 
+  /* do not generate labels for inserted points
   if (controlPoint->Label.empty())
     {
-    std::string formatString = this->ReplaceListNameInMarkupLabelFormat();
-    char buf[128];
-    buf[sizeof(buf) - 1] = 0; // make sure the string is zero-terminated
-    snprintf(buf, sizeof(buf)-1, formatString.c_str(), targetIndex);
-    controlPoint->Label = buf;
+    controlPoint->Label = this->GenerateControlPointLabel(targetIndex);
     }
+    */
 
   int listSize = this->GetNumberOfControlPoints();
   int destIndex = targetIndex;
@@ -1277,6 +1284,16 @@ std::string vtkMRMLMarkupsNode::GenerateUniqueControlPointID()
   controlPointNumber++;
   // put the number in a string
   return std::to_string(controlPointNumber);
+}
+
+//---------------------------------------------------------------------------
+std::string vtkMRMLMarkupsNode::GenerateControlPointLabel(int controlPointIndex)
+{
+  std::string formatString = this->ReplaceListNameInMarkupLabelFormat();
+  char buf[128];
+  buf[sizeof(buf) - 1] = 0; // make sure the string is zero-terminated
+  snprintf(buf, sizeof(buf) - 1, formatString.c_str(), controlPointIndex);
+  return std::string(buf);
 }
 
 //---------------------------------------------------------------------------

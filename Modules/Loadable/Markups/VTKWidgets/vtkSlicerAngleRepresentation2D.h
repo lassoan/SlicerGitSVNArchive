@@ -92,7 +92,7 @@ protected:
 
   std::string LabelFormat;
 
-  void UpdateLinesFromMRML();
+  void BuildArc();
 
 private:
   vtkSlicerAngleRepresentation2D(const vtkSlicerAngleRepresentation2D&) = delete;

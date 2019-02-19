@@ -125,8 +125,9 @@ int vtkSlicerLineRepresentation2D::CanInteract(const int displayPosition[2], con
     return vtkMRMLMarkupsDisplayNode::ComponentNone;
   }
   int foundComponentType = Superclass::CanInteract(displayPosition, worldPosition, closestDistance2, componentIndex);
-  if (foundComponentType != vtkMRMLMarkupsDisplayNode::ComponentNone && closestDistance2 == 0.0)
+  if (foundComponentType != vtkMRMLMarkupsDisplayNode::ComponentNone)
   {
+    // if mouse is near a control point then select that (ignore the line)
     return foundComponentType;
   }
 

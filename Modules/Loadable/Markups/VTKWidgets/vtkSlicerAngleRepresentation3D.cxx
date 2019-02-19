@@ -124,15 +124,13 @@ bool vtkSlicerAngleRepresentation3D::GetTransformationReferencePoint(double refe
 }
 
 //----------------------------------------------------------------------
-void vtkSlicerAngleRepresentation3D::UpdateLinesFromMRML()
+void vtkSlicerAngleRepresentation3D::BuildArc()
 {
   vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
   if (!markupsNode)
     {
     return;
     }
-
-  this->BuildLine(this->Line, false);
 
   // Build Arc
   if (markupsNode->GetNumberOfControlPoints() != 3)
@@ -221,7 +219,8 @@ void vtkSlicerAngleRepresentation3D::UpdateFromMRML(vtkMRMLNode* caller, unsigne
 
   // Update lines geometry
 
-  this->UpdateLinesFromMRML();
+  this->BuildLine(this->Line, false);
+  this->BuildArc();
 
   // Update lines display properties
 
