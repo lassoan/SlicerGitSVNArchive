@@ -973,7 +973,7 @@ bool vtkSlicerMarkupsLogic::MoveNthControlPointToNewListAtIndex(int n, vtkMRMLMa
     }
 
   // get the control point
-  ControlPoint *newControlPoint = new ControlPoint;
+  vtkMRMLMarkupsNode::ControlPoint *newControlPoint = new vtkMRMLMarkupsNode::ControlPoint;
   markupsNode->CopyControlPoint(markupsNode->GetNthControlPoint(n), newControlPoint);
 
   // add it to the destination list
@@ -1009,7 +1009,7 @@ bool vtkSlicerMarkupsLogic::CopyNthControlPointToNewList(int n, vtkMRMLMarkupsNo
     }
 
   // get the control point
-  ControlPoint *newControlPoint = new ControlPoint;
+  vtkMRMLMarkupsNode::ControlPoint *newControlPoint = new vtkMRMLMarkupsNode::ControlPoint;
   markupsNode->CopyControlPoint(markupsNode->GetNthControlPoint(n), newControlPoint);
 
   // add it to the destination list

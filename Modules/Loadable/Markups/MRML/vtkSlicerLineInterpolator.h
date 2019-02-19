@@ -18,32 +18,34 @@
 
 /**
  * @class   vtkSlicerLineInterpolator
- * @brief   Defines API for interpolating/modifying nodes from a vtkSlicerRepresentation
+ * @brief   Defines API for interpolating/modifying control points
  *
  * vtkSlicerLineInterpolator is an abstract base class for interpolators
  * that are used by the vtkSlicerRepresentation class to interpolate
- * and/or modify nodes in a Slicer. Subclasses must override the virtual
- * method \c InterpolateLine. This is used by the Slicer representation
+ * and/or modify control points in a Slicer. Subclasses must override the virtual
+ * method \c InterpolateLine. This is used by the markups curve nodes
  * to give the interpolator a chance to define an interpolation scheme
- * between nodes. See vtkSlicerBezierLineInterpolator for a concrete
- * implementation. Subclasses may also override \c UpdateNode. This provides
+ * between control points. See vtkSlicerBezierLineInterpolator for a concrete
+ * implementation. Subclasses may also override \c UpdateControlPoint. This provides
  * a way for the representation to give the interpolator a chance to modify
- * the nodes, as the user constructs the Slicers. For instance, a sticky
- * Slicer widget may be implemented that moves nodes to nearby regions of
- * high gradient, to be used in Slicer-guided segmentation.
+ * the control points, as the user constructs curves. For instance, a sticky
+ * curve widget may be implemented that moves nodes to nearby regions of
+ * high gradient, to be used in image-guided segmentation.
 */
 
 #ifndef vtkSlicerLineInterpolator_h
 #define vtkSlicerLineInterpolator_h
 
-#include "vtkSlicerMarkupsModuleVTKWidgetsExport.h"
+#include "vtkSlicerMarkupsModuleMRMLExport.h"
 #include "vtkObject.h"
+
+#include "vtkMRMLMarkupsNode.h"
 
 class vtkRenderer;
 class vtkSlicerAbstractWidgetRepresentation;
 class vtkIntArray;
 
-class VTK_SLICER_MARKUPS_MODULE_VTKWIDGETS_EXPORT vtkSlicerLineInterpolator : public vtkObject
+class VTK_SLICER_MARKUPS_MODULE_MRML_EXPORT vtkSlicerLineInterpolator : public vtkObject
 {
 public:
   /// Standard methods for instances of this class.
@@ -51,26 +53,26 @@ public:
   void PrintSelf(ostream& os, vtkIndent indent) override;
 
   /// Subclasses that wish to interpolate a line segment must implement this.
-  /// For instance vtkSlicerBezierLineInterpolator adds nodes between idx1
+  /// For instance vtkSlicerBezierLineInterpolator adds control points between idx1
   /// and idx2, that allow the Slicer to adhere to a bezier curve.
-  virtual int InterpolateLine(vtkSlicerAbstractWidgetRepresentation *rep,
-                              int idx1, int idx2) = 0;
+  virtual int InterpolateLine(vtkMRMLMarkupsNode::ControlPointsListType& controlPoints,
+    bool closedLoop, int idx1, int idx2) = 0;
 
   /// Span of the interpolator. ie. the number of control points its supposed
   /// to interpolate given a node.
-
+  ///
   /// The first argument is the current nodeIndex.
   /// ie, you'd be trying to interpolate between nodes "nodeIndex" and
   /// "nodeIndex-1", unless you're closing the Slicer in which case, you're
   /// trying to interpolate "nodeIndex" and "Node=0".
-
+  ///
   /// The node span is returned in a vtkIntArray. The default node span is 1
   /// (ie. nodeIndices is a 2 tuple (nodeIndex, nodeIndex-1)). However, it
   /// need not always be 1. For instance, cubic spline interpolators, which
   /// have a span of 3 control points, it can be larger. See
   /// vtkSlicerBezierLineInterpolator for instance.
   virtual void GetSpan(int nodeIndex, vtkIntArray *nodeIndices,
-                       vtkSlicerAbstractWidgetRepresentation *rep);
+    vtkMRMLMarkupsNode::ControlPointsListType& controlPoints, bool closedLoop);
 
  protected:
   vtkSlicerLineInterpolator();

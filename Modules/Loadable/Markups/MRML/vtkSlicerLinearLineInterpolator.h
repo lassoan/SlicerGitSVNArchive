@@ -31,10 +31,10 @@
 #ifndef vtkSlicerLinearLineInterpolator_h
 #define vtkSlicerLinearLineInterpolator_h
 
-#include "vtkSlicerMarkupsModuleVTKWidgetsExport.h"
+#include "vtkSlicerMarkupsModuleMRMLExport.h"
 #include "vtkSlicerLineInterpolator.h"
 
-class VTK_SLICER_MARKUPS_MODULE_VTKWIDGETS_EXPORT vtkSlicerLinearLineInterpolator
+class VTK_SLICER_MARKUPS_MODULE_MRML_EXPORT vtkSlicerLinearLineInterpolator
                           : public vtkSlicerLineInterpolator
 {
 public:
@@ -45,9 +45,9 @@ public:
   vtkTypeMacro(vtkSlicerLinearLineInterpolator,vtkSlicerLineInterpolator);
   void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
 
-  /// Interpolate the line between two nodes.
-  int InterpolateLine(vtkSlicerAbstractWidgetRepresentation *rep,
-                      int idx1, int idx2) VTK_OVERRIDE;
+  /// Interpolate the line between two control points.
+  int InterpolateLine(vtkMRMLMarkupsNode::ControlPointsListType& controlPoints,
+    bool closedLoop, int idx1, int idx2) VTK_OVERRIDE;
 
 protected:
   vtkSlicerLinearLineInterpolator();

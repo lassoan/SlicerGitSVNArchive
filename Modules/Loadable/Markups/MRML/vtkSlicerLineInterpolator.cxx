@@ -18,7 +18,6 @@
 
 #include "vtkSlicerLineInterpolator.h"
 
-#include "vtkSlicerAbstractWidgetRepresentation.h"
 #include "vtkIntArray.h"
 
 //----------------------------------------------------------------------
@@ -28,9 +27,8 @@ vtkSlicerLineInterpolator::vtkSlicerLineInterpolator() = default;
 vtkSlicerLineInterpolator::~vtkSlicerLineInterpolator() = default;
 
 //----------------------------------------------------------------------
-void vtkSlicerLineInterpolator::GetSpan(int nodeIndex,
-                                        vtkIntArray *nodeIndices,
-                                        vtkSlicerAbstractWidgetRepresentation *rep)
+void vtkSlicerLineInterpolator::GetSpan(int nodeIndex, vtkIntArray *nodeIndices,
+  vtkMRMLMarkupsNode::ControlPointsListType& controlPoints, bool closedLoop)
 {
   int start = nodeIndex - 1;
   int end   = nodeIndex;
@@ -41,33 +39,34 @@ void vtkSlicerLineInterpolator::GetSpan(int nodeIndex,
   nodeIndices->Squeeze();
   nodeIndices->SetNumberOfComponents(2);
 
+  const int numberOfControlPoints = controlPoints.size();
   for (int i = 0; i < 3; i++)
     {
     index[0] = start++;
     index[1] = end++;
 
-    if (rep->GetClosedLoop())
+    if (closedLoop)
       {
       if (index[0] < 0)
         {
-        index[0] += rep->GetNumberOfNodes();
+        index[0] += numberOfControlPoints;
         }
       if (index[1] < 0)
         {
-        index[1] += rep->GetNumberOfNodes();
+        index[1] += numberOfControlPoints;
         }
-      if (index[0] >= rep->GetNumberOfNodes())
+      if (index[0] >= numberOfControlPoints)
         {
-        index[0] -= rep->GetNumberOfNodes();
+        index[0] -= numberOfControlPoints;
         }
-      if (index[1] >= rep->GetNumberOfNodes())
+      if (index[1] >= numberOfControlPoints)
         {
-        index[1] -= rep->GetNumberOfNodes();
+        index[1] -= numberOfControlPoints;
         }
       }
 
-    if (index[0] >= 0 && index[0] < rep->GetNumberOfNodes() &&
-         index[1] >= 0 && index[1] < rep->GetNumberOfNodes())
+    if (index[0] >= 0 && index[0] < numberOfControlPoints &&
+         index[1] >= 0 && index[1] < numberOfControlPoints)
       {
       nodeIndices->InsertNextTypedTuple(index);
       }

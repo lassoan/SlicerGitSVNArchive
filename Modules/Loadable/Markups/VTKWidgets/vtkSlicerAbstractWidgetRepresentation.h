@@ -45,11 +45,13 @@
 #include "vtkSlicerMarkupsModuleVTKWidgetsExport.h"
 #include "vtkWidgetRepresentation.h"
 
+#include "vtkMRMLAbstractViewNode.h"
 #include "vtkMRMLMarkupsDisplayNode.h"
 #include "vtkMRMLMarkupsNode.h"
 
 #include <vector> // STL Header; Required for vector
 
+class vtkMapper;
 class vtkMarkupsGlyphSource2D;
 class vtkPolyData;
 class vtkPoints;
@@ -67,6 +69,7 @@ class vtkTextProperty;
 #include "vtkBoundingBox.h"
 
 class ControlPointsPipeline;
+class vtkMRMLAbstractViewNode;
 
 class VTK_SLICER_MARKUPS_MODULE_VTKWIDGETS_EXPORT vtkSlicerAbstractWidgetRepresentation : public vtkProp
 {
@@ -86,8 +89,9 @@ public:
   * Use the widget's SetCurrentRenderer() method in most cases;
   * otherwise there is a risk of inconsistent behavior as events
   * and drawing may be performed in different viewports.
-  * UpdateFromMRML() - update the geometry of the widget based on its
-  * current state.
+  * UpdateFromMRML() - update the widget from its state stored in MRML.
+  * if event is non-zero then a specific update (faster, smaller scope) is performed instead
+  * of a full update.
   * </pre>
   * WARNING: The renderer is NOT reference counted by the representation,
   * in order to avoid reference loops.  Be sure that the representation
@@ -95,7 +99,9 @@ public:
   */
   virtual void SetRenderer(vtkRenderer *ren);
   virtual vtkRenderer* GetRenderer();
-  virtual void UpdateFromMRML() = 0;
+  virtual void SetViewNode(vtkMRMLAbstractViewNode* viewNode);
+  virtual vtkMRMLAbstractViewNode* GetViewNode();
+  virtual void UpdateFromMRML(vtkMRMLNode* caller, unsigned long event, void *callData = NULL);
   //@}
 
 
@@ -117,162 +123,15 @@ public:
   int RenderTranslucentPolygonalGeometry(vtkViewport *vtkNotUsed(viewport)) override { return 0; }
   int RenderVolumetricGeometry(vtkViewport *vtkNotUsed(viewport)) override { return 0; }
   vtkTypeBool HasTranslucentPolygonalGeometry() override { return 0; }
-
-
-
-  /// Add a node at a specific world position. Returns 0 if the
-  /// node could not be added, 1 otherwise.
-  virtual int AddNodeAtWorldPosition(double x, double y, double z);
-  virtual int AddNodeAtWorldPosition(const double worldPos[3]);
-
-  /// Add a node at a specific display position. This will be
-  /// converted into a world position according to the current
-  /// constraints of the point placer. Return 0 if a point could
-  /// not be added, 1 otherwise.
-  virtual int AddNodeAtDisplayPosition(const double displayPos[2]);
-  virtual int AddNodeAtDisplayPosition(const int displayPos[2]);
-  virtual int AddNodeAtDisplayPosition(int X, int Y);
-
-  /// Move the active node to a specified world position.
-  /// Will return 0 if there is no active node or the node
-  /// could not be moved to that position. 1 will be returned
-  /// on success.
-  virtual int SetActiveNodeToWorldPosition(const double pos[3]);
-
-  /// Move the active node based on a specified display position.
-  /// The display position will be converted into a world
-  /// position. If the new position is not valid or there is
-  /// no active node, a 0 will be returned. Otherwise, on
-  /// success a 1 will be returned.
-  virtual int SetActiveNodeToDisplayPosition(const double pos[2]);
-  virtual int SetActiveNodeToDisplayPosition(const int pos[2]);
-  virtual int SetActiveNodeToDisplayPosition(int X, int Y);
   //@}
-
-  /// Get/Set the active node.
-  /// If index is from 0 to N it indicates the active point index.
-  /// If is -1 indicates that nothing is selected.
-  /// If is -2 indicates that the line is selected.
-  /// If is -3 indicates that the centroid is selected.
-  virtual int GetActiveNode();
-  virtual void SetActiveNode(int index);
-
-  /// Get the world position of the active node. Will return
-  /// 0 if there is no active node, or 1 otherwise.
-  virtual int GetActiveNodeWorldPosition(double pos[3]);
-
-  /// Get the display position of the active node. Will return
-  /// 0 if there is no active node, or 1 otherwise.
-  virtual int GetActiveNodeDisplayPosition(double pos[2]);
-
-  /// Set the active node's visibility.
-  virtual void SetActiveNodeVisibility(bool visibility);
-
-  /// Get the active node's visibility.
-  virtual bool GetActiveNodeVisibility();
-
-  /// Set if the active node is selected.
-  virtual void SetActiveNodeSelected(bool selected);
-
-  /// Get if the active node is locked.
-  virtual bool GetActiveNodeSelected();
-
-  /// Set if the active node is locked.
-  virtual void SetActiveNodeLocked(bool locked);
-
-  /// Get if the active node is locked.
-  virtual bool GetActiveNodeLocked();
-
-  /// Set the active node's orietation.
-  virtual void SetActiveNodeOrientation(double orientation[4]);
-
-  /// Get the active node's orietation.
-  virtual void GetActiveNodeOrientation(double orientation[4]);
-
-  /// Set the active node's label.
-  virtual void SetActiveNodeLabel(vtkStdString label);
-
-  /// Get the active node's label.
-  virtual vtkStdString GetActiveNodeLabel();
-
-  /// Get the number of nodes.
-  virtual int GetNumberOfNodes();
 
   /// Get the nth node's display position. Will return
   /// 1 on success, or 0 if there are not at least
   /// (n+1) nodes (0 based counting).
   virtual int GetNthNodeDisplayPosition(int n, double pos[2]);
 
-  /// Get the nth node's world position. Will return
-  /// 1 on success, or 0 if there are not at least
-  /// (n+1) nodes (0 based counting).
-  virtual int GetNthNodeWorldPosition(int n, double pos[3]);
-
-  /// Get the nth node's visibility.
-  virtual bool GetNthNodeVisibility(int n);
-
-  /// Set the nth node's visibility.
-  virtual void SetNthNodeVisibility(int n, bool visibility);
-
-  /// Get the if nth node is selected.
-  virtual bool GetNthNodeSelected(int n);
-
-  /// Set the nth node is selected.
-  virtual void SetNthNodeSelected(int n, bool selected);
-
-  /// Get if the nth node is locked.
-  virtual bool GetNthNodeLocked(int n);
-
-  /// Set if the nth node is locked.
-  virtual void SetNthNodeLocked(int n, bool locked);
-
-  /// Set the nth node's orietation.
-  virtual void SetNthNodeOrientation(int n , double orientation[4]);
-
-  /// Get the nth node's orietation.
-  virtual void GetNthNodeOrientation(int n , double orientation[4]);
-
-  /// Set the nth node's label.
-  virtual void SetNthNodeLabel(int n , vtkStdString label);
-
-  /// Get the nth node's label.
-  virtual vtkStdString GetNthNodeLabel(int n);
-
   /// Get the nth node.
-  virtual ControlPoint *GetNthNode(int n);
-
-  /// Return true if n is a valid node, false otherwise
-  bool NodeExists(int n);
-
-  /// Set the nth node's display position. Display position
-  /// will be converted into world position according to the
-  /// constraints of the point placer. Will return
-  /// 1 on success, or 0 if there are not at least
-  /// (n+1) nodes (0 based counting) or the world position
-  /// is not valid.
-  virtual int SetNthNodeDisplayPosition(int n, int X, int Y);
-  virtual int SetNthNodeDisplayPosition(int n, const int pos[2]);
-  virtual int SetNthNodeDisplayPosition(int n, const double pos[2]);
-
-  /// Set the nth node's world position. Will return
-  /// 1 on success, or 0 if there are not at least
-  /// (n+1) nodes (0 based counting) or the world
-  /// position is not valid according to the point
-  /// placer.
-  virtual int SetNthNodeWorldPosition(int n, const double pos[3]);
-
-  /// Get the nth node's slope. Will return
-  /// 1 on success, or 0 if there are not at least
-  /// (n+1) nodes (0 based counting).
-  virtual int  GetNthNodeSlope(int idx, double slope[3]);
-
-  /// For a given node n, get the number of intermediate
-  /// points between this node and the node at
-  /// (n+1). If n is the last node and the loop is
-  /// closed, this is the number of intermediate points
-  /// between node n and node 0. 0 is returned if n is
-  /// out of range.
-  virtual int GetNumberOfIntermediatePoints(int n);
+  virtual vtkMRMLMarkupsNode::ControlPoint *GetNthNode(int n);
 
   /// Get the world position of the intermediate point at
   /// index idx between nodes n and (n+1) (or n and 0 if
@@ -293,25 +152,6 @@ public:
   /// Returns 1 on success or 0 if n is out of range.
   virtual int AddIntermediatePointWorldPosition(int n,
                                                 const double point[3]);
-
-  /// Delete the last node. Returns 1 on success or 0 if
-  /// there were not any nodes.
-  virtual int DeleteLastNode();
-
-  /// Delete the active node. Returns 1 on success or 0 if
-  /// the active node did not indicate a valid node.
-  virtual int DeleteActiveNode();
-
-  /// Delete the nth node. Return 1 on success or 0 if n
-  /// is out of range.
-  virtual int DeleteNthNode(int n);
-
-  /// Delete all nodes.
-  virtual void ClearAllNodes();
-
-  /// Given a specific X, Y pixel location, add a new node
-  /// on the widget at this location.
-  virtual int AddNodeOnWidget(int X, int Y);
 
   /// Specify tolerance for performing pick operations of points
   /// (by the locator, see ActivateNode).
@@ -344,10 +184,6 @@ public:
 
   /// Handle when rebuilding the locator
   vtkSetMacro(RebuildLocator,bool);
-
-  /// Initialize with poly data
-  ///
-  //virtual void Initialize(vtkPolyData *);
 
   /// Set / Get the ClosedLoop value. This ivar indicates whether the widget
   /// forms a closed loop.
@@ -382,6 +218,8 @@ public:
   vtkSetMacro(NeedToRender, bool);
   vtkBooleanMacro(NeedToRender, bool);
   //@}
+
+  virtual int FindClosestPointOnWidget(const int displayPos[2], double worldPos[3], int *idx);
 
 protected:
   vtkSlicerAbstractWidgetRepresentation();
@@ -445,10 +283,11 @@ protected:
   int CurrentOperation;
   vtkTypeBool ClosedLoop;
 
-  virtual void AddNodeAtPositionInternal(const double worldPos[3]);
-  virtual void SetNthNodeWorldPositionInternal(int n, const double worldPos[3]);
-  virtual void FromWorldOrientToOrientationQuaternion(const double worldOrient[9], double orientation[4]);
-  virtual void FromOrientationQuaternionToWorldOrient(const double orientation[4], double worldOrient[9]);
+  /// Convenience method.
+  bool GetAllControlPointsVisible();
+
+  /// Convenience method.
+  bool GetAllControlPointsSelected();
 
   // Given a world position and orientation, this computes the display position
   // using the renderer of this class.
@@ -457,12 +296,6 @@ protected:
 
   virtual void UpdateLines(int index);
   void UpdateLine(int idx1, int idx2);
-
-  virtual int FindClosestPointOnWidget(int X, int Y,
-                                       double worldPos[3],
-                                       int *idx);
-
-  virtual void UpdateLinesFromMRML()=0;
 
   // Utility function to build lines between control points.
   // If displayPosition is true then positions will be computed in display coordinate system,
@@ -473,8 +306,10 @@ protected:
   // This method is called when something changes in the point placer.
   // It will cause all points to be updated, and all lines to be regenerated.
   // It should be extended to detect changes in the line interpolator too.
-  virtual int  UpdateWidget(bool force = false);
+//  virtual int  UpdateWidget(bool force = false);
   vtkTimeStamp WidgetBuildTime;
+
+  vtkTimeStamp MarkupsTransformModifiedTime;
 
   void ComputeMidpoint(double p1[3], double p2[3], double mid[3])
   {
@@ -487,12 +322,12 @@ protected:
   // up lookup of the active node when dealing with large datasets (100k+)
   vtkSmartPointer<vtkIncrementalOctreePointLocator> Locator;
 
-  // Deletes the previous locator if it exists and creates
-  // a new locator. Also deletes / recreates the attached data set.
-  void ResetLocator();
+  vtkWeakPointer<vtkMRMLAbstractViewNode> ViewNode;
 
   // Calculate view scale factor
   double CalculateViewScaleFactor();
+
+  void UpdateRelativeCoincidentTopologyOffsets(vtkMapper* mapper);
 
   virtual void BuildLocator();
 

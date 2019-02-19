@@ -21,12 +21,10 @@
  * @brief   Default representation for the slicer markups widget
  *
  * This class provides the default concrete representation for the
- * vtkSlicerAbstractWidget. It works in conjunction with the
- * vtkSlicerLineInterpolator and vtkPointPlacer. See vtkSlicerAbstractWidget
+ * vtkSlicerAbstractWidget. See vtkSlicerAbstractWidget
  * for details.
  * @sa
- * vtkSlicerAbstractWidgetRepresentation2D vtkSlicerAbstractWidget vtkPointPlacer
- * vtkSlicerLineInterpolator
+ * vtkSlicerAbstractWidgetRepresentation2D vtkSlicerAbstractWidget
 */
 
 #ifndef vtkSlicerAbstractWidgetRepresentation2D_h
@@ -61,7 +59,7 @@ public:
   /// Subclasses of vtkSlicerAbstractWidgetRepresentation2D must implement these methods. These
   /// are the methods that the widget and its representation use to
   /// communicate with each other.
-  virtual void UpdateFromMRML();
+  virtual void UpdateFromMRML(vtkMRMLNode* caller, unsigned long event, void *callData=NULL);
 
   /// Methods to make this class behave as a vtkProp.
   void GetActors(vtkPropCollection *) VTK_OVERRIDE;
@@ -70,10 +68,6 @@ public:
   int RenderOpaqueGeometry(vtkViewport *viewport) VTK_OVERRIDE;
   int RenderTranslucentPolygonalGeometry(vtkViewport *viewport) VTK_OVERRIDE;
   vtkTypeBool HasTranslucentPolygonalGeometry() VTK_OVERRIDE;
-
-  /// Set/Get method to the sliceNode connected to this representation
-  void SetSliceNode(vtkMRMLSliceNode *sliceNode);
-  vtkMRMLSliceNode *GetSliceNode();
 
   /// Get the nth node's position on the slice. Will return
   /// 1 on success, or 0 if there are not at least
@@ -86,20 +80,6 @@ public:
   /// 1 on success or 0 if n or idx are out of range.
   virtual int GetIntermediatePointDisplayPosition(int n,
                                                   int idx, double pos[2]) VTK_OVERRIDE;
-
-  /// Set the nth node's position on the slice. slice position
-  /// will be converted into world position according to the
-  /// GetXYToRAS matrix. Will return
-  /// 1 on success, or 0 if there are not at least
-  /// (n+1) nodes (0 based counting) or the world position
-  /// is not valid.
-  int SetNthNodeDisplayPosition(int n, const double pos[2]) VTK_OVERRIDE;
-
-  /// Add a node at a specific position on the slice. This will be
-  /// converted into a world position according to the current
-  /// constraints of the point placer. Return 0 if a point could
-  /// not be added, 1 otherwise.
-  int AddNodeAtDisplayPosition(const double slicePos[2]) VTK_OVERRIDE;
 
   /// Set the Nth node slice visibility (i.e. if it is on the slice).
   virtual void SetNthPointSliceVisibility(int n, bool visibility);
@@ -118,6 +98,9 @@ protected:
   vtkSlicerAbstractWidgetRepresentation2D();
   ~vtkSlicerAbstractWidgetRepresentation2D() VTK_OVERRIDE;
 
+    /// Get MRML view node as slice view node
+  vtkMRMLSliceNode *GetSliceNode();
+
   /// Check, if the point is displayable in the current slice geometry
   virtual bool IsPointDisplayableOnSlice(vtkMRMLMarkupsNode* node, int pointIndex = 0);
 
@@ -127,8 +110,6 @@ protected:
   /// Convert display to world coordinates
   void GetWorldToDisplayCoordinates(double r, double a, double s, double * displayCoordinates);
   void GetWorldToDisplayCoordinates(double * worldCoordinates, double * displayCoordinates);
-
-  vtkWeakPointer<vtkMRMLSliceNode> SliceNode;
 
   class ControlPointsPipeline2D : public ControlPointsPipeline
   {
@@ -153,9 +134,8 @@ protected:
   /// Scale factor for 2d windows
   double ScaleFactor2D;
 
-  virtual void BuildRepresentationPointsAndLabels(double labelsOffset);
+  virtual void UpdateAllPointsAndLabelsFromMRML(double labelsOffset);
   void BuildLocator() VTK_OVERRIDE;
-  virtual void AddNodeAtPositionInternal(const double worldPos[3]) VTK_OVERRIDE;
 
 private:
   vtkSlicerAbstractWidgetRepresentation2D(const vtkSlicerAbstractWidgetRepresentation2D&) = delete;

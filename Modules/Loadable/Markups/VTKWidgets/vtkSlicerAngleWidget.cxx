@@ -17,6 +17,8 @@
 =========================================================================*/
 
 #include "vtkSlicerAngleWidget.h"
+#include "vtkMRMLSliceNode.h"
+#include "vtkSlicerAngleRepresentation2D.h"
 #include "vtkSlicerAngleRepresentation3D.h"
 #include "vtkCommand.h"
 #include "vtkCallbackCommand.h"
@@ -51,8 +53,20 @@ vtkSlicerAngleWidget::~vtkSlicerAngleWidget()
 }
 
 //----------------------------------------------------------------------
-void vtkSlicerAngleWidget::CreateDefaultRepresentation()
+void vtkSlicerAngleWidget::CreateDefaultRepresentation(
+  vtkMRMLMarkupsDisplayNode* markupsDisplayNode, vtkMRMLAbstractViewNode* viewNode, vtkRenderer* renderer)
 {
-  vtkSlicerAngleRepresentation3D *rep = vtkSlicerAngleRepresentation3D::New();
+  vtkSmartPointer<vtkSlicerAbstractWidgetRepresentation> rep = NULL;
+  if (vtkMRMLSliceNode::SafeDownCast(viewNode))
+  {
+    rep = vtkSmartPointer<vtkSlicerAngleRepresentation2D>::New();
+  }
+  else
+  {
+    rep = vtkSmartPointer<vtkSlicerAngleRepresentation3D>::New();
+  }
+  this->SetRenderer(renderer);
   this->SetRepresentation(rep);
+  rep->SetViewNode(viewNode);
+  rep->SetMarkupsDisplayNode(markupsDisplayNode);
 }

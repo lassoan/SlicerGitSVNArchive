@@ -44,7 +44,6 @@
 #include "vtkCamera.h"
 #include "vtkPoints.h"
 #include "vtkCellArray.h"
-#include "vtkFocalPlanePointPlacer.h"
 #include "vtkSlicerLinearLineInterpolator.h"
 #include "vtkSphereSource.h"
 #include "vtkPropPicker.h"
@@ -81,17 +80,9 @@ vtkSlicerAngleRepresentation3D::vtkSlicerAngleRepresentation3D()
 
   this->LineMapper = vtkSmartPointer<vtkOpenGLPolyDataMapper>::New();
   this->LineMapper->SetInputConnection(this->TubeFilter->GetOutputPort());
-  this->LineMapper->SetResolveCoincidentTopologyToPolygonOffset();
-  this->LineMapper->SetRelativeCoincidentTopologyLineOffsetParameters(-1,-1);
-  this->LineMapper->SetRelativeCoincidentTopologyPolygonOffsetParameters(-1,-1);
-  this->LineMapper->SetRelativeCoincidentTopologyPointOffsetParameter(-1);
 
   this->ArcMapper = vtkSmartPointer<vtkOpenGLPolyDataMapper>::New();
   this->ArcMapper->SetInputConnection(this->ArcTubeFilter->GetOutputPort());
-  this->ArcMapper->SetResolveCoincidentTopologyToPolygonOffset();
-  this->ArcMapper->SetRelativeCoincidentTopologyLineOffsetParameters(-1,-1);
-  this->ArcMapper->SetRelativeCoincidentTopologyPolygonOffsetParameters(-1,-1);
-  this->ArcMapper->SetRelativeCoincidentTopologyPointOffsetParameter(-1);
 
   this->LineActor = vtkSmartPointer<vtkOpenGLActor>::New();
   this->LineActor->SetMapper(this->LineMapper);
@@ -123,30 +114,37 @@ vtkSlicerAngleRepresentation3D::~vtkSlicerAngleRepresentation3D()
 //----------------------------------------------------------------------
 bool vtkSlicerAngleRepresentation3D::GetTransformationReferencePoint(double referencePointWorld[3])
 {
-  if (this->GetNumberOfNodes() < 2)
-  {
+  vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
+  if (!markupsNode || markupsNode->GetNumberOfControlPoints() < 2)
+    {
     return false;
-  }
-  this->GetNthNodeWorldPosition(1, referencePointWorld);
+    }
+  markupsNode->GetNthControlPointPositionWorld(1, referencePointWorld);
   return true;
 }
 
 //----------------------------------------------------------------------
 void vtkSlicerAngleRepresentation3D::UpdateLinesFromMRML()
 {
+  vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
+  if (!markupsNode)
+    {
+    return;
+    }
+
   this->BuildLine(this->Line, false);
 
   // Build Arc
-  if (this->GetNumberOfNodes() != 3)
+  if (markupsNode->GetNumberOfControlPoints() != 3)
     {
     return;
     }
 
   double p1[3], p2[3], c[3], vector2[3], vector1[3];
   double l1 = 0.0, l2 = 0.0;
-  this->GetNthNodeWorldPosition(0, p1);
-  this->GetNthNodeWorldPosition(1, c);
-  this->GetNthNodeWorldPosition(2, p2);
+  markupsNode->GetNthControlPointPositionWorld(0, p1);
+  markupsNode->GetNthControlPointPositionWorld(1, c);
+  markupsNode->GetNthControlPointPositionWorld(2, p2);
 
   // Compute the angle (only if necessary since we don't want
   // fluctuations in angle value as the camera moves, etc.)
@@ -203,100 +201,57 @@ void vtkSlicerAngleRepresentation3D::UpdateLinesFromMRML()
 }
 
 //----------------------------------------------------------------------
-void vtkSlicerAngleRepresentation3D::UpdateFromMRML()
+void vtkSlicerAngleRepresentation3D::UpdateFromMRML(vtkMRMLNode* caller, unsigned long event, void *callData /*=NULL*/)
 {
-  // Make sure we are up to date with any changes made in the placer
-  //this->UpdateWidget(true);
+  Superclass::UpdateFromMRML(caller, event, callData);
+
+  this->NeedToRenderOn();
 
   vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
-  if (!markupsNode)
+  if (!markupsNode || !this->MarkupsDisplayNode
+    || !this->MarkupsDisplayNode->GetVisibility()
+    || !this->MarkupsDisplayNode->IsDisplayableInView(this->ViewNode->GetID())
+    )
   {
+    this->VisibilityOff();
     return;
   }
-  if (!this->MarkupsDisplayNode)
-  {
-    return;
-  }
+
+  this->VisibilityOn();
+
+  // Update lines geometry
+
+  this->UpdateLinesFromMRML();
+
+  // Update lines display properties
 
   for (int controlPointType = 0; controlPointType < NumberOfControlPointTypes; ++controlPointType)
     {
     ControlPointsPipeline3D* controlPoints = this->GetControlPointsPipeline(controlPointType);
     controlPoints->LabelsActor->SetVisibility(this->MarkupsDisplayNode->GetTextVisibility());
     controlPoints->Glypher->SetScaleFactor(this->ControlPointSize);
-
-    if (this->AlwaysOnTop)
-      {
-      // max value 65536 so we subtract 66000 to make sure we are
-      // zero or negative
-      controlPoints->Mapper->SetRelativeCoincidentTopologyLineOffsetParameters(0, -66000);
-      controlPoints->Mapper->SetRelativeCoincidentTopologyPolygonOffsetParameters(0, -66000);
-      controlPoints->Mapper->SetRelativeCoincidentTopologyPointOffsetParameter(-66000);
-      }
-    else
-      {
-      controlPoints->Mapper->SetRelativeCoincidentTopologyLineOffsetParameters(-1, -1);
-      controlPoints->Mapper->SetRelativeCoincidentTopologyPolygonOffsetParameters(-1, -1);
-      controlPoints->Mapper->SetRelativeCoincidentTopologyPointOffsetParameter(-1);
-      }
+    this->UpdateRelativeCoincidentTopologyOffsets(controlPoints->Mapper);
     }
 
   this->TextActor->SetVisibility(this->MarkupsDisplayNode->GetTextVisibility());
 
-  if (this->AlwaysOnTop)
-  {
-    // max value 65536 so we subtract 66000 to make sure we are
-    // zero or negative
-    this->LineMapper->SetRelativeCoincidentTopologyLineOffsetParameters(0, -66000);
-    this->LineMapper->SetRelativeCoincidentTopologyPolygonOffsetParameters(0, -66000);
-    this->LineMapper->SetRelativeCoincidentTopologyPointOffsetParameter(-66000);
-    this->ArcMapper->SetRelativeCoincidentTopologyLineOffsetParameters(0, -66000);
-    this->ArcMapper->SetRelativeCoincidentTopologyPolygonOffsetParameters(0, -66000);
-    this->ArcMapper->SetRelativeCoincidentTopologyPointOffsetParameter(-66000);
-  }
-  else
-  {
-    this->LineMapper->SetRelativeCoincidentTopologyLineOffsetParameters(-1, -1);
-    this->LineMapper->SetRelativeCoincidentTopologyPolygonOffsetParameters(-1, -1);
-    this->LineMapper->SetRelativeCoincidentTopologyPointOffsetParameter(-1);
-    this->ArcMapper->SetRelativeCoincidentTopologyLineOffsetParameters(-1, -1);
-    this->ArcMapper->SetRelativeCoincidentTopologyPolygonOffsetParameters(0, -1);
-    this->ArcMapper->SetRelativeCoincidentTopologyPointOffsetParameter(-1);
-  }
+  this->UpdateRelativeCoincidentTopologyOffsets(this->LineMapper);
+  this->UpdateRelativeCoincidentTopologyOffsets(this->ArcMapper);
 
   this->TubeFilter->SetRadius(this->ControlPointSize * 0.125);
   this->ArcTubeFilter->SetRadius(this->ControlPointSize * 0.125);
 
-  this->BuildRepresentationPointsAndLabels();
-
-  bool lineVisibility = true;
-  for (int ii = 0; ii < this->GetNumberOfNodes(); ii++)
-    {
-    if (!this->GetNthNodeVisibility(ii))
-      {
-      lineVisibility = false;
-      break;
-      }
-    }
+  bool lineVisibility = this->GetAllControlPointsVisible();
 
   this->LineActor->SetVisibility(lineVisibility);
-  this->ArcActor->SetVisibility(lineVisibility && this->GetNumberOfNodes() == 3);
-  this->TextActor->SetVisibility(lineVisibility && this->GetNumberOfNodes() == 3);
+  this->ArcActor->SetVisibility(lineVisibility && markupsNode->GetNumberOfControlPoints() == 3);
+  this->TextActor->SetVisibility(lineVisibility && markupsNode->GetNumberOfControlPoints() == 3);
 
-  int controlPointType = Unselected;
-  if (this->MarkupsDisplayNode->GetActiveComponentType() == vtkMRMLMarkupsDisplayNode::ComponentLine)
-  {
-    controlPointType = Active;
-  }
-  else if (!this->GetNthNodeSelected(0) ||
-    (this->GetNumberOfNodes() > 1 && !this->GetNthNodeSelected(1)) ||
-    (this->GetNumberOfNodes() > 2 && !this->GetNthNodeSelected(2)))
-  {
-    controlPointType = Unselected;
-  }
-  else
-  {
-    controlPointType = Selected;
-  }
+  int controlPointType = Active;
+  if (this->MarkupsDisplayNode->GetActiveComponentType() != vtkMRMLMarkupsDisplayNode::ComponentLine)
+    {
+    controlPointType = this->GetAllControlPointsSelected() ? Selected : Unselected;
+    }
   this->LineActor->SetProperty(this->GetControlPointsPipeline(controlPointType)->Property);
   this->ArcActor->SetProperty(this->GetControlPointsPipeline(controlPointType)->Property);
   this->TextActor->SetTextProperty(this->GetControlPointsPipeline(controlPointType)->TextProperty);
@@ -345,10 +300,6 @@ int vtkSlicerAngleRepresentation3D::RenderOverlay(vtkViewport *viewport)
 int vtkSlicerAngleRepresentation3D::RenderOpaqueGeometry(
   vtkViewport *viewport)
 {
-  // Since we know RenderOpaqueGeometry gets called first, will do the
-  // build here
-  this->UpdateFromMRML();
-
   int count=0;
   count = this->Superclass::RenderOpaqueGeometry(viewport);
   if (this->LineActor->GetVisibility())
@@ -421,7 +372,7 @@ double *vtkSlicerAngleRepresentation3D::GetBounds()
 int vtkSlicerAngleRepresentation3D::CanInteract(const int displayPosition[2], const double worldPosition[3], double &closestDistance2, int &componentIndex)
 {
   vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
-  if (!markupsNode || markupsNode->GetLocked() || this->GetNumberOfNodes() < 1)
+  if (!markupsNode || markupsNode->GetLocked() || markupsNode->GetNumberOfControlPoints() < 1)
   {
     return vtkMRMLMarkupsDisplayNode::ComponentNone;
   }

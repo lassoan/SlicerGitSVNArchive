@@ -171,13 +171,12 @@ public:
   /// Standard methods for a VTK class.
   vtkTypeMacro(vtkSlicerLineWidget,vtkSlicerAbstractWidget);
 
-  /// Create the default widget representation if one is not set.
-  /// NOTE: the representation needs also a Markup object from the MRMLMarkupsNode
-  virtual void CreateDefaultRepresentation() override;
+  /// Create the default widget representation and initializes the widget and representation.
+  void CreateDefaultRepresentation(vtkMRMLMarkupsDisplayNode* markupsDisplayNode, vtkMRMLAbstractViewNode* viewNode, vtkRenderer* renderer) VTK_OVERRIDE;
 
 protected:
   vtkSlicerLineWidget();
-  ~vtkSlicerLineWidget() override;
+  ~vtkSlicerLineWidget() VTK_OVERRIDE;
 
 private:
   vtkSlicerLineWidget(const vtkSlicerLineWidget&) = delete;

@@ -16,7 +16,6 @@
 
 =========================================================================*/
 
-#include "vtkSlicerAbstractWidgetRepresentation.h"
 #include "vtkSlicerLinearLineInterpolator.h"
 #include "vtkObjectFactory.h"
 
@@ -29,14 +28,12 @@ vtkSlicerLinearLineInterpolator::vtkSlicerLinearLineInterpolator() = default;
 vtkSlicerLinearLineInterpolator::~vtkSlicerLinearLineInterpolator() = default;
 
 //----------------------------------------------------------------------
-int vtkSlicerLinearLineInterpolator::InterpolateLine(vtkSlicerAbstractWidgetRepresentation *rep,
-                                                     int idx1, int idx2)
+int vtkSlicerLinearLineInterpolator::InterpolateLine(
+  vtkMRMLMarkupsNode::ControlPointsListType& controlPoints, bool closedLoop,
+  int idx1, int idx2)
 {
-  double p1[3] = {0}, p2[3] = {0};
-  rep->GetNthNodeWorldPosition(idx1, p1);
-  rep->AddIntermediatePointWorldPosition(idx1, p1);
-  rep->GetNthNodeWorldPosition(idx2, p2);
-  rep->AddIntermediatePointWorldPosition(idx2, p2);
+  controlPoints[idx1]->IntermediatePositions.push_back(controlPoints[idx1]->Position);
+  controlPoints[idx2]->IntermediatePositions.push_back(controlPoints[idx2]->Position);
   return 1;
 }
 

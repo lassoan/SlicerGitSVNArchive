@@ -17,6 +17,8 @@
 =========================================================================*/
 
 #include "vtkSlicerCurveWidget.h"
+#include "vtkMRMLSliceNode.h"
+#include "vtkSlicerCurveRepresentation2D.h"
 #include "vtkSlicerCurveRepresentation3D.h"
 #include "vtkCommand.h"
 #include "vtkCallbackCommand.h"
@@ -53,11 +55,22 @@ vtkSlicerCurveWidget::~vtkSlicerCurveWidget()
 }
 
 //----------------------------------------------------------------------
-void vtkSlicerCurveWidget::CreateDefaultRepresentation()
+void vtkSlicerCurveWidget::CreateDefaultRepresentation(
+  vtkMRMLMarkupsDisplayNode* markupsDisplayNode, vtkMRMLAbstractViewNode* viewNode, vtkRenderer* renderer)
 {
-  vtkSlicerCurveRepresentation3D *rep = vtkSlicerCurveRepresentation3D::New();
-  rep->SetRenderer(this->GetRenderer());
+  vtkSmartPointer<vtkSlicerAbstractWidgetRepresentation> rep = NULL;
+  if (vtkMRMLSliceNode::SafeDownCast(viewNode))
+  {
+    rep = vtkSmartPointer<vtkSlicerCurveRepresentation2D>::New();
+  }
+  else
+  {
+    rep = vtkSmartPointer<vtkSlicerCurveRepresentation3D>::New();
+  }
+  this->SetRenderer(renderer);
   this->SetRepresentation(rep);
+  rep->SetViewNode(viewNode);
+  rep->SetMarkupsDisplayNode(markupsDisplayNode);
 }
 
 //----------------------------------------------------------------------

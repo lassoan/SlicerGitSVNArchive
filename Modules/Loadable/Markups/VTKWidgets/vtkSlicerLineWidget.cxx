@@ -17,6 +17,8 @@
 =========================================================================*/
 
 #include "vtkSlicerLineWidget.h"
+#include "vtkMRMLSliceNode.h"
+#include "vtkSlicerLineRepresentation2D.h"
 #include "vtkSlicerLineRepresentation3D.h"
 #include "vtkCommand.h"
 #include "vtkCallbackCommand.h"
@@ -51,8 +53,20 @@ vtkSlicerLineWidget::~vtkSlicerLineWidget()
 }
 
 //----------------------------------------------------------------------
-void vtkSlicerLineWidget::CreateDefaultRepresentation()
+void vtkSlicerLineWidget::CreateDefaultRepresentation(
+  vtkMRMLMarkupsDisplayNode* markupsDisplayNode, vtkMRMLAbstractViewNode* viewNode, vtkRenderer* renderer)
 {
-  vtkNew<vtkSlicerLineRepresentation3D> rep;
+  vtkSmartPointer<vtkSlicerAbstractWidgetRepresentation> rep = NULL;
+  if (vtkMRMLSliceNode::SafeDownCast(viewNode))
+  {
+    rep = vtkSmartPointer<vtkSlicerLineRepresentation2D>::New();
+  }
+  else
+  {
+    rep = vtkSmartPointer<vtkSlicerLineRepresentation3D>::New();
+  }
+  this->SetRenderer(renderer);
   this->SetRepresentation(rep);
+  rep->SetViewNode(viewNode);
+  rep->SetMarkupsDisplayNode(markupsDisplayNode);
 }

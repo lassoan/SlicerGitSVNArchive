@@ -21,12 +21,10 @@
  * @brief   Default representation for the slicer markups widget
  *
  * This class provides the default concrete representation for the
- * vtkSlicerAbstractWidget. It works in conjunction with the
- * vtkSlicerLineInterpolator and vtkPointPlacer. See vtkSlicerAbstractWidget
+ * vtkSlicerAbstractWidget. See vtkSlicerAbstractWidget
  * for details.
  * @sa
- * vtkSlicerAbstractWidgetRepresentation3D vtkSlicerAbstractWidget vtkPointPlacer
- * vtkSlicerLineInterpolator
+ * vtkSlicerAbstractWidgetRepresentation2D vtkSlicerAbstractWidget
 */
 
 #ifndef vtkSlicerAbstractWidgetRepresentation3D_h
@@ -59,7 +57,7 @@ public:
   /// Subclasses of vtkSlicerAbstractWidgetRepresentation3D must implement these methods. These
   /// are the methods that the widget and its representation use to
   /// communicate with each other.
-  void UpdateFromMRML() VTK_OVERRIDE;
+  void UpdateFromMRML(vtkMRMLNode* caller, unsigned long event, void *callData = NULL) VTK_OVERRIDE;
 
   /// Methods to make this class behave as a vtkProp.
   void GetActors(vtkPropCollection *) VTK_OVERRIDE;
@@ -99,7 +97,9 @@ protected:
 
   ControlPointsPipeline3D* GetControlPointsPipeline(int controlPointType);
 
-  virtual void BuildRepresentationPointsAndLabels();
+  virtual void UpdateNthPointAndLabelFromMRML(int n);
+
+  virtual void UpdateAllPointsAndLabelsFromMRML();
 
 private:
   vtkSlicerAbstractWidgetRepresentation3D(const vtkSlicerAbstractWidgetRepresentation3D&) = delete;

@@ -31,8 +31,7 @@ int vtkMRMLMarkupsNodeTest2(int , char * [] )
   std::cout << "Trying copy markup with null pointers" << std::endl;
   node1->CopyControlPoint(nullptr, nullptr);
   // now try with some data
-  ControlPoint markup1, markup2;
-  node1->InitControlPoint(&markup1);
+  vtkMRMLMarkupsNode::ControlPoint markup1, markup2;
   markup2.Label = std::string("Markup number two");
   markup2.Description = std::string("Description for two");
   markup2.AssociatedNodeID = std::string("vtkMRMLVolumeNode333");
@@ -134,7 +133,7 @@ int vtkMRMLMarkupsNodeTest2(int , char * [] )
   // Check if ID returned is valid
   if (node1->GetNumberOfControlPoints() > 0)
     {
-    ControlPoint* markup = node1->GetNthControlPoint(0);
+    vtkMRMLMarkupsNode::ControlPoint* markup = node1->GetNthControlPoint(0);
     const char* markupID = markup->ID.c_str();
     int markupIndex = node1->GetNthControlPointIndexByID(markupID);
     if (node1->GetNthControlPointByID(markupID) != markup)
@@ -151,7 +150,7 @@ int vtkMRMLMarkupsNodeTest2(int , char * [] )
     }
 
   // Check returned value with a NULL ID
-  ControlPoint* markupNull = node1->GetNthControlPointByID(nullptr);
+  vtkMRMLMarkupsNode::ControlPoint* markupNull = node1->GetNthControlPointByID(nullptr);
   int indexNull = node1->GetNthControlPointIndexByID(nullptr);
   if (markupNull)
     {
@@ -165,7 +164,7 @@ int vtkMRMLMarkupsNodeTest2(int , char * [] )
     }
 
   // Check returned value with an invalid ID
-  ControlPoint* markupInvalid = node1->GetNthControlPointByID("Invalid");
+  vtkMRMLMarkupsNode::ControlPoint* markupInvalid = node1->GetNthControlPointByID("Invalid");
   int indexInvalid = node1->GetNthControlPointIndexByID("Invalid");
   if (markupInvalid)
     {

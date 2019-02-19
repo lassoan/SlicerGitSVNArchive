@@ -21,12 +21,10 @@
  * @brief   Default representation for the line widget
  *
  * This class provides the default concrete representation for the
- * vtkSlicerAngleWidget. It works in conjunction with the
- * vtkSlicerLinearLineInterpolator and vtkPointPlacer. See vtkSlicerAngleWidget
+ * vtkSlicerAbstractWidget. See vtkSlicerAbstractWidget
  * for details.
  * @sa
- * vtkSlicerAbstractWidgetRepresentation2D vtkSlicerAngleWidget vtkPointPlacer
- * vtkSlicerLinearLineInterpolator
+ * vtkSlicerAbstractWidgetRepresentation2D vtkSlicerAbstractWidget
 */
 
 #ifndef vtkSlicerAngleRepresentation2D_h
@@ -58,7 +56,7 @@ public:
   /// Subclasses of vtkContourCurveRepresentation must implement these methods. These
   /// are the methods that the widget and its representation use to
   /// communicate with each other.
-  void UpdateFromMRML() VTK_OVERRIDE;
+  void UpdateFromMRML(vtkMRMLNode* caller, unsigned long event, void *callData = NULL) VTK_OVERRIDE;
 
   /// Methods to make this class behave as a vtkProp.
   void GetActors(vtkPropCollection *) override;
@@ -94,7 +92,7 @@ protected:
 
   std::string LabelFormat;
 
-  virtual void UpdateLinesFromMRML() override;
+  void UpdateLinesFromMRML();
 
 private:
   vtkSlicerAngleRepresentation2D(const vtkSlicerAngleRepresentation2D&) = delete;

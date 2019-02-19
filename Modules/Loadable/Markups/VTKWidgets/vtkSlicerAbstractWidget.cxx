@@ -100,8 +100,12 @@ void vtkSlicerAbstractWidget::CloseLoop()
     {
     return;
     }
-
-  if (!this->WidgetRep->GetClosedLoop() && this->WidgetRep->GetNumberOfNodes() > 1)
+  vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
+  if (!markupsNode)
+    {
+    return;
+    }
+  if (!this->WidgetRep->GetClosedLoop() && markupsNode->GetNumberOfControlPoints() > 1)
     {
     this->WidgetRep->ClosedLoopOn();
     this->Render();
@@ -144,14 +148,14 @@ vtkSlicerAbstractWidgetRepresentation* vtkSlicerAbstractWidget::GetRepresentatio
 }
 
 //-------------------------------------------------------------------------
-void vtkSlicerAbstractWidget::UpdateFromMRML()
+void vtkSlicerAbstractWidget::UpdateFromMRML(vtkMRMLNode* caller, unsigned long event, void *callData/*=NULL*/)
 {
   if (!this->WidgetRep)
     {
     return;
     }
 
-  this->WidgetRep->UpdateFromMRML();
+  this->WidgetRep->UpdateFromMRML(caller, event, callData);
 }
 
 //-------------------------------------------------------------------------
@@ -244,10 +248,10 @@ bool vtkSlicerAbstractWidget::ProcessMouseMove(vtkSlicerInteractionEventData* ev
   if (state == vtkSlicerAbstractWidget::Define)
   {
     // update preview point position
-    if (this->FollowCursor && this->WidgetRep->GetNumberOfNodes() > 0)
+    if (this->FollowCursor && markupsNode->GetNumberOfControlPoints() > 0)
     {
       const int* displayPosition = eventData->GetDisplayPosition();
-      this->WidgetRep->SetNthNodeDisplayPosition(this->WidgetRep->GetNumberOfNodes() - 1, displayPosition[0], displayPosition[1]);
+      this->SetNthNodeDisplayPosition(markupsNode->GetNumberOfControlPoints() - 1, displayPosition);
     }
   }
   else if (state == Idle || state == OnWidget)
@@ -267,7 +271,7 @@ bool vtkSlicerAbstractWidget::ProcessMouseMove(vtkSlicerInteractionEventData* ev
       this->SetWidgetState(OnWidget);
       if (foundComponent == vtkMRMLMarkupsDisplayNode::ComponentControlPoint)
       {
-        this->WidgetRep->SetActiveNode(componentIndex);
+        this->GetMarkupsDisplayNode()->SetActiveControlPoint(componentIndex);
       }
     }
   }
@@ -330,8 +334,7 @@ bool vtkSlicerAbstractWidget::ProcessEndMouseDrag(vtkSlicerInteractionEventData*
     return false;
   }
 
-  this->WidgetRep->SetActiveNode(-1);
-  this->SetWidgetState(Idle);
+  this->SetWidgetState(OnWidget);
 
   this->EndWidgetInteraction();
 
@@ -387,22 +390,24 @@ bool vtkSlicerAbstractWidget::ProcessControlPointDelete(vtkSlicerInteractionEven
 //-------------------------------------------------------------------------
 int vtkSlicerAbstractWidget::AddPreviewPointToRepresentationFromWorldCoordinate(const double worldCoordinates[3])
 {
-  if (!this->WidgetRep)
+  vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
+  if (!markupsNode)
     {
     return -1;
     }
 
   this->FollowCursor = true;
   this->WidgetState = vtkSlicerAbstractWidget::Define;
-  this->WidgetRep->AddNodeAtWorldPosition(worldCoordinates);
+  markupsNode->AddControlPointWorld(vtkVector3d(worldCoordinates));
 
-  return this->WidgetRep->GetNumberOfNodes() - 1;
+  return markupsNode->GetNumberOfControlPoints() - 1;
 }
 
 //-------------------------------------------------------------------------
 void vtkSlicerAbstractWidget::UpdatePreviewPointPositionFromWorldCoordinate(const double worldCoordinates[3])
 {
-  if (!this->WidgetRep)
+  vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
+  if (!markupsNode)
     {
     return;
     }
@@ -412,23 +417,26 @@ void vtkSlicerAbstractWidget::UpdatePreviewPointPositionFromWorldCoordinate(cons
     }
   else
     {
-    this->WidgetRep->SetNthNodeWorldPosition(this->WidgetRep->GetNumberOfNodes()-1, worldCoordinates);
+    markupsNode->SetNthControlPointPositionWorldFromArray(markupsNode->GetNumberOfControlPoints()-1, worldCoordinates);
     }
 }
 
 //-------------------------------------------------------------------------
 bool vtkSlicerAbstractWidget::RemovePreviewPoint()
 {
-  if (!this->WidgetRep)
+  vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
+  if (!markupsNode)
     {
     return false;
     }
-
   if (!this->FollowCursor)
   {
+    // preview point is already removed
     return false;
   }
-  this->WidgetRep->DeleteLastNode();
+
+  markupsNode->RemoveLastControlPoint();
+
   this->FollowCursor = false;
   return true;
 }
@@ -580,6 +588,17 @@ void vtkSlicerAbstractWidget::StartWidgetInteraction(vtkSlicerInteractionEventDa
   {
     return;
   }
+  vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
+  vtkMRMLMarkupsDisplayNode* markupsDisplayNode = this->GetMarkupsDisplayNode();
+  if (!markupsNode || !markupsDisplayNode)
+  {
+    return;
+  }
+  int activeControlPointIndex = markupsDisplayNode->GetActiveControlPoint();
+  if (activeControlPointIndex < 0 || activeControlPointIndex >= markupsNode->GetNumberOfControlPoints())
+  {
+    return;
+  }
 
   //this->GrabFocus(this->EventCallbackCommand);
   //this->StartInteraction();
@@ -595,7 +614,7 @@ void vtkSlicerAbstractWidget::StartWidgetInteraction(vtkSlicerInteractionEventDa
 
   // GetActiveNode position
   double pos[2] = { 0.0 };
-  if (this->WidgetRep->GetActiveNodeDisplayPosition(pos))
+  if (this->WidgetRep->GetNthNodeDisplayPosition(activeControlPointIndex, pos))
   {
     // save offset
     this->StartEventOffsetPosition[0] = startEventPos[0] - pos[0];
@@ -623,19 +642,23 @@ void vtkSlicerAbstractWidget::EndWidgetInteraction()
 void vtkSlicerAbstractWidget::TranslateNode(double eventPos[2])
 {
   vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
-  if (!markupsNode)
+  vtkMRMLMarkupsDisplayNode* markupsDisplayNode = this->GetMarkupsDisplayNode();
+  if (!markupsNode || !markupsDisplayNode)
   {
     return;
   }
+  int activeControlPointIndex = markupsDisplayNode->GetActiveControlPoint();
+  if (activeControlPointIndex < 0 || activeControlPointIndex >= markupsNode->GetNumberOfControlPoints())
+  {
+    return;
+  }
+
 
   eventPos[0] -= this->StartEventOffsetPosition[0];
   eventPos[1] -= this->StartEventOffsetPosition[1];
 
   double oldWorldPos[3];
-  if (!this->WidgetRep->GetActiveNodeWorldPosition(oldWorldPos))
-  {
-    return;
-  }
+  markupsNode->GetNthControlPointPositionWorld(activeControlPointIndex, oldWorldPos);
 
   double worldPos[3], worldOrient[9];
   vtkSlicerAbstractWidgetRepresentation2D* rep2d = vtkSlicerAbstractWidgetRepresentation2D::SafeDownCast(this->WidgetRep);
@@ -655,7 +678,13 @@ void vtkSlicerAbstractWidget::TranslateNode(double eventPos[2])
     }
   }
 
-  this->WidgetRep->SetActiveNodeToWorldPosition(worldPos);
+  // Check if this is a valid location
+  if (!this->WidgetRep->GetPointPlacer()->ValidateWorldPosition((double*)worldPos))
+  {
+    return;
+  }
+
+  markupsNode->SetNthControlPointPositionWorldFromArray(activeControlPointIndex, worldPos);
 }
 
 //----------------------------------------------------------------------
@@ -719,19 +748,19 @@ void vtkSlicerAbstractWidget::TranslateWidget(double eventPos[2])
   vector[2] = worldPos[2] - ref[2];
 
   int wasModified = markupsNode->StartModify();
-  for (int i = 0; i < this->WidgetRep->GetNumberOfNodes(); i++)
+  for (int i = 0; i < markupsNode->GetNumberOfControlPoints(); i++)
   {
-    if (this->WidgetRep->GetNthNodeLocked(i))
+    if (markupsNode->GetNthControlPointLocked(i))
     {
       continue;
     }
 
-    this->WidgetRep->GetNthNodeWorldPosition(i, ref);
+    markupsNode->GetNthControlPointPositionWorld(i, ref);
     for (int j = 0; j < 3; j++)
     {
       worldPos[j] = ref[j] + vector[j];
     }
-    this->WidgetRep->SetNthNodeWorldPosition(i, worldPos);
+    markupsNode->SetNthControlPointPositionWorldFromArray(i, worldPos);
   }
   markupsNode->EndModify(wasModified);
 }
@@ -804,20 +833,20 @@ void vtkSlicerAbstractWidget::ScaleWidget(double eventPos[2])
   double ratio = sqrt(d2 / r2);
 
   int wasModified = markupsNode->StartModify();
-  for (int i = 0; i < this->WidgetRep->GetNumberOfNodes(); i++)
+  for (int i = 0; i < markupsNode->GetNumberOfControlPoints(); i++)
   {
-    if (this->WidgetRep->GetNthNodeLocked(i))
+    if (markupsNode->GetNthControlPointLocked(i))
     {
       continue;
     }
 
-    this->WidgetRep->GetNthNodeWorldPosition(i, ref);
+    markupsNode->GetNthControlPointPositionWorld(i, ref);
     for (int j = 0; j < 3; j++)
     {
       worldPos[j] = centroid[j] + ratio * (ref[j] - centroid[j]);
     }
 
-    this->WidgetRep->SetNthNodeWorldPosition(i, worldPos);
+    markupsNode->SetNthControlPointPositionWorldFromArray(i, worldPos);
   }
   markupsNode->EndModify(wasModified);
 }
@@ -899,9 +928,9 @@ void vtkSlicerAbstractWidget::RotateWidget(double eventPos[2])
   (vtkMath::AngleBetweenVectors(lastWorldPos, worldPos));
 
   int wasModified = markupsNode->StartModify();
-  for (int i = 0; i < this->WidgetRep->GetNumberOfNodes(); i++)
+  for (int i = 0; i < markupsNode->GetNumberOfControlPoints(); i++)
   {
-    this->WidgetRep->GetNthNodeWorldPosition(i, ref);
+    markupsNode->GetNthControlPointPositionWorld(i, ref);
     for (int j = 0; j < 3; j++)
     {
       ref[j] -= centroid[j];
@@ -915,7 +944,7 @@ void vtkSlicerAbstractWidget::RotateWidget(double eventPos[2])
       worldPos[j] += centroid[j];
     }
 
-    this->WidgetRep->SetNthNodeWorldPosition(i, worldPos);
+    markupsNode->SetNthControlPointPositionWorldFromArray(i, worldPos);
   }
   markupsNode->EndModify(wasModified);
 }
@@ -977,29 +1006,73 @@ bool vtkSlicerAbstractWidget::IsAnyControlPointLocked()
 //-------------------------------------------------------------------------
 int vtkSlicerAbstractWidget::AddPointFromWorldCoordinate(const double worldCoordinates[3])
 {
-  if (!this->WidgetRep)
-  {
-    return -1;
-  }
-
-  if (this->FollowCursor)
-  {
-    // convert point preview to final point
-    this->WidgetRep->SetNthNodeWorldPosition(this->WidgetRep->GetNumberOfNodes() - 1, worldCoordinates);
-    this->FollowCursor = false;
-  }
-  else
-  {
-    if (!this->WidgetRep->AddNodeAtWorldPosition(worldCoordinates))
+  vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
+  if (!markupsNode)
     {
-      return -1;
+    return -1;
     }
-  }
-  this->WidgetRep->SetActiveNode(this->WidgetRep->GetNumberOfNodes() - 1);
 
-  return this->WidgetRep->GetNumberOfNodes() - 1;
+  int addedControlPoint = -1;
+  if (this->FollowCursor)
+    {
+    // convert point preview to final point
+    addedControlPoint = markupsNode->GetNumberOfControlPoints() - 1;
+    markupsNode->SetNthControlPointPositionWorldFromArray(addedControlPoint, worldCoordinates);
+    this->FollowCursor = false;
+    }
+  else
+    {
+    addedControlPoint = this->GetMarkupsNode()->AddControlPointWorld(vtkVector3d(worldCoordinates));
+    }
+
+  if (addedControlPoint>=0 && this->GetMarkupsDisplayNode())
+    {
+    this->GetMarkupsDisplayNode()->SetActiveControlPoint(addedControlPoint);
+    }
+
+  return addedControlPoint;
 }
 
+//----------------------------------------------------------------------
+int vtkSlicerAbstractWidget::AddNodeOnWidget(const int displayPos[2])
+{
+  vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
+  if (!markupsNode)
+    {
+    return 0;
+    }
+  double displayPosDouble[3] = { static_cast<double>(displayPos[0]), static_cast<double>(displayPos[1]), 0.0 };
+  double worldPos[3] = { 0.0 };
+  double worldOrient[9] = { 0.0 };
+  if (!this->WidgetRep->GetPointPlacer()->ComputeWorldPosition(this->Renderer, displayPosDouble, worldPos, worldOrient))
+    {
+    return 0;
+    }
+
+  int idx = -1;
+  double closestPosWorld[3];
+  if (!this->WidgetRep->FindClosestPointOnWidget(displayPos, closestPosWorld, &idx))
+    {
+    return 0;
+    }
+
+  double orientation[4] = { 0.0 };
+  if (!this->WidgetRep->GetPointPlacer()->ComputeWorldPosition(this->Renderer,
+    displayPosDouble, closestPosWorld, worldPos, worldOrient))
+    {
+    return 0;
+    }
+
+  // Add a new point at this position
+  vtkMRMLMarkupsNode::ControlPoint* controlPoint = new vtkMRMLMarkupsNode::ControlPoint;
+  markupsNode->TransformPointFromWorld(vtkVector3d(worldPos), controlPoint->Position);
+
+  markupsNode->InsertControlPoint(controlPoint, idx);
+  vtkMRMLMarkupsNode::FromWorldOrientToOrientationQuaternion(worldOrient, orientation);
+  markupsNode->SetNthControlPointOrientationFromArray(idx, orientation);
+
+  return 1;
+}
 
 //-------------------------------------------------------------------------
 int vtkSlicerAbstractWidget::GetCursor()
@@ -1040,6 +1113,26 @@ bool vtkSlicerAbstractWidget::GetInteractive()
 }
 
 //-------------------------------------------------------------------------
+bool vtkSlicerAbstractWidget::GetNeedToRender()
+{
+  if (!this->WidgetRep)
+    {
+    return false;
+    }
+  return this->WidgetRep->GetNeedToRender();
+}
+
+//-------------------------------------------------------------------------
+void vtkSlicerAbstractWidget::NeedToRenderOff()
+{
+  if (!this->WidgetRep)
+    {
+    return;
+    }
+  this->WidgetRep->NeedToRenderOff();
+}
+
+//-------------------------------------------------------------------------
 void vtkSlicerAbstractWidget::Render()
 {
   // TODO:
@@ -1071,4 +1164,43 @@ void vtkSlicerAbstractWidget::SetRenderer(vtkRenderer* renderer)
     this->WidgetRep->SetRenderer(this->Renderer);
     this->Renderer->AddViewProp(this->WidgetRep);
   }
+}
+
+//----------------------------------------------------------------------
+int vtkSlicerAbstractWidget::SetNthNodeDisplayPosition(int n, const int displayPos[2])
+{
+  vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
+  if (!markupsNode || n >= markupsNode->GetNumberOfControlPoints())
+    {
+    return 0;
+    }
+
+  double doubleDisplayPos[3] = { static_cast<double>(displayPos[0]), static_cast<double>(displayPos[1]), 0.0 };
+
+  vtkSlicerAbstractWidgetRepresentation2D* rep2d = vtkSlicerAbstractWidgetRepresentation2D::SafeDownCast(this->WidgetRep);
+  if (rep2d)
+    {
+    // 2D view
+    double worldPos[3];
+    rep2d->GetSliceToWorldCoordinates(doubleDisplayPos, worldPos);
+    markupsNode->SetNthControlPointPositionWorldFromArray(n, worldPos);
+    }
+  else
+    {
+    // 3D view
+    double worldPos[3];
+    double worldOrient[9];
+    double orientation[4];
+    if (!this->WidgetRep->GetPointPlacer()->ComputeWorldPosition(this->Renderer, doubleDisplayPos, worldPos,
+      worldOrient))
+      {
+      return 0;
+      }
+
+    vtkMRMLMarkupsNode::FromWorldOrientToOrientationQuaternion(worldOrient, orientation);
+    markupsNode->SetNthControlPointOrientationFromArray(n, orientation);
+    markupsNode->SetNthControlPointPositionWorldFromArray(n, worldPos);
+    }
+
+  return 1;
 }

@@ -21,12 +21,10 @@
  * @brief   Default representation for the line widget
  *
  * This class provides the default concrete representation for the
- * vtkSlicerLineWidget. It works in conjunction with the
- * vtkSlicerLinearLineInterpolator and vtkPointPlacer. See vtkSlicerLineWidget
+ * vtkSlicerAbstractWidget. See vtkSlicerAbstractWidget
  * for details.
  * @sa
- * vtkSlicerAbstractWidgetRepresentation2D vtkSlicerLineWidget vtkPointPlacer
- * vtkSlicerLinearLineInterpolator
+ * vtkSlicerAbstractWidgetRepresentation2D vtkSlicerAbstractWidget
 */
 
 #ifndef vtkSlicerLineRepresentation2D_h
@@ -56,7 +54,7 @@ public:
   /// Subclasses of vtkContourCurveRepresentation must implement these methods. These
   /// are the methods that the widget and its representation use to
   /// communicate with each other.
-  void UpdateFromMRML() VTK_OVERRIDE;
+  void UpdateFromMRML(vtkMRMLNode* caller, unsigned long event, void *callData=NULL) VTK_OVERRIDE;
 
   int CanInteract(const int displayPosition[2], const double worldPosition[3], double &closestDistance2, int &itemIndex) VTK_OVERRIDE;
 
@@ -81,8 +79,6 @@ protected:
   vtkSmartPointer<vtkActor2D> LineActor;
 
   vtkSmartPointer<vtkTubeFilter> TubeFilter;
-
-  virtual void UpdateLinesFromMRML() override;
 
 private:
   vtkSlicerLineRepresentation2D(const vtkSlicerLineRepresentation2D&) = delete;

@@ -171,9 +171,8 @@ public:
   /// Standard methods for a VTK class.
   vtkTypeMacro(vtkSlicerAngleWidget,vtkSlicerAbstractWidget);
 
-  /// Create the default widget representation if one is not set.
-  /// NOTE: the representation needs also a Markup object from the MRMLMarkupsNode
-  virtual void CreateDefaultRepresentation() override;
+  /// Create the default widget representation and initializes the widget and representation.
+  void CreateDefaultRepresentation(vtkMRMLMarkupsDisplayNode* markupsDisplayNode, vtkMRMLAbstractViewNode* viewNode, vtkRenderer* renderer) VTK_OVERRIDE;
 
 protected:
   vtkSlicerAngleWidget();

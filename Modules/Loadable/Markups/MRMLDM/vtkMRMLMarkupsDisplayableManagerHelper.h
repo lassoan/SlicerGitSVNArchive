@@ -60,9 +60,6 @@ public:
   vtkGetObjectMacro(DisplayableManager, vtkMRMLMarkupsDisplayableManager);
   void SetDisplayableManager(vtkMRMLMarkupsDisplayableManager*);
 
-  /// Update all widget status
-  void UpdateAllWidgetsFromInteractionNode(vtkMRMLInteractionNode* interactionNode);
-
   /// Set all widget status to manipulate
   //void SetAllWidgetsToManipulate();
 

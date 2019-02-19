@@ -173,8 +173,8 @@ public:
   /// Standard methods for a VTK class.
   vtkTypeMacro(vtkSlicerClosedCurveWidget,vtkSlicerAbstractWidget);
 
-  /// Create the default widget representation if one is not set.
-  virtual void CreateDefaultRepresentation() override;
+  /// Create the default widget representation and initializes the widget and representation.
+  void CreateDefaultRepresentation(vtkMRMLMarkupsDisplayNode* markupsDisplayNode, vtkMRMLAbstractViewNode* viewNode, vtkRenderer* renderer) VTK_OVERRIDE;
 
 protected:
   vtkSlicerClosedCurveWidget();

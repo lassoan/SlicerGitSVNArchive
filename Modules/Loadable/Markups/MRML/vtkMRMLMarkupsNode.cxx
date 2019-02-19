@@ -436,7 +436,7 @@ int vtkMRMLMarkupsNode::GetNumberOfControlPoints()
 }
 
 //---------------------------------------------------------------------------
-ControlPoint *vtkMRMLMarkupsNode::GetNthControlPoint(int n)
+vtkMRMLMarkupsNode::ControlPoint* vtkMRMLMarkupsNode::GetNthControlPoint(int n)
 {
   if (!this->ControlPointExists(n))
     {
@@ -447,53 +447,14 @@ ControlPoint *vtkMRMLMarkupsNode::GetNthControlPoint(int n)
 }
 
 //-----------------------------------------------------------
-std::vector<ControlPoint *>* vtkMRMLMarkupsNode::GetControlPoints()
+std::vector< vtkMRMLMarkupsNode::ControlPoint* > * vtkMRMLMarkupsNode::GetControlPoints()
 {
   return &this->ControlPoints;
 }
 
 //-----------------------------------------------------------
-void vtkMRMLMarkupsNode::InitControlPoint(ControlPoint *controlPoint)
-{
-  if (!controlPoint)
-    {
-    vtkErrorMacro("InitMarkup: null controlPoint!");
-    return;
-    }
-
-  // generate a unique id based on list policy
-  std::string id = this->GenerateUniqueControlPointID();
-  controlPoint->ID = id;
-
-  if (controlPoint->Label.empty())
-    {
-    std::string formatString = this->ReplaceListNameInMarkupLabelFormat();
-    std::string str = formatString.substr(0, formatString.size()-2);
-    controlPoint->Label = str + id;
-    }
-
-  // use an empty description
-  controlPoint->Description.clear();
-  // use an empty associated node id
-  controlPoint->AssociatedNodeID.clear();
-
-  // position is 0
-  controlPoint->Position.Set(0, 0, 0);
-
-  // orientatation is 0 around the z axis
-  controlPoint->OrientationWXYZ.Set(0, 0, 0, 1);
-
-  // set the flags
-  controlPoint->Selected = true;
-  controlPoint->Locked = false;
-  controlPoint->Visibility = true;
-
-  controlPoint->IntermediatePositions.clear();
-}
-
-//-----------------------------------------------------------
 int vtkMRMLMarkupsNode::AddControlPoint(ControlPoint *controlPoint)
-{  
+{
   if (this->MaximumNumberOfControlPoints != 0 &&
       this->GetNumberOfControlPoints() + 1 > this->MaximumNumberOfControlPoints)
     {
@@ -532,7 +493,6 @@ int vtkMRMLMarkupsNode::AddNControlPoints(int n, std::string label /*=std::strin
     {
     ControlPoint *controlPoint = new ControlPoint;
     controlPoint->Label = label;
-    this->InitControlPoint(controlPoint);
     if (point != nullptr)
       {
       controlPoint->Position.Set(point->GetX(), point->GetY(), point->GetZ());
@@ -634,8 +594,22 @@ void vtkMRMLMarkupsNode::RemoveLastControlPoint()
 //-----------------------------------------------------------
 bool vtkMRMLMarkupsNode::InsertControlPoint(ControlPoint *controlPoint, int targetIndex)
 {
-  int listSize = this->GetNumberOfControlPoints();
+  // generate a unique id based on list policy
+  if (controlPoint->ID.empty())
+    {
+    controlPoint->ID = this->GenerateUniqueControlPointID();
+    }
 
+  if (controlPoint->Label.empty())
+    {
+    std::string formatString = this->ReplaceListNameInMarkupLabelFormat();
+    char buf[128];
+    buf[sizeof(buf) - 1] = 0; // make sure the string is zero-terminated
+    snprintf(buf, sizeof(buf)-1, formatString.c_str(), targetIndex);
+    controlPoint->Label = buf;
+    }
+
+  int listSize = this->GetNumberOfControlPoints();
   int destIndex = targetIndex;
   if (targetIndex < 0)
     {
@@ -645,24 +619,9 @@ bool vtkMRMLMarkupsNode::InsertControlPoint(ControlPoint *controlPoint, int targ
     {
     destIndex = listSize;
     }
-  vtkDebugMacro("InsertControlPoint: list size = " << listSize
-                << ", input target index = " << targetIndex
-                << ", adjusted destination index = " << destIndex);
 
-  std::vector < ControlPoint* >::iterator pos;
-  pos = this->ControlPoints.begin() + destIndex;
-
-  std::vector < ControlPoint* >::iterator result;
-  result = this->ControlPoints.insert(pos, controlPoint);
-
-  // sanity check
-  if ((*result)->Label.compare(controlPoint->Label) != 0)
-    {
-    vtkErrorMacro("InsertMarkup: failed to insert a control point at index " << destIndex
-                  << ", expected label on that control point to be " << controlPoint->Label.c_str()
-                  << " but got " << (*result)->Label.c_str());
-    return false;
-    }
+  std::vector < ControlPoint* >::iterator pos = this->ControlPoints.begin() + destIndex;
+  std::vector < ControlPoint* >::iterator result = this->ControlPoints.insert(pos, controlPoint);
 
   // let observers know that a markup was added
   this->Modified();
@@ -1007,7 +966,7 @@ int vtkMRMLMarkupsNode::GetNthControlPointIndexByID(const char* controlPointID)
 }
 
 //-------------------------------------------------------------------------
-ControlPoint* vtkMRMLMarkupsNode::GetNthControlPointByID(const char* controlPointID)
+vtkMRMLMarkupsNode::ControlPoint* vtkMRMLMarkupsNode::GetNthControlPointByID(const char* controlPointID)
 {
   if (!controlPointID)
     {
@@ -1356,4 +1315,48 @@ std::string vtkMRMLMarkupsNode::ReplaceListNameInMarkupLabelFormat()
     newFormatString.replace(replacePos, 2, name);
     }
   return newFormatString;
+}
+
+//----------------------------------------------------------------------
+void vtkMRMLMarkupsNode::FromWorldOrientToOrientationQuaternion(const double worldOrient[9], double orientation[4])
+{
+  if (!worldOrient || !orientation)
+  {
+    return;
+  }
+
+  double worldOrientMatrix[3][3];
+  worldOrientMatrix[0][0] = worldOrient[0];
+  worldOrientMatrix[0][1] = worldOrient[1];
+  worldOrientMatrix[0][2] = worldOrient[2];
+  worldOrientMatrix[1][0] = worldOrient[3];
+  worldOrientMatrix[1][1] = worldOrient[4];
+  worldOrientMatrix[1][2] = worldOrient[5];
+  worldOrientMatrix[2][0] = worldOrient[6];
+  worldOrientMatrix[2][1] = worldOrient[7];
+  worldOrientMatrix[2][2] = worldOrient[8];
+
+  vtkMath::Matrix3x3ToQuaternion(worldOrientMatrix, orientation);
+}
+
+//----------------------------------------------------------------------
+void vtkMRMLMarkupsNode::FromOrientationQuaternionToWorldOrient(double orientation[4], double worldOrient[9])
+{
+  if (!worldOrient || !orientation)
+  {
+    return;
+  }
+
+  double worldOrientMatrix[3][3];
+  vtkMath::QuaternionToMatrix3x3(orientation, worldOrientMatrix);
+
+  worldOrient[0] = worldOrientMatrix[0][0];
+  worldOrient[1] = worldOrientMatrix[0][1];
+  worldOrient[2] = worldOrientMatrix[0][2];
+  worldOrient[3] = worldOrientMatrix[1][0];
+  worldOrient[4] = worldOrientMatrix[1][1];
+  worldOrient[5] = worldOrientMatrix[1][2];
+  worldOrient[6] = worldOrientMatrix[2][0];
+  worldOrient[7] = worldOrientMatrix[2][1];
+  worldOrient[8] = worldOrientMatrix[2][2];
 }

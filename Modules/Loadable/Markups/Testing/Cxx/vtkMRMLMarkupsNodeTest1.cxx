@@ -148,7 +148,7 @@ int vtkMRMLMarkupsNodeTest1(int , char * [] )
     }
 
   // Get Nth Markup
-  ControlPoint *markup;
+  vtkMRMLMarkupsNode::ControlPoint *markup;
   for (int n = -1; n < 3; n++)
     {
     TESTING_OUTPUT_ASSERT_ERRORS_BEGIN();

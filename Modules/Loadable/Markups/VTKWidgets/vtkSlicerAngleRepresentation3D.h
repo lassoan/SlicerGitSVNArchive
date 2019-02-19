@@ -21,12 +21,10 @@
  * @brief   Default representation for the angle widget
  *
  * This class provides the default concrete representation for the
- * vtkSlicerAngleWidget. It works in conjunction with the
- * vtkSlicerLinearLineInterpolator and vtkPointPlacer. See vtkSlicerAngleWidget
+ * vtkSlicerAbstractWidget. See vtkSlicerAbstractWidget
  * for details.
  * @sa
- * vtkSlicerAbstractWidgetRepresentation vtkSlicerAngleWidget vtkPointPlacer
- * vtkSlicerLinearLineInterpolator
+ * vtkSlicerAbstractWidgetRepresentation3D vtkSlicerAbstractWidget
 */
 
 #ifndef vtkSlicerAngleRepresentation3D_h
@@ -57,7 +55,7 @@ public:
   /// Subclasses of vtkSlicerAbstractWidgetRepresentation must implement these methods. These
   /// are the methods that the widget and its representation use to
   /// communicate with each other.
-  void UpdateFromMRML() VTK_OVERRIDE;
+  void UpdateFromMRML(vtkMRMLNode* caller, unsigned long event, void *callData=NULL) VTK_OVERRIDE;
 
   /// Methods to make this class behave as a vtkProp.
   void GetActors(vtkPropCollection *) VTK_OVERRIDE;
@@ -93,7 +91,7 @@ protected:
 
   std::string LabelFormat;
 
-  virtual void UpdateLinesFromMRML() VTK_OVERRIDE;
+  void UpdateLinesFromMRML();
 
   // Support picking
   vtkSmartPointer<vtkPropPicker> LinePicker;

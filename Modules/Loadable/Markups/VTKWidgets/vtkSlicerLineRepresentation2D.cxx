@@ -42,7 +42,6 @@
 #include "vtkCamera.h"
 #include "vtkPoints.h"
 #include "vtkCellArray.h"
-#include "vtkFocalPlanePointPlacer.h"
 #include "vtkSlicerLinearLineInterpolator.h"
 #include "vtkSphereSource.h"
 #include "vtkPropPicker.h"
@@ -79,72 +78,49 @@ vtkSlicerLineRepresentation2D::~vtkSlicerLineRepresentation2D()
 }
 
 //----------------------------------------------------------------------
-void vtkSlicerLineRepresentation2D::UpdateFromMRML()
+void vtkSlicerLineRepresentation2D::UpdateFromMRML(vtkMRMLNode* caller, unsigned long event, void *callData /*=NULL*/)
 {
-  // Make sure we are up to date with any changes made in the placer
-  //this->UpdateWidget(true);
+  Superclass::UpdateFromMRML(caller, event, callData);
 
-  Superclass::UpdateFromMRML();
+  this->NeedToRenderOn();
 
   vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
-  if (!markupsNode)
-  {
-    return;
-  }
-  if (!this->MarkupsDisplayNode)
-  {
-    return;
-  }
-
-  double scale = this->CalculateViewScaleFactor();
-  /*
-  for (int controlPointType = 0; controlPointType < NumberOfControlPointTypes; ++controlPointType)
-  {
-    ControlPointsPipeline2D* controlPoints = this->GetControlPointsPipeline(controlPointType);
-    controlPoints->LabelsActor->SetVisibility(this->MarkupsDisplayNode->GetTextVisibility());
-    controlPoints->Glypher->SetScaleFactor(scale * this->ControlPointSize);
-  }
-  */
-
-  this->TubeFilter->SetRadius(scale * this->ControlPointSize * 0.125);
-
-  //this->BuildRepresentationPointsAndLabels(scale * this->ControlPointSize); called by superclass
-
-  bool lineVisibility = true;
-  for (int ii = 0; ii < this->GetNumberOfNodes(); ii++)
+  if (!markupsNode || !this->MarkupsDisplayNode
+    || !this->MarkupsDisplayNode->GetVisibility()
+    || !this->MarkupsDisplayNode->IsDisplayableInView(this->ViewNode->GetID())
+    )
     {
-    if (!this->PointsVisibilityOnSlice->GetValue(ii) ||
-        !this->GetNthNodeVisibility(ii))
-      {
-      lineVisibility = false;
-      break;
-      }
+    this->VisibilityOff();
+    return;
     }
 
-  this->LineActor->SetVisibility(lineVisibility);
+  this->VisibilityOn();
 
-  int controlPointType = Unselected;
-  if (this->MarkupsDisplayNode->GetActiveComponentType() == vtkMRMLMarkupsDisplayNode::ComponentLine)
+  // Line geometry
+
+  this->BuildLine(this->Line, true);
+
+  // Line display
+
+  double scale = this->CalculateViewScaleFactor();
+  this->TubeFilter->SetRadius(scale * this->ControlPointSize * 0.125);
+
+  bool allNodeVisibile = this->GetAllControlPointsVisible();
+  this->LineActor->SetVisibility(allNodeVisibile);
+
+  int controlPointType = Active;
+  if (this->MarkupsDisplayNode->GetActiveComponentType() != vtkMRMLMarkupsDisplayNode::ComponentLine)
   {
-    controlPointType = Active;
-  }
-  else if (!this->GetNthNodeSelected(0) || !this->GetNthNodeSelected(1))
-  {
-    controlPointType = Unselected;
-  }
-  else
-  {
-    controlPointType = Selected;
+    controlPointType = this->GetAllControlPointsSelected() ? Selected : Unselected;
   }
   this->LineActor->SetProperty(this->GetControlPointsPipeline(controlPointType)->Property);
-
 }
 
 //----------------------------------------------------------------------
 int vtkSlicerLineRepresentation2D::CanInteract(const int displayPosition[2], const double worldPosition[3], double &closestDistance2, int &componentIndex)
 {
   vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
-  if (!markupsNode || markupsNode->GetLocked() || this->GetNumberOfNodes() < 1)
+  if (!markupsNode || markupsNode->GetLocked() || markupsNode->GetNumberOfControlPoints() < 1)
   {
     return vtkMRMLMarkupsDisplayNode::ComponentNone;
   }
@@ -160,12 +136,6 @@ int vtkSlicerLineRepresentation2D::CanInteract(const int displayPosition[2], con
 }
 
 //----------------------------------------------------------------------
-void vtkSlicerLineRepresentation2D::UpdateLinesFromMRML()
-{
-  this->BuildLine(this->Line, true);
-}
-
-//----------------------------------------------------------------------
 void vtkSlicerLineRepresentation2D::GetActors(vtkPropCollection *pc)
 {
   this->LineActor->GetActors(pc);
@@ -173,8 +143,7 @@ void vtkSlicerLineRepresentation2D::GetActors(vtkPropCollection *pc)
 }
 
 //----------------------------------------------------------------------
-void vtkSlicerLineRepresentation2D::ReleaseGraphicsResources(
-  vtkWindow *win)
+void vtkSlicerLineRepresentation2D::ReleaseGraphicsResources(vtkWindow *win)
 {
   this->LineActor->ReleaseGraphicsResources(win);
   this->Superclass::ReleaseGraphicsResources(win);
@@ -189,31 +158,23 @@ int vtkSlicerLineRepresentation2D::RenderOverlay(vtkViewport *viewport)
     count +=  this->LineActor->RenderOverlay(viewport);
     }
   count += this->Superclass::RenderOverlay(viewport);
-
   return count;
 }
 
 //-----------------------------------------------------------------------------
-int vtkSlicerLineRepresentation2D::RenderOpaqueGeometry(
-  vtkViewport *viewport)
+int vtkSlicerLineRepresentation2D::RenderOpaqueGeometry(vtkViewport *viewport)
 {
-  // Since we know RenderOpaqueGeometry gets called first, will do the
-  // build here
-  this->UpdateFromMRML();
-
   int count=0;
   if (this->LineActor->GetVisibility())
     {
     count += this->LineActor->RenderOpaqueGeometry(viewport);
     }
   count = this->Superclass::RenderOpaqueGeometry(viewport);
-
   return count;
 }
 
 //-----------------------------------------------------------------------------
-int vtkSlicerLineRepresentation2D::RenderTranslucentPolygonalGeometry(
-  vtkViewport *viewport)
+int vtkSlicerLineRepresentation2D::RenderTranslucentPolygonalGeometry(vtkViewport *viewport)
 {
   int count=0;
   if (this->LineActor->GetVisibility())
@@ -221,7 +182,6 @@ int vtkSlicerLineRepresentation2D::RenderTranslucentPolygonalGeometry(
     count += this->LineActor->RenderTranslucentPolygonalGeometry(viewport);
     }
   count = this->Superclass::RenderTranslucentPolygonalGeometry(viewport);
-
   return count;
 }
 
@@ -234,7 +194,6 @@ vtkTypeBool vtkSlicerLineRepresentation2D::HasTranslucentPolygonalGeometry()
     result |= this->LineActor->HasTranslucentPolygonalGeometry();
     }
   result |= this->Superclass::HasTranslucentPolygonalGeometry();
-
   return result;
 }
 
@@ -247,7 +206,6 @@ double *vtkSlicerLineRepresentation2D::GetBounds()
 //-----------------------------------------------------------------------------
 void vtkSlicerLineRepresentation2D::PrintSelf(ostream& os, vtkIndent indent)
 {
-  //Superclass typedef defined in vtkTypeMacro() found in vtkSetGet.h
   this->Superclass::PrintSelf(os, indent);
 
   if (this->LineActor)
@@ -258,5 +216,4 @@ void vtkSlicerLineRepresentation2D::PrintSelf(ostream& os, vtkIndent indent)
     {
     os << indent << "Line Actor: (none)\n";
     }
-
 }

@@ -46,12 +46,6 @@ set(${KIT}_SRCS
   vtkSlicerPointsRepresentation2D.h
   vtkSlicerPointsWidget.cxx
   vtkSlicerPointsWidget.h
-  vtkSlicerBezierLineInterpolator.cxx
-  vtkSlicerBezierLineInterpolator.h
-  vtkSlicerLinearLineInterpolator.cxx
-  vtkSlicerLinearLineInterpolator.h
-  vtkSlicerLineInterpolator.cxx
-  vtkSlicerLineInterpolator.h
   )
 
 set(${KIT}_TARGET_LIBRARIES

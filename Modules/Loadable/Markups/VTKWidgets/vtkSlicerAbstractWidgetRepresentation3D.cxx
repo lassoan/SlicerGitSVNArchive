@@ -43,7 +43,6 @@
 #include "vtkCamera.h"
 #include "vtkPoints.h"
 #include "vtkCellArray.h"
-#include "vtkFocalPlanePointPlacer.h"
 #include "vtkSlicerLineInterpolator.h"
 #include "vtkSlicerBezierLineInterpolator.h"
 #include "vtkSphereSource.h"
@@ -51,7 +50,6 @@
 #include "vtkIntArray.h"
 #include "vtkMatrix4x4.h"
 #include "vtkObjectFactory.h"
-#include "vtkPointPlacer.h"
 #include "vtkRenderer.h"
 #include "vtkRenderWindow.h"
 #include "vtkWindow.h"
@@ -93,12 +91,8 @@ vtkSlicerAbstractWidgetRepresentation3D::ControlPointsPipeline3D::ControlPointsP
   this->Mapper->SetInputConnection(this->Glypher->GetOutputPort());
   // This turns on resolve coincident topology for everything
   // as it is a class static on the mapper
-  this->Mapper->SetResolveCoincidentTopologyToPolygonOffset();
+  vtkMapper::SetResolveCoincidentTopologyToPolygonOffset();
   this->Mapper->ScalarVisibilityOff();
-  // Put this on top of other objects
-  this->Mapper->SetRelativeCoincidentTopologyLineOffsetParameters(-1, -1);
-  this->Mapper->SetRelativeCoincidentTopologyPolygonOffsetParameters(-1, -1);
-  this->Mapper->SetRelativeCoincidentTopologyPointOffsetParameter(-1);
 
   this->Actor = vtkSmartPointer<vtkOpenGLActor>::New();
   this->Actor->SetMapper(this->Mapper);
@@ -134,9 +128,46 @@ vtkSlicerAbstractWidgetRepresentation3D::~vtkSlicerAbstractWidgetRepresentation3
 }
 
 //----------------------------------------------------------------------
-void vtkSlicerAbstractWidgetRepresentation3D::BuildRepresentationPointsAndLabels()
+void vtkSlicerAbstractWidgetRepresentation3D::UpdateNthPointAndLabelFromMRML(int n)
 {
-  int numPoints = this->GetNumberOfNodes();
+  /*
+  TODO: implement this for better performance
+  if (markupsNode->GetNumberOfControlPoints() - 1 >= this->PointsVisibilityOnSlice->GetNumberOfValues())
+  {
+    this->PointsVisibilityOnSlice->InsertValue(markupsNode->GetNumberOfControlPoints() - 1, 1);
+  }
+  else
+  {
+    this->PointsVisibilityOnSlice->InsertNextValue(1);
+  }
+  this->UpdateLines(markupsNode->GetNumberOfControlPoints() - 1);
+  */
+}
+//----------------------------------------------------------------------
+void vtkSlicerAbstractWidgetRepresentation3D::UpdateAllPointsAndLabelsFromMRML()
+{
+  vtkMRMLMarkupsDisplayNode* display = this->MarkupsDisplayNode;
+  if (!display)
+    {
+    return;
+    }
+  vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
+  if (!markupsNode)
+  {
+    return;
+  }
+
+  int numPoints = markupsNode->GetNumberOfControlPoints();
+
+  for (int i = 0; i<NumberOfControlPointTypes; i++)
+  {
+    ControlPointsPipeline3D* controlPoints = reinterpret_cast<ControlPointsPipeline3D*>(this->ControlPoints[i]);
+    this->UpdateRelativeCoincidentTopologyOffsets(controlPoints->Mapper);
+    controlPoints->Glypher->SetScaleFactor(this->ControlPointSize);
+  }
+
+
+  int activeControlPointIndex = this->MarkupsDisplayNode->GetActiveControlPoint();
 
   for (int controlPointType = 0; controlPointType < NumberOfControlPointTypes; ++controlPointType)
   {
@@ -155,11 +186,13 @@ void vtkSlicerAbstractWidgetRepresentation3D::BuildRepresentationPointsAndLabels
     int stopIndex = numPoints - 1;
     if (controlPointType == Active)
     {
-      if (this->GetActiveNode() >= 0 && this->GetActiveNode() < numPoints &&
-        this->GetNthNodeVisibility(this->GetActiveNode()))
+      if (activeControlPointIndex >= 0 && activeControlPointIndex < numPoints &&
+        markupsNode->GetNthControlPointVisibility(activeControlPointIndex))
       {
-        startIndex = this->GetActiveNode();
+        startIndex = activeControlPointIndex;
         stopIndex = startIndex;
+        controlPoints->Actor->VisibilityOn();
+        controlPoints->LabelsActor->SetVisibility(display->GetTextVisibility());
       }
       else
       {
@@ -168,19 +201,23 @@ void vtkSlicerAbstractWidgetRepresentation3D::BuildRepresentationPointsAndLabels
         continue;
       }
     }
+    else
+    {
+      controlPoints->LabelsActor->SetVisibility(display->GetTextVisibility());
+    }
 
     for (int pointIndex = startIndex; pointIndex <= stopIndex; pointIndex++)
       {
 
       if (controlPointType != Active
-        && (!this->GetNthNodeVisibility(pointIndex) || pointIndex == this->GetActiveNode() ||
-        ((controlPointType == Selected) != (this->GetNthNodeSelected(pointIndex) != 0))))
+        && (!markupsNode->GetNthControlPointVisibility(pointIndex) || pointIndex == activeControlPointIndex ||
+        ((controlPointType == Selected) != (markupsNode->GetNthControlPointSelected(pointIndex) != 0))))
         {
         continue;
         }
 
-      double worldPos[3], worldOrient[9] = {0}, orientation[4] = {0};
-      this->GetNthNodeWorldPosition(pointIndex, worldPos);
+      double worldPos[3];
+      markupsNode->GetNthControlPointPositionWorld(pointIndex, worldPos);
 
       // TODO: skipping points at the same position is probably this not a good idea.
       // For example, only one of them may have label.
@@ -209,11 +246,13 @@ void vtkSlicerAbstractWidgetRepresentation3D::BuildRepresentationPointsAndLabels
       worldPos[2] += this->ControlPointSize;
       controlPoints->LabelControlPoints->InsertNextPoint(worldPos);
 
-      this->GetNthNodeOrientation(pointIndex, orientation);
-      this->FromOrientationQuaternionToWorldOrient(orientation, worldOrient);
+      double worldOrient[9] = { 0 };
+      double orientation[4] = { 0 };
+      markupsNode->GetNthControlPointOrientation(pointIndex, orientation);
+      vtkMRMLMarkupsNode::FromOrientationQuaternionToWorldOrient(orientation, worldOrient);
       controlPoints->ControlPointsPolyData->GetPointData()->GetNormals()->InsertNextTuple(worldOrient + 6);
       controlPoints->LabelControlPointsPolyData->GetPointData()->GetNormals()->InsertNextTuple(worldOrient + 6);
-      controlPoints->Labels->InsertNextValue(this->GetNthNodeLabel(pointIndex));
+      controlPoints->Labels->InsertNextValue(markupsNode->GetNthControlPointLabel(pointIndex));
       controlPoints->LabelsPriority->InsertNextValue(std::to_string(pointIndex));
       }
 
@@ -225,12 +264,6 @@ void vtkSlicerAbstractWidgetRepresentation3D::BuildRepresentationPointsAndLabels
     controlPoints->LabelControlPointsPolyData->GetPointData()->GetNormals()->Modified();
     controlPoints->LabelControlPointsPolyData->Modified();
 
-    if (controlPointType == Active)
-      {
-      controlPoints->Actor->VisibilityOn();
-      controlPoints->LabelsActor->VisibilityOn();
-      }
-
     }
 }
 
@@ -240,7 +273,7 @@ int vtkSlicerAbstractWidgetRepresentation3D::CanInteract(const int displayPositi
   const double worldPosition[3], double &closestDistance2, int &componentIndex)
 {
   vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
-  if (!markupsNode || markupsNode->GetLocked() || this->GetNumberOfNodes() < 1)
+  if (!markupsNode || markupsNode->GetLocked() || markupsNode->GetNumberOfControlPoints() < 1)
   {
     return vtkMRMLMarkupsDisplayNode::ComponentNone;
   }
@@ -257,7 +290,7 @@ int vtkSlicerAbstractWidgetRepresentation3D::CanInteract(const int displayPositi
 
   closestDistance2 = VTK_DOUBLE_MAX; // in display coordinate system
   componentIndex = -1;
-  if (this->GetNumberOfNodes() > 2 && this->ClosedLoop && markupsNode)
+  if (markupsNode->GetNumberOfControlPoints() > 2 && this->ClosedLoop && markupsNode)
   {
     // Check if centroid is selected
     double centroidPosWorld[3], centroidPosDisplay[3];
@@ -274,7 +307,7 @@ int vtkSlicerAbstractWidgetRepresentation3D::CanInteract(const int displayPositi
     }
   }
 
-  vtkIdType numberOfPoints = this->GetNumberOfNodes();
+  vtkIdType numberOfPoints = markupsNode->GetNumberOfControlPoints();
   double displayCoordinates[4], worldCoordinates[4];
 
   double pointDisplayPos[4] = { 0.0, 0.0, 0.0, 1.0 };
@@ -324,12 +357,12 @@ void vtkSlicerAbstractWidgetRepresentation3D::CanInteractWithLine(int &foundComp
   const int displayPosition[2], const double worldPosition[3], double &closestDistance2, int &componentIndex)
 {
   vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
-  if (!markupsNode || markupsNode->GetLocked() || this->GetNumberOfNodes() < 1)
+  if (!markupsNode || markupsNode->GetLocked() || markupsNode->GetNumberOfControlPoints() < 1)
   {
     return;
   }
 
-  vtkIdType numberOfPoints = this->GetNumberOfNodes();
+  vtkIdType numberOfPoints = markupsNode->GetNumberOfControlPoints();
 
   double pointWorldPos1[4] = { 0.0, 0.0, 0.0, 1.0 };
   double pointWorldPos2[4] = { 0.0, 0.0, 0.0, 1.0 };
@@ -356,42 +389,30 @@ void vtkSlicerAbstractWidgetRepresentation3D::CanInteractWithLine(int &foundComp
   }
 }
 
-
 //----------------------------------------------------------------------
-void vtkSlicerAbstractWidgetRepresentation3D::UpdateFromMRML()
+void vtkSlicerAbstractWidgetRepresentation3D::UpdateFromMRML(vtkMRMLNode* caller, unsigned long event, void *callData /*=NULL*/)
 {
-  // Make sure we are up to date with any changes made in the placer
-  this->UpdateWidget();
+  Superclass::UpdateFromMRML(caller, event, callData);
 
-  vtkMRMLMarkupsDisplayNode* display = this->MarkupsDisplayNode;
-  if (display == nullptr)
+  /* TODO: implement this for better performance
+  if (event == )
     {
-    return;
-    }
-
-  for (int i = 0; i<NumberOfControlPointTypes; i++)
-  {
-    ControlPointsPipeline3D* controlPoints = reinterpret_cast<ControlPointsPipeline3D*>(this->ControlPoints[i]);
-    controlPoints->LabelsActor->SetVisibility(display->GetTextVisibility());
-
-    if (this->AlwaysOnTop)
+    int *nPtr = nullptr;
+    int n = -1;
+    if (callData != nullptr)
       {
-      // max value 65536 so we subtract 66000 to make sure we are
-      // zero or negative
-      controlPoints->Mapper->SetRelativeCoincidentTopologyLineOffsetParameters(0, -66000);
-      controlPoints->Mapper->SetRelativeCoincidentTopologyPolygonOffsetParameters(0, -66000);
-      controlPoints->Mapper->SetRelativeCoincidentTopologyPointOffsetParameter(-66000);
+      nPtr = reinterpret_cast<int *>(callData);
+      if (nPtr)
+        {
+        n = *nPtr;
+        }
       }
-    else
-      {
-      controlPoints->Mapper->SetRelativeCoincidentTopologyLineOffsetParameters(-1, -1);
-      controlPoints->Mapper->SetRelativeCoincidentTopologyPolygonOffsetParameters(-1, -1);
-      controlPoints->Mapper->SetRelativeCoincidentTopologyPointOffsetParameter(-1);
-      }
-
-    controlPoints->Glypher->SetScaleFactor(this->ControlPointSize);
+    this->UpdateNthPointAndLabelFromMRML(n);
     }
-  this->BuildRepresentationPointsAndLabels();
+  else*/
+    {
+    this->UpdateAllPointsAndLabelsFromMRML();
+    }
 }
 
 //----------------------------------------------------------------------
@@ -440,10 +461,6 @@ int vtkSlicerAbstractWidgetRepresentation3D::RenderOverlay(vtkViewport *viewport
 int vtkSlicerAbstractWidgetRepresentation3D::RenderOpaqueGeometry(
   vtkViewport *viewport)
 {
-  // Since we know RenderOpaqueGeometry gets called first, will do the
-  // build here
-  this->UpdateFromMRML();
-
   int count=0;
   for (int i = 0; i < NumberOfControlPointTypes; i++)
   {

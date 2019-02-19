@@ -31,10 +31,10 @@
 #ifndef vtkSlicerBezierLineInterpolator_h
 #define vtkSlicerBezierLineInterpolator_h
 
-#include "vtkSlicerMarkupsModuleVTKWidgetsExport.h"
+#include "vtkSlicerMarkupsModuleMRMLExport.h"
 #include "vtkSlicerLineInterpolator.h"
 
-class VTK_SLICER_MARKUPS_MODULE_VTKWIDGETS_EXPORT vtkSlicerBezierLineInterpolator
+class VTK_SLICER_MARKUPS_MODULE_MRML_EXPORT vtkSlicerBezierLineInterpolator
                           : public vtkSlicerLineInterpolator
 {
 public:
@@ -45,9 +45,12 @@ public:
   vtkTypeMacro(vtkSlicerBezierLineInterpolator, vtkSlicerLineInterpolator);
   void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
 
-  /// Interpolate the line between two nodes.
-  int InterpolateLine(vtkSlicerAbstractWidgetRepresentation *rep,
-                      int idx1, int idx2) VTK_OVERRIDE;
+  /// Interpolate the line between two control points.
+  int InterpolateLine(vtkMRMLMarkupsNode::ControlPointsListType& controlPoints,
+    bool closedLoop, int idx1, int idx2) VTK_OVERRIDE;
+
+  void GetSpan(int nodeIndex, vtkIntArray *nodeIndices,
+    vtkMRMLMarkupsNode::ControlPointsListType& controlPoints, bool closedLoop) VTK_OVERRIDE;
 
   /// The difference between a line segment connecting two points and the curve
   /// connecting the same points. In the limit of the length of the curve
@@ -61,23 +64,15 @@ public:
   vtkSetClampMacro(MaximumCurveLineSegments, int, 1, 1000);
   vtkGetMacro(MaximumCurveLineSegments, int);
 
-  /// Span of the interpolator, i.e. the number of control points it's supposed
-  /// to interpolate given a node.
-  ///
-  /// The first argument is the current nodeIndex.
-  /// i.e., you'd be trying to interpolate between nodes "nodeIndex" and
-  /// "nodeIndex-1", unless you're closing the Slicer, in which case you're
-  /// trying to interpolate "nodeIndex" and "Node=0". The node span is
-  /// returned in a vtkIntArray.
-  ///
-  /// The node span is returned in a vtkIntArray. The node span returned by
-  /// this interpolator will be a 2-tuple with a span of 4.
-  void GetSpan(int nodeIndex, vtkIntArray *nodeIndices,
-               vtkSlicerAbstractWidgetRepresentation *rep) VTK_OVERRIDE;
-
 protected:
   vtkSlicerBezierLineInterpolator();
   ~vtkSlicerBezierLineInterpolator() VTK_OVERRIDE;
+
+  /// Get the nth node's slope. Will return
+  /// 1 on success, or 0 if there are not at least
+  /// (n+1) nodes (0 based counting).
+  int GetNthNodeSlope(vtkMRMLMarkupsNode::ControlPointsListType& controlPoints,
+    bool closedLoop, int n, double slope[3]);
 
   void ComputeMidpoint(double p1[3], double p2[3], double mid[3])
   {

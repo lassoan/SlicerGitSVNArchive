@@ -47,6 +47,7 @@
 
 #include "vtkMRMLMarkupsNode.h"
 
+class vtkMRMLAbstractViewNode;
 class vtkSlicerAbstractWidgetRepresentation;
 class vtkSlicerInteractionEventData;
 class vtkPolyData;
@@ -60,6 +61,9 @@ public:
   vtkTypeMacro(vtkSlicerAbstractWidget, vtkObject);
   virtual void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
 
+  /// Create the default widget representation and initializes the widget and representation.
+  virtual void CreateDefaultRepresentation(vtkMRMLMarkupsDisplayNode* markupsDisplayNode, vtkMRMLAbstractViewNode* viewNode, vtkRenderer* renderer) = 0;
+
   /// Set the representation.
   /// The widget takes over the ownership of this actor.
   virtual void SetRepresentation(vtkSlicerAbstractWidgetRepresentation *r);
@@ -68,13 +72,10 @@ public:
   virtual vtkSlicerAbstractWidgetRepresentation *GetRepresentation();
 
   /// Build the actors of the representation with the info stored in the vtkMRMLMarkupsNode
-  virtual void UpdateFromMRML();
+  virtual void UpdateFromMRML(vtkMRMLNode* caller, unsigned long event, void *callData = NULL);
 
   /// Build the locator with the info stored in the vtkMRMLMarkupsNode
   virtual void BuildLocator();
-
-  /// Create the default widget representation if one is not set.
-  virtual void CreateDefaultRepresentation() = 0;
 
   /// Convenient method to close the contour loop.
   virtual void CloseLoop();
@@ -162,6 +163,10 @@ public:
   /// Add a point to the current active Markup at input World coordiantes.
   virtual int AddPointFromWorldCoordinate(const double worldCoordinates[3]);
 
+  /// Given a specific X, Y pixel location, add a new node
+  /// on the widget at this location.
+  virtual int AddNodeOnWidget(const int displayPos[2]);
+
   /// Return true if the widget can process the event.
   /// Distance2 is the squared distance in display coordinates from the closest interaction position.
   /// The displayable manager with the closest distance will get the chance to process the interaction event.
@@ -191,6 +196,11 @@ public:
   // Allows the widget to request interactive mode (faster updates)
   virtual bool GetInteractive();
 
+  // Allows the widget to request render
+  bool GetNeedToRender();
+
+  // Acknowledge rendering request (rendering completed)
+  void NeedToRenderOff();
 
 protected:
   vtkSlicerAbstractWidget();
@@ -204,6 +214,14 @@ protected:
 
   void StartWidgetInteraction(vtkSlicerInteractionEventData* eventData);
   void EndWidgetInteraction();
+
+  /// Set the nth node's display position. Display position
+  /// will be converted into world position according to the
+  /// constraints of the point placer. Will return
+  /// 1 on success, or 0 if there are not at least
+  /// (n+1) nodes (0 based counting) or the world position
+  /// is not valid.
+  virtual int SetNthNodeDisplayPosition(int n, const int pos[2]);
 
   virtual void TranslateNode(double eventPos[2]);
   virtual void TranslateWidget(double eventPos[2]);

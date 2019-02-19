@@ -31,28 +31,6 @@
 class vtkStringArray;
 class vtkMatrix4x4;
 
-typedef struct
-{
-  // Positions and orientation in local coordinates.
-  // If transform is applied to the markup node then world
-  // coordinates may be obtained by applying "to world" transform.
-  vtkVector3d Position;
-  vtkVector4d OrientationWXYZ;
-
-  /// Positions of points between this control point and the previous one.
-  std::vector<vtkVector3d> IntermediatePositions;
-
-  std::string ID;
-  std::string Label;
-  std::string Description;
-  std::string AssociatedNodeID;
-
-  bool Selected;
-  bool Locked;
-  bool Visibility;
-} ControlPoint;
-
-
 /// \brief MRML node to represent an interactive widget.
 /// MarkupsNodes contains a list of points (ControlPoint).
 /// Each markupNode is defined by a certain number of control points:
@@ -84,6 +62,45 @@ class  VTK_SLICER_MARKUPS_MODULE_MRML_EXPORT vtkMRMLMarkupsNode : public vtkMRML
   friend class vtkMRMLMarkupsFiducialStorageNode;
 
 public:
+  struct ControlPoint
+  {
+    ControlPoint()
+    {
+      // position is 0
+      Position.Set(0.0, 0.0, 0.0);
+
+      // orientatation is 0 around the z axis
+      OrientationWXYZ.Set(0.0, 0.0, 0.0, 1.0);
+
+      Selected = true;
+      Locked = false;
+      Visibility = true;
+    }
+
+    // Positions and orientation in local coordinates.
+    // If transform is applied to the markup node then world
+    // coordinates may be obtained by applying "to world" transform.
+    vtkVector3d Position;
+    vtkVector4d OrientationWXYZ;
+
+    /// Interpolated points between this control point and the next one.
+    /// For the last node, it is the number of interpolated
+    /// points between this control point and the first one
+    /// (which is non-zero for closed loops).
+    std::vector<vtkVector3d> IntermediatePositions;
+
+    std::string ID;
+    std::string Label;
+    std::string Description;
+    std::string AssociatedNodeID;
+
+    bool Selected;
+    bool Locked;
+    bool Visibility;
+  };
+
+  typedef std::vector<ControlPoint*> ControlPointsListType;
+
   static vtkMRMLMarkupsNode *New();
   vtkTypeMacro(vtkMRMLMarkupsNode,vtkMRMLDisplayableNode);
 
@@ -194,8 +211,6 @@ public:
   ControlPoint* GetNthControlPoint(int n);
   /// Return a pointer to the std::vector of control points stored in this node
   std::vector<ControlPoint*>* GetControlPoints();
-  /// Initialise a controlPoint to default values
-  void InitControlPoint(ControlPoint *controlPoint);
   /// Add n control points.
   /// If point is specified then all control point positions will be initialized to that position,
   /// otherwise control poin positions are initialized to (0,0,0).
@@ -231,8 +246,10 @@ public:
   /// Insert a control point in this list at targetIndex.
   /// If targetIndex is < 0, insert at the start of the list.
   /// If targetIndex is > list size - 1, append to end of list.
+  /// If the insertion is successful, ownership of the controlPoint
+  /// is transferred to the markups node.
   /// Returns true on success, false on failure.
-  bool InsertControlPoint(ControlPoint *controlPoint, int targetIndex);
+  bool InsertControlPoint(ControlPoint* controlPoint, int targetIndex);
 
   /// Copy settings from source control point to target control point
   void CopyControlPoint(ControlPoint *source, ControlPoint *target);
@@ -410,6 +427,9 @@ public:
   vtkSetMacro(MaximumNumberOfControlPoints, int);
   vtkGetMacro(MaximumNumberOfControlPoints, int);
 
+  static void FromWorldOrientToOrientationQuaternion(const double worldOrient[9], double orientation[4]);
+  static void FromOrientationQuaternionToWorldOrient(double orientation[4], double worldOrient[9]);
+
 protected:
   vtkMRMLMarkupsNode();
   ~vtkMRMLMarkupsNode();
@@ -433,8 +453,8 @@ protected:
   int PreferredNumberOfControlPoints;
 
 private:
-  // Vector of point sets
-  std::vector<ControlPoint*> ControlPoints;
+  // Vector of control points
+  ControlPointsListType ControlPoints;
 
   // Locks all the points and GUI
   int Locked;

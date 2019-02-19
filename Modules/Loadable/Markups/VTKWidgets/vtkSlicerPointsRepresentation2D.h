@@ -21,10 +21,10 @@
  * @brief   Default representation for the points widget
  *
  * This class provides the default concrete representation for the
- * vtkSlicerPointsWidget. It works in conjunction with the
- * vtkPointPlacer. See vtkSlicerPointsWidget for details.
+ * vtkSlicerAbstractWidget. See vtkSlicerAbstractWidget
+ * for details.
  * @sa
- * vtkSlicerAbstractWidgetRepresentation2D vtkSlicerPointsWidget vtkPointPlacer
+ * vtkSlicerAbstractWidgetRepresentation3D vtkSlicerAbstractWidget
 */
 
 #ifndef vtkSlicerPointsRepresentation2D_h
@@ -47,10 +47,6 @@ public:
 protected:
   vtkSlicerPointsRepresentation2D();
   ~vtkSlicerPointsRepresentation2D() VTK_OVERRIDE;
-
-  virtual void UpdateLinesFromMRML() VTK_OVERRIDE;
-
-  vtkAppendPolyData *appendActors;
 
 private:
   vtkSlicerPointsRepresentation2D(const vtkSlicerPointsRepresentation2D&) = delete;

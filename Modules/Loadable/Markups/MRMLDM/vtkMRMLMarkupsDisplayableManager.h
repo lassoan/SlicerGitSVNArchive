@@ -157,17 +157,6 @@ protected:
   void AddObserversToInteractionNode();
   void RemoveObserversFromInteractionNode();
 
-
-  /// Preset functions for certain events.
-  virtual void OnMRMLMarkupsNodeModifiedEvent(vtkMRMLNode* node);
-  virtual void OnMRMLMarkupsNodeTransformModifiedEvent(vtkMRMLNode* node);
-  virtual void OnMRMLMarkupsNodeLockModifiedEvent(vtkMRMLNode* node);
-  virtual void OnMRMLMarkupsDisplayNodeModifiedEvent(vtkMRMLNode *node);
-  virtual void OnMRMLMarkupsNthPointModifiedEvent(vtkMRMLNode *node, int n);
-  virtual void OnMRMLMarkupsPointAddedEvent(vtkMRMLNode *node, int n);
-  virtual void OnMRMLMarkupsPointRemovedEvent(vtkMRMLNode *node, int n);
-  virtual void OnMRMLMarkupsAllPointsRemovedEvent(vtkMRMLNode *node);
-
   /// enum for action at click events
   enum {AddPoint = 0,AddPreview,RemovePreview};
 

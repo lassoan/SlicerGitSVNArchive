@@ -42,7 +42,6 @@
 #include "vtkCamera.h"
 #include "vtkPoints.h"
 #include "vtkCellArray.h"
-#include "vtkFocalPlanePointPlacer.h"
 #include "vtkSlicerLineInterpolator.h"
 #include "vtkSlicerBezierLineInterpolator.h"
 #include "vtkSphereSource.h"
@@ -50,7 +49,6 @@
 #include "vtkIntArray.h"
 #include "vtkMatrix4x4.h"
 #include "vtkObjectFactory.h"
-#include "vtkPointPlacer.h"
 #include "vtkRenderer.h"
 #include "vtkRenderWindow.h"
 #include "vtkWindow.h"
@@ -126,8 +124,6 @@ vtkSlicerAbstractWidgetRepresentation2D::vtkSlicerAbstractWidgetRepresentation2D
   this->PointsVisibilityOnSlice->SetNumberOfValues(1);
   this->PointsVisibilityOnSlice->SetValue(0,0);
 
-  this->SliceNode = nullptr;
-
   // by default, multiply the display node scale by this when setting scale on elements in 2d windows
   // 2d glyphs and text need to be scaled by 1/60 to show up properly in the 2d slice windows
   this->ScaleFactor2D = 0.01667;
@@ -143,8 +139,8 @@ vtkSlicerAbstractWidgetRepresentation2D::~vtkSlicerAbstractWidgetRepresentation2
 void vtkSlicerAbstractWidgetRepresentation2D::GetSliceToWorldCoordinates(const double slicePos[2],
                                                                    double worldPos[3])
 {
-  if (this->Renderer == nullptr ||
-      this->SliceNode == nullptr)
+  vtkMRMLSliceNode *sliceNode = this->GetSliceNode();
+  if (this->Renderer == nullptr || sliceNode == nullptr)
     {
     return;
     }
@@ -158,7 +154,7 @@ void vtkSlicerAbstractWidgetRepresentation2D::GetSliceToWorldCoordinates(const d
   };
   double rasw[4] = { 0.0, 0.0, 0.0, 1.0 };
 
-  this->SliceNode->GetXYToRAS()->MultiplyPoint(xyzw, rasw);
+  this->GetSliceNode()->GetXYToRAS()->MultiplyPoint(xyzw, rasw);
 
   worldPos[0] = rasw[0]/rasw[3];
   worldPos[1] = rasw[1]/rasw[3];
@@ -168,8 +164,9 @@ void vtkSlicerAbstractWidgetRepresentation2D::GetSliceToWorldCoordinates(const d
 //----------------------------------------------------------------------
 void vtkSlicerAbstractWidgetRepresentation2D::GetWorldToSliceCoordinates(const double worldPos[3], double slicePos[2])
 {
+  vtkMRMLSliceNode *sliceNode = this->GetSliceNode();
   if (this->Renderer == nullptr ||
-      this->SliceNode == nullptr)
+      sliceNode == nullptr)
     {
     return;
     }
@@ -181,7 +178,7 @@ void vtkSlicerAbstractWidgetRepresentation2D::GetWorldToSliceCoordinates(const d
   worldCoordinates[3] = 1.0;
 
   vtkNew<vtkMatrix4x4> rasToxyMatrix;
-  this->SliceNode->GetXYToRAS()->Invert(this->SliceNode->GetXYToRAS(), rasToxyMatrix.GetPointer());
+  sliceNode->GetXYToRAS()->Invert(sliceNode->GetXYToRAS(), rasToxyMatrix.GetPointer());
 
   rasToxyMatrix->MultiplyPoint(worldCoordinates, sliceCoordinates);
 
@@ -191,9 +188,16 @@ void vtkSlicerAbstractWidgetRepresentation2D::GetWorldToSliceCoordinates(const d
 
 
 //----------------------------------------------------------------------
-void vtkSlicerAbstractWidgetRepresentation2D::BuildRepresentationPointsAndLabels(double labelsOffset)
+void vtkSlicerAbstractWidgetRepresentation2D::UpdateAllPointsAndLabelsFromMRML(double labelsOffset)
 {
-  int numPoints = this->GetNumberOfNodes();
+  vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
+  if (!this->ViewNode || !markupsNode || !this->MarkupsDisplayNode || !this->Renderer)
+  {
+    return;
+  }
+  int activeControlPointIndex = this->MarkupsDisplayNode->GetActiveControlPoint();
+
+  int numPoints = markupsNode->GetNumberOfControlPoints();
 
   for (int controlPointType = 0; controlPointType < NumberOfControlPointTypes; ++controlPointType)
   {
@@ -212,10 +216,11 @@ void vtkSlicerAbstractWidgetRepresentation2D::BuildRepresentationPointsAndLabels
     int stopIndex = numPoints - 1;
     if (controlPointType == Active)
     {
-      if (this->GetActiveNode() >= 0 && this->GetActiveNode() < numPoints &&
-        this->GetNthNodeVisibility(this->GetActiveNode()) && this->PointsVisibilityOnSlice->GetValue(this->GetActiveNode()))
+      if (activeControlPointIndex >= 0 && activeControlPointIndex < numPoints
+        && markupsNode->GetNthControlPointVisibility(activeControlPointIndex)
+        && this->PointsVisibilityOnSlice->GetValue(activeControlPointIndex))
       {
-        startIndex = this->GetActiveNode();
+        startIndex = activeControlPointIndex;
         stopIndex = startIndex;
       }
       else
@@ -228,18 +233,18 @@ void vtkSlicerAbstractWidgetRepresentation2D::BuildRepresentationPointsAndLabels
 
     for (int pointIndex = startIndex; pointIndex <= stopIndex; pointIndex++)
       {
-      if (!this->GetNthNodeVisibility(pointIndex) || !this->PointsVisibilityOnSlice->GetValue(pointIndex))
+      if (!markupsNode->GetNthControlPointVisibility(pointIndex) || !this->PointsVisibilityOnSlice->GetValue(pointIndex))
       {
         continue;
       }
       if (controlPointType != Active)
       {
-        bool thisNodeSelected = (this->GetNthNodeSelected(pointIndex) != 0);
+        bool thisNodeSelected = (markupsNode->GetNthControlPointSelected(pointIndex) != 0);
         if((controlPointType == Selected) != thisNodeSelected)
         {
           continue;
         }
-        if (pointIndex == this->GetActiveNode())
+        if (pointIndex == activeControlPointIndex)
         {
           continue;
         }
@@ -280,12 +285,12 @@ void vtkSlicerAbstractWidgetRepresentation2D::BuildRepresentationPointsAndLabels
       this->Renderer->ViewToNormalizedViewport(viewPos[0], viewPos[1], viewPos[2]);
       controlPoints->LabelControlPoints->InsertNextPoint(viewPos);
 
-      this->GetNthNodeOrientation(pointIndex, orientation);
-      this->FromOrientationQuaternionToWorldOrient(orientation, worldOrient);
+      markupsNode->GetNthControlPointOrientation(pointIndex, orientation);
+      vtkMRMLMarkupsNode::FromOrientationQuaternionToWorldOrient(orientation, worldOrient);
       controlPoints->ControlPointsPolyData->GetPointData()->GetNormals()->InsertNextTuple(worldOrient + 6);
       controlPoints->LabelControlPointsPolyData->GetPointData()->GetNormals()->InsertNextTuple(worldOrient + 6);
 
-      controlPoints->Labels->InsertNextValue(this->GetNthNodeLabel(pointIndex));
+      controlPoints->Labels->InsertNextValue(markupsNode->GetNthControlPointLabel(pointIndex));
       controlPoints->LabelsPriority->InsertNextValue(std::to_string(pointIndex));
       }
 
@@ -308,35 +313,23 @@ void vtkSlicerAbstractWidgetRepresentation2D::BuildRepresentationPointsAndLabels
 }
 
 //----------------------------------------------------------------------
-void vtkSlicerAbstractWidgetRepresentation2D::SetSliceNode(vtkMRMLSliceNode *sliceNode)
-{
-  if (sliceNode == nullptr || this->SliceNode == sliceNode)
-    {
-    return;
-    }
-
-  this->SliceNode = sliceNode;
-}
-
-//----------------------------------------------------------------------
 vtkMRMLSliceNode *vtkSlicerAbstractWidgetRepresentation2D::GetSliceNode()
 {
-  return this->SliceNode;
+  return vtkMRMLSliceNode::SafeDownCast(this->ViewNode);
 }
 
 //----------------------------------------------------------------------
 int vtkSlicerAbstractWidgetRepresentation2D::GetNthNodeDisplayPosition(int n, double slicePos[2])
 {
-  if (!this->NodeExists(n) || !this->SliceNode)
+  vtkMRMLSliceNode *sliceNode = this->GetSliceNode();
+  vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
+  if (!markupsNode || n<0 || n>=markupsNode->GetNumberOfControlPoints() || !sliceNode)
     {
     return 0;
     }
-
   double worldPos[3];
-
-  this->GetNthNodeWorldPosition(n, worldPos);
+  markupsNode->GetNthControlPointPositionWorld(n, worldPos);
   this->GetWorldToSliceCoordinates(worldPos, slicePos);
-
   return 1;
 }
 
@@ -344,7 +337,7 @@ int vtkSlicerAbstractWidgetRepresentation2D::GetNthNodeDisplayPosition(int n, do
 int vtkSlicerAbstractWidgetRepresentation2D::GetIntermediatePointDisplayPosition(int n, int idx, double displayPos[2])
 {
   vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
-  if (!markupsNode || !this->NodeExists(n))
+  if (!markupsNode || n<0 || n >= markupsNode->GetNumberOfControlPoints())
     {
     return 0;
     }
@@ -360,33 +353,6 @@ int vtkSlicerAbstractWidgetRepresentation2D::GetIntermediatePointDisplayPosition
   markupsNode->TransformPointToWorld(intermediatePosition, worldPos);
 
   this->GetWorldToSliceCoordinates(worldPos.GetData(), displayPos);
-  return 1;
-}
-
-//----------------------------------------------------------------------
-int vtkSlicerAbstractWidgetRepresentation2D::SetNthNodeDisplayPosition(int n, const double slicePos[2])
-{
-  if (!this->NodeExists(n))
-    {
-    return 0;
-    }
-
-  double worldPos[3];
-
-  this->GetSliceToWorldCoordinates(slicePos, worldPos);
-  this->SetNthNodeWorldPositionInternal(n, worldPos);
-
-  return 1;
-}
-
-//----------------------------------------------------------------------
-int vtkSlicerAbstractWidgetRepresentation2D::AddNodeAtDisplayPosition(const double slicePos[2])
-{
-  double worldPos[3];
-
-  this->GetSliceToWorldCoordinates(slicePos, worldPos);
-  this->AddNodeAtPositionInternal(worldPos);
-
   return 1;
 }
 
@@ -412,7 +378,13 @@ void vtkSlicerAbstractWidgetRepresentation2D::BuildLocator()
     return;
     }
 
-  vtkIdType size = this->GetNumberOfNodes();
+  vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
+  if (!markupsNode)
+    {
+    return;
+    }
+
+  vtkIdType size = markupsNode->GetNumberOfControlPoints();
   if (size < 1)
     {
     return;
@@ -439,90 +411,50 @@ void vtkSlicerAbstractWidgetRepresentation2D::BuildLocator()
 }
 
 //----------------------------------------------------------------------
-void vtkSlicerAbstractWidgetRepresentation2D::AddNodeAtPositionInternal(const double worldPos[3])
+void vtkSlicerAbstractWidgetRepresentation2D::UpdateFromMRML(vtkMRMLNode* caller, unsigned long event, void *callData/*=NULL*/)
 {
-  vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
-  if (!markupsNode)
-  {
-    return;
-    }
-
-  int wasModified = markupsNode->StartModify();
-
-  // Add a new point at this position
-  vtkVector3d pos(worldPos[0], worldPos[1], worldPos[2]);
-  markupsNode->AddControlPointWorld(pos);
-
-  if (this->GetNumberOfNodes() - 1 >= this->PointsVisibilityOnSlice->GetNumberOfValues())
-    {
-    this->PointsVisibilityOnSlice->InsertValue(this->GetNumberOfNodes() - 1, 1);
-    }
-  else
-    {
-    this->PointsVisibilityOnSlice->InsertNextValue(1);
-    }
-
-  markupsNode->EndModify(wasModified);
-
-  this->UpdateLines(this->GetNumberOfNodes() - 1);
-
-  this->NeedToRender = 1;
-}
-
-//----------------------------------------------------------------------
-void vtkSlicerAbstractWidgetRepresentation2D::UpdateFromMRML()
-{
-  // Make sure we are up to date with any changes made in the placer
-  //this->UpdateWidget();
+  Superclass::UpdateFromMRML(caller, event, callData);
 
   vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
-  if (!markupsNode)
-    {
-    return;
-    }
-  vtkMRMLMarkupsDisplayNode* markupsDisplayNode = this->MarkupsDisplayNode;
-  if (!markupsDisplayNode)
-    {
-    return;
-    }
-
-  if (!markupsDisplayNode->GetVisibility() || !markupsDisplayNode->IsDisplayableInView(this->SliceNode->GetID()))
+  if (!this->ViewNode || !markupsNode || !this->MarkupsDisplayNode
+    || !this->MarkupsDisplayNode->GetVisibility()
+    || !this->MarkupsDisplayNode->IsDisplayableInView(this->ViewNode->GetID())
+    )
     {
     this->VisibilityOff();
     return;
     }
 
   vtkProperty2D *unselectedProp = this->GetControlPointsPipeline(Unselected)->Property;
-  unselectedProp->SetColor(markupsDisplayNode->GetColor());
-  unselectedProp->SetOpacity(markupsDisplayNode->GetOpacity());
+  unselectedProp->SetColor(this->MarkupsDisplayNode->GetColor());
+  unselectedProp->SetOpacity(this->MarkupsDisplayNode->GetOpacity());
 
   vtkProperty2D *selectedProp = this->GetControlPointsPipeline(Selected)->Property;
-  selectedProp->SetColor(markupsDisplayNode->GetSelectedColor());
-  selectedProp->SetOpacity(markupsDisplayNode->GetOpacity());
+  selectedProp->SetColor(this->MarkupsDisplayNode->GetSelectedColor());
+  selectedProp->SetOpacity(this->MarkupsDisplayNode->GetOpacity());
 
   vtkProperty2D *activeProp = this->GetControlPointsPipeline(Active)->Property;
   activeProp->SetColor(0.4, 1.0, 0.);  // bright green
-  activeProp->SetOpacity(markupsDisplayNode->GetOpacity());
+  activeProp->SetOpacity(this->MarkupsDisplayNode->GetOpacity());
 
   vtkTextProperty *unselectedTextProp = this->GetControlPointsPipeline(Unselected)->TextProperty;
-  unselectedTextProp->SetColor(markupsDisplayNode->GetColor());
-  unselectedTextProp->SetOpacity(markupsDisplayNode->GetOpacity());
-  unselectedTextProp->SetFontSize(static_cast<int>(5. * markupsDisplayNode->GetTextScale()));
+  unselectedTextProp->SetColor(this->MarkupsDisplayNode->GetColor());
+  unselectedTextProp->SetOpacity(this->MarkupsDisplayNode->GetOpacity());
+  unselectedTextProp->SetFontSize(static_cast<int>(5. * this->MarkupsDisplayNode->GetTextScale()));
 
   vtkTextProperty *selectedTextProp = this->GetControlPointsPipeline(Selected)->TextProperty;
-  selectedTextProp->SetColor(markupsDisplayNode->GetSelectedColor());
-  selectedTextProp->SetOpacity(markupsDisplayNode->GetOpacity());
-  selectedTextProp->SetFontSize(static_cast<int>(5. * markupsDisplayNode->GetTextScale()));
+  selectedTextProp->SetColor(this->MarkupsDisplayNode->GetSelectedColor());
+  selectedTextProp->SetOpacity(this->MarkupsDisplayNode->GetOpacity());
+  selectedTextProp->SetFontSize(static_cast<int>(5. * this->MarkupsDisplayNode->GetTextScale()));
 
   vtkTextProperty *activeTextProp = this->GetControlPointsPipeline(Active)->TextProperty;
   activeTextProp->SetColor(0.4, 1.0, 0.); // bright green
-  activeTextProp->SetOpacity(markupsDisplayNode->GetOpacity());
-  activeTextProp->SetFontSize(static_cast<int>(5. * markupsDisplayNode->GetTextScale()));
-
+  activeTextProp->SetOpacity(this->MarkupsDisplayNode->GetOpacity());
+  activeTextProp->SetFontSize(static_cast<int>(5. * this->MarkupsDisplayNode->GetTextScale()));
 
   for (int controlPointType = 0; controlPointType < NumberOfControlPointTypes; ++controlPointType)
   {
-    if (markupsDisplayNode->GlyphTypeIs3D())
+    if (this->MarkupsDisplayNode->GlyphTypeIs3D())
     {
       this->GetControlPointsPipeline(controlPointType)->Glypher->SetSourceConnection(
         this->GetControlPointsPipeline(controlPointType)->GlyphSourceSphere->GetOutputPort());
@@ -530,12 +462,12 @@ void vtkSlicerAbstractWidgetRepresentation2D::UpdateFromMRML()
     else
     {
       vtkMarkupsGlyphSource2D* glyphSource = this->GetControlPointsPipeline(controlPointType)->GlyphSource2D;
-      glyphSource->SetGlyphType(markupsDisplayNode->GetGlyphType());
+      glyphSource->SetGlyphType(this->MarkupsDisplayNode->GetGlyphType());
       this->GetControlPointsPipeline(controlPointType)->Glypher->SetSourceConnection(glyphSource->GetOutputPort());
     }
   }
 
-  this->ControlPointSize = markupsDisplayNode->GetGlyphScale() * this->ScaleFactor2D;
+  this->ControlPointSize = this->MarkupsDisplayNode->GetGlyphScale() * this->ScaleFactor2D;
 
   double scale = this->CalculateViewScaleFactor();
 
@@ -559,18 +491,18 @@ void vtkSlicerAbstractWidgetRepresentation2D::UpdateFromMRML()
     controlPoints->Glypher->SetScaleFactor(scale * this->ControlPointSize);
   }
 
-  this->BuildRepresentationPointsAndLabels(scale * this->ControlPointSize);
+  this->UpdateAllPointsAndLabelsFromMRML(scale * this->ControlPointSize);
 
   this->VisibilityOn();
-
 }
 
 //----------------------------------------------------------------------
 int vtkSlicerAbstractWidgetRepresentation2D::CanInteract(const int displayPosition[2],
   const double worldPosition[3], double &closestDistance2, int &componentIndex)
 {
+  vtkMRMLSliceNode *sliceNode = this->GetSliceNode();
   vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
-  if (!markupsNode || markupsNode->GetLocked() || this->GetNumberOfNodes() < 1)
+  if (!sliceNode || !markupsNode || markupsNode->GetLocked() || markupsNode->GetNumberOfControlPoints() < 1)
   {
     return vtkMRMLMarkupsDisplayNode::ComponentNone;
   }
@@ -584,7 +516,7 @@ int vtkSlicerAbstractWidgetRepresentation2D::CanInteract(const int displayPositi
 
   closestDistance2 = VTK_DOUBLE_MAX; // in display coordinate system
   componentIndex = -1;
-  if (this->GetNumberOfNodes() > 2 && this->ClosedLoop && markupsNode && this->CentroidVisibilityOnSlice)
+  if (markupsNode->GetNumberOfControlPoints() > 2 && this->ClosedLoop && markupsNode && this->CentroidVisibilityOnSlice)
     {
     // Check if centroid is selected
     double centroidPosWorld[3], centroidPosDisplay[3];
@@ -600,14 +532,14 @@ int vtkSlicerAbstractWidgetRepresentation2D::CanInteract(const int displayPositi
       }
     }
 
-  vtkIdType numberOfPoints = this->GetNumberOfNodes();
+  vtkIdType numberOfPoints = markupsNode->GetNumberOfControlPoints();
   double sliceCoordinates[4], worldCoordinates[4];
 
   double pointDisplayPos[4] = { 0.0, 0.0, 0.0, 1.0 };
   double pointWorldPos[4] = { 0.0, 0.0, 0.0, 1.0 };
 
   vtkNew<vtkMatrix4x4> rasToxyMatrix;
-  this->SliceNode->GetXYToRAS()->Invert(this->SliceNode->GetXYToRAS(), rasToxyMatrix.GetPointer());
+  sliceNode->GetXYToRAS()->Invert(sliceNode->GetXYToRAS(), rasToxyMatrix.GetPointer());
   for (int i = 0; i < numberOfPoints; i++)
     {
     if (!this->PointsVisibilityOnSlice->GetValue(i))
@@ -632,8 +564,9 @@ int vtkSlicerAbstractWidgetRepresentation2D::CanInteract(const int displayPositi
 void vtkSlicerAbstractWidgetRepresentation2D::CanInteractWithLine(int &foundComponentType,
   const int displayPosition[2], const double worldPosition[3], double &closestDistance2, int &componentIndex)
 {
+  vtkMRMLSliceNode *sliceNode = this->GetSliceNode();
   vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
-  if (!markupsNode || markupsNode->GetLocked() || this->GetNumberOfNodes() < 1)
+  if (!sliceNode || !markupsNode || markupsNode->GetLocked() || markupsNode->GetNumberOfControlPoints() < 1)
   {
     return;
   }
@@ -643,7 +576,7 @@ void vtkSlicerAbstractWidgetRepresentation2D::CanInteractWithLine(int &foundComp
   this->PixelTolerance = this->ControlPointSize * (1.0 + this->Tolerance) * this->CalculateViewScaleFactor();
   double pixelTolerance2 = this->PixelTolerance * this->PixelTolerance;
 
-  vtkIdType numberOfPoints = this->GetNumberOfNodes();
+  vtkIdType numberOfPoints = markupsNode->GetNumberOfControlPoints();
   double sliceCoordinates[4], worldCoordinates[4];
 
   double pointDisplayPos1[4] = { 0.0, 0.0, 0.0, 1.0 };
@@ -652,7 +585,7 @@ void vtkSlicerAbstractWidgetRepresentation2D::CanInteractWithLine(int &foundComp
   double pointWorldPos2[4] = { 0.0, 0.0, 0.0, 1.0 };
 
   vtkNew<vtkMatrix4x4> rasToxyMatrix;
-  this->SliceNode->GetXYToRAS()->Invert(this->SliceNode->GetXYToRAS(), rasToxyMatrix.GetPointer());
+  sliceNode->GetXYToRAS()->Invert(sliceNode->GetXYToRAS(), rasToxyMatrix.GetPointer());
   for (int i = 0; i < numberOfPoints - 1; i++)
   {
     if (!this->PointsVisibilityOnSlice->GetValue(i))
@@ -727,10 +660,6 @@ int vtkSlicerAbstractWidgetRepresentation2D::RenderOverlay(vtkViewport *viewport
 int vtkSlicerAbstractWidgetRepresentation2D::RenderOpaqueGeometry(
   vtkViewport *viewport)
 {
-  // Since we know RenderOpaqueGeometry gets called first, will do the
-  // build here
-  this->UpdateFromMRML();
-
   int count = 0;
   for (int i = 0; i < NumberOfControlPointTypes; i++)
   {
@@ -792,8 +721,7 @@ vtkTypeBool vtkSlicerAbstractWidgetRepresentation2D::HasTranslucentPolygonalGeom
 }
 
 //-----------------------------------------------------------------------------
-void vtkSlicerAbstractWidgetRepresentation2D::PrintSelf(ostream& os,
-                                                      vtkIndent indent)
+void vtkSlicerAbstractWidgetRepresentation2D::PrintSelf(ostream& os, vtkIndent indent)
 {
   //Superclass typedef defined in vtkTypeMacro() found in vtkSetGet.h
   this->Superclass::PrintSelf(os, indent);
@@ -840,7 +768,8 @@ vtkSlicerAbstractWidgetRepresentation2D::ControlPointsPipeline2D* vtkSlicerAbstr
 //---------------------------------------------------------------------------
 bool vtkSlicerAbstractWidgetRepresentation2D::IsPointDisplayableOnSlice(vtkMRMLMarkupsNode *markupsNode, int pointIndex)
 {
-  if (!this->SliceNode)
+  vtkMRMLSliceNode *sliceNode = this->GetSliceNode();
+  if (!sliceNode)
     {
     return false;
     }
@@ -873,7 +802,7 @@ bool vtkSlicerAbstractWidgetRepresentation2D::IsPointDisplayableOnSlice(vtkMRMLM
   {
     // the third coordinate of the displayCoordinates is the distance to the slice
     double distanceToSlice = displayCoordinates[2];
-    double maxDistance = 0.5 + (this->SliceNode->GetDimensions()[2] - 1);
+    double maxDistance = 0.5 + (sliceNode->GetDimensions()[2] - 1);
     /*vtkDebugMacro("Slice node " << sliceNode->GetName()
       << ": distance to slice = " << distanceToSlice
       << ", maxDistance = " << maxDistance
@@ -895,7 +824,8 @@ bool vtkSlicerAbstractWidgetRepresentation2D::IsCentroidDisplayableOnSlice(vtkMR
 {
   // if no slice node, it doesn't constrain the visibility, so return that
   // it's visible
-  if (!this->SliceNode)
+  vtkMRMLSliceNode *sliceNode = this->GetSliceNode();
+  if (!sliceNode)
   {
     vtkErrorMacro("IsWidgetDisplayableOnSlice: Could not get the sliceNode.")
     return false;
@@ -912,7 +842,7 @@ bool vtkSlicerAbstractWidgetRepresentation2D::IsCentroidDisplayableOnSlice(vtkMR
 
   // allow annotations to appear only in designated viewers
   vtkMRMLDisplayNode *displayNode = markupsNode->GetDisplayNode();
-  if (displayNode && !displayNode->IsDisplayableInView(this->SliceNode->GetID()))
+  if (displayNode && !displayNode->IsDisplayableInView(sliceNode->GetID()))
   {
     return 0;
   }
@@ -930,7 +860,7 @@ bool vtkSlicerAbstractWidgetRepresentation2D::IsCentroidDisplayableOnSlice(vtkMR
   {
     // the third coordinate of the displayCoordinates is the distance to the slice
     double distanceToSlice = displayCoordinates[2];
-    double maxDistance = 0.5 + (this->SliceNode->GetDimensions()[2] - 1);
+    double maxDistance = 0.5 + (sliceNode->GetDimensions()[2] - 1);
     /*vtkDebugMacro("Slice node " << sliceNode->GetName()
       << ": distance to slice = " << distanceToSlice
       << ", maxDistance = " << maxDistance
@@ -952,7 +882,8 @@ bool vtkSlicerAbstractWidgetRepresentation2D::IsCentroidDisplayableOnSlice(vtkMR
 /// Convert world to display coordinates
 void vtkSlicerAbstractWidgetRepresentation2D::GetWorldToDisplayCoordinates(double r, double a, double s, double * displayCoordinates)
 {
-  if (!this->SliceNode)
+  vtkMRMLSliceNode *sliceNode = this->GetSliceNode();
+  if (!sliceNode)
   {
     vtkErrorMacro("GetWorldToDisplayCoordinates: no slice node!");
     return;
@@ -960,7 +891,7 @@ void vtkSlicerAbstractWidgetRepresentation2D::GetWorldToDisplayCoordinates(doubl
 
   // we will get the transformation matrix to convert world coordinates to the display coordinates of the specific sliceNode
 
-  vtkMatrix4x4 * xyToRasMatrix = this->SliceNode->GetXYToRAS();
+  vtkMatrix4x4 * xyToRasMatrix = sliceNode->GetXYToRAS();
   vtkNew<vtkMatrix4x4> rasToXyMatrix;
 
   // we need to invert this matrix

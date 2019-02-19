@@ -42,7 +42,6 @@
 #include "vtkCamera.h"
 #include "vtkPoints.h"
 #include "vtkCellArray.h"
-#include "vtkFocalPlanePointPlacer.h"
 #include "vtkSlicerBezierLineInterpolator.h"
 #include "vtkSphereSource.h"
 #include "vtkAppendPolyData.h"
@@ -81,100 +80,61 @@ vtkSlicerCurveRepresentation2D::~vtkSlicerCurveRepresentation2D()
 }
 
 //----------------------------------------------------------------------
-void vtkSlicerCurveRepresentation2D::UpdateLinesFromMRML()
+void vtkSlicerCurveRepresentation2D::UpdateFromMRML(vtkMRMLNode* caller, unsigned long event, void *callData /*=NULL*/)
 {
-  this->BuildLine(this->Line, true);
-}
+  Superclass::UpdateFromMRML(caller, event, callData);
 
-//----------------------------------------------------------------------
-void vtkSlicerCurveRepresentation2D::UpdateFromMRML()
-{
-  // Make sure we are up to date with any changes made in the placer
-  //this->UpdateWidget(true);
-
-  Superclass::UpdateFromMRML();
+  this->NeedToRenderOn();
 
   vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
-  if (markupsNode == nullptr)
-    {
+  if (!markupsNode || !this->MarkupsDisplayNode
+    || !this->MarkupsDisplayNode->GetVisibility()
+    || !this->MarkupsDisplayNode->IsDisplayableInView(this->ViewNode->GetID())
+    )
+  {
+    this->VisibilityOff();
     return;
-    }
+  }
 
-  vtkMRMLMarkupsDisplayNode* markupsDisplayNode = this->GetMarkupsDisplayNode();
-  if (markupsDisplayNode == nullptr)
-    {
-    return;
-    }
+  this->VisibilityOn();
+
+  // Line geometry
+
+  this->BuildLine(this->Line, true);
+
+  // Line display
 
   double scale = this->CalculateViewScaleFactor();
 
-  /*
-  for (int controlPointType = 0; controlPointType < NumberOfControlPointTypes; ++controlPointType)
-  {
-    ControlPointsPipeline2D* controlPoints = this->GetControlPointsPipeline(controlPointType);
-    controlPoints->LabelsActor->SetVisibility(this->MarkupsDisplayNode->GetTextVisibility());
-    controlPoints->Glypher->SetScaleFactor(scale * this->ControlPointSize);
-  }
-  */
-
   this->TubeFilter->SetRadius(scale * this->ControlPointSize * 0.125);
 
-  //this->BuildRepresentationPointsAndLabels(scale * this->ControlPointSize);
+  this->LineActor->SetVisibility(this->GetAllControlPointsVisible());
 
-  bool allNodeVisibile = true;
-  for (int ii = 0; ii < this->GetNumberOfNodes(); ii++)
-    {
-    if (!this->PointsVisibilityOnSlice->GetValue(ii) ||
-        !this->GetNthNodeVisibility(ii))
-      {
-      allNodeVisibile = false;
-      break;
-      }
-    }
-
-  this->LineActor->SetVisibility(allNodeVisibile);
-
-  bool allNodeSelected = true;
-  for (int ii = 0; ii < this->GetNumberOfNodes(); ii++)
-    {
-    if (!this->GetNthNodeSelected(ii))
-      {
-      allNodeSelected = false;
-      break;
-      }
-    }
-
-  if (markupsDisplayNode->GetActiveComponentType() == vtkMRMLMarkupsDisplayNode::ComponentLine)
-    {
-    this->LineActor->SetProperty(this->GetControlPointsPipeline(Active)->Property);
-    }
-  else if (allNodeSelected)
-    {
-    this->LineActor->SetProperty(this->GetControlPointsPipeline(Selected)->Property);
-    }
-  else
-    {
-    this->LineActor->SetProperty(this->GetControlPointsPipeline(Unselected)->Property);
-    }
+  bool allControlPointsSelected = this->GetAllControlPointsSelected();
+  int controlPointType = Active;
+  if (this->MarkupsDisplayNode->GetActiveComponentType() != vtkMRMLMarkupsDisplayNode::ComponentLine)
+  {
+    controlPointType = allControlPointsSelected ? Selected : Unselected;
+  }
+  this->LineActor->SetProperty(this->GetControlPointsPipeline(controlPointType)->Property);
 
   bool allNodesHidden = true;
-  for (int ii = 0; ii < this->GetNumberOfNodes(); ii++)
+  for (int controlPointIndex = 0; controlPointIndex < markupsNode->GetNumberOfControlPoints(); controlPointIndex++)
+  {
+    if (markupsNode->GetNthControlPointVisibility(controlPointIndex))
     {
-    if (this->PointsVisibilityOnSlice->GetValue(ii) &&
-        this->GetNthNodeVisibility(ii))
-      {
       allNodesHidden = false;
       break;
-      }
     }
+  }
 
-  if (this->ClosedLoop && this->GetNumberOfNodes() > 2 && this->CentroidVisibilityOnSlice && !allNodesHidden)
+  if (this->ClosedLoop && markupsNode->GetNumberOfControlPoints() > 2 && this->CentroidVisibilityOnSlice && !allNodesHidden)
   {
     double centroidPosWorld[3], centroidPosDisplay[3], orient[3] = { 0 };
     markupsNode->GetCentroidPosition(centroidPosWorld);
     this->GetWorldToSliceCoordinates(centroidPosWorld, centroidPosDisplay);
-    int centroidControlPointType = allNodeSelected ? Selected : Unselected;
-    if (markupsDisplayNode->GetActiveComponentType() == vtkMRMLMarkupsDisplayNode::ComponentCentroid)
+    int centroidControlPointType = allControlPointsSelected ? Selected : Unselected;
+    if (this->MarkupsDisplayNode->GetActiveComponentType() == vtkMRMLMarkupsDisplayNode::ComponentCentroid)
     {
       centroidControlPointType = Active;
       this->GetControlPointsPipeline(centroidControlPointType)->ControlPoints->SetNumberOfPoints(0);
@@ -198,7 +158,7 @@ void vtkSlicerCurveRepresentation2D::UpdateFromMRML()
 int vtkSlicerCurveRepresentation2D::CanInteract(const int displayPosition[2], const double worldPosition[3], double &closestDistance2, int &componentIndex)
 {
   vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
-  if (!markupsNode || markupsNode->GetLocked() || this->GetNumberOfNodes() < 1)
+  if (!markupsNode || markupsNode->GetLocked() || markupsNode->GetNumberOfControlPoints() < 1)
   {
     return vtkMRMLMarkupsDisplayNode::ComponentNone;
   }
@@ -244,10 +204,6 @@ int vtkSlicerCurveRepresentation2D::RenderOverlay(vtkViewport *viewport)
 int vtkSlicerCurveRepresentation2D::RenderOpaqueGeometry(
   vtkViewport *viewport)
 {
-  // Since we know RenderOpaqueGeometry gets called first, will do the
-  // build here
-  this->UpdateFromMRML();
-
   int count=0;
   if (this->LineActor->GetVisibility())
     {

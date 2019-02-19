@@ -98,7 +98,7 @@ void vtkMRMLMarkupsDisplayableManagerHelper::PrintSelf(ostream& os, vtkIndent in
       int numberOfNodes = 0;
       if (abstractRepresentation)
       {
-        numberOfNodes = abstractRepresentation->GetNumberOfNodes();
+        numberOfNodes = abstractRepresentation->GetMarkupsNode()->GetNumberOfControlPoints();
       }
       else
       {
@@ -383,7 +383,7 @@ void vtkMRMLMarkupsDisplayableManagerHelper::AddDisplayNode(vtkMRMLMarkupsDispla
   this->MarkupsDisplayNodesToWidgets[markupsDisplayNode] = newWidget;
 
   // Build representation
-  newWidget->UpdateFromMRML();
+  newWidget->UpdateFromMRML(markupsDisplayNode, 0); // no specific event triggers full rebuild
 
   this->DisplayableManager->RequestRender();
 
@@ -448,27 +448,5 @@ void vtkMRMLMarkupsDisplayableManagerHelper::RemoveObservations(vtkMRMLMarkupsNo
     vtkEventBroker::ObservationVector observations;
     observations = broker->GetObservations(node, observedMarkupNodeEvent, this, callbackCommand);
     broker->RemoveObservations(observations);
-  }
-}
-
-//---------------------------------------------------------------------------
-void vtkMRMLMarkupsDisplayableManagerHelper::UpdateAllWidgetsFromInteractionNode(vtkMRMLInteractionNode *interactionNode)
-{
-  // Sanity checks
-  if (interactionNode == nullptr)
-  {
-    return;
-  }
-
-  // loop through all widgets and update the widget status
-  for (vtkMRMLMarkupsDisplayableManagerHelper::DisplayNodeToWidgetIt widgetIterator = this->MarkupsDisplayNodesToWidgets.begin();
-    widgetIterator != this->MarkupsDisplayNodesToWidgets.end(); ++widgetIterator)
-  {
-    vtkSlicerAbstractWidget* widget = widgetIterator->second;
-    if (!widget)
-    {
-      continue;
-    }
-    widget->Leave();
   }
 }

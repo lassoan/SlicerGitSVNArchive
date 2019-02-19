@@ -17,6 +17,8 @@
 =========================================================================*/
 
 #include "vtkSlicerClosedCurveWidget.h"
+#include "vtkMRMLSliceNode.h"
+#include "vtkSlicerCurveRepresentation2D.h"
 #include "vtkSlicerCurveRepresentation3D.h"
 #include "vtkCommand.h"
 #include "vtkCallbackCommand.h"
@@ -53,10 +55,23 @@ vtkSlicerClosedCurveWidget::~vtkSlicerClosedCurveWidget()
 }
 
 //----------------------------------------------------------------------
-void vtkSlicerClosedCurveWidget::CreateDefaultRepresentation()
+void vtkSlicerClosedCurveWidget::CreateDefaultRepresentation(
+  vtkMRMLMarkupsDisplayNode* markupsDisplayNode, vtkMRMLAbstractViewNode* viewNode, vtkRenderer* renderer)
 {
-  vtkNew<vtkSlicerCurveRepresentation3D> rep;
+  vtkSmartPointer<vtkSlicerAbstractWidgetRepresentation> rep = NULL;
+  if (vtkMRMLSliceNode::SafeDownCast(viewNode))
+  {
+    rep = vtkSmartPointer<vtkSlicerCurveRepresentation2D>::New();
+  }
+  else
+  {
+    rep = vtkSmartPointer<vtkSlicerCurveRepresentation3D>::New();
+  }
+  this->SetRenderer(renderer);
   this->SetRepresentation(rep);
+  rep->SetClosedLoop(true);
+  rep->SetViewNode(viewNode);
+  rep->SetMarkupsDisplayNode(markupsDisplayNode);
 }
 
 //----------------------------------------------------------------------
@@ -67,7 +82,7 @@ void vtkSlicerClosedCurveWidget::AddPointOnCurveAction(vtkAbstractWidget *w)
   vtkSlicerClosedCurveWidget *self = reinterpret_cast<vtkSlicerClosedCurveWidget*>(w);
   if ( self->WidgetState != vtkSlicerClosedCurveWidget::Manipulate)
     {
-    return;
+    return false;
     }
 
   vtkSlicerAbstractWidgetRepresentation *rep =
@@ -79,24 +94,18 @@ void vtkSlicerClosedCurveWidget::AddPointOnCurveAction(vtkAbstractWidget *w)
   pos[0] = X;
   pos[1] = Y;
 
-  if ( rep->AddNodeOnWidget( X, Y ) )
+  int addedControlPointIndex = rep->AddNodeOnWidget( X, Y );
+  if ( addedControlPointIndex < 0 )
     {
-    if ( rep->ActivateNode( X, Y ) )
-      {
-      self->GrabFocus(self->EventCallbackCommand);
-      self->StartInteraction();
-      rep->StartWidgetInteraction( pos );
-      self->CurrentHandle = rep->GetActiveNode();
-      rep->SetCurrentOperationToPick();
-      self->InvokeEvent( vtkCommand::PlacePointEvent, &self->CurrentHandle );
-      self->EventCallbackCommand->SetAbortFlag( 1 );
-      }
+    return false;
     }
 
-  if ( rep->GetNeedToRender() )
-    {
-    self->Render();
-    rep->NeedToRenderOff();
-  }
+  this->GetMarkupsNode(addedControlPointIndex)
+  self->GrabFocus(self->EventCallbackCommand);
+  self->StartInteraction();
+  rep->StartWidgetInteraction( pos );
+  self->CurrentHandle = rep->GetActiveNode();
+  rep->SetCurrentOperationToPick();
+  return true;
   */
 }

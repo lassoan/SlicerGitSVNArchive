@@ -17,35 +17,6 @@
 =========================================================================*/
 
 #include "vtkSlicerPointsRepresentation2D.h"
-#include "vtkAppendPolyData.h"
-#include "vtkCleanPolyData.h"
-#include "vtkPolyDataMapper.h"
-#include "vtkActor.h"
-#include "vtkRenderer.h"
-#include "vtkRenderWindow.h"
-#include "vtkObjectFactory.h"
-#include "vtkProperty2D.h"
-#include "vtkMath.h"
-#include "vtkInteractorObserver.h"
-#include "vtkIncrementalOctreePointLocator.h"
-#include "vtkLine.h"
-#include "vtkCoordinate.h"
-#include "vtkGlyph3D.h"
-#include "vtkCursor2D.h"
-#include "vtkCylinderSource.h"
-#include "vtkPolyData.h"
-#include "vtkPoints.h"
-#include "vtkDoubleArray.h"
-#include "vtkPointData.h"
-#include "vtkTransformPolyDataFilter.h"
-#include "vtkTransform.h"
-#include "vtkCamera.h"
-#include "vtkPoints.h"
-#include "vtkCellArray.h"
-#include "vtkFocalPlanePointPlacer.h"
-#include "vtkSphereSource.h"
-#include "vtkVolumePicker.h"
-#include "vtkPickingManager.h"
 
 vtkStandardNewMacro(vtkSlicerPointsRepresentation2D);
 
@@ -57,10 +28,4 @@ vtkSlicerPointsRepresentation2D::vtkSlicerPointsRepresentation2D()
 //----------------------------------------------------------------------
 vtkSlicerPointsRepresentation2D::~vtkSlicerPointsRepresentation2D()
 {
-}
-
-//----------------------------------------------------------------------
-void vtkSlicerPointsRepresentation2D::UpdateLinesFromMRML()
-{
-  return;
 }
