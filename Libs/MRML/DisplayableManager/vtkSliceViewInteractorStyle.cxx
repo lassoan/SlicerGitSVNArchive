@@ -1073,6 +1073,9 @@ bool vtkSliceViewInteractorStyle::ForwardInteractionEventToDisplayableManagers(u
   int displayPositionCorrected[2] = { displayPositionInt[0] - pokedRenderer->GetOrigin()[0], displayPositionInt[1] - pokedRenderer->GetOrigin()[1] };
   ed->SetDisplayPosition(displayPositionCorrected);
   ed->SetWorldPosition(worldPosition);
+  ed->SetKeyCode(this->Interactor->GetKeyCode());
+  ed->SetKeySym(this->Interactor->GetKeySym());
+  ed->SetKeyRepeatCount(this->Interactor->GetRepeatCount());
 
   // Find the most suitable displayable manager
   for (int displayableManagerIndex = 0; displayableManagerIndex < numberOfDisplayableManagers; ++displayableManagerIndex)

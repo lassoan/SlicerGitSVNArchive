@@ -484,19 +484,23 @@ unsigned long vtkSlicerAbstractWidget::TranslateInteractionEventToWidgetEvent(
     int modifier = eventData->GetModifiers();
     char keyCode = eventData->GetKeyCode();
     int repeatCount = eventData->GetKeyRepeatCount();
-    const std::string keySym = eventData->GetKeySym();
+    const char* keySym = nullptr;
+    if (!eventData->GetKeySym().empty())
+      {
+      keySym = eventData->GetKeySym().c_str();
+      }
 
     // If neither the ctrl nor the shift keys are pressed, give
     // NoModifier a preference over AnyModifer.
     if (modifier == vtkEvent::AnyModifier)
     {
       widgetEvent = this->EventTranslator->GetTranslation(vtkCommand::KeyPressEvent,
-        vtkEvent::NoModifier, keyCode, repeatCount, keySym.c_str());
+        vtkEvent::NoModifier, keyCode, repeatCount, keySym);
     }
     if (widgetEvent == vtkWidgetEvent::NoEvent)
     {
       widgetEvent = this->EventTranslator->GetTranslation(vtkCommand::KeyPressEvent,
-        vtkEvent::NoModifier, keyCode, repeatCount, keySym.c_str());
+        vtkEvent::NoModifier, keyCode, repeatCount, keySym);
     }
   }
   else
@@ -511,6 +515,11 @@ unsigned long vtkSlicerAbstractWidget::TranslateInteractionEventToWidgetEvent(
 //-----------------------------------------------------------------------------
 bool vtkSlicerAbstractWidget::CanProcessInteractionEvent(vtkSlicerInteractionEventData* eventData, double &distance2)
 {
+  unsigned long widgetEvent = this->TranslateInteractionEventToWidgetEvent(eventData);
+  if (widgetEvent == vtkWidgetEvent::NoEvent)
+    {
+    return false;
+    }
   if (!this->GetRepresentation())
     {
     return false;

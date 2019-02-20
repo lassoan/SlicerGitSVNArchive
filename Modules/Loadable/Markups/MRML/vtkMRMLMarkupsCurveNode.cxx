@@ -15,9 +15,11 @@
 
 ==============================================================================*/
 
-// MRML includes
-#include "vtkMRMLMarkupsDisplayNode.h"
 #include "vtkMRMLMarkupsCurveNode.h"
+
+// MRML includes
+#include "vtkCurveGenerator.h"
+#include "vtkMRMLMarkupsDisplayNode.h"
 #include "vtkMRMLMarkupsFiducialStorageNode.h"
 #include "vtkMRMLScene.h"
 
@@ -36,6 +38,7 @@ vtkMRMLNodeNewMacro(vtkMRMLMarkupsCurveNode);
 //----------------------------------------------------------------------------
 vtkMRMLMarkupsCurveNode::vtkMRMLMarkupsCurveNode()
 {
+  this->CurveGenerator->SetCurveTypeToCardinalSpline();
 }
 
 //----------------------------------------------------------------------------

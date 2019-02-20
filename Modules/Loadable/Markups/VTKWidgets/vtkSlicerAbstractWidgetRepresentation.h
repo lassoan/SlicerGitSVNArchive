@@ -230,8 +230,10 @@ protected:
   /// additionalBounds is for convenience only, it allows defining additional bounds.
   void AddActorsBounds(vtkBoundingBox& bounds, const std::vector<vtkProp*> &actors, double* additionalBounds = nullptr);
 
+  virtual void SetMarkupsNode(vtkMRMLMarkupsNode *markupsNode);
+
   vtkWeakPointer<vtkMRMLMarkupsDisplayNode> MarkupsDisplayNode;
-  //vtkMRMLMarkupsNode* MarkupsNode;
+  vtkWeakPointer<vtkMRMLMarkupsNode> MarkupsNode;
 
   // Selection tolerance for the picking of points
   double Tolerance;
@@ -245,7 +247,7 @@ protected:
   vtkTypeBool ClosedLoop;
 
   /// Convenience method.
-  bool GetAllControlPointsVisible();
+  virtual bool GetAllControlPointsVisible();
 
   /// Convenience method.
   bool GetAllControlPointsSelected();
@@ -255,7 +257,7 @@ protected:
   void GetRendererComputedDisplayPositionFromWorldPosition(const double worldPos[3],
                                                            double displayPos[2]);
 
-  // Utility function to build lines between control points.
+  // Utility function to build straight lines between control points.
   // If displayPosition is true then positions will be computed in display coordinate system,
   // otherwise in world coordinate system.
   // displayPosition is normally set to true in 2D, and to false in 3D representations.

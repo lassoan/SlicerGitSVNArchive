@@ -211,20 +211,10 @@ void vtkSlicerAngleRepresentation2D::UpdateFromMRML(vtkMRMLNode* caller, unsigne
   this->TubeFilter->SetRadius(scale * this->ControlPointSize * 0.125);
   this->ArcTubeFilter->SetRadius(scale * this->ControlPointSize * 0.125);
 
-  bool lineVisibility = true;
-  for (int ii = 0; ii < markupsNode->GetNumberOfControlPoints(); ii++)
-    {
-    if (!this->PointsVisibilityOnSlice->GetValue(ii) ||
-        !markupsNode->GetNthControlPointVisibility(ii))
-      {
-      lineVisibility = false;
-      break;
-      }
-    }
-
-  this->LineActor->SetVisibility(lineVisibility);
-  this->ArcActor->SetVisibility(lineVisibility && markupsNode->GetNumberOfControlPoints() == 3);
-  this->TextActor->SetVisibility(lineVisibility && markupsNode->GetNumberOfControlPoints() == 3);
+  bool allNodeVisibile = this->GetAllControlPointsVisible();
+  this->LineActor->SetVisibility(allNodeVisibile);
+  this->ArcActor->SetVisibility(allNodeVisibile && markupsNode->GetNumberOfControlPoints() == 3);
+  this->TextActor->SetVisibility(allNodeVisibile && markupsNode->GetNumberOfControlPoints() == 3);
 
   int controlPointType = Unselected;
   if (this->MarkupsDisplayNode->GetActiveComponentType() == vtkMRMLMarkupsDisplayNode::ComponentLine)

@@ -144,6 +144,8 @@ protected:
     this->Modifiers = 0;
     this->DisplayPositionValid = false;
     this->WorldPositionValid = false;
+    this->KeyRepeatCount = 0;
+    this->KeyCode = 0;
   }
   ~vtkSlicerInteractionEventData() override {}
 

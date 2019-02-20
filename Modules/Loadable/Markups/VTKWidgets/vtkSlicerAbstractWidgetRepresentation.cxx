@@ -240,169 +240,6 @@ int vtkSlicerAbstractWidgetRepresentation::GetNthNodeDisplayPosition(int n, doub
   return 1;
 }
 
-/*
-//----------------------------------------------------------------------
-bool vtkSlicerAbstractWidgetRepresentation::GetNthNodeVisibility(int n)
-{
-  vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
-  if (!markupsNode)
-  {
-    return false;
-  }
-
-  if (!this->NodeExists(n))
-    {
-    return false;
-    }
-
-  return markupsNode->GetNthControlPointVisibility(n);
-}
-
-//----------------------------------------------------------------------
-void vtkSlicerAbstractWidgetRepresentation::SetNthNodeVisibility(int n, bool visibility)
-{
-  vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
-  if (!markupsNode)
-  {
-    return;
-  }
-
-  if (!this->NodeExists(n))
-    {
-    return;
-    }
-
-  return markupsNode->SetNthControlPointVisibility(n, visibility);
-}
-
-//----------------------------------------------------------------------
-bool vtkSlicerAbstractWidgetRepresentation::GetNthNodeSelected(int n)
-{
-  vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
-  if (!markupsNode)
-    {
-    return false;
-    }
-  if (!this->NodeExists(n))
-    {
-    return false;
-    }
-
-  return markupsNode->GetNthControlPointSelected(n);
-}
-
-//----------------------------------------------------------------------
-void vtkSlicerAbstractWidgetRepresentation::SetNthNodeSelected(int n, bool selected)
-{
-  vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
-  if (!markupsNode)
-    {
-    return;
-    }
-  if (!this->NodeExists(n))
-    {
-    return;
-    }
-
-  return markupsNode->SetNthControlPointSelected(n, selected);
-}
-
-//----------------------------------------------------------------------
-bool vtkSlicerAbstractWidgetRepresentation::GetNthNodeLocked(int n)
-{
-  vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
-  if (!markupsNode)
-  {
-    return false;
-  }
-  if (!this->NodeExists(n))
-  {
-    return false;
-  }
-
-  return markupsNode->GetNthControlPointLocked(n);
-}
-
-//----------------------------------------------------------------------
-void vtkSlicerAbstractWidgetRepresentation::SetNthNodeLocked(int n, bool locked)
-{
-  vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
-  if (!markupsNode)
-  {
-    return;
-  }
-  if (!this->NodeExists(n))
-  {
-    return;
-  }
-
-  return markupsNode->SetNthControlPointLocked(n, locked);
-}
-
-//----------------------------------------------------------------------
-void vtkSlicerAbstractWidgetRepresentation::SetNthNodeOrientation(int n, double orientation[4])
-{
-  vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
-  if (!markupsNode)
-  {
-    return;
-  }
-  if (!this->NodeExists(n))
-  {
-    return;
-  }
-
-  markupsNode->SetNthControlPointOrientationFromArray(n, orientation);
-}
-
-//----------------------------------------------------------------------
-void vtkSlicerAbstractWidgetRepresentation::GetNthNodeOrientation(int n, double orientation[4])
-{
-  vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
-  if (!markupsNode)
-  {
-    return;
-  }
-  if (!this->NodeExists(n))
-  {
-    return;
-  }
-
-  markupsNode->GetNthControlPointOrientation(n, orientation);
-}
-
-//----------------------------------------------------------------------
-void vtkSlicerAbstractWidgetRepresentation::SetNthNodeLabel(int n, vtkStdString label)
-{
-  vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
-  if (!markupsNode)
-  {
-    return;
-  }
-  if (!this->NodeExists(n))
-  {
-    return;
-  }
-
-  markupsNode->SetNthControlPointLabel(n, label);
-}
-
-//----------------------------------------------------------------------
-vtkStdString vtkSlicerAbstractWidgetRepresentation::GetNthNodeLabel(int n)
-{
-  vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
-  if (!markupsNode)
-  {
-    return nullptr;
-  }
-  if (!this->NodeExists(n))
-  {
-    return nullptr;
-  }
-
-  return markupsNode->GetNthControlPointLabel(n);
-}
-*/
 //----------------------------------------------------------------------
 vtkMRMLMarkupsNode::ControlPoint* vtkSlicerAbstractWidgetRepresentation::GetNthNode(int n)
 {
@@ -722,7 +559,12 @@ void vtkSlicerAbstractWidgetRepresentation::SetMarkupsDisplayNode(vtkMRMLMarkups
 
   this->MarkupsDisplayNode = markupsDisplayNode;
 
-  //vtkSetAndObserveMRMLObjectEventsMacro(this->MarkupsNode, this->MarkupsDisplayNode->GetDisplayableNode(), this->ObservedNodeEvents);
+  vtkMRMLMarkupsNode* markupsNode = nullptr;
+  if (this->MarkupsDisplayNode)
+    {
+    markupsNode = vtkMRMLMarkupsNode::SafeDownCast(this->MarkupsDisplayNode->GetDisplayableNode());
+    }
+  this->SetMarkupsNode(markupsNode);
 }
 
 //----------------------------------------------------------------------
@@ -730,7 +572,6 @@ vtkMRMLMarkupsDisplayNode *vtkSlicerAbstractWidgetRepresentation::GetMarkupsDisp
 {
   return this->MarkupsDisplayNode;
 }
-
 
 //----------------------------------------------------------------------
 vtkMRMLMarkupsNode *vtkSlicerAbstractWidgetRepresentation::GetMarkupsNode()
@@ -741,6 +582,13 @@ vtkMRMLMarkupsNode *vtkSlicerAbstractWidgetRepresentation::GetMarkupsNode()
   }
   return vtkMRMLMarkupsNode::SafeDownCast(this->MarkupsDisplayNode->GetDisplayableNode());
 }
+
+//----------------------------------------------------------------------
+void vtkSlicerAbstractWidgetRepresentation::SetMarkupsNode(vtkMRMLMarkupsNode *markupsNode)
+{
+  this->MarkupsNode = markupsNode;
+}
+
 
 //-----------------------------------------------------------------------------
 void vtkSlicerAbstractWidgetRepresentation::SetRenderer(vtkRenderer *ren)
@@ -918,35 +766,33 @@ void vtkSlicerAbstractWidgetRepresentation::BuildLine(vtkPolyData* linePolyData,
   linePolyData->SetLines(line);
 }
 
+    /*
 
-/*
+    for (vtkIdType j = 0; j < numIntermediatePoints; j++)
+    {
+    this->GetIntermediatePointWorldPosition(i, j, pos);
 
-for (vtkIdType j = 0; j < numIntermediatePoints; j++)
-{
-this->GetIntermediatePointWorldPosition(i, j, pos);
+    if (displayPosition)
+    {
+    if (3D view)
+    {
+    this->Renderer->SetWorldPoint(pos);
+    this->Renderer->WorldToDisplay();
+    this->Renderer->GetDisplayPoint(pos);
+    }
+    else
+    {
+    this->GetWorldToSliceCoordinates(worldPos.GetData(), displayPos);
+    }
+    }
 
-if (displayPosition)
-{
-if (3D view)
-{
-this->Renderer->SetWorldPoint(pos);
-this->Renderer->WorldToDisplay();
-this->Renderer->GetDisplayPoint(pos);
-}
-else
-{
-this->GetWorldToSliceCoordinates(worldPos.GetData(), displayPos);
-}
-}
-
-points->InsertPoint(index, pos);
-lineIndices[index] = index;
-index++;
-}
+    points->InsertPoint(index, pos);
+    lineIndices[index] = index;
+    index++;
+    }
 
 
-*/
-
+    */
 
 //----------------------------------------------------------------------
 void vtkSlicerAbstractWidgetRepresentation::ShallowCopy(vtkProp *prop)
@@ -966,6 +812,17 @@ void vtkSlicerAbstractWidgetRepresentation::UpdateFromMRML(vtkMRMLNode* caller, 
   {
     this->MarkupsTransformModifiedTime.Modified();
   }
+
+  if (!event || event == vtkMRMLDisplayableNode::DisplayModifiedEvent)
+    {
+    // Update MRML data node from display node
+    vtkMRMLMarkupsNode* markupsNode = nullptr;
+    if (this->MarkupsDisplayNode)
+      {
+      markupsNode = vtkMRMLMarkupsNode::SafeDownCast(this->MarkupsDisplayNode->GetDisplayableNode());
+      }
+    this->SetMarkupsNode(markupsNode);
+    }
 
   this->NeedToRenderOn(); // TODO: call this only if actually needed to improve performance
 }

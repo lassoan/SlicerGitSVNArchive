@@ -100,6 +100,8 @@ protected:
     /// Get MRML view node as slice view node
   vtkMRMLSliceNode *GetSliceNode();
 
+  bool GetAllControlPointsVisible() VTK_OVERRIDE;
+
   /// Check, if the point is displayable in the current slice geometry
   virtual bool IsPointDisplayableOnSlice(vtkMRMLMarkupsNode* node, int pointIndex = 0);
 

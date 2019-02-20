@@ -96,10 +96,6 @@ void vtkSlicerCurveRepresentation3D::UpdateFromMRML(vtkMRMLNode* caller, unsigne
 
   this->VisibilityOn();
 
-  // Line geometry
-
-  this->BuildLine(this->Line, false);
-
   // Line display
 
   //double scale = this->CalculateViewScaleFactor();
@@ -270,4 +266,21 @@ void vtkSlicerCurveRepresentation3D::PrintSelf(ostream& os, vtkIndent indent)
     {
     os << indent << "Line Visibility: (none)\n";
     }
+}
+
+//-----------------------------------------------------------------------------
+void vtkSlicerCurveRepresentation3D::SetMarkupsNode(vtkMRMLMarkupsNode *markupsNode)
+{
+  if (this->MarkupsNode != markupsNode)
+    {
+    if (markupsNode)
+      {
+      this->TubeFilter->SetInputConnection(markupsNode->GetCurveWorldConnection());
+      }
+    else
+      {
+      this->TubeFilter->SetInputData(this->Line);
+      }
+    }
+  this->Superclass::SetMarkupsNode(markupsNode);
 }

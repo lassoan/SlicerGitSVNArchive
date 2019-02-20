@@ -62,17 +62,14 @@ vtkMRMLMarkupsNode::vtkMRMLMarkupsNode()
   this->LastUsedControlPointNumber = 0;
   this->CenterPos.Set(0,0,0);
 
-  // Line cells shared between input and output
-  vtkNew<vtkCellArray> lineCellArray;
-
   this->CurveInputPoly = vtkSmartPointer<vtkPolyData>::New();
   vtkNew<vtkPoints> curveInputPoints;
   this->CurveInputPoly->SetPoints(curveInputPoints);
-  this->CurveInputPoly->SetLines(lineCellArray);
 
   this->CurvePoly = vtkSmartPointer<vtkPolyData>::New();
   vtkNew<vtkPoints> curvePoints;
   this->CurvePoly->SetPoints(curvePoints);
+  vtkNew<vtkCellArray> lineCellArray;
   this->CurvePoly->SetLines(lineCellArray);
 
   this->CurveGenerator = vtkSmartPointer<vtkCurveGenerator>::New();
@@ -179,6 +176,14 @@ void vtkMRMLMarkupsNode::Copy(vtkMRMLNode *anode)
   this->SetMaximumNumberOfControlPoints(node->GetMaximumNumberOfControlPoints());
   this->TextList->DeepCopy(node->TextList);
 
+  this->CurveInputPoly->GetPoints()->DeepCopy(node->CurveInputPoly->GetPoints());
+  this->UpdateCurvePolyFromCurveInputPoly();
+
+  // set max number of markups after adding the new ones
+  this->LastUsedControlPointNumber = node->LastUsedControlPointNumber;
+
+  this->CurveClosed = node->CurveClosed;
+
   // BUG: When fiducial nodes appear in scene views as of Slicer 4.1 the per
   // fiducial information (visibility, position etc) is saved to the file on
   // disk and not read, so the scene view copy of a fiducial node doesn't have
@@ -206,12 +211,6 @@ void vtkMRMLMarkupsNode::Copy(vtkMRMLNode *anode)
     int controlPointIndex = this->AddControlPoint(controlPoint);
     this->CopyControlPoint(controlPoint, this->GetNthControlPoint(controlPointIndex));
     }
-
-  this->CurveInputPoly->DeepCopy(node->CurveInputPoly);
-  this->CurvePoly->DeepCopy(node->CurvePoly);
-
-  // set max number of markups after adding the new ones
-  this->LastUsedControlPointNumber = node->LastUsedControlPointNumber;
 }
 
 
@@ -307,6 +306,13 @@ void vtkMRMLMarkupsNode::RemoveAllControlPoints()
     }
 
   this->ControlPoints.clear();
+
+  this->CurveInputPoly->GetPoints()->Reset();
+  this->CurveInputPoly->GetPoints()->Squeeze();
+  this->CurvePoly->GetPoints()->Reset();
+  this->CurvePoly->GetPoints()->Squeeze();
+  this->CurvePoly->GetLines()->Reset();
+  this->CurvePoly->GetLines()->Squeeze();
 
   this->Modified();
   this->InvokeCustomModifiedEvent(vtkMRMLMarkupsNode::AllPointsRemovedEvent);
@@ -513,6 +519,11 @@ int vtkMRMLMarkupsNode::AddControlPoint(ControlPoint *controlPoint)
 
   this->ControlPoints.push_back(controlPoint);
 
+  // Add point to CurveInputPoly
+  this->CurveInputPoly->GetPoints()->InsertNextPoint(controlPoint->Position.GetData());
+  this->CurveInputPoly->GetPoints()->Modified();
+  this->UpdateCurvePolyFromCurveInputPoly();
+
   this->Modified();
   int controlPointIndex = this->GetNumberOfControlPoints() - 1;
   this->InvokeCustomModifiedEvent(vtkMRMLMarkupsNode::PointAddedEvent,  static_cast<void*>(&controlPointIndex));
@@ -617,6 +628,8 @@ void vtkMRMLMarkupsNode::RemoveNthControlPoint(int pointIndex)
   delete this->ControlPoints[static_cast<unsigned int> (pointIndex)];
   this->ControlPoints.erase(this->ControlPoints.begin() + pointIndex);
 
+  this->UpdateCurvePolyFromControlPoints();
+
   this->Modified();
   this->InvokeCustomModifiedEvent(vtkMRMLMarkupsNode::PointRemovedEvent, static_cast<void*>(&pointIndex));
 }
@@ -633,6 +646,8 @@ void vtkMRMLMarkupsNode::RemoveLastControlPoint()
   delete this->ControlPoints[static_cast<unsigned int> (pointIndex)];
   this->ControlPoints.erase(this->ControlPoints.begin() + pointIndex);
   this->LastUsedControlPointNumber--;
+
+  this->UpdateCurvePolyFromControlPoints();
 
   this->Modified();
   this->InvokeCustomModifiedEvent(vtkMRMLMarkupsNode::PointRemovedEvent, static_cast<void*>(&pointIndex));
@@ -668,11 +683,78 @@ bool vtkMRMLMarkupsNode::InsertControlPoint(ControlPoint *controlPoint, int targ
   std::vector < ControlPoint* >::iterator pos = this->ControlPoints.begin() + destIndex;
   std::vector < ControlPoint* >::iterator result = this->ControlPoints.insert(pos, controlPoint);
 
+  this->UpdateCurvePolyFromControlPoints();
+
   // let observers know that a markup was added
   this->Modified();
   this->InvokeCustomModifiedEvent(vtkMRMLMarkupsNode::PointAddedEvent, static_cast<void*>(&targetIndex));
 
   return true;
+}
+
+//-----------------------------------------------------------
+void vtkMRMLMarkupsNode::UpdateCurvePolyFromControlPoints()
+{
+  // Add points
+  vtkPoints* points = this->CurveInputPoly->GetPoints();
+  points->Reset();
+  int numberOfControlPoints = this->GetNumberOfControlPoints();
+  for (int i = 0; i < numberOfControlPoints; i++)
+    {
+    points->InsertNextPoint(this->ControlPoints[i]->Position.GetData());
+    }
+  points->Modified();
+
+  this->UpdateCurvePolyFromCurveInputPoly();
+}
+
+//-----------------------------------------------------------
+void vtkMRMLMarkupsNode::UpdateCurvePolyFromCurveInputPoly()
+{
+  // curve generator is not a filter, it needs manual update
+  this->CurveGenerator->Update();
+
+  // Update lines: a single cell containing a line with point
+  // indices: 0, 1, ..., last point (and an extra 0 if closed curve).
+  vtkIdType numberOfPoints = this->CurvePoly->GetNumberOfPoints();
+  vtkCellArray* line = this->CurvePoly->GetLines();
+  if (numberOfPoints > 1)
+    {
+    bool loop = (numberOfPoints > 2 && this->CurveClosed);
+    vtkIdType numberOfCellPoints = (loop ? numberOfPoints + 1 : numberOfPoints);
+
+    // Only regenerate indices if necessary
+    bool needToUpdateLines = true;
+    if (line->GetNumberOfCells() == 1)
+      {
+      vtkIdType currentNumberOfCellPoints = 0;
+      vtkIdType* currentCellPoints = 0;
+      line->GetCell(0, currentNumberOfCellPoints, currentCellPoints);
+      if (currentNumberOfCellPoints == numberOfCellPoints)
+        {
+        needToUpdateLines = false;
+        }
+      }
+
+    if (needToUpdateLines)
+      {
+      line->Reset();
+      line->InsertNextCell(numberOfCellPoints);
+      for (int i = 0; i < numberOfPoints; i++)
+        {
+        line->InsertCellPoint(i);
+        }
+      if (loop)
+        {
+        line->InsertCellPoint(0);
+        }
+      line->Modified();
+      }
+    }
+  else
+    {
+    line->Reset();
+    }
 }
 
 //-----------------------------------------------------------
@@ -711,6 +793,8 @@ void vtkMRMLMarkupsNode::SwapControlPoints(int m1, int m2)
   // and copy the backup of the first one into the second
   this->CopyControlPoint(&m1MarkupBackup, this->GetNthControlPoint(m2));
 
+  this->UpdateCurvePolyFromControlPoints();
+
   // and let listeners know that two control points have changed
   this->Modified();
   this->InvokeCustomModifiedEvent(vtkMRMLMarkupsNode::PointModifiedEvent, static_cast<void*>(&m1));
@@ -746,8 +830,14 @@ void vtkMRMLMarkupsNode::SetNthControlPointPosition(const int pointIndex,
     return;
     }
 
-  this->GetNthControlPoint(pointIndex)->Position.Set(x, y, z);
   // TODO: return if no modification
+
+  this->GetNthControlPoint(pointIndex)->Position.Set(x, y, z);
+
+  vtkPoints* points = this->CurveInputPoly->GetPoints();
+  points->SetPoint(pointIndex, x, y, z);
+  points->Modified();
+  this->UpdateCurvePolyFromCurveInputPoly();
 
   // throw an event to let listeners know the position has changed
   this->Modified();
@@ -1416,4 +1506,10 @@ vtkPoints* vtkMRMLMarkupsNode::GetCurvePointsWorld()
     return NULL;
     }
   return curvePolyDataWorld->GetPoints();
+}
+
+//----------------------------------------------------------------------
+vtkAlgorithmOutput* vtkMRMLMarkupsNode::GetCurveWorldConnection()
+{
+  return this->CurvePolyToWorldTransformer->GetOutputPort();
 }

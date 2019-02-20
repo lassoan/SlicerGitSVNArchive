@@ -74,6 +74,8 @@ protected:
   vtkSlicerCurveRepresentation3D();
   ~vtkSlicerCurveRepresentation3D() VTK_OVERRIDE;
 
+  void SetMarkupsNode(vtkMRMLMarkupsNode *markupsNode) VTK_OVERRIDE;
+
   vtkSmartPointer<vtkPolyData> Line;
   vtkSmartPointer<vtkOpenGLPolyDataMapper> LineMapper;
   vtkSmartPointer<vtkOpenGLActor> LineActor;

@@ -50,6 +50,7 @@
 /// \sa vtkMRMLMarkupsDisplayNode
 /// \ingroup Slicer_QtModules_Markups
 
+class vtkAlgorithmOutput;
 class vtkCurveGenerator;
 class vtkGeneralTransform;
 class vtkMatrix4x4;
@@ -429,6 +430,8 @@ public:
 
   vtkPoints* GetCurvePointsWorld();
 
+  vtkAlgorithmOutput* GetCurveWorldConnection();
+
   vtkGetMacro(CurveClosed, bool);
 
 protected:
@@ -451,13 +454,16 @@ protected:
 
   std::string GenerateControlPointLabel(int controlPointIndex);
 
+  void UpdateCurvePolyFromControlPoints();
+
+  void UpdateCurvePolyFromCurveInputPoly();
+
   // Used for limiting number of markups that may be placed.
   int MaximumNumberOfControlPoints;
   int PreferredNumberOfControlPoints;
 
   bool CurveClosed;
 
-private:
   // Vector of control points
   ControlPointsListType ControlPoints;
 

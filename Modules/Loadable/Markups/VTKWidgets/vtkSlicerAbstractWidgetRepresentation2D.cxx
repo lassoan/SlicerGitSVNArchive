@@ -899,3 +899,23 @@ void vtkSlicerAbstractWidgetRepresentation2D::GetWorldToDisplayCoordinates(doubl
 
   this->GetWorldToDisplayCoordinates(worldCoordinates[0], worldCoordinates[1], worldCoordinates[2], displayCoordinates);
 }
+
+//----------------------------------------------------------------------
+bool vtkSlicerAbstractWidgetRepresentation2D::GetAllControlPointsVisible()
+{
+  vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
+  if (!markupsNode)
+    {
+    return false;
+    }
+
+  for (int controlPointIndex = 0; controlPointIndex < markupsNode->GetNumberOfControlPoints(); controlPointIndex++)
+    {
+    if (!this->PointsVisibilityOnSlice->GetValue(controlPointIndex) ||
+      !markupsNode->GetNthControlPointVisibility(controlPointIndex))
+      {
+      return false;
+      }
+    }
+  return true;
+}
