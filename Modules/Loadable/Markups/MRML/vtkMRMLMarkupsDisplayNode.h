@@ -74,8 +74,8 @@ public:
   {
     ComponentNone = 0,
     ComponentControlPoint,
-    ComponentLine,
-    ComponentCentroid
+    ComponentCenterPoint,
+    ComponentLine
   };
 
   /// Index of active item (item that the mouse is hovered over).

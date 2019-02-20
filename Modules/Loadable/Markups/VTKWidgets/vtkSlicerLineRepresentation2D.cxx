@@ -27,7 +27,6 @@
 #include "vtkProperty2D.h"
 #include "vtkMath.h"
 #include "vtkInteractorObserver.h"
-#include "vtkIncrementalOctreePointLocator.h"
 #include "vtkLine.h"
 #include "vtkCoordinate.h"
 #include "vtkGlyph2D.h"
@@ -42,7 +41,6 @@
 #include "vtkCamera.h"
 #include "vtkPoints.h"
 #include "vtkCellArray.h"
-#include "vtkSlicerLinearLineInterpolator.h"
 #include "vtkSphereSource.h"
 #include "vtkPropPicker.h"
 #include "vtkAppendPolyData.h"
@@ -56,8 +54,6 @@ vtkStandardNewMacro(vtkSlicerLineRepresentation2D);
 //----------------------------------------------------------------------
 vtkSlicerLineRepresentation2D::vtkSlicerLineRepresentation2D()
 {
-  this->LineInterpolator = vtkSmartPointer<vtkSlicerLinearLineInterpolator>::New();
-
   this->Line = vtkSmartPointer<vtkPolyData>::New();
   this->TubeFilter = vtkSmartPointer<vtkTubeFilter>::New();
   this->TubeFilter->SetInputData(this->Line);

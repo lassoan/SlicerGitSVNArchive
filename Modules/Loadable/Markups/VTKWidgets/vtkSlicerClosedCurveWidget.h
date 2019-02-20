@@ -149,7 +149,7 @@
  *                                 call data includes handle id)
  *
  *  Note: handle id conuter start from 0. If -2 indicates the line.
- *        If -3 indicates the centroid.
+ *        If -3 indicates the center.
  * </pre>
  *
 */

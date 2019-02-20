@@ -42,8 +42,6 @@
 #include "vtkCamera.h"
 #include "vtkPoints.h"
 #include "vtkCellArray.h"
-#include "vtkSlicerLineInterpolator.h"
-#include "vtkSlicerBezierLineInterpolator.h"
 #include "vtkSphereSource.h"
 #include "vtkBox.h"
 #include "vtkIntArray.h"
@@ -334,29 +332,6 @@ int vtkSlicerAbstractWidgetRepresentation2D::GetNthNodeDisplayPosition(int n, do
 }
 
 //----------------------------------------------------------------------
-int vtkSlicerAbstractWidgetRepresentation2D::GetIntermediatePointDisplayPosition(int n, int idx, double displayPos[2])
-{
-  vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
-  if (!markupsNode || n<0 || n >= markupsNode->GetNumberOfControlPoints())
-    {
-    return 0;
-    }
-
-  if (idx < 0 ||
-      static_cast<unsigned int>(idx) >= this->GetNthNode(n)->IntermediatePositions.size())
-    {
-    return 0;
-    }
-
-  vtkVector3d intermediatePosition = this->GetNthNode(n)->IntermediatePositions[static_cast<unsigned int> (idx)];
-  vtkVector3d worldPos;
-  markupsNode->TransformPointToWorld(intermediatePosition, worldPos);
-
-  this->GetWorldToSliceCoordinates(worldPos.GetData(), displayPos);
-  return 1;
-}
-
-//----------------------------------------------------------------------
 void vtkSlicerAbstractWidgetRepresentation2D::SetNthPointSliceVisibility(int n, bool visibility)
 {
   this->PointsVisibilityOnSlice->InsertValue(n, visibility);
@@ -364,9 +339,9 @@ void vtkSlicerAbstractWidgetRepresentation2D::SetNthPointSliceVisibility(int n, 
 }
 
 //----------------------------------------------------------------------
-void vtkSlicerAbstractWidgetRepresentation2D::SetCentroidSliceVisibility(bool visibility)
+void vtkSlicerAbstractWidgetRepresentation2D::SetCenterSliceVisibility(bool visibility)
 {
-  this->CentroidVisibilityOnSlice = visibility;
+  this->CenterVisibilityOnSlice = visibility;
   this->Modified();
 }
 
@@ -477,10 +452,10 @@ void vtkSlicerAbstractWidgetRepresentation2D::UpdateFromMRML(vtkMRMLNode* caller
     bool visibility = this->IsPointDisplayableOnSlice(markupsNode, PointIndex);
     this->SetNthPointSliceVisibility(PointIndex, visibility);
   }
-  if (this->GetClosedLoop())
+  if (markupsNode->GetCurveClosed())
   {
-    bool visibility = this->IsCentroidDisplayableOnSlice(markupsNode);
-    this->SetCentroidSliceVisibility(visibility);
+    bool visibility = this->IsCenterDisplayableOnSlice(markupsNode);
+    this->SetCenterSliceVisibility(visibility);
   }
 
 
@@ -516,18 +491,18 @@ int vtkSlicerAbstractWidgetRepresentation2D::CanInteract(const int displayPositi
 
   closestDistance2 = VTK_DOUBLE_MAX; // in display coordinate system
   componentIndex = -1;
-  if (markupsNode->GetNumberOfControlPoints() > 2 && this->ClosedLoop && markupsNode && this->CentroidVisibilityOnSlice)
+  if (markupsNode->GetNumberOfControlPoints() > 2 && this->ClosedLoop && markupsNode && this->CenterVisibilityOnSlice)
     {
-    // Check if centroid is selected
-    double centroidPosWorld[3], centroidPosDisplay[3];
-    markupsNode->GetCentroidPositionWorld(centroidPosWorld);
-    this->GetWorldToSliceCoordinates(centroidPosWorld, centroidPosDisplay);
+    // Check if center is selected
+    double centerPosWorld[3], centerPosDisplay[3];
+    markupsNode->GetCenterPositionWorld(centerPosWorld);
+    this->GetWorldToSliceCoordinates(centerPosWorld, centerPosDisplay);
 
-    double dist2 = vtkMath::Distance2BetweenPoints(centroidPosDisplay, displayPosition3);
+    double dist2 = vtkMath::Distance2BetweenPoints(centerPosDisplay, displayPosition3);
     if ( dist2 < pixelTolerance2)
       {
       closestDistance2 = dist2;
-      foundComponentType = vtkMRMLMarkupsDisplayNode::ComponentCentroid;
+      foundComponentType = vtkMRMLMarkupsDisplayNode::ComponentCenterPoint;
       componentIndex = 0;
       }
     }
@@ -613,6 +588,12 @@ void vtkSlicerAbstractWidgetRepresentation2D::CanInteractWithLine(int &foundComp
   }
 }
 
+//----------------------------------------------------------------------
+void vtkSlicerAbstractWidgetRepresentation2D::CanInteractWithInterpolatedLine(int &foundComponentType,
+  const int displayPosition[2], const double worldPosition[3], double &closestDistance2, int &componentIndex)
+{
+  //ttt
+}
 
 //----------------------------------------------------------------------
 void vtkSlicerAbstractWidgetRepresentation2D::GetActors(vtkPropCollection *pc)
@@ -820,7 +801,7 @@ bool vtkSlicerAbstractWidgetRepresentation2D::IsPointDisplayableOnSlice(vtkMRMLM
 }
 
 //---------------------------------------------------------------------------
-bool vtkSlicerAbstractWidgetRepresentation2D::IsCentroidDisplayableOnSlice(vtkMRMLMarkupsNode *markupsNode)
+bool vtkSlicerAbstractWidgetRepresentation2D::IsCenterDisplayableOnSlice(vtkMRMLMarkupsNode *markupsNode)
 {
   // if no slice node, it doesn't constrain the visibility, so return that
   // it's visible
@@ -849,7 +830,7 @@ bool vtkSlicerAbstractWidgetRepresentation2D::IsCentroidDisplayableOnSlice(vtkMR
 
   // down cast the node as a controlpoints node to get the coordinates
   double transformedWorldCoordinates[4];
-  markupsNode->GetCentroidPositionWorld(transformedWorldCoordinates);
+  markupsNode->GetCenterPositionWorld(transformedWorldCoordinates);
 
   // now get the displayCoordinates for the transformed worldCoordinates
   double displayCoordinates[4];

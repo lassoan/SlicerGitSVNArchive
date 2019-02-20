@@ -27,7 +27,6 @@
 #include "vtkProperty2D.h"
 #include "vtkMath.h"
 #include "vtkInteractorObserver.h"
-#include "vtkIncrementalOctreePointLocator.h"
 #include "vtkLine.h"
 #include "vtkCoordinate.h"
 #include "vtkGlyph2D.h"
@@ -42,7 +41,6 @@
 #include "vtkCamera.h"
 #include "vtkPoints.h"
 #include "vtkCellArray.h"
-#include "vtkSlicerLinearLineInterpolator.h"
 #include "vtkSphereSource.h"
 #include "vtkAppendPolyData.h"
 #include "vtkTextProperty.h"
@@ -60,8 +58,6 @@ vtkStandardNewMacro(vtkSlicerAngleRepresentation2D);
 //----------------------------------------------------------------------
 vtkSlicerAngleRepresentation2D::vtkSlicerAngleRepresentation2D()
 {
-  this->LineInterpolator = vtkSmartPointer<vtkSlicerLinearLineInterpolator>::New();
-
   this->Line = vtkSmartPointer<vtkPolyData>::New();
   this->Arc = vtkSmartPointer<vtkArcSource>::New();
   this->Arc->SetResolution(30);
@@ -260,8 +256,9 @@ int vtkSlicerAngleRepresentation2D::CanInteract(const int displayPosition[2],
     return vtkMRMLMarkupsDisplayNode::ComponentNone;
   }
   int foundComponentType = Superclass::CanInteract(displayPosition, worldPosition, closestDistance2, componentIndex);
-  if (foundComponentType != vtkMRMLMarkupsDisplayNode::ComponentNone && closestDistance2 == 0.0)
+  if (foundComponentType != vtkMRMLMarkupsDisplayNode::ComponentNone)
   {
+    // if mouse is near a control point then select that (ignore the line)
     return foundComponentType;
   }
 

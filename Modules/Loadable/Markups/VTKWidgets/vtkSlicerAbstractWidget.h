@@ -74,12 +74,6 @@ public:
   /// Build the actors of the representation with the info stored in the vtkMRMLMarkupsNode
   virtual void UpdateFromMRML(vtkMRMLNode* caller, unsigned long event, void *callData = NULL);
 
-  /// Build the locator with the info stored in the vtkMRMLMarkupsNode
-  virtual void BuildLocator();
-
-  /// Convenient method to close the contour loop.
-  virtual void CloseLoop();
-
   /// Convenient method to change what state the widget is in.
   vtkSetMacro(WidgetState,int);
 

@@ -28,9 +28,6 @@
 #include <vtkSmartPointer.h>
 #include <vtkVector.h>
 
-class vtkStringArray;
-class vtkMatrix4x4;
-
 /// \brief MRML node to represent an interactive widget.
 /// MarkupsNodes contains a list of points (ControlPoint).
 /// Each markupNode is defined by a certain number of control points:
@@ -53,7 +50,13 @@ class vtkMatrix4x4;
 /// \sa vtkMRMLMarkupsDisplayNode
 /// \ingroup Slicer_QtModules_Markups
 
+class vtkCurveGenerator;
+class vtkGeneralTransform;
+class vtkMatrix4x4;
 class vtkMRMLMarkupsDisplayNode;
+class vtkPolyData;
+class vtkStringArray;
+class vtkTransformPolyDataFilter;
 
 class  VTK_SLICER_MARKUPS_MODULE_MRML_EXPORT vtkMRMLMarkupsNode : public vtkMRMLDisplayableNode
 {
@@ -82,12 +85,6 @@ public:
     // coordinates may be obtained by applying "to world" transform.
     vtkVector3d Position;
     vtkVector4d OrientationWXYZ;
-
-    /// Interpolated points between this control point and the next one.
-    /// For the last node, it is the number of interpolated
-    /// points between this control point and the first one
-    /// (which is non-zero for closed loops).
-    std::vector<vtkVector3d> IntermediatePositions;
 
     std::string ID;
     std::string Label;
@@ -277,33 +274,33 @@ public:
   /// \sa SetNthControlPointPosition
   void SetNthControlPointPositionWorldFromArray(const int pointIndex, const double pos[3]);
 
-  /// Get the position of the centroid
+  /// Get the position of the center
   /// returning it as a vtkVector3d, return (0,0,0) if not found
-  vtkVector3d GetCentroidPositionVector();
-  /// Get the position of the centroid
+  vtkVector3d GetCenterPositionVector();
+  /// Get the position of the center
   /// setting the elements of point
-  void GetCentroidPosition(double point[3]);
-  /// Get the position of the centroidin LPS coordinate system
-  void GetCentroidPositionLPS(double point[3]);
-  /// Get the position of the centroid in World coordinate system
+  void GetCenterPosition(double point[3]);
+  /// Get the position of the centerin LPS coordinate system
+  void GetCenterPositionLPS(double point[3]);
+  /// Get the position of the center in World coordinate system
   /// Returns 0 on failure, 1 on success.
-  int GetCentroidPositionWorld(double worldxyz[3]);
-  /// Set the centroid position from a pointer to an array
-  /// \sa SetCentroidPosition
-  void SetCentroidPositionFromPointer(const double *pos);
-  /// Set the centroid position position from an array
-  /// \sa SetCentroidPosition
-  void SetCentroidPositionFromArray(const double pos[3]);
-  /// Set the centroid position position from coordinates
-  /// \sa SetCentroidPositionFromPointer, SetCentroidPositionFromArray
-  void SetCentroidPosition(const double x, const double y, const double z);
-  /// Set the centroid position position using LPS coordinate system, converting to RAS
-  /// \sa SetCentroidPosition
-  void SetCentroidPositionLPS(const double x, const double y, const double z);
-  /// Set the centroid position position using World coordinate system
-  /// Calls SetCentroidPosition after transforming the passed in coordinate
-  /// \sa SetCentroidPosition
-  void SetCentroidPositionWorld(const double x, const double y, const double z);
+  int GetCenterPositionWorld(double worldxyz[3]);
+  /// Set the center position from a pointer to an array
+  /// \sa SetCenterPosition
+  void SetCenterPositionFromPointer(const double *pos);
+  /// Set the center position position from an array
+  /// \sa SetCenterPosition
+  void SetCenterPositionFromArray(const double pos[3]);
+  /// Set the center position position from coordinates
+  /// \sa SetCenterPositionFromPointer, SetCenterPositionFromArray
+  void SetCenterPosition(const double x, const double y, const double z);
+  /// Set the center position position using LPS coordinate system, converting to RAS
+  /// \sa SetCenterPosition
+  void SetCenterPositionLPS(const double x, const double y, const double z);
+  /// Set the center position position using World coordinate system
+  /// Calls SetCenterPosition after transforming the passed in coordinate
+  /// \sa SetCenterPosition
+  void SetCenterPositionWorld(const double x, const double y, const double z);
 
   /// Set the orientation for the Nth control point from a pointer to a double array
   void SetNthControlPointOrientationFromPointer(int n, const double *orientation);
@@ -430,13 +427,17 @@ public:
   static void FromWorldOrientToOrientationQuaternion(const double worldOrient[9], double orientation[4]);
   static void FromOrientationQuaternionToWorldOrient(double orientation[4], double worldOrient[9]);
 
+  vtkPoints* GetCurvePointsWorld();
+
+  vtkGetMacro(CurveClosed, bool);
+
 protected:
   vtkMRMLMarkupsNode();
   ~vtkMRMLMarkupsNode();
   vtkMRMLMarkupsNode(const vtkMRMLMarkupsNode&);
   void operator=(const vtkMRMLMarkupsNode&);
 
-  vtkStringArray *TextList;
+  vtkSmartPointer<vtkStringArray> TextList;
 
   /// Set the id of the nth control point.
   /// The goal is to keep this ID unique, so it's
@@ -454,9 +455,25 @@ protected:
   int MaximumNumberOfControlPoints;
   int PreferredNumberOfControlPoints;
 
+  bool CurveClosed;
+
 private:
   // Vector of control points
   ControlPointsListType ControlPoints;
+
+  // Converts curve control points to curve points.
+  vtkSmartPointer<vtkCurveGenerator> CurveGenerator;
+
+  // Stores control point positions in a polydata (in local coordinate system).
+  // Line cells connect all points into a curve.
+  vtkSmartPointer<vtkPolyData> CurveInputPoly;
+
+  // Points store interpolated/approximated point positions (in local coordinate system).
+  // Line cells connect all points into a curve.
+  vtkSmartPointer<vtkPolyData> CurvePoly;
+
+  vtkSmartPointer<vtkTransformPolyDataFilter> CurvePolyToWorldTransformer;
+  vtkSmartPointer<vtkGeneralTransform> CurvePolyToWorldTransform;
 
   // Locks all the points and GUI
   int Locked;
@@ -468,8 +485,10 @@ private:
   // unique names and ids. Reset to 0 when \sa RemoveAllControlPoints called
   int LastUsedControlPointNumber;
 
-  // Centroid world coordinates
-  vtkVector3d centroidPos;
+  // Markup centerpoint (in local coordinates).
+  // It may be used as rotation center or as a handle to grab the widget by.
+  vtkVector3d CenterPos;
+
 };
 
 #endif

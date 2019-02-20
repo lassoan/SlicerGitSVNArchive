@@ -29,7 +29,6 @@
 #include "vtkAssemblyPath.h"
 #include "vtkMath.h"
 #include "vtkInteractorObserver.h"
-#include "vtkIncrementalOctreePointLocator.h"
 #include "vtkLine.h"
 #include "vtkCoordinate.h"
 #include "vtkGlyph3D.h"
@@ -44,7 +43,6 @@
 #include "vtkCamera.h"
 #include "vtkPoints.h"
 #include "vtkCellArray.h"
-#include "vtkSlicerBezierLineInterpolator.h"
 #include "vtkSphereSource.h"
 #include "vtkPropPicker.h"
 #include "vtkPickingManager.h"
@@ -61,8 +59,6 @@ vtkStandardNewMacro(vtkSlicerCurveRepresentation3D);
 //----------------------------------------------------------------------
 vtkSlicerCurveRepresentation3D::vtkSlicerCurveRepresentation3D()
 {
-  this->LineInterpolator = vtkSmartPointer<vtkSlicerBezierLineInterpolator>::New();
-
   this->Line = vtkSmartPointer<vtkPolyData>::New();
   this->TubeFilter = vtkSmartPointer<vtkTubeFilter>::New();
   this->TubeFilter->SetInputData(this->Line);
@@ -102,7 +98,6 @@ void vtkSlicerCurveRepresentation3D::UpdateFromMRML(vtkMRMLNode* caller, unsigne
 
   // Line geometry
 
-  this->UpdateAllInterpolatedPoints(); // TODO: call this->UpdateInterpolatedPoints(n) if possible, to improve performance
   this->BuildLine(this->Line, false);
 
   // Line display
@@ -144,25 +139,25 @@ void vtkSlicerCurveRepresentation3D::UpdateFromMRML(vtkMRMLNode* caller, unsigne
 
   if (this->ClosedLoop && markupsNode->GetNumberOfControlPoints() > 2 && !allNodesHidden)
   {
-    double centroidPosWorld[3], orient[3] = { 0 };
-    markupsNode->GetCentroidPosition(centroidPosWorld);
-    int centroidControlPointType = allControlPointsSelected ? Selected : Unselected;
-    if (this->MarkupsDisplayNode->GetActiveComponentType() == vtkMRMLMarkupsDisplayNode::ComponentCentroid)
+    double centerPosWorld[3], orient[3] = { 0 };
+    markupsNode->GetCenterPosition(centerPosWorld);
+    int centerControlPointType = allControlPointsSelected ? Selected : Unselected;
+    if (this->MarkupsDisplayNode->GetActiveComponentType() == vtkMRMLMarkupsDisplayNode::ComponentCenterPoint)
     {
-      centroidControlPointType = Active;
-      this->GetControlPointsPipeline(centroidControlPointType)->ControlPoints->SetNumberOfPoints(0);
-      this->GetControlPointsPipeline(centroidControlPointType)->ControlPointsPolyData->GetPointData()->GetNormals()->SetNumberOfTuples(0);
+      centerControlPointType = Active;
+      this->GetControlPointsPipeline(centerControlPointType)->ControlPoints->SetNumberOfPoints(0);
+      this->GetControlPointsPipeline(centerControlPointType)->ControlPointsPolyData->GetPointData()->GetNormals()->SetNumberOfTuples(0);
     }
-    this->GetControlPointsPipeline(centroidControlPointType)->ControlPoints->InsertNextPoint(centroidPosWorld);
-    this->GetControlPointsPipeline(centroidControlPointType)->ControlPointsPolyData->GetPointData()->GetNormals()->InsertNextTuple(orient);
+    this->GetControlPointsPipeline(centerControlPointType)->ControlPoints->InsertNextPoint(centerPosWorld);
+    this->GetControlPointsPipeline(centerControlPointType)->ControlPointsPolyData->GetPointData()->GetNormals()->InsertNextTuple(orient);
 
-    this->GetControlPointsPipeline(centroidControlPointType)->ControlPoints->Modified();
-    this->GetControlPointsPipeline(centroidControlPointType)->ControlPointsPolyData->GetPointData()->GetNormals()->Modified();
-    this->GetControlPointsPipeline(centroidControlPointType)->ControlPointsPolyData->Modified();
-    if (centroidControlPointType == Active)
+    this->GetControlPointsPipeline(centerControlPointType)->ControlPoints->Modified();
+    this->GetControlPointsPipeline(centerControlPointType)->ControlPointsPolyData->GetPointData()->GetNormals()->Modified();
+    this->GetControlPointsPipeline(centerControlPointType)->ControlPointsPolyData->Modified();
+    if (centerControlPointType == Active)
     {
-      this->GetControlPointsPipeline(centroidControlPointType)->Actor->VisibilityOn();
-      this->GetControlPointsPipeline(centroidControlPointType)->LabelsActor->VisibilityOff();
+      this->GetControlPointsPipeline(centerControlPointType)->Actor->VisibilityOn();
+      this->GetControlPointsPipeline(centerControlPointType)->LabelsActor->VisibilityOff();
     }
   }
 }

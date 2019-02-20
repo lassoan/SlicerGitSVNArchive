@@ -27,7 +27,6 @@
 #include "vtkProperty2D.h"
 #include "vtkMath.h"
 #include "vtkInteractorObserver.h"
-#include "vtkIncrementalOctreePointLocator.h"
 #include "vtkLine.h"
 #include "vtkCoordinate.h"
 #include "vtkGlyph2D.h"
@@ -42,7 +41,6 @@
 #include "vtkCamera.h"
 #include "vtkPoints.h"
 #include "vtkCellArray.h"
-#include "vtkSlicerBezierLineInterpolator.h"
 #include "vtkSphereSource.h"
 #include "vtkAppendPolyData.h"
 #include "vtkTubeFilter.h"
@@ -58,8 +56,6 @@ vtkStandardNewMacro(vtkSlicerCurveRepresentation2D);
 //----------------------------------------------------------------------
 vtkSlicerCurveRepresentation2D::vtkSlicerCurveRepresentation2D()
 {
-  this->LineInterpolator = vtkSmartPointer<vtkSlicerBezierLineInterpolator>::New();
-
   this->Line = vtkSmartPointer<vtkPolyData>::New();
   this->TubeFilter = vtkSmartPointer<vtkTubeFilter>::New();
   this->TubeFilter->SetInputData(this->Line);
@@ -100,7 +96,6 @@ void vtkSlicerCurveRepresentation2D::UpdateFromMRML(vtkMRMLNode* caller, unsigne
 
   // Line geometry
 
-  this->UpdateAllInterpolatedPoints(); // TODO: call this->UpdateInterpolatedPoints(n) if possible, to improve performance
   this->BuildLine(this->Line, true);
 
   // Line display
@@ -129,28 +124,28 @@ void vtkSlicerCurveRepresentation2D::UpdateFromMRML(vtkMRMLNode* caller, unsigne
     }
   }
 
-  if (this->ClosedLoop && markupsNode->GetNumberOfControlPoints() > 2 && this->CentroidVisibilityOnSlice && !allNodesHidden)
+  if (this->ClosedLoop && markupsNode->GetNumberOfControlPoints() > 2 && this->CenterVisibilityOnSlice && !allNodesHidden)
   {
-    double centroidPosWorld[3], centroidPosDisplay[3], orient[3] = { 0 };
-    markupsNode->GetCentroidPosition(centroidPosWorld);
-    this->GetWorldToSliceCoordinates(centroidPosWorld, centroidPosDisplay);
-    int centroidControlPointType = allControlPointsSelected ? Selected : Unselected;
-    if (this->MarkupsDisplayNode->GetActiveComponentType() == vtkMRMLMarkupsDisplayNode::ComponentCentroid)
+    double centerPosWorld[3], centerPosDisplay[3], orient[3] = { 0 };
+    markupsNode->GetCenterPosition(centerPosWorld);
+    this->GetWorldToSliceCoordinates(centerPosWorld, centerPosDisplay);
+    int centerControlPointType = allControlPointsSelected ? Selected : Unselected;
+    if (this->MarkupsDisplayNode->GetActiveComponentType() == vtkMRMLMarkupsDisplayNode::ComponentCenterPoint)
     {
-      centroidControlPointType = Active;
-      this->GetControlPointsPipeline(centroidControlPointType)->ControlPoints->SetNumberOfPoints(0);
-      this->GetControlPointsPipeline(centroidControlPointType)->ControlPointsPolyData->GetPointData()->GetNormals()->SetNumberOfTuples(0);
+      centerControlPointType = Active;
+      this->GetControlPointsPipeline(centerControlPointType)->ControlPoints->SetNumberOfPoints(0);
+      this->GetControlPointsPipeline(centerControlPointType)->ControlPointsPolyData->GetPointData()->GetNormals()->SetNumberOfTuples(0);
     }
-    this->GetControlPointsPipeline(centroidControlPointType)->ControlPoints->InsertNextPoint(centroidPosDisplay);
-    this->GetControlPointsPipeline(centroidControlPointType)->ControlPointsPolyData->GetPointData()->GetNormals()->InsertNextTuple(orient);
+    this->GetControlPointsPipeline(centerControlPointType)->ControlPoints->InsertNextPoint(centerPosDisplay);
+    this->GetControlPointsPipeline(centerControlPointType)->ControlPointsPolyData->GetPointData()->GetNormals()->InsertNextTuple(orient);
 
-    this->GetControlPointsPipeline(centroidControlPointType)->ControlPoints->Modified();
-    this->GetControlPointsPipeline(centroidControlPointType)->ControlPointsPolyData->GetPointData()->GetNormals()->Modified();
-    this->GetControlPointsPipeline(centroidControlPointType)->ControlPointsPolyData->Modified();
-    if (centroidControlPointType == Active)
+    this->GetControlPointsPipeline(centerControlPointType)->ControlPoints->Modified();
+    this->GetControlPointsPipeline(centerControlPointType)->ControlPointsPolyData->GetPointData()->GetNormals()->Modified();
+    this->GetControlPointsPipeline(centerControlPointType)->ControlPointsPolyData->Modified();
+    if (centerControlPointType == Active)
     {
-      this->GetControlPointsPipeline(centroidControlPointType)->Actor->VisibilityOn();
-      this->GetControlPointsPipeline(centroidControlPointType)->LabelsActor->VisibilityOff();
+      this->GetControlPointsPipeline(centerControlPointType)->Actor->VisibilityOn();
+      this->GetControlPointsPipeline(centerControlPointType)->LabelsActor->VisibilityOff();
     }
   }
 }
@@ -164,12 +159,15 @@ int vtkSlicerCurveRepresentation2D::CanInteract(const int displayPosition[2], co
     return vtkMRMLMarkupsDisplayNode::ComponentNone;
   }
   int foundComponentType = Superclass::CanInteract(displayPosition, worldPosition, closestDistance2, componentIndex);
-  if (foundComponentType != vtkMRMLMarkupsDisplayNode::ComponentNone && closestDistance2 == 0.0)
+  if (foundComponentType != vtkMRMLMarkupsDisplayNode::ComponentNone)
   {
+    // if mouse is near a control point then select that (ignore the line)
     return foundComponentType;
   }
 
   // TODO: implement quick search of nearby points on the curve
+  this->CanInteractWithLine(foundComponentType, displayPosition, worldPosition, closestDistance2, componentIndex);
+
   return foundComponentType;
 }
 

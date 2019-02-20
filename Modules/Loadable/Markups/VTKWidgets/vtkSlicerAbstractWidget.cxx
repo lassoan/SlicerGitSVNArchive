@@ -93,27 +93,6 @@ void vtkSlicerAbstractWidget::SetKeyboardEventTranslation(
     repeatCount, keySym, widgetEvent);
 }
 
-//----------------------------------------------------------------------
-void vtkSlicerAbstractWidget::CloseLoop()
-{
-  if (!this->WidgetRep)
-    {
-    return;
-    }
-  vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
-  if (!markupsNode)
-    {
-    return;
-    }
-  if (!this->WidgetRep->GetClosedLoop() && markupsNode->GetNumberOfControlPoints() > 1)
-    {
-    this->WidgetRep->ClosedLoopOn();
-    this->Render();
-    }
-}
-
-
-
 //-------------------------------------------------------------------------
 void vtkSlicerAbstractWidget::SetRepresentation(vtkSlicerAbstractWidgetRepresentation *rep)
 {
@@ -156,17 +135,6 @@ void vtkSlicerAbstractWidget::UpdateFromMRML(vtkMRMLNode* caller, unsigned long 
     }
 
   this->WidgetRep->UpdateFromMRML(caller, event, callData);
-}
-
-//-------------------------------------------------------------------------
-void vtkSlicerAbstractWidget::BuildLocator()
-{
-  if (!this->WidgetRep)
-    {
-    return;
-    }
-
-  this->WidgetRep->SetRebuildLocator(true);
 }
 
 //-------------------------------------------------------------------------
@@ -269,10 +237,7 @@ bool vtkSlicerAbstractWidget::ProcessMouseMove(vtkSlicerInteractionEventData* ev
     else
     {
       this->SetWidgetState(OnWidget);
-      if (foundComponent == vtkMRMLMarkupsDisplayNode::ComponentControlPoint)
-      {
-        this->GetMarkupsDisplayNode()->SetActiveControlPoint(componentIndex);
-      }
+      this->GetMarkupsDisplayNode()->SetActiveComponent(foundComponent, componentIndex);
     }
   }
   else
@@ -305,9 +270,9 @@ bool vtkSlicerAbstractWidget::ProcessMouseMove(vtkSlicerInteractionEventData* ev
       this->RotateWidget(eventPos);
     }
 
-    if (this->WidgetRep->GetClosedLoop())
+    if (markupsNode->GetCurveClosed())
     {
-      this->WidgetRep->UpdateCentroid();
+      this->WidgetRep->UpdateCenter();
     }
 
     this->LastEventPosition[0] = eventPos[0];
@@ -781,8 +746,8 @@ void vtkSlicerAbstractWidget::ScaleWidget(double eventPos[2])
   double ref[3] = { 0. };
   double worldPos[3], worldOrient[9];
 
-  double centroid[3];
-  this->WidgetRep->GetTransformationReferencePoint(centroid);
+  double center[3];
+  this->WidgetRep->GetTransformationReferencePoint(center);
 
   vtkSlicerAbstractWidgetRepresentation2D* rep2d = vtkSlicerAbstractWidgetRepresentation2D::SafeDownCast(this->WidgetRep);
   if (rep2d)
@@ -816,7 +781,7 @@ void vtkSlicerAbstractWidget::ScaleWidget(double eventPos[2])
     }
     displayPos[0] = eventPos[0];
     displayPos[1] = eventPos[1];
-    double r2 = vtkMath::Distance2BetweenPoints(ref, centroid);
+    double r2 = vtkMath::Distance2BetweenPoints(ref, center);
 
     if (!this->WidgetRep->GetPointPlacer()->ComputeWorldPosition(this->Renderer,
       displayPos, ref, worldPos,
@@ -827,8 +792,8 @@ void vtkSlicerAbstractWidget::ScaleWidget(double eventPos[2])
 
   }
 
-  double r2 = vtkMath::Distance2BetweenPoints(ref, centroid);
-  double d2 = vtkMath::Distance2BetweenPoints(worldPos, centroid);
+  double r2 = vtkMath::Distance2BetweenPoints(ref, center);
+  double d2 = vtkMath::Distance2BetweenPoints(worldPos, center);
   if (d2 < 0.0000001)
   {
     return;
@@ -847,7 +812,7 @@ void vtkSlicerAbstractWidget::ScaleWidget(double eventPos[2])
     markupsNode->GetNthControlPointPositionWorld(i, ref);
     for (int j = 0; j < 3; j++)
     {
-      worldPos[j] = centroid[j] + ratio * (ref[j] - centroid[j]);
+      worldPos[j] = center[j] + ratio * (ref[j] - center[j]);
     }
 
     markupsNode->SetNthControlPointPositionWorldFromArray(i, worldPos);
@@ -868,8 +833,8 @@ void vtkSlicerAbstractWidget::RotateWidget(double eventPos[2])
   double lastWorldPos[3] = { 0. };
   double worldPos[3], worldOrient[9];
 
-  double centroid[3];
-  this->WidgetRep->GetTransformationReferencePoint(centroid);
+  double center[3];
+  this->WidgetRep->GetTransformationReferencePoint(center);
 
   vtkSlicerAbstractWidgetRepresentation2D* rep2d = vtkSlicerAbstractWidgetRepresentation2D::SafeDownCast(this->WidgetRep);
   if (rep2d)
@@ -917,7 +882,7 @@ void vtkSlicerAbstractWidget::RotateWidget(double eventPos[2])
   }
 
 
-  double d2 = vtkMath::Distance2BetweenPoints(worldPos, centroid);
+  double d2 = vtkMath::Distance2BetweenPoints(worldPos, center);
   if (d2 < 0.0000001)
   {
     return;
@@ -925,8 +890,8 @@ void vtkSlicerAbstractWidget::RotateWidget(double eventPos[2])
 
   for (int i = 0; i < 3; i++)
   {
-    lastWorldPos[i] -= centroid[i];
-    worldPos[i] -= centroid[i];
+    lastWorldPos[i] -= center[i];
+    worldPos[i] -= center[i];
   }
   double angle = -vtkMath::DegreesFromRadians
   (vtkMath::AngleBetweenVectors(lastWorldPos, worldPos));
@@ -937,7 +902,7 @@ void vtkSlicerAbstractWidget::RotateWidget(double eventPos[2])
     markupsNode->GetNthControlPointPositionWorld(i, ref);
     for (int j = 0; j < 3; j++)
     {
-      ref[j] -= centroid[j];
+      ref[j] -= center[j];
     }
     vtkNew<vtkTransform> RotateTransform;
     RotateTransform->RotateY(angle);
@@ -945,7 +910,7 @@ void vtkSlicerAbstractWidget::RotateWidget(double eventPos[2])
 
     for (int j = 0; j < 3; j++)
     {
-      worldPos[j] += centroid[j];
+      worldPos[j] += center[j];
     }
 
     markupsNode->SetNthControlPointPositionWorldFromArray(i, worldPos);

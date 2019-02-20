@@ -36,6 +36,7 @@ vtkMRMLNodeNewMacro(vtkMRMLMarkupsClosedCurveNode);
 //----------------------------------------------------------------------------
 vtkMRMLMarkupsClosedCurveNode::vtkMRMLMarkupsClosedCurveNode()
 {
+  this->CurveClosed = true;
 }
 
 //----------------------------------------------------------------------------

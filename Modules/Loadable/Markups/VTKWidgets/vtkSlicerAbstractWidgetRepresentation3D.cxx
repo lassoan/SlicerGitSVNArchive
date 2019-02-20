@@ -43,8 +43,6 @@
 #include "vtkCamera.h"
 #include "vtkPoints.h"
 #include "vtkCellArray.h"
-#include "vtkSlicerLineInterpolator.h"
-#include "vtkSlicerBezierLineInterpolator.h"
 #include "vtkSphereSource.h"
 #include "vtkBox.h"
 #include "vtkIntArray.h"
@@ -292,17 +290,17 @@ int vtkSlicerAbstractWidgetRepresentation3D::CanInteract(const int displayPositi
   componentIndex = -1;
   if (markupsNode->GetNumberOfControlPoints() > 2 && this->ClosedLoop && markupsNode)
   {
-    // Check if centroid is selected
-    double centroidPosWorld[3], centroidPosDisplay[3];
-    markupsNode->GetCentroidPosition(centroidPosWorld);
-    this->Renderer->SetWorldPoint(centroidPosWorld);
+    // Check if center is selected
+    double centerPosWorld[3], centerPosDisplay[3];
+    markupsNode->GetCenterPosition(centerPosWorld);
+    this->Renderer->SetWorldPoint(centerPosWorld);
     this->Renderer->WorldToDisplay();
-    this->Renderer->GetDisplayPoint(centroidPosDisplay);
-    double dist2 = vtkMath::Distance2BetweenPoints(centroidPosDisplay, displayPosition3);
+    this->Renderer->GetDisplayPoint(centerPosDisplay);
+    double dist2 = vtkMath::Distance2BetweenPoints(centerPosDisplay, displayPosition3);
     if (dist2 < pixelTolerance2)
     {
       closestDistance2 = dist2;
-      foundComponentType = vtkMRMLMarkupsDisplayNode::ComponentCentroid;
+      foundComponentType = vtkMRMLMarkupsDisplayNode::ComponentCenterPoint;
       componentIndex = 0;
     }
   }
@@ -319,12 +317,12 @@ int vtkSlicerAbstractWidgetRepresentation3D::CanInteract(const int displayPositi
     {
       continue;
     }
-    double centroidPosWorld[3], centroidPosDisplay[3];
-    markupsNode->GetNthControlPointPositionWorld(i, centroidPosWorld);
-    this->Renderer->SetWorldPoint(centroidPosWorld);
+    double centerPosWorld[3], centerPosDisplay[3];
+    markupsNode->GetNthControlPointPositionWorld(i, centerPosWorld);
+    this->Renderer->SetWorldPoint(centerPosWorld);
     this->Renderer->WorldToDisplay();
-    this->Renderer->GetDisplayPoint(centroidPosDisplay);
-    double dist2 = vtkMath::Distance2BetweenPoints(centroidPosDisplay, displayPosition3);
+    this->Renderer->GetDisplayPoint(centerPosDisplay);
+    double dist2 = vtkMath::Distance2BetweenPoints(centerPosDisplay, displayPosition3);
     if (dist2 < pixelTolerance2)
     {
       closestDistance2 = dist2;

@@ -69,7 +69,6 @@ void vtkSlicerClosedCurveWidget::CreateDefaultRepresentation(
   }
   this->SetRenderer(renderer);
   this->SetRepresentation(rep);
-  rep->SetClosedLoop(true);
   rep->SetViewNode(viewNode);
   rep->SetMarkupsDisplayNode(markupsDisplayNode);
 }

@@ -36,7 +36,6 @@
 *
  * @sa
  * vtkSlicerAbstractWidgetRepresentation vtkSlicerAbstractWidget vtkPointPlacer
- * vtkSlicerLineInterpolator
 */
 
 #ifndef vtkSlicerAbstractRepresentation_h
@@ -56,7 +55,6 @@ class vtkMarkupsGlyphSource2D;
 class vtkPolyData;
 class vtkPoints;
 
-class vtkSlicerLineInterpolator;
 class vtkIncrementalOctreePointLocator;
 class vtkPointPlacer;
 class vtkPolyData;
@@ -133,26 +131,6 @@ public:
   /// Get the nth node.
   virtual vtkMRMLMarkupsNode::ControlPoint *GetNthNode(int n);
 
-  /// Get the world position of the intermediate point at
-  /// index idx between nodes n and (n+1) (or n and 0 if
-  /// n is the last node and the loop is closed). Returns
-  /// 1 on success or 0 if n or idx are out of range.
-  virtual int GetIntermediatePointWorldPosition(int n,
-                                                int idx, double point[3]);
-
-  /// Get the display position of the intermediate point at
-  /// index idx between nodes n and (n+1) (or n and 0 if
-  /// n is the last node and the loop is closed). Returns
-  /// 1 on success or 0 if n or idx are out of range.
-  virtual int GetIntermediatePointDisplayPosition(int n,
-                                                  int idx, double pos[2]);
-
-  /// Add an intermediate point between node n and n+1
-  /// (or n and 0 if n is the last node and the loop is closed).
-  /// Returns 1 on success or 0 if n is out of range.
-  virtual int AddIntermediatePointWorldPosition(int n,
-                                                const double point[3]);
-
   /// Specify tolerance for performing pick operations of points
   /// (by the locator, see ActivateNode).
   /// Tolerance is defined in terms of percentage of the handle size.
@@ -167,12 +145,6 @@ public:
   void SetPointPlacer(vtkPointPlacer *);
   vtkPointPlacer* GetPointPlacer();
 
-  /// Set / Get the Line Interpolator. The line interpolator
-  /// is responsible for generating the line segments connecting
-  /// nodes.
-  void SetLineInterpolator(vtkSlicerLineInterpolator *);
-  vtkSlicerLineInterpolator* GetLineInterpolator();
-
   /// Controls whether the widget should always appear on top
   /// of other actors in the scene. (In effect, this will disable OpenGL
   /// Depth buffer tests while rendering the widget).
@@ -181,25 +153,15 @@ public:
   vtkGetMacro(AlwaysOnTop, vtkTypeBool);
   vtkBooleanMacro(AlwaysOnTop, vtkTypeBool);
 
-
-  /// Handle when rebuilding the locator
-  vtkSetMacro(RebuildLocator,bool);
-
-  /// Set / Get the ClosedLoop value. This ivar indicates whether the widget
-  /// forms a closed loop.
-  void SetClosedLoop(vtkTypeBool val);
-  vtkGetMacro(ClosedLoop, vtkTypeBool);
-  vtkBooleanMacro(ClosedLoop, vtkTypeBool);
-
   /// Set/Get the vtkMRMLMarkipsNode connected with this representation
   virtual void SetMarkupsDisplayNode(vtkMRMLMarkupsDisplayNode *markupsDisplayNode);
   virtual vtkMRMLMarkupsDisplayNode* GetMarkupsDisplayNode();
   virtual vtkMRMLMarkupsNode* GetMarkupsNode();
 
-  /// Compute the centroid by sampling the points along
+  /// Compute the center by sampling the points along
   /// the polyline of the widget at equal distances.
-  /// and it also updates automatically the centroid pos stored in the Markups node
-  virtual void UpdateCentroid();
+  /// and it also updates automatically the center pos stored in the Markups node
+  virtual void UpdateCenter();
 
   /// Translation, rotation, scaling will happen around this position
   virtual bool GetTransformationReferencePoint(double referencePointWorld[3]);
@@ -278,7 +240,6 @@ protected:
   bool NeedToRender;
 
   vtkSmartPointer<vtkPointPlacer> PointPlacer;
-  vtkSmartPointer<vtkSlicerLineInterpolator> LineInterpolator;
 
   int CurrentOperation;
   vtkTypeBool ClosedLoop;
@@ -293,10 +254,6 @@ protected:
   // using the renderer of this class.
   void GetRendererComputedDisplayPositionFromWorldPosition(const double worldPos[3],
                                                            double displayPos[2]);
-
-  virtual void UpdateInterpolatedPoints(int index);
-  virtual void UpdateAllInterpolatedPoints();
-  //void UpdateLine(int idx1, int idx2);
 
   // Utility function to build lines between control points.
   // If displayPosition is true then positions will be computed in display coordinate system,

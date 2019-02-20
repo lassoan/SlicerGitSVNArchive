@@ -16,12 +16,12 @@ set(${KIT}_SRCS
   vtkMRML${MODULE_NAME}ClosedCurveNode.cxx
   vtkMRML${MODULE_NAME}Node.cxx
   vtkMRML${MODULE_NAME}FiducialStorageNode.cxx
-  vtkSlicerBezierLineInterpolator.cxx
-  vtkSlicerBezierLineInterpolator.h
-  vtkSlicerLinearLineInterpolator.cxx
-  vtkSlicerLinearLineInterpolator.h
-  vtkSlicerLineInterpolator.cxx
-  vtkSlicerLineInterpolator.h
+  vtkCurveGenerator.cxx
+  vtkCurveGenerator.h
+  vtkLinearSpline.cxx
+  vtkLinearSpline.h
+  vtkParametricPolynomialApproximation.cxx
+  vtkParametricPolynomialApproximation.h
   )
 
 set(${KIT}_TARGET_LIBRARIES

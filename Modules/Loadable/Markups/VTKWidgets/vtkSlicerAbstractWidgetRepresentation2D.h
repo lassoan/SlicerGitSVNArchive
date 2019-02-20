@@ -54,7 +54,13 @@ public:
 
   /// Checks if interaction with straight line between visible points is possible.
   /// Can be used on the output of CanInteract, as if no better component is found then the input is returned.
-  void CanInteractWithLine(int &foundComponentType, const int displayPosition[2], const double worldPosition[3], double &closestDistance2, int &componentIndex);
+  void CanInteractWithLine(int &foundComponentType, const int displayPosition[2], const double worldPosition[3],
+    double &closestDistance2, int &componentIndex);
+
+  /// Checks if interaction with interpolated line between visible points is possible.
+  /// Can be used on the output of CanInteract, as if no better component is found then the input is returned.
+  void CanInteractWithInterpolatedLine(int &foundComponentType, const int displayPosition[2],
+    const double worldPosition[3], double &closestDistance2, int &componentIndex);
 
   /// Subclasses of vtkSlicerAbstractWidgetRepresentation2D must implement these methods. These
   /// are the methods that the widget and its representation use to
@@ -74,18 +80,11 @@ public:
   /// (n+1) nodes (0 based counting).
   int GetNthNodeDisplayPosition(int n, double pos[2]) VTK_OVERRIDE;
 
-  /// Get the display position of the intermediate point at
-  /// index idx between nodes n and (n+1) (or n and 0 if
-  /// n is the last node and the loop is closed). Returns
-  /// 1 on success or 0 if n or idx are out of range.
-  virtual int GetIntermediatePointDisplayPosition(int n,
-                                                  int idx, double pos[2]) VTK_OVERRIDE;
-
   /// Set the Nth node slice visibility (i.e. if it is on the slice).
   virtual void SetNthPointSliceVisibility(int n, bool visibility);
 
-  /// Set the centroid slice visibility (i.e. if it is on the slice).
-  virtual void SetCentroidSliceVisibility(bool visibility);
+  /// Set the center slice visibility (i.e. if it is on the slice).
+  virtual void SetCenterSliceVisibility(bool visibility);
 
   void GetSliceToWorldCoordinates(const double[2], double[3]);
   void GetWorldToSliceCoordinates(const double worldPos[3], double slicePos[2]);
@@ -105,7 +104,7 @@ protected:
   virtual bool IsPointDisplayableOnSlice(vtkMRMLMarkupsNode* node, int pointIndex = 0);
 
   /// Check, if the point is displayable in the current slice geometry
-  virtual bool IsCentroidDisplayableOnSlice(vtkMRMLMarkupsNode* node);
+  virtual bool IsCenterDisplayableOnSlice(vtkMRMLMarkupsNode* node);
 
   /// Convert display to world coordinates
   void GetWorldToDisplayCoordinates(double r, double a, double s, double * displayCoordinates);
@@ -129,7 +128,7 @@ protected:
   ControlPointsPipeline2D* GetControlPointsPipeline(int controlPointType);
 
   vtkSmartPointer<vtkIntArray> PointsVisibilityOnSlice;
-  bool                        CentroidVisibilityOnSlice;
+  bool                        CenterVisibilityOnSlice;
 
   /// Scale factor for 2d windows
   double ScaleFactor2D;

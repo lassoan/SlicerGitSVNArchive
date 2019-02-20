@@ -15,10 +15,12 @@
 
 ==============================================================================*/
 
+#include "vtkMRMLMarkupsNode.h"
+
 // MRML includes
+#include "vtkCurveGenerator.h"
 #include "vtkMRMLMarkupsFiducialStorageNode.h"
 #include "vtkMRMLMarkupsDisplayNode.h"
-#include "vtkMRMLMarkupsNode.h"
 #include "vtkMRMLMarkupsStorageNode.h"
 #include "vtkMRMLTransformNode.h"
 
@@ -36,6 +38,8 @@
 #include <vtkPointData.h>
 #include <vtkPolyData.h>
 #include <vtkStringArray.h>
+#include <vtkTransformPolyDataFilter.h>
+#include <vtkTrivialProducer.h>
 
 // STD includes
 #include <sstream>
@@ -47,20 +51,47 @@ vtkMRMLNodeNewMacro(vtkMRMLMarkupsNode);
 //----------------------------------------------------------------------------
 vtkMRMLMarkupsNode::vtkMRMLMarkupsNode()
 {
-  this->TextList = vtkStringArray::New();
+  this->TextList = vtkSmartPointer<vtkStringArray>::New();
   this->Locked = 0;
+
+  this->CurveClosed = false;
 
   this->PreferredNumberOfControlPoints = 0;
   this->MaximumNumberOfControlPoints = 0;
   this->MarkupLabelFormat = std::string("%N-%d");
   this->LastUsedControlPointNumber = 0;
-  this->centroidPos.Set(0,0,0);
+  this->CenterPos.Set(0,0,0);
+
+  // Line cells shared between input and output
+  vtkNew<vtkCellArray> lineCellArray;
+
+  this->CurveInputPoly = vtkSmartPointer<vtkPolyData>::New();
+  vtkNew<vtkPoints> curveInputPoints;
+  this->CurveInputPoly->SetPoints(curveInputPoints);
+  this->CurveInputPoly->SetLines(lineCellArray);
+
+  this->CurvePoly = vtkSmartPointer<vtkPolyData>::New();
+  vtkNew<vtkPoints> curvePoints;
+  this->CurvePoly->SetPoints(curvePoints);
+  this->CurvePoly->SetLines(lineCellArray);
+
+  this->CurveGenerator = vtkSmartPointer<vtkCurveGenerator>::New();
+  this->CurveGenerator->SetInputPoints(curveInputPoints);
+  this->CurveGenerator->SetOutputPoints(curvePoints);
+
+  vtkNew<vtkTrivialProducer> curvePointConnector; // allows connecting a data object to pipeline input
+  curvePointConnector->SetOutput(this->CurvePoly);
+
+  this->CurvePolyToWorldTransform = vtkSmartPointer<vtkGeneralTransform>::New();
+
+  this->CurvePolyToWorldTransformer = vtkSmartPointer<vtkTransformPolyDataFilter>::New();
+  this->CurvePolyToWorldTransformer->SetInputConnection(curvePointConnector->GetOutputPort());
+  this->CurvePolyToWorldTransformer->SetTransform(this->CurvePolyToWorldTransform);
 }
 
 //----------------------------------------------------------------------------
 vtkMRMLMarkupsNode::~vtkMRMLMarkupsNode()
 {
-  this->TextList->Delete();
   this->RemoveAllControlPoints();
 }
 
@@ -176,6 +207,9 @@ void vtkMRMLMarkupsNode::Copy(vtkMRMLNode *anode)
     this->CopyControlPoint(controlPoint, this->GetNthControlPoint(controlPointIndex));
     }
 
+  this->CurveInputPoly->DeepCopy(node->CurveInputPoly);
+  this->CurvePoly->DeepCopy(node->CurvePoly);
+
   // set max number of markups after adding the new ones
   this->LastUsedControlPointNumber = node->LastUsedControlPointNumber;
 }
@@ -192,6 +226,10 @@ void vtkMRMLMarkupsNode::ProcessMRMLEvents(vtkObject *caller,
                                            unsigned long event,
                                            void *callData)
 {
+  if (caller != NULL && event == vtkMRMLTransformableNode::TransformModifiedEvent)
+    {
+    vtkMRMLTransformNode::GetTransformBetweenNodes(this->GetParentTransformNode(), NULL, CurvePolyToWorldTransform);
+    }
   Superclass::ProcessMRMLEvents(caller, event, callData);
 }
 
@@ -645,21 +683,7 @@ void vtkMRMLMarkupsNode::CopyControlPoint(ControlPoint *source, ControlPoint *ta
     return;
     }
 
-  target->ID = source->ID;
-  target->Label = source->Label;
-  target->Description = source->Description;
-  target->AssociatedNodeID = source->AssociatedNodeID;
-  target->Selected = source->Selected;
-  target->Locked = source->Locked;
-  target->Visibility = source->Visibility;
-
-  target->Position = source->Position;
-  for (int i = 0; i < 4; ++i)
-    {
-    target->OrientationWXYZ[i] = source->OrientationWXYZ[i];
-    }
-
-  target->IntermediatePositions = source->IntermediatePositions;
+  (*target) = (*source);
 }
 
 //-----------------------------------------------------------
@@ -770,32 +794,32 @@ void vtkMRMLMarkupsNode::SetNthControlPointPositionWorldFromArray(const int poin
 }
 
 //-----------------------------------------------------------
-vtkVector3d vtkMRMLMarkupsNode::GetCentroidPositionVector()
+vtkVector3d vtkMRMLMarkupsNode::GetCenterPositionVector()
 {
-  return this->centroidPos;
+  return this->CenterPos;
 }
 
 //-----------------------------------------------------------
-void vtkMRMLMarkupsNode::GetCentroidPosition(double point[3])
+void vtkMRMLMarkupsNode::GetCenterPosition(double point[3])
 {
-  point[0] = this->centroidPos.GetX();
-  point[1] = this->centroidPos.GetY();
-  point[2] = this->centroidPos.GetZ();
+  point[0] = this->CenterPos.GetX();
+  point[1] = this->CenterPos.GetY();
+  point[2] = this->CenterPos.GetZ();
 }
 
 //-----------------------------------------------------------
-void vtkMRMLMarkupsNode::GetCentroidPositionLPS(double point[3])
+void vtkMRMLMarkupsNode::GetCenterPositionLPS(double point[3])
 {
-  point[0] = -1.0 * this->centroidPos.GetX();
-  point[1] = -1.0 * this->centroidPos.GetY();
-  point[2] = this->centroidPos.GetZ();
+  point[0] = -1.0 * this->CenterPos.GetX();
+  point[1] = -1.0 * this->CenterPos.GetY();
+  point[2] = this->CenterPos.GetZ();
 }
 
 //-----------------------------------------------------------
-int vtkMRMLMarkupsNode::GetCentroidPositionWorld(double worldxyz[3])
+int vtkMRMLMarkupsNode::GetCenterPositionWorld(double worldxyz[3])
 {
   vtkVector3d world;
-  this->TransformPointToWorld(this->GetCentroidPositionVector(), world);
+  this->TransformPointToWorld(this->GetCenterPositionVector(), world);
   worldxyz[0] = world[0];
   worldxyz[1] = world[1];
   worldxyz[2] = world[2];
@@ -803,46 +827,46 @@ int vtkMRMLMarkupsNode::GetCentroidPositionWorld(double worldxyz[3])
 }
 
 //-----------------------------------------------------------
-void vtkMRMLMarkupsNode::SetCentroidPositionFromPointer(const double *pos)
+void vtkMRMLMarkupsNode::SetCenterPositionFromPointer(const double *pos)
 {
   if (!pos)
     {
-    vtkErrorMacro("SetCentroidPositionFromPointer: invalid position pointer!");
+    vtkErrorMacro("SetCenterPositionFromPointer: invalid position pointer!");
     return;
     }
 
-  this->SetCentroidPosition(pos[0], pos[1], pos[2]);
+  this->SetCenterPosition(pos[0], pos[1], pos[2]);
 }
 
 //-----------------------------------------------------------
-void vtkMRMLMarkupsNode::SetCentroidPositionFromArray(const double pos[3])
+void vtkMRMLMarkupsNode::SetCenterPositionFromArray(const double pos[3])
 {
-  this->SetCentroidPosition(pos[0], pos[1], pos[2]);
+  this->SetCenterPosition(pos[0], pos[1], pos[2]);
 }
 
 //-----------------------------------------------------------
-void vtkMRMLMarkupsNode::SetCentroidPosition(const double x, const double y, const double z)
+void vtkMRMLMarkupsNode::SetCenterPosition(const double x, const double y, const double z)
 {
-  this->centroidPos.Set(x,y,z);
+  this->CenterPos.Set(x,y,z);
   this->Modified();
 }
 
 //-----------------------------------------------------------
-void vtkMRMLMarkupsNode::SetCentroidPositionLPS(const double x, const double y, const double z)
+void vtkMRMLMarkupsNode::SetCenterPositionLPS(const double x, const double y, const double z)
 {
   double r, a, s;
   r = -x;
   a = -y;
   s = z;
-  this->SetCentroidPosition(r, a, s);
+  this->SetCenterPosition(r, a, s);
 }
 
 //-----------------------------------------------------------
-void vtkMRMLMarkupsNode::SetCentroidPositionWorld(const double x, const double y, const double z)
+void vtkMRMLMarkupsNode::SetCenterPositionWorld(const double x, const double y, const double z)
 {
-  vtkVector3d centroidxyz;
-  TransformPointFromWorld(vtkVector3d(x,y,z), centroidxyz);
-  this->SetCentroidPosition(centroidxyz[0], centroidxyz[1], centroidxyz[2]);
+  vtkVector3d centerxyz;
+  TransformPointFromWorld(vtkVector3d(x,y,z), centerxyz);
+  this->SetCenterPosition(centerxyz[0], centerxyz[1], centerxyz[2]);
 }
 
 //-----------------------------------------------------------
@@ -1376,4 +1400,20 @@ void vtkMRMLMarkupsNode::FromOrientationQuaternionToWorldOrient(double orientati
   worldOrient[6] = worldOrientMatrix[2][0];
   worldOrient[7] = worldOrientMatrix[2][1];
   worldOrient[8] = worldOrientMatrix[2][2];
+}
+
+//----------------------------------------------------------------------
+vtkPoints* vtkMRMLMarkupsNode::GetCurvePointsWorld()
+{
+  if (this->GetNumberOfControlPoints() < 1)
+    {
+    return NULL;
+    }
+  this->CurvePolyToWorldTransformer->Update();
+  vtkPolyData* curvePolyDataWorld = this->CurvePolyToWorldTransformer->GetOutput();
+  if (!curvePolyDataWorld)
+    {
+    return NULL;
+    }
+  return curvePolyDataWorld->GetPoints();
 }
