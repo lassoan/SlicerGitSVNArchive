@@ -285,7 +285,9 @@ protected:
   vtkWeakPointer<vtkMRMLAbstractViewNode> ViewNode;
 
   // Calculate view scale factor
-  double CalculateViewScaleFactor();
+  void UpdateViewScaleFactor();
+
+  double ViewScaleFactor;
 
   void UpdateRelativeCoincidentTopologyOffsets(vtkMapper* mapper);
 

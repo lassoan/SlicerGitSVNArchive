@@ -132,6 +132,8 @@ vtkSlicerAbstractWidgetRepresentation::ControlPointsPipeline::ControlPointsPipel
 //----------------------------------------------------------------------
 vtkSlicerAbstractWidgetRepresentation::vtkSlicerAbstractWidgetRepresentation()
 {
+  this->ViewScaleFactor = 1.0;
+
   this->ControlPointSize = 3.0;
   this->Tolerance                = 0.4;
   this->PixelTolerance           = 1;
@@ -168,11 +170,11 @@ vtkSlicerAbstractWidgetRepresentation::~vtkSlicerAbstractWidgetRepresentation()
 }
 
 //----------------------------------------------------------------------
-double vtkSlicerAbstractWidgetRepresentation::CalculateViewScaleFactor()
+void vtkSlicerAbstractWidgetRepresentation::UpdateViewScaleFactor()
 {
   if (!this->Renderer || !this->Renderer->GetActiveCamera())
   {
-    return 1.0;
+    this->ViewScaleFactor = 1.0;
   }
 
   double p1[4], p2[4];
@@ -213,7 +215,7 @@ double vtkSlicerAbstractWidgetRepresentation::CalculateViewScaleFactor()
   y = size[1] * (viewport[3] - viewport[1]);
 
   distance2 = sqrt(x * x + y * y);
-  return distance2 / distance;
+  this->ViewScaleFactor = distance2 / distance;
 }
 
 //----------------------------------------------------------------------

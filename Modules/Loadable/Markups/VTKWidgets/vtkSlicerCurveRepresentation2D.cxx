@@ -46,10 +46,12 @@
 #include "vtkTubeFilter.h"
 #include "vtkStringArray.h"
 #include "vtkPickingManager.h"
+#include "vtkPlane.h"
 #include "vtkVectorText.h"
 #include "vtkOpenGLTextActor.h"
 #include "cmath"
 #include "vtkMRMLMarkupsDisplayNode.h"
+#include "vtkSampleImplicitFunctionFilter.h"
 
 vtkStandardNewMacro(vtkSlicerCurveRepresentation2D);
 
@@ -57,9 +59,19 @@ vtkStandardNewMacro(vtkSlicerCurveRepresentation2D);
 vtkSlicerCurveRepresentation2D::vtkSlicerCurveRepresentation2D()
 {
   this->Line = vtkSmartPointer<vtkPolyData>::New();
+
+  this->SliceDistance = vtkSmartPointer<vtkSampleImplicitFunctionFilter>::New();
+  this->SlicePlane = vtkSmartPointer<vtkPlane>::New();
+  this->SliceDistance->SetImplicitFunction(this->SlicePlane);
+
+  this->WorldToSliceTransformer = vtkSmartPointer<vtkTransformPolyDataFilter>::New();
+  this->WorldToSliceTransform = vtkSmartPointer<vtkTransform>::New();
+  this->WorldToSliceTransformer->SetTransform(this->WorldToSliceTransform);
+  this->WorldToSliceTransformer->SetInputConnection(this->SliceDistance->GetOutputPort());
+
   this->TubeFilter = vtkSmartPointer<vtkTubeFilter>::New();
-  this->TubeFilter->SetInputData(this->Line);
-  this->TubeFilter->SetNumberOfSides(20);
+  this->TubeFilter->SetInputConnection(this->WorldToSliceTransformer->GetOutputPort());
+  this->TubeFilter->SetNumberOfSides(6);
   this->TubeFilter->SetRadius(1);
 
   this->LineMapper = vtkSmartPointer<vtkOpenGLPolyDataMapper2D>::New();
@@ -91,20 +103,42 @@ void vtkSlicerCurveRepresentation2D::UpdateFromMRML(vtkMRMLNode* caller, unsigne
     this->VisibilityOff();
     return;
   }
-
   this->VisibilityOn();
 
-  // Line geometry
+  // Update from slice node
+  if (!caller || caller == this->ViewNode.GetPointer())
+    {
+    vtkMatrix4x4* sliceXYToRAS = this->GetSliceNode()->GetXYToRAS();
 
-  this->BuildLine(this->Line, true);
+    // Update transformation to slice
+    vtkNew<vtkMatrix4x4> rasToSliceXY;
+    vtkMatrix4x4::Invert(sliceXYToRAS, rasToSliceXY.GetPointer());
+    // Project all points to the slice plane (slice Z coordinate = 0)
+    rasToSliceXY->SetElement(2, 0, 0);
+    rasToSliceXY->SetElement(2, 1, 0);
+    rasToSliceXY->SetElement(2, 2, 0);
+    this->WorldToSliceTransform->SetMatrix(rasToSliceXY.GetPointer());
+
+    // Update slice plane (for distance computation)
+    double normal[3];
+    double origin[3];
+    const int planeOrientation = 1; // +/-1: orientation of the normal
+    for (int i = 0; i < 3; i++)
+      {
+      normal[i] = planeOrientation * sliceXYToRAS->GetElement(i, 2);
+      origin[i] = sliceXYToRAS->GetElement(i, 3);
+      }
+    vtkMath::Normalize(normal);
+    this->SlicePlane->SetNormal(normal);
+    this->SlicePlane->SetOrigin(origin);
+    this->SlicePlane->Modified();
+    }
 
   // Line display
 
-  double scale = this->CalculateViewScaleFactor();
+  this->TubeFilter->SetRadius(this->ViewScaleFactor * this->ControlPointSize * 0.125);
 
-  this->TubeFilter->SetRadius(scale * this->ControlPointSize * 0.125);
-
-  this->LineActor->SetVisibility(this->GetAllControlPointsVisible());
+  //this->LineActor->SetVisibility(this->GetAllControlPointsVisible());
 
   bool allControlPointsSelected = this->GetAllControlPointsSelected();
   int controlPointType = Active;
@@ -260,4 +294,21 @@ void vtkSlicerCurveRepresentation2D::PrintSelf(ostream& os, vtkIndent indent)
     {
     os << indent << "Line Actor: (none)\n";
     }
+}
+
+//-----------------------------------------------------------------------------
+void vtkSlicerCurveRepresentation2D::SetMarkupsNode(vtkMRMLMarkupsNode *markupsNode)
+{
+  if (this->MarkupsNode != markupsNode)
+    {
+    if (markupsNode)
+      {
+      this->SliceDistance->SetInputConnection(markupsNode->GetCurveWorldConnection());
+      }
+    else
+      {
+      this->SliceDistance->SetInputData(this->Line);
+      }
+    }
+  this->Superclass::SetMarkupsNode(markupsNode);
 }

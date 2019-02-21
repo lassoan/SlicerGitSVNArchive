@@ -98,8 +98,7 @@ void vtkSlicerLineRepresentation2D::UpdateFromMRML(vtkMRMLNode* caller, unsigned
 
   // Line display
 
-  double scale = this->CalculateViewScaleFactor();
-  this->TubeFilter->SetRadius(scale * this->ControlPointSize * 0.125);
+  this->TubeFilter->SetRadius(this->ViewScaleFactor * this->ControlPointSize * 0.125);
 
   bool allNodeVisibile = this->GetAllControlPointsVisible();
   this->LineActor->SetVisibility(allNodeVisibile);

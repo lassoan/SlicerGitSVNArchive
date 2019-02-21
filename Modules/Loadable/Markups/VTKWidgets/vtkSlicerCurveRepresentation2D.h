@@ -34,14 +34,16 @@
 #include "vtkSlicerAbstractWidgetRepresentation2D.h"
 
 class vtkActor2D;
+class vtkArcSource;
 class vtkAppendPolyData;
 class vtkOpenGLPolyDataMapper2D;
+class vtkOpenGLTextActor;
+class vtkPlane;
 class vtkPolyData;
 class vtkProperty2D;
-class vtkTubeFilter;
 class vtkPropPicker;
-class vtkArcSource;
-class vtkOpenGLTextActor;
+class vtkSampleImplicitFunctionFilter;
+class vtkTubeFilter;
 class vtkVectorText;
 
 class VTK_SLICER_MARKUPS_MODULE_VTKWIDGETS_EXPORT vtkSlicerCurveRepresentation2D : public vtkSlicerAbstractWidgetRepresentation2D
@@ -75,11 +77,19 @@ protected:
   vtkSlicerCurveRepresentation2D();
   ~vtkSlicerCurveRepresentation2D() override;
 
+  void SetMarkupsNode(vtkMRMLMarkupsNode *markupsNode) override;
+
   vtkSmartPointer<vtkPolyData>                  Line;
   vtkSmartPointer<vtkOpenGLPolyDataMapper2D>    LineMapper;
   vtkSmartPointer<vtkActor2D>                   LineActor;
 
   vtkSmartPointer<vtkTubeFilter>                TubeFilter;
+
+  vtkSmartPointer<vtkTransform> WorldToSliceTransform;
+  vtkSmartPointer<vtkTransformPolyDataFilter> WorldToSliceTransformer;
+
+  vtkSmartPointer<vtkPlane> SlicePlane;
+  vtkSmartPointer<vtkSampleImplicitFunctionFilter> SliceDistance;
 
 private:
   vtkSlicerCurveRepresentation2D(const vtkSlicerCurveRepresentation2D&) = delete;

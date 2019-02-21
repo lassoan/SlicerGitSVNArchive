@@ -71,6 +71,7 @@ void vtkSlicerClosedCurveWidget::CreateDefaultRepresentation(
   this->SetRepresentation(rep);
   rep->SetViewNode(viewNode);
   rep->SetMarkupsDisplayNode(markupsDisplayNode);
+  rep->UpdateFromMRML(nullptr, 0); // full update
 }
 
 //----------------------------------------------------------------------

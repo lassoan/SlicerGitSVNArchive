@@ -280,10 +280,8 @@ int vtkSlicerAbstractWidgetRepresentation3D::CanInteract(const int displayPositi
 
   double displayPosition3[3] = { static_cast<double>(displayPosition[0]), static_cast<double>(displayPosition[1]), 0.0 };
 
-
-  this->PixelTolerance = this->ControlPointSize + this->ControlPointSize * this->Tolerance;
-  double scale = this->CalculateViewScaleFactor();
-  this->PixelTolerance *= scale;
+  this->UpdateViewScaleFactor(); // TODO: this is performed very frequently, check how it can be optimized
+  this->PixelTolerance = (this->ControlPointSize + this->ControlPointSize * this->Tolerance) * this->ViewScaleFactor;
   double pixelTolerance2 = this->PixelTolerance * this->PixelTolerance;
 
   closestDistance2 = VTK_DOUBLE_MAX; // in display coordinate system

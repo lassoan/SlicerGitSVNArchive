@@ -390,6 +390,12 @@ void vtkSlicerAbstractWidgetRepresentation2D::UpdateFromMRML(vtkMRMLNode* caller
 {
   Superclass::UpdateFromMRML(caller, event, callData);
 
+  // Update from slice node
+  if (!caller || caller == this->ViewNode.GetPointer())
+  {
+    this->UpdateViewScaleFactor();
+  }
+
   vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
   if (!this->ViewNode || !markupsNode || !this->MarkupsDisplayNode
     || !this->MarkupsDisplayNode->GetVisibility()
@@ -444,8 +450,6 @@ void vtkSlicerAbstractWidgetRepresentation2D::UpdateFromMRML(vtkMRMLNode* caller
 
   this->ControlPointSize = this->MarkupsDisplayNode->GetGlyphScale() * this->ScaleFactor2D;
 
-  double scale = this->CalculateViewScaleFactor();
-
   // Points widgets have only one Markup/Representation
   for (int PointIndex = 0; PointIndex < markupsNode->GetNumberOfControlPoints(); PointIndex++)
   {
@@ -463,10 +467,10 @@ void vtkSlicerAbstractWidgetRepresentation2D::UpdateFromMRML(vtkMRMLNode* caller
   {
     ControlPointsPipeline2D* controlPoints = reinterpret_cast<ControlPointsPipeline2D*>(this->ControlPoints[controlPointType]);
     controlPoints->LabelsActor->SetVisibility(this->MarkupsDisplayNode->GetTextVisibility());
-    controlPoints->Glypher->SetScaleFactor(scale * this->ControlPointSize);
+    controlPoints->Glypher->SetScaleFactor(this->ViewScaleFactor * this->ControlPointSize);
   }
 
-  this->UpdateAllPointsAndLabelsFromMRML(scale * this->ControlPointSize);
+  this->UpdateAllPointsAndLabelsFromMRML(this->ViewScaleFactor * this->ControlPointSize);
 
   this->VisibilityOn();
 }
@@ -486,7 +490,7 @@ int vtkSlicerAbstractWidgetRepresentation2D::CanInteract(const int displayPositi
 
   double displayPosition3[3] = { static_cast<double>(displayPosition[0]), static_cast<double>(displayPosition[1]), 0.0 };
 
-  this->PixelTolerance = this->ControlPointSize * (1.0 + this->Tolerance) * this->CalculateViewScaleFactor();
+  this->PixelTolerance = this->ControlPointSize * (1.0 + this->Tolerance) * this->ViewScaleFactor;
   double pixelTolerance2 = this->PixelTolerance * this->PixelTolerance;
 
   closestDistance2 = VTK_DOUBLE_MAX; // in display coordinate system
@@ -548,7 +552,7 @@ void vtkSlicerAbstractWidgetRepresentation2D::CanInteractWithLine(int &foundComp
 
   double displayPosition3[3] = { static_cast<double>(displayPosition[0]), static_cast<double>(displayPosition[1]), 0.0 };
 
-  this->PixelTolerance = this->ControlPointSize * (1.0 + this->Tolerance) * this->CalculateViewScaleFactor();
+  this->PixelTolerance = this->ControlPointSize * (1.0 + this->Tolerance) * this->ViewScaleFactor;
   double pixelTolerance2 = this->PixelTolerance * this->PixelTolerance;
 
   vtkIdType numberOfPoints = markupsNode->GetNumberOfControlPoints();

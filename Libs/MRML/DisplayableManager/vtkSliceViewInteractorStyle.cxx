@@ -1074,7 +1074,7 @@ bool vtkSliceViewInteractorStyle::ForwardInteractionEventToDisplayableManagers(u
   ed->SetDisplayPosition(displayPositionCorrected);
   ed->SetWorldPosition(worldPosition);
   ed->SetKeyCode(this->Interactor->GetKeyCode());
-  ed->SetKeySym(this->Interactor->GetKeySym());
+  ed->SetKeySym(this->Interactor->GetKeySym() ? this->Interactor->GetKeySym() : "");
   ed->SetKeyRepeatCount(this->Interactor->GetRepeatCount());
 
   // Find the most suitable displayable manager

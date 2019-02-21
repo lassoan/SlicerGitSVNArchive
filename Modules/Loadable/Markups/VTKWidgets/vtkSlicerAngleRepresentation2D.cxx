@@ -204,12 +204,10 @@ void vtkSlicerAngleRepresentation2D::UpdateFromMRML(vtkMRMLNode* caller, unsigne
 
   // Update lines display properties
 
-  double scale = this->CalculateViewScaleFactor();
-
   this->TextActor->SetVisibility(this->MarkupsDisplayNode->GetTextVisibility());
 
-  this->TubeFilter->SetRadius(scale * this->ControlPointSize * 0.125);
-  this->ArcTubeFilter->SetRadius(scale * this->ControlPointSize * 0.125);
+  this->TubeFilter->SetRadius(this->ViewScaleFactor * this->ControlPointSize * 0.125);
+  this->ArcTubeFilter->SetRadius(this->ViewScaleFactor * this->ControlPointSize * 0.125);
 
   bool allNodeVisibile = this->GetAllControlPointsVisible();
   this->LineActor->SetVisibility(allNodeVisibile);
@@ -254,7 +252,7 @@ int vtkSlicerAngleRepresentation2D::CanInteract(const int displayPosition[2],
 
   double displayPosition3[3] = { static_cast<double>(displayPosition[0]), static_cast<double>(displayPosition[1]), 0.0 };
 
-  this->PixelTolerance = this->ControlPointSize * (1.0 + this->Tolerance) * this->CalculateViewScaleFactor();
+  this->PixelTolerance = this->ControlPointSize * (1.0 + this->Tolerance) * this->ViewScaleFactor;
   double pixelTolerance2 = this->PixelTolerance * this->PixelTolerance;
 
   vtkIdType numberOfPoints = markupsNode->GetNumberOfControlPoints();
