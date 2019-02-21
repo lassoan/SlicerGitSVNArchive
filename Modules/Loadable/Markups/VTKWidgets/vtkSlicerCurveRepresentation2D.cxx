@@ -17,8 +17,11 @@
 =========================================================================*/
 
 #include "vtkSlicerCurveRepresentation2D.h"
+
 #include "vtkCleanPolyData.h"
+#include "vtkDiscretizableColorTransferFunction.h"
 #include "vtkOpenGLPolyDataMapper2D.h"
+#include "vtkPiecewiseFunction.h"
 #include "vtkActor2D.h"
 #include "vtkAssemblyPath.h"
 #include "vtkRenderer.h"
@@ -76,6 +79,9 @@ vtkSlicerCurveRepresentation2D::vtkSlicerCurveRepresentation2D()
 
   this->LineMapper = vtkSmartPointer<vtkOpenGLPolyDataMapper2D>::New();
   this->LineMapper->SetInputConnection(this->TubeFilter->GetOutputPort());
+  this->LineColorMap = vtkSmartPointer<vtkDiscretizableColorTransferFunction>::New();
+  this->LineMapper->SetLookupTable(this->LineColorMap);
+  this->LineMapper->SetScalarVisibility(true);
 
   this->LineActor = vtkSmartPointer<vtkActor2D>::New();
   this->LineActor->SetMapper(this->LineMapper);
@@ -148,6 +154,31 @@ void vtkSlicerCurveRepresentation2D::UpdateFromMRML(vtkMRMLNode* caller, unsigne
   }
   this->LineActor->SetProperty(this->GetControlPointsPipeline(controlPointType)->Property);
 
+  // TODO: use color node or display node properties to set up colormap
+  double limit = 10.0;
+  double tolerance = 1.0;
+  vtkPiecewiseFunction* opacityFunction = this->LineColorMap->GetScalarOpacityFunction();
+  if (!opacityFunction)
+    {
+    opacityFunction = vtkPiecewiseFunction::New();
+    this->LineColorMap->SetScalarOpacityFunction(opacityFunction);
+    opacityFunction->Delete();
+    }
+  opacityFunction->RemoveAllPoints();
+  opacityFunction->AddPoint(-limit, 0.0);
+  opacityFunction->AddPoint(-tolerance, 1.0);
+  opacityFunction->AddPoint(tolerance, 1.0);
+  opacityFunction->AddPoint(limit, 0.0);
+  vtkColorTransferFunction* colorFunction = this->LineColorMap;
+  colorFunction->RemoveAllPoints();
+  double* lineColorRGB = this->GetControlPointsPipeline(controlPointType)->Property->GetColor();
+  colorFunction->AddRGBPoint(-tolerance*2.0, std::min(lineColorRGB[0]*0.5, 1.0), std::min(lineColorRGB[1] * 0.5, 1.0), std::min(lineColorRGB[2] * 2.0, 1.0));
+  colorFunction->AddRGBPoint(-tolerance, lineColorRGB[0], lineColorRGB[1], lineColorRGB[2]);
+  colorFunction->AddRGBPoint( tolerance, lineColorRGB[0], lineColorRGB[1], lineColorRGB[2]);
+  colorFunction->AddRGBPoint( tolerance*2.0, std::min(lineColorRGB[0] * 2.0, 1.0), std::min(lineColorRGB[1] * 0.5, 1.0), std::min(lineColorRGB[2] * 0.5, 1.0));
+  this->LineColorMap->SetEnableOpacityMapping(true);
+  this->LineColorMap->SetClamping(true);
+
   bool allNodesHidden = true;
   for (int controlPointIndex = 0; controlPointIndex < markupsNode->GetNumberOfControlPoints(); controlPointIndex++)
   {
@@ -158,6 +189,9 @@ void vtkSlicerCurveRepresentation2D::UpdateFromMRML(vtkMRMLNode* caller, unsigne
     }
   }
 
+  // Display center position
+  // It would be cleaner to use a dedicated actor for this instead of using the control points actors
+  // as it would give flexibility in what glyph we use, it would not interfere with active control point display, etc.
   if (this->ClosedLoop && markupsNode->GetNumberOfControlPoints() > 2 && this->CenterVisibilityOnSlice && !allNodesHidden)
   {
     double centerPosWorld[3], centerPosDisplay[3], orient[3] = { 0 };

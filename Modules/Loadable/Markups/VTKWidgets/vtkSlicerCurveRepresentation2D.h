@@ -36,6 +36,7 @@
 class vtkActor2D;
 class vtkArcSource;
 class vtkAppendPolyData;
+class vtkDiscretizableColorTransferFunction;
 class vtkOpenGLPolyDataMapper2D;
 class vtkOpenGLTextActor;
 class vtkPlane;
@@ -86,6 +87,7 @@ protected:
   vtkSmartPointer<vtkPolyData>                  Line;
   vtkSmartPointer<vtkOpenGLPolyDataMapper2D>    LineMapper;
   vtkSmartPointer<vtkActor2D>                   LineActor;
+  vtkSmartPointer<vtkDiscretizableColorTransferFunction> LineColorMap;
 
   vtkSmartPointer<vtkTubeFilter>                TubeFilter;
 
