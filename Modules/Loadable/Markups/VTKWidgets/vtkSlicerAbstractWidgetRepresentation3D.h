@@ -70,11 +70,13 @@ public:
   /// Return the bounds of the representation
   double *GetBounds() VTK_OVERRIDE;
 
-  int CanInteract(const int displayPosition[2], const double worldPosition[3], double &closestDistance2, int &componentIndex) VTK_OVERRIDE;
+  void CanInteract(const int displayPosition[2], const double worldPosition[3],
+    int &foundComponentType, int &foundComponentIndex, double &closestDistance2) VTK_OVERRIDE;
 
   /// Checks if interaction with straight line between visible points is possible.
   /// Can be used on the output of CanInteract, as if no better component is found then the input is returned.
-  void CanInteractWithLine(int &foundComponentType, const int displayPosition[2], const double worldPosition[3], double &closestDistance2, int &componentIndex);
+  void CanInteractWithLine(const int displayPosition[2], const double worldPosition[3],
+    int &foundComponentType, int &foundComponentIndex, double &closestDistance2);
 
 protected:
   vtkSlicerAbstractWidgetRepresentation3D();

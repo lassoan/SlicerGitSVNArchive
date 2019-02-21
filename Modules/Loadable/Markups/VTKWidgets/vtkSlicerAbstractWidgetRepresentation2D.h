@@ -50,17 +50,13 @@ public:
   void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
 
   /// Position is displayed (slice) position
-  int CanInteract(const int displayPosition[2], const double worldPosition[3], double &closestDistance2, int &itemIndex) VTK_OVERRIDE;
+  void CanInteract(const int displayPosition[2], const double worldPosition[3],
+    int &foundComponentType, int &foundComponentIndex, double &closestDistance2) VTK_OVERRIDE;
 
   /// Checks if interaction with straight line between visible points is possible.
   /// Can be used on the output of CanInteract, as if no better component is found then the input is returned.
-  void CanInteractWithLine(int &foundComponentType, const int displayPosition[2], const double worldPosition[3],
-    double &closestDistance2, int &componentIndex);
-
-  /// Checks if interaction with interpolated line between visible points is possible.
-  /// Can be used on the output of CanInteract, as if no better component is found then the input is returned.
-  void CanInteractWithInterpolatedLine(int &foundComponentType, const int displayPosition[2],
-    const double worldPosition[3], double &closestDistance2, int &componentIndex);
+  void CanInteractWithLine(const int displayPosition[2], const double worldPosition[3],
+    int &foundComponentType, int &foundComponentIndex, double &closestDistance2);
 
   /// Subclasses of vtkSlicerAbstractWidgetRepresentation2D must implement these methods. These
   /// are the methods that the widget and its representation use to

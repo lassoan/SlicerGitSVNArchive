@@ -70,7 +70,8 @@ public:
 
   virtual bool GetTransformationReferencePoint(double referencePointWorld[3]) VTK_OVERRIDE;
 
-  int CanInteract(const int displayPosition[2], const double worldPosition[3], double &closestDistance2, int &itemIndex) VTK_OVERRIDE;
+  void CanInteract(const int displayPosition[2], const double worldPosition[3],
+    int &foundComponentType, int &foundComponentIndex, double &closestDistance2) VTK_OVERRIDE;
 
 protected:
   vtkSlicerAngleRepresentation3D();

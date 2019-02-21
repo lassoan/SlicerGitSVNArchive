@@ -227,17 +227,18 @@ bool vtkSlicerAbstractWidget::ProcessMouseMove(vtkSlicerInteractionEventData* ev
     // update state
     const int* displayPosition = eventData->GetDisplayPosition();
     const double* worldPosition = eventData->GetWorldPosition();
+    int foundComponentType = vtkMRMLMarkupsDisplayNode::ComponentNone;
+    int foundComponentIndex = -1;
     double closestDistance2 = 0.0;
-    int componentIndex = -1;
-    int foundComponent = this->WidgetRep->CanInteract(displayPosition, worldPosition, closestDistance2, componentIndex);
-    if (foundComponent == vtkMRMLMarkupsDisplayNode::ComponentNone)
+    this->WidgetRep->CanInteract(displayPosition, worldPosition, foundComponentType, foundComponentIndex, closestDistance2);
+    if (foundComponentType == vtkMRMLMarkupsDisplayNode::ComponentNone)
     {
       this->SetWidgetState(Idle);
     }
     else
     {
       this->SetWidgetState(OnWidget);
-      this->GetMarkupsDisplayNode()->SetActiveComponent(foundComponent, componentIndex);
+      this->GetMarkupsDisplayNode()->SetActiveComponent(foundComponentType, foundComponentIndex);
     }
   }
   else
@@ -542,8 +543,12 @@ bool vtkSlicerAbstractWidget::CanProcessInteractionEvent(vtkSlicerInteractionEve
     return false;
   }
 
-  int itemIndex;
-  return this->GetRepresentation()->CanInteract(interactionEventData->GetDisplayPosition(), interactionEventData->GetWorldPosition(), distance2, itemIndex);
+  int foundComponentType = vtkMRMLMarkupsDisplayNode::ComponentNone;
+  int foundComponentIndex = -1;
+  double closestDistance2 = 0.0;
+  this->GetRepresentation()->CanInteract(interactionEventData->GetDisplayPosition(), interactionEventData->GetWorldPosition(),
+    foundComponentType, foundComponentIndex, closestDistance2);
+  return (foundComponentType != vtkMRMLMarkupsDisplayNode::ComponentNone);
 }
 
 //-----------------------------------------------------------------------------

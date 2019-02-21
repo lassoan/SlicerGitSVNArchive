@@ -112,23 +112,24 @@ void vtkSlicerLineRepresentation2D::UpdateFromMRML(vtkMRMLNode* caller, unsigned
 }
 
 //----------------------------------------------------------------------
-int vtkSlicerLineRepresentation2D::CanInteract(const int displayPosition[2], const double worldPosition[3], double &closestDistance2, int &componentIndex)
+void vtkSlicerLineRepresentation2D::CanInteract(
+  const int displayPosition[2], const double worldPosition[3],
+  int &foundComponentType, int &foundComponentIndex, double &closestDistance2)
 {
+  foundComponentType = vtkMRMLMarkupsDisplayNode::ComponentNone;
   vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
   if (!markupsNode || markupsNode->GetLocked() || markupsNode->GetNumberOfControlPoints() < 1)
   {
-    return vtkMRMLMarkupsDisplayNode::ComponentNone;
+    return;
   }
-  int foundComponentType = Superclass::CanInteract(displayPosition, worldPosition, closestDistance2, componentIndex);
+  Superclass::CanInteract(displayPosition, worldPosition, foundComponentType, foundComponentIndex, closestDistance2);
   if (foundComponentType != vtkMRMLMarkupsDisplayNode::ComponentNone)
   {
     // if mouse is near a control point then select that (ignore the line)
-    return foundComponentType;
+    return;
   }
 
-  this->CanInteractWithLine(foundComponentType, displayPosition, worldPosition, closestDistance2, componentIndex);
-
-  return foundComponentType;
+  this->CanInteractWithLine(displayPosition, worldPosition, foundComponentType, foundComponentIndex, closestDistance2);
 }
 
 //----------------------------------------------------------------------

@@ -56,7 +56,8 @@ public:
   /// communicate with each other.
   void UpdateFromMRML(vtkMRMLNode* caller, unsigned long event, void *callData=NULL) VTK_OVERRIDE;
 
-  int CanInteract(const int displayPosition[2], const double worldPosition[3], double &closestDistance2, int &itemIndex) VTK_OVERRIDE;
+  void CanInteract(const int displayPosition[2], const double worldPosition[3],
+    int &foundComponentType, int &foundComponentIndex, double &closestDistance2) VTK_OVERRIDE;
 
   /// Methods to make this class behave as a vtkProp.
   void GetActors(vtkPropCollection *) override;

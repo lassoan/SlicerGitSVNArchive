@@ -267,16 +267,16 @@ void vtkSlicerAbstractWidgetRepresentation3D::UpdateAllPointsAndLabelsFromMRML()
 
 
 //----------------------------------------------------------------------
-int vtkSlicerAbstractWidgetRepresentation3D::CanInteract(const int displayPosition[2],
-  const double worldPosition[3], double &closestDistance2, int &componentIndex)
+void vtkSlicerAbstractWidgetRepresentation3D::CanInteract(
+  const int displayPosition[2], const double worldPosition[3],
+  int &foundComponentType, int &foundComponentIndex, double &closestDistance2)
 {
+  foundComponentType = vtkMRMLMarkupsDisplayNode::ComponentNone;
   vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
   if (!markupsNode || markupsNode->GetLocked() || markupsNode->GetNumberOfControlPoints() < 1)
   {
-    return vtkMRMLMarkupsDisplayNode::ComponentNone;
+    return;
   }
-
-  int foundComponentType = vtkMRMLMarkupsDisplayNode::ComponentNone;
 
   double displayPosition3[3] = { static_cast<double>(displayPosition[0]), static_cast<double>(displayPosition[1]), 0.0 };
 
@@ -285,7 +285,7 @@ int vtkSlicerAbstractWidgetRepresentation3D::CanInteract(const int displayPositi
   double pixelTolerance2 = this->PixelTolerance * this->PixelTolerance;
 
   closestDistance2 = VTK_DOUBLE_MAX; // in display coordinate system
-  componentIndex = -1;
+  foundComponentIndex = -1;
   if (markupsNode->GetNumberOfControlPoints() > 2 && this->ClosedLoop && markupsNode)
   {
     // Check if center is selected
@@ -299,7 +299,7 @@ int vtkSlicerAbstractWidgetRepresentation3D::CanInteract(const int displayPositi
     {
       closestDistance2 = dist2;
       foundComponentType = vtkMRMLMarkupsDisplayNode::ComponentCenterPoint;
-      componentIndex = 0;
+      foundComponentIndex = 0;
     }
   }
 
@@ -325,7 +325,7 @@ int vtkSlicerAbstractWidgetRepresentation3D::CanInteract(const int displayPositi
     {
       closestDistance2 = dist2;
       foundComponentType = vtkMRMLMarkupsDisplayNode::ComponentControlPoint;
-      componentIndex = i;
+      foundComponentIndex = i;
     }
   }
 
@@ -344,19 +344,19 @@ int vtkSlicerAbstractWidgetRepresentation3D::CanInteract(const int displayPositi
     }
   return (this->GetActiveNode() >= 0);
   */
-
-  return foundComponentType;
 }
 
 //----------------------------------------------------------------------
-void vtkSlicerAbstractWidgetRepresentation3D::CanInteractWithLine(int &foundComponentType,
-  const int displayPosition[2], const double worldPosition[3], double &closestDistance2, int &componentIndex)
+void vtkSlicerAbstractWidgetRepresentation3D::CanInteractWithLine(
+  const int displayPosition[2], const double worldPosition[3],
+  int &foundComponentType, int &foundComponentIndex, double &closestDistance2)
 {
+  foundComponentType = vtkMRMLMarkupsDisplayNode::ComponentNone;
   vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
   if (!markupsNode || markupsNode->GetLocked() || markupsNode->GetNumberOfControlPoints() < 1)
-  {
+    {
     return;
-  }
+    }
 
   vtkIdType numberOfPoints = markupsNode->GetNumberOfControlPoints();
 
@@ -380,7 +380,7 @@ void vtkSlicerAbstractWidgetRepresentation3D::CanInteractWithLine(int &foundComp
     {
       closestDistance2 = distance2;
       foundComponentType = vtkMRMLMarkupsDisplayNode::ComponentLine;
-      componentIndex = i;
+      foundComponentIndex = i;
     }
   }
 }

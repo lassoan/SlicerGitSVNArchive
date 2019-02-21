@@ -169,7 +169,8 @@ public:
   /// Return found component type (as vtkMRMLMarkupsDisplayNode::ComponentType).
   /// closestDistance2 is the squared distance in display coordinates from the closest position where interaction is possible.
   /// componentIndex returns index of the found component (e.g., if control point is found then control point index is returned).
-  virtual int CanInteract(const int displayPosition[2], const double worldPosition[3], double &closestDistance2, int &componentIndex);
+  virtual void CanInteract(const int displayPosition[2], const double worldPosition[3],
+    int &foundComponentType, int &foundComponentIndex, double &closestDistance2);
 
   //@{
   /**

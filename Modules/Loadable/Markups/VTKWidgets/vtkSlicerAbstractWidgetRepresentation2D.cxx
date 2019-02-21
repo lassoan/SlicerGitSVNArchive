@@ -476,17 +476,17 @@ void vtkSlicerAbstractWidgetRepresentation2D::UpdateFromMRML(vtkMRMLNode* caller
 }
 
 //----------------------------------------------------------------------
-int vtkSlicerAbstractWidgetRepresentation2D::CanInteract(const int displayPosition[2],
-  const double worldPosition[3], double &closestDistance2, int &componentIndex)
+void vtkSlicerAbstractWidgetRepresentation2D::CanInteract(
+  const int displayPosition[2], const double position[3],
+  int &foundComponentType, int &foundComponentIndex, double &closestDistance2)
 {
+  foundComponentType = vtkMRMLMarkupsDisplayNode::ComponentNone;
   vtkMRMLSliceNode *sliceNode = this->GetSliceNode();
   vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
   if (!sliceNode || !markupsNode || markupsNode->GetLocked() || markupsNode->GetNumberOfControlPoints() < 1)
   {
-    return vtkMRMLMarkupsDisplayNode::ComponentNone;
+    return;
   }
-
-  int foundComponentType = vtkMRMLMarkupsDisplayNode::ComponentNone;
 
   double displayPosition3[3] = { static_cast<double>(displayPosition[0]), static_cast<double>(displayPosition[1]), 0.0 };
 
@@ -494,7 +494,7 @@ int vtkSlicerAbstractWidgetRepresentation2D::CanInteract(const int displayPositi
   double pixelTolerance2 = this->PixelTolerance * this->PixelTolerance;
 
   closestDistance2 = VTK_DOUBLE_MAX; // in display coordinate system
-  componentIndex = -1;
+  foundComponentIndex = -1;
   if (markupsNode->GetNumberOfControlPoints() > 2 && this->ClosedLoop && markupsNode && this->CenterVisibilityOnSlice)
     {
     // Check if center is selected
@@ -507,7 +507,7 @@ int vtkSlicerAbstractWidgetRepresentation2D::CanInteract(const int displayPositi
       {
       closestDistance2 = dist2;
       foundComponentType = vtkMRMLMarkupsDisplayNode::ComponentCenterPoint;
-      componentIndex = 0;
+      foundComponentIndex = 0;
       }
     }
 
@@ -528,21 +528,22 @@ int vtkSlicerAbstractWidgetRepresentation2D::CanInteract(const int displayPositi
     markupsNode->GetNthControlPointPositionWorld(i, pointWorldPos);
     rasToxyMatrix->MultiplyPoint(pointWorldPos, pointDisplayPos);
     double dist2 = vtkMath::Distance2BetweenPoints(pointDisplayPos, displayPosition3);
-    if (dist2 < pixelTolerance2)
+    if (dist2 < pixelTolerance2 && dist2 < closestDistance2)
       {
       closestDistance2 = dist2;
       foundComponentType = vtkMRMLMarkupsDisplayNode::ComponentControlPoint;
-      componentIndex = i;
+      foundComponentIndex = i;
       }
     }
-
-  return foundComponentType;
 }
 
 //----------------------------------------------------------------------
-void vtkSlicerAbstractWidgetRepresentation2D::CanInteractWithLine(int &foundComponentType,
-  const int displayPosition[2], const double worldPosition[3], double &closestDistance2, int &componentIndex)
+void vtkSlicerAbstractWidgetRepresentation2D::CanInteractWithLine(
+  const int displayPosition[2], const double worldPosition[3],
+  int &foundComponentType, int &foundComponentIndex, double &closestDistance2)
 {
+  foundComponentType = vtkMRMLMarkupsDisplayNode::ComponentNone;
+
   vtkMRMLSliceNode *sliceNode = this->GetSliceNode();
   vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
   if (!sliceNode || !markupsNode || markupsNode->GetLocked() || markupsNode->GetNumberOfControlPoints() < 1)
@@ -587,16 +588,9 @@ void vtkSlicerAbstractWidgetRepresentation2D::CanInteractWithLine(int &foundComp
     {
       closestDistance2 = distance2;
       foundComponentType = vtkMRMLMarkupsDisplayNode::ComponentLine;
-      componentIndex = i;
+      foundComponentIndex = i;
     }
   }
-}
-
-//----------------------------------------------------------------------
-void vtkSlicerAbstractWidgetRepresentation2D::CanInteractWithInterpolatedLine(int &foundComponentType,
-  const int displayPosition[2], const double worldPosition[3], double &closestDistance2, int &componentIndex)
-{
-  //ttt
 }
 
 //----------------------------------------------------------------------

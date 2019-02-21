@@ -670,9 +670,11 @@ void vtkSlicerAbstractWidgetRepresentation::AddActorsBounds(vtkBoundingBox& boun
 }
 
 //-----------------------------------------------------------------------------
-int vtkSlicerAbstractWidgetRepresentation::CanInteract(const int displayPosition[2], const double position[3], double &closestDistance2, int &itemIndex)
+void vtkSlicerAbstractWidgetRepresentation::CanInteract(
+  const int displayPosition[2], const double position[3],
+  int &foundComponentType, int &foundComponentIndex, double &closestDistance2)
 {
-  return vtkMRMLMarkupsDisplayNode::ComponentNone;
+  foundComponentType = vtkMRMLMarkupsDisplayNode::ComponentNone;
 }
 
 //-----------------------------------------------------------------------------

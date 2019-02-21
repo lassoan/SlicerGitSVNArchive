@@ -235,19 +235,21 @@ void vtkSlicerAngleRepresentation2D::UpdateFromMRML(vtkMRMLNode* caller, unsigne
 }
 
 //----------------------------------------------------------------------
-int vtkSlicerAngleRepresentation2D::CanInteract(const int displayPosition[2],
-  const double worldPosition[3], double &closestDistance2, int &componentIndex)
+void vtkSlicerAngleRepresentation2D::CanInteract(
+  const int displayPosition[2], const double worldPosition[3],
+  int &foundComponentType, int &foundComponentIndex, double &closestDistance2)
 {
+  foundComponentType = vtkMRMLMarkupsDisplayNode::ComponentNone;
   vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
   if (!markupsNode || markupsNode->GetLocked() || markupsNode->GetNumberOfControlPoints() < 1)
   {
-    return vtkMRMLMarkupsDisplayNode::ComponentNone;
+    return;
   }
-  int foundComponentType = Superclass::CanInteract(displayPosition, worldPosition, closestDistance2, componentIndex);
+  Superclass::CanInteract(displayPosition, worldPosition, foundComponentType, foundComponentIndex, closestDistance2);
   if (foundComponentType != vtkMRMLMarkupsDisplayNode::ComponentNone)
   {
     // if mouse is near a control point then select that (ignore the line)
-    return foundComponentType;
+    return;
   }
 
   double displayPosition3[3] = { static_cast<double>(displayPosition[0]), static_cast<double>(displayPosition[1]), 0.0 };
@@ -287,11 +289,9 @@ int vtkSlicerAngleRepresentation2D::CanInteract(const int displayPosition[2],
     {
       closestDistance2 = distance2;
       foundComponentType = vtkMRMLMarkupsDisplayNode::ComponentLine;
-      componentIndex = i;
+      foundComponentIndex = i;
     }
   }
-
-  return foundComponentType;
 }
 
 //----------------------------------------------------------------------

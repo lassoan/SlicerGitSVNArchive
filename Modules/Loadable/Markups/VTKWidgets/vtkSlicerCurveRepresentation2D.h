@@ -60,7 +60,8 @@ public:
   /// are the methods that the widget and its representation use to
   /// communicate with each other.
   void UpdateFromMRML(vtkMRMLNode* caller, unsigned long event, void *callData = NULL) VTK_OVERRIDE;
-  int CanInteract(const int displayPosition[2], const double worldPosition[3], double &closestDistance2, int &componentIndex) VTK_OVERRIDE;
+  void CanInteract(const int displayPosition[2], const double worldPosition[3],
+    int &foundComponentType, int &foundComponentIndex, double &closestDistance2) VTK_OVERRIDE;
 
   /// Methods to make this class behave as a vtkProp.
   void GetActors(vtkPropCollection *) override;
@@ -78,6 +79,9 @@ protected:
   ~vtkSlicerCurveRepresentation2D() override;
 
   void SetMarkupsNode(vtkMRMLMarkupsNode *markupsNode) override;
+
+  void CanInteractWithCurve(const int displayPosition[2], const double worldPosition[3],
+    int &foundComponentType, int &componentIndex, double &closestDistance2);
 
   vtkSmartPointer<vtkPolyData>                  Line;
   vtkSmartPointer<vtkOpenGLPolyDataMapper2D>    LineMapper;

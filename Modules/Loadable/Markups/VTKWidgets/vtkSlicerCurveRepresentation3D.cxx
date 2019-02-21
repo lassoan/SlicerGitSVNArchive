@@ -232,22 +232,23 @@ double *vtkSlicerCurveRepresentation3D::GetBounds()
 }
 
 //----------------------------------------------------------------------
-int vtkSlicerCurveRepresentation3D::CanInteract(const int displayPosition[2], const double worldPosition[3], double &closestDistance2, int &componentIndex)
+void vtkSlicerCurveRepresentation3D::CanInteract(
+  const int displayPosition[2], const double worldPosition[3],
+  int &foundComponentType, int &foundComponentIndex, double &closestDistance2)
 {
+  foundComponentType = vtkMRMLMarkupsDisplayNode::ComponentNone;
   vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
   if (!markupsNode || markupsNode->GetLocked() || markupsNode->GetNumberOfControlPoints() < 1)
   {
-    return vtkMRMLMarkupsDisplayNode::ComponentNone;
+    return;
   }
-  int foundComponentType = Superclass::CanInteract(displayPosition, worldPosition, closestDistance2, componentIndex);
-  if (foundComponentType != vtkMRMLMarkupsDisplayNode::ComponentNone && closestDistance2 == 0.0)
+  Superclass::CanInteract(displayPosition, worldPosition, foundComponentType, foundComponentIndex, closestDistance2);
+  if (foundComponentType != vtkMRMLMarkupsDisplayNode::ComponentNone)
   {
-    return foundComponentType;
+    return;
   }
 
   // TODO: implement line picking
-
-  return foundComponentType;
 }
 
 //-----------------------------------------------------------------------------

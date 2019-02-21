@@ -185,24 +185,25 @@ void vtkSlicerCurveRepresentation2D::UpdateFromMRML(vtkMRMLNode* caller, unsigne
 }
 
 //----------------------------------------------------------------------
-int vtkSlicerCurveRepresentation2D::CanInteract(const int displayPosition[2], const double worldPosition[3], double &closestDistance2, int &componentIndex)
+void vtkSlicerCurveRepresentation2D::CanInteract(
+  const int displayPosition[2], const double worldPosition[3],
+  int &foundComponentType, int &foundComponentIndex, double &closestDistance2)
 {
+  foundComponentType = vtkMRMLMarkupsDisplayNode::ComponentNone;
   vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
   if (!markupsNode || markupsNode->GetLocked() || markupsNode->GetNumberOfControlPoints() < 1)
   {
-    return vtkMRMLMarkupsDisplayNode::ComponentNone;
+    return;
   }
-  int foundComponentType = Superclass::CanInteract(displayPosition, worldPosition, closestDistance2, componentIndex);
+  Superclass::CanInteract(displayPosition, worldPosition, foundComponentType, foundComponentIndex, closestDistance2);
   if (foundComponentType != vtkMRMLMarkupsDisplayNode::ComponentNone)
   {
     // if mouse is near a control point then select that (ignore the line)
-    return foundComponentType;
+    return;
   }
 
   // TODO: implement quick search of nearby points on the curve
-  this->CanInteractWithLine(foundComponentType, displayPosition, worldPosition, closestDistance2, componentIndex);
-
-  return foundComponentType;
+  this->CanInteractWithCurve(displayPosition, worldPosition, foundComponentType, foundComponentIndex, closestDistance2);
 }
 
 //----------------------------------------------------------------------
@@ -311,4 +312,59 @@ void vtkSlicerCurveRepresentation2D::SetMarkupsNode(vtkMRMLMarkupsNode *markupsN
       }
     }
   this->Superclass::SetMarkupsNode(markupsNode);
+}
+
+//----------------------------------------------------------------------
+void vtkSlicerCurveRepresentation2D::CanInteractWithCurve(
+  const int displayPosition[2], const double worldPosition[3],
+  int &foundComponentType, int &componentIndex, double &closestDistance2)
+{
+  foundComponentType = vtkMRMLMarkupsDisplayNode::ComponentNone;
+  vtkMRMLSliceNode *sliceNode = this->GetSliceNode();
+  vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
+  if (!sliceNode || !markupsNode || markupsNode->GetLocked() || markupsNode->GetNumberOfControlPoints() < 1)
+  {
+    return;
+  }
+
+  double displayPosition3[3] = { static_cast<double>(displayPosition[0]), static_cast<double>(displayPosition[1]), 0.0 };
+
+  this->PixelTolerance = this->ControlPointSize * (1.0 + this->Tolerance) * this->ViewScaleFactor;
+  double pixelTolerance2 = this->PixelTolerance * this->PixelTolerance;
+
+  vtkIdType numberOfPoints = markupsNode->GetNumberOfControlPoints();
+  double sliceCoordinates[4], worldCoordinates[4];
+
+  double pointDisplayPos1[4] = { 0.0, 0.0, 0.0, 1.0 };
+  double pointWorldPos1[4] = { 0.0, 0.0, 0.0, 1.0 };
+  double pointDisplayPos2[4] = { 0.0, 0.0, 0.0, 1.0 };
+  double pointWorldPos2[4] = { 0.0, 0.0, 0.0, 1.0 };
+
+  vtkNew<vtkMatrix4x4> rasToxyMatrix;
+  sliceNode->GetXYToRAS()->Invert(sliceNode->GetXYToRAS(), rasToxyMatrix.GetPointer());
+  for (int i = 0; i < numberOfPoints - 1; i++)
+  {
+    if (!this->PointsVisibilityOnSlice->GetValue(i))
+    {
+      continue;
+    }
+    if (!this->PointsVisibilityOnSlice->GetValue(i + 1))
+    {
+      i++; // skip one more, as the next iteration would use (i+1)-th point
+      continue;
+    }
+    markupsNode->GetNthControlPointPositionWorld(i, pointWorldPos1);
+    rasToxyMatrix->MultiplyPoint(pointWorldPos1, pointDisplayPos1);
+    markupsNode->GetNthControlPointPositionWorld(i + 1, pointWorldPos2);
+    rasToxyMatrix->MultiplyPoint(pointWorldPos2, pointDisplayPos2);
+
+    double relativePositionAlongLine = -1.0; // between 0.0-1.0 if between the endpoints of the line segment
+    double distance2 = vtkLine::DistanceToLine(displayPosition3, pointDisplayPos1, pointDisplayPos2, relativePositionAlongLine);
+    if (distance2 < pixelTolerance2 && distance2 < closestDistance2 && relativePositionAlongLine >= 0 && relativePositionAlongLine <= 1)
+    {
+      closestDistance2 = distance2;
+      foundComponentType = vtkMRMLMarkupsDisplayNode::ComponentLine;
+      componentIndex = i;
+    }
+  }
 }
