@@ -304,6 +304,8 @@ protected:
     NumberOfControlPointTypes
   };
 
+  double* GetWidgetColor(int controlPointType);
+
   ControlPointsPipeline* ControlPoints[3]; // Unselected, Selected, Active
 
   vtkTypeBool AlwaysOnTop;

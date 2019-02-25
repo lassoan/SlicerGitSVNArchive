@@ -887,3 +887,24 @@ bool vtkSlicerAbstractWidgetRepresentation::GetAllControlPointsSelected()
   }
   return true;
 }
+
+//----------------------------------------------------------------------
+double* vtkSlicerAbstractWidgetRepresentation::GetWidgetColor(int controlPointType)
+{
+  static double invalidColor[3] = { 0.5, 0.5, 0.5 }; // gray
+  static double activeColor[3] = { 0.4, 1.0, 0. }; // bright green
+
+  if (!this->MarkupsDisplayNode)
+  {
+    return invalidColor;
+  }
+
+  switch (controlPointType)
+  {
+  case Unselected: return this->MarkupsDisplayNode->GetColor();
+  case Selected: return this->MarkupsDisplayNode->GetSelectedColor();
+  case Active: return activeColor;
+  default:
+    return invalidColor;
+  }
+}

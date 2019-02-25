@@ -406,35 +406,18 @@ void vtkSlicerAbstractWidgetRepresentation2D::UpdateFromMRML(vtkMRMLNode* caller
     return;
     }
 
-  vtkProperty2D *unselectedProp = this->GetControlPointsPipeline(Unselected)->Property;
-  unselectedProp->SetColor(this->MarkupsDisplayNode->GetColor());
-  unselectedProp->SetOpacity(this->MarkupsDisplayNode->GetOpacity());
-
-  vtkProperty2D *selectedProp = this->GetControlPointsPipeline(Selected)->Property;
-  selectedProp->SetColor(this->MarkupsDisplayNode->GetSelectedColor());
-  selectedProp->SetOpacity(this->MarkupsDisplayNode->GetOpacity());
-
-  vtkProperty2D *activeProp = this->GetControlPointsPipeline(Active)->Property;
-  activeProp->SetColor(0.4, 1.0, 0.);  // bright green
-  activeProp->SetOpacity(this->MarkupsDisplayNode->GetOpacity());
-
-  vtkTextProperty *unselectedTextProp = this->GetControlPointsPipeline(Unselected)->TextProperty;
-  unselectedTextProp->SetColor(this->MarkupsDisplayNode->GetColor());
-  unselectedTextProp->SetOpacity(this->MarkupsDisplayNode->GetOpacity());
-  unselectedTextProp->SetFontSize(static_cast<int>(5. * this->MarkupsDisplayNode->GetTextScale()));
-
-  vtkTextProperty *selectedTextProp = this->GetControlPointsPipeline(Selected)->TextProperty;
-  selectedTextProp->SetColor(this->MarkupsDisplayNode->GetSelectedColor());
-  selectedTextProp->SetOpacity(this->MarkupsDisplayNode->GetOpacity());
-  selectedTextProp->SetFontSize(static_cast<int>(5. * this->MarkupsDisplayNode->GetTextScale()));
-
-  vtkTextProperty *activeTextProp = this->GetControlPointsPipeline(Active)->TextProperty;
-  activeTextProp->SetColor(0.4, 1.0, 0.); // bright green
-  activeTextProp->SetOpacity(this->MarkupsDisplayNode->GetOpacity());
-  activeTextProp->SetFontSize(static_cast<int>(5. * this->MarkupsDisplayNode->GetTextScale()));
-
   for (int controlPointType = 0; controlPointType < NumberOfControlPointTypes; ++controlPointType)
   {
+    double* color = this->GetWidgetColor(controlPointType);
+
+    ControlPointsPipeline2D* controlPoints = this->GetControlPointsPipeline(controlPointType);
+    controlPoints->Property->SetColor(color);
+    controlPoints->Property->SetOpacity(this->MarkupsDisplayNode->GetOpacity());
+
+    controlPoints->TextProperty->SetColor(color);
+    controlPoints->TextProperty->SetOpacity(this->MarkupsDisplayNode->GetOpacity());
+    controlPoints->TextProperty->SetFontSize(static_cast<int>(5. * this->MarkupsDisplayNode->GetTextScale()));
+
     if (this->MarkupsDisplayNode->GlyphTypeIs3D())
     {
       this->GetControlPointsPipeline(controlPointType)->Glypher->SetSourceConnection(

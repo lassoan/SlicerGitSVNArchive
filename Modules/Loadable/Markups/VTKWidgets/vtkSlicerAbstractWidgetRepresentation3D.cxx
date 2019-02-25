@@ -60,6 +60,7 @@
 #include "vtkLabelHierarchy.h"
 #include "vtkMRMLMarkupsDisplayNode.h"
 #include "vtkSelectVisiblePoints.h"
+#include "vtkMarkupsGlyphSource2D.h"
 
 vtkSlicerAbstractWidgetRepresentation3D::ControlPointsPipeline3D::ControlPointsPipeline3D()
 {
@@ -162,6 +163,8 @@ void vtkSlicerAbstractWidgetRepresentation3D::UpdateAllPointsAndLabelsFromMRML()
   {
     return;
   }
+
+  this->ControlPointSize = this->MarkupsDisplayNode->GetGlyphScale();
 
   int numPoints = markupsNode->GetNumberOfControlPoints();
 
@@ -398,7 +401,50 @@ void vtkSlicerAbstractWidgetRepresentation3D::CanInteractWithLine(
 //----------------------------------------------------------------------
 void vtkSlicerAbstractWidgetRepresentation3D::UpdateFromMRML(vtkMRMLNode* caller, unsigned long event, void *callData /*=NULL*/)
 {
+  // Update from slice node
+  if (!caller || caller == this->ViewNode.GetPointer())
+  {
+    this->UpdateViewScaleFactor();
+  }
+
+  this->ControlPointSize = this->MarkupsDisplayNode->GetGlyphScale();
+
   Superclass::UpdateFromMRML(caller, event, callData);
+
+  vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
+  if (!this->ViewNode || !markupsNode || !this->MarkupsDisplayNode
+    || !this->MarkupsDisplayNode->GetVisibility()
+    || !this->MarkupsDisplayNode->IsDisplayableInView(this->ViewNode->GetID())
+    )
+  {
+    this->VisibilityOff();
+    return;
+  }
+
+  for (int controlPointType = 0; controlPointType < NumberOfControlPointTypes; ++controlPointType)
+  {
+    double* color = this->GetWidgetColor(controlPointType);
+
+    ControlPointsPipeline3D* controlPoints = this->GetControlPointsPipeline(controlPointType);
+    controlPoints->Property->SetColor(color);
+    controlPoints->Property->SetOpacity(this->MarkupsDisplayNode->GetOpacity());
+
+    controlPoints->TextProperty->SetColor(color);
+    controlPoints->TextProperty->SetOpacity(this->MarkupsDisplayNode->GetOpacity());
+    controlPoints->TextProperty->SetFontSize(static_cast<int>(5. * this->MarkupsDisplayNode->GetTextScale()));
+
+    if (this->MarkupsDisplayNode->GlyphTypeIs3D())
+    {
+      this->GetControlPointsPipeline(controlPointType)->Glypher->SetSourceConnection(
+        this->GetControlPointsPipeline(controlPointType)->GlyphSourceSphere->GetOutputPort());
+    }
+    else
+    {
+      vtkMarkupsGlyphSource2D* glyphSource = this->GetControlPointsPipeline(controlPointType)->GlyphSource2D;
+      glyphSource->SetGlyphType(this->MarkupsDisplayNode->GetGlyphType());
+      this->GetControlPointsPipeline(controlPointType)->Glypher->SetSourceConnection(glyphSource->GetOutputPort());
+    }
+  }
 
   /* TODO: implement this for better performance
   if (event == )

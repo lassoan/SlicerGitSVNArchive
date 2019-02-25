@@ -540,20 +540,7 @@ void vtkThreeDViewInteractorStyle::OnLeftButtonUp()
       }
     }
 
-  // now throw the events if mouse mode is transient.
-  if (mouseInteractionMode == vtkMRMLInteractionNode::Place)
-    {
-    //--- count the number of picks and
-    //--- drop the interaction mode back to
-    //--- the default (transform) if mouse mode
-    //--- is transient.
-    if ( (placeModePersistence == 0 ) && (interactionNode != 0) )
-      {
-      interactionNode->NormalizeAllMouseModes();
-      interactionNode->SetLastInteractionMode ( mouseInteractionMode );
-      interactionNode->SetCurrentInteractionMode ( vtkMRMLInteractionNode::ViewTransform );
-      }
-    }
+
   switch (this->State)
     {
     case VTKIS_DOLLY:
@@ -1106,27 +1093,39 @@ void vtkThreeDViewInteractorStyle::ThreeDViewProcessEvents(vtkObject* object,
   vtkThreeDViewInteractorStyle* self
     = reinterpret_cast<vtkThreeDViewInteractorStyle *>(clientdata);
 
-  switch (event)
-  {
-  case vtkCommand::EnterEvent:
-    self->OnEnter();
-    if (self->HandleObservers &&
-      self->HasObserver(vtkCommand::EnterEvent))
-      {
-      self->InvokeEvent(vtkCommand::EnterEvent, nullptr);
-      }
-    break;
+  // Displayable managers add interactor style observers and those observers
+  // replace callback method calls. We make sure here that the callback methods
+  // are called anyway, but it would be a cleaner solution to remove interactor
+  // style observers (use CanProcessEvent/ProcessEvent callbacks instead).
 
-  case vtkCommand::LeaveEvent:
-    self->OnLeave();
-    if (self->HandleObservers &&
-      self->HasObserver(vtkCommand::LeaveEvent))
+  if (self->HandleObservers && self->HasObserver(event))
+    {
+    switch (event)
       {
-      self->InvokeEvent(vtkCommand::LeaveEvent, nullptr);
+      case vtkCommand::ExposeEvent: self->OnExpose(); break;
+      case vtkCommand::ConfigureEvent: self->OnConfigure(); break;
+      case vtkCommand::EnterEvent: self->OnEnter(); break;
+      case vtkCommand::LeaveEvent: self->OnLeave(); break;
+      case vtkCommand::TimerEvent: self->OnTimer(); break;
+      case vtkCommand::MouseMoveEvent: self->OnMouseMove(); break;
+      case vtkCommand::LeftButtonPressEvent: self->OnLeftButtonDown(); break;
+      case vtkCommand::LeftButtonReleaseEvent: self->OnLeftButtonUp(); break;
+      case vtkCommand::MiddleButtonPressEvent: self->OnMiddleButtonDown(); break;
+      case vtkCommand::MiddleButtonReleaseEvent: self->OnMiddleButtonUp(); break;
+      case vtkCommand::RightButtonPressEvent: self->OnRightButtonDown(); break;
+      case vtkCommand::RightButtonReleaseEvent: self->OnRightButtonUp(); break;
+      case vtkCommand::MouseWheelForwardEvent: self->OnMouseWheelForward(); break;
+      case vtkCommand::MouseWheelBackwardEvent: self->OnMouseWheelBackward(); break;
+      case vtkCommand::KeyPressEvent: self->OnKeyDown(); self->OnKeyPress(); break;
+      case vtkCommand::KeyReleaseEvent: self->OnKeyUp(); self->OnKeyRelease(); break;
+      case vtkCommand::CharEvent: self->OnChar(); break;
+      case vtkCommand::DeleteEvent: self->SetInteractor(0); break;
+      case vtkCommand::TDxMotionEvent:
+      case vtkCommand::TDxButtonPressEvent:
+      case vtkCommand::TDxButtonReleaseEvent:
+        self->DelegateTDxEvent(event, 0); break;
       }
-    break;
+    }
 
-  default:
-    Superclass::ProcessEvents(object, event, clientdata, calldata);
-  }
+  Superclass::ProcessEvents(object, event, clientdata, calldata);
 }
