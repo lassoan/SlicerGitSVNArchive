@@ -17,10 +17,7 @@
 #define __vtkSliceViewInteractorStyle_h
 
 // VTK includes
-#include "vtkCommand.h"
-#include "vtkEventData.h"
 #include "vtkInteractorStyleUser.h"
-#include "vtkMatrix4x4.h"
 #include "vtkWeakPointer.h"
 
 // MRML includes
@@ -31,130 +28,6 @@ class vtkMRMLSegmentationDisplayNode;
 class vtkMRMLSliceLogic;
 class vtkMRMLDisplayableManagerGroup;
 
-/// Class for storing all relevant details of mouse and keyboard events.
-/// It stores additional information that is expensive to compute (such as 3D position)
-/// or not always easy to get (such as modifiers).
-class VTK_MRML_DISPLAYABLEMANAGER_EXPORT vtkSlicerInteractionEventData : public vtkEventData
-{
-public:
-  vtkTypeMacro(vtkSlicerInteractionEventData, vtkEventData);
-  static vtkSlicerInteractionEventData *New()
-  {
-    vtkSlicerInteractionEventData *ret = new vtkSlicerInteractionEventData;
-    ret->InitializeObjectBase();
-    return ret;
-  };
-
-  /// Extends vtkCommand events
-  enum SlicerInteractionEvents
-  {
-    LeftButtonClickEvent = vtkCommand::UserEvent + 300, // button press and release without moving mouse
-    MiddleButtonClickEvent,
-    RightButtonClickEvent
-  };
-
-  void SetType(unsigned long v) { this->Type = v; }
-
-  void SetModifiers(int v) { this->Modifiers = v; }
-  int GetModifiers() { return this->Modifiers; }
-
-  void GetWorldPosition(double v[3]) const
-  {
-    std::copy(this->WorldPosition, this->WorldPosition + 3, v);
-  }
-  const double *GetWorldPosition() const
-  {
-    return this->WorldPosition;
-  }
-  void SetWorldPosition(const double p[3])
-  {
-    this->WorldPosition[0] = p[0];
-    this->WorldPosition[1] = p[1];
-    this->WorldPosition[2] = p[2];
-    this->WorldPositionValid = true;
-  }
-  bool IsWorldPositionValid()
-  {
-    return this->WorldPositionValid;
-  }
-  void SetWorldPositionInvalid()
-  {
-    this->WorldPositionValid = false;
-  }
-
-  void GetDisplayPosition(int v[2]) const
-  {
-    std::copy(this->DisplayPosition, this->DisplayPosition + 2, v);
-  }
-  const int *GetDisplayPosition() const
-  {
-    return this->DisplayPosition;
-  }
-  void SetDisplayPosition(const int p[2])
-  {
-    this->DisplayPosition[0] = p[0];
-    this->DisplayPosition[1] = p[1];
-    this->DisplayPositionValid = true;
-  }
-  bool IsDisplayPositionValid()
-  {
-    return this->DisplayPositionValid;
-  }
-  void SetDisplayPositionValid()
-  {
-    this->DisplayPositionValid = false;
-  }
-
-  void SetKeyCode(char v) { this->KeyCode = v; }
-  char GetKeyCode() { return this->KeyCode; }
-  void SetKeyRepeatCount(char v) { this->KeyRepeatCount = v; }
-  int GetKeyRepeatCount() { return this->KeyRepeatCount; }
-  void SetKeySym(const std::string &v) { this->KeySym = v; }
-  const std::string& GetKeySym() { return this->KeySym; }
-
-protected:
-  int Modifiers;
-  int DisplayPosition[2];
-  double WorldPosition[3];
-  bool DisplayPositionValid;
-  bool WorldPositionValid;
-
-  // For KeyPressEvent
-  char KeyCode;
-  int KeyRepeatCount;
-  std::string KeySym;
-
-  bool Equivalent(const vtkEventData *e) const override
-  {
-    const vtkSlicerInteractionEventData *edd = static_cast<const vtkSlicerInteractionEventData *>(e);
-    if (this->Type != edd->Type)
-    {
-      return false;
-    }
-    if (edd->Modifiers >= 0 && (this->Modifiers != edd->Modifiers))
-    {
-      return false;
-    }
-    return true;
-  };
-
-  vtkSlicerInteractionEventData()
-  {
-    this->Type = 0;
-    this->Modifiers = 0;
-    this->DisplayPositionValid = false;
-    this->WorldPositionValid = false;
-    this->KeyRepeatCount = 0;
-    this->KeyCode = 0;
-  }
-  ~vtkSlicerInteractionEventData() override {}
-
-private:
-  vtkSlicerInteractionEventData(const vtkSlicerInteractionEventData& c) = delete;
-  void operator=(const vtkSlicerInteractionEventData&) = delete;
-};
-
-
 /// \brief Provides customizable interaction routines.
 ///
 /// Relies on vtkInteractorStyleUser, but with MouseWheelEvents.
@@ -164,7 +37,8 @@ private:
 /// * Do we need Rotate Mode?  Probably better to just rely on the reformat widget
 /// * Do we need to set the slice spacing on EnterEvent (I say no, nothing to do
 ///   with linked slices should go in here)
-class VTK_MRML_DISPLAYABLEMANAGER_EXPORT vtkSliceViewInteractorStyle : public vtkInteractorStyleUser
+class VTK_MRML_DISPLAYABLEMANAGER_EXPORT vtkSliceViewInteractorStyle :
+  public vtkInteractorStyleUser
 {
 public:
   static vtkSliceViewInteractorStyle *New();
@@ -176,29 +50,32 @@ public:
   /// and composite node (sometimes using the logic's methods) or
   /// they are passed to the vtkInteractorStyleUser, which conditionally
   /// passes them to observers if there are any.
-  ///
-  /// Generic event bindings
   virtual void OnMouseMove() VTK_OVERRIDE;
+  virtual void OnEnter() VTK_OVERRIDE;
+  virtual void OnLeave() VTK_OVERRIDE;
   virtual void OnLeftButtonDown() VTK_OVERRIDE;
   virtual void OnLeftButtonUp() VTK_OVERRIDE;
   virtual void OnMiddleButtonDown() VTK_OVERRIDE;
   virtual void OnMiddleButtonUp() VTK_OVERRIDE;
   virtual void OnRightButtonDown() VTK_OVERRIDE;
   virtual void OnRightButtonUp() VTK_OVERRIDE;
-  /// MouseWheel callbacks added for slicer
   virtual void OnMouseWheelForward() VTK_OVERRIDE;
   virtual void OnMouseWheelBackward() VTK_OVERRIDE;
-  ///
+
   /// Keyboard functions
   virtual void OnChar() VTK_OVERRIDE;
   virtual void OnKeyPress() VTK_OVERRIDE;
   virtual void OnKeyRelease() VTK_OVERRIDE;
-  ///
+
   /// These are more esoteric events, but are useful in some cases.
   virtual void OnExpose() VTK_OVERRIDE;
   virtual void OnConfigure() VTK_OVERRIDE;
-  virtual void OnEnter() VTK_OVERRIDE;
-  virtual void OnLeave() VTK_OVERRIDE;
+
+  void SetDisplayableManagers(vtkMRMLDisplayableManagerGroup* displayableManagers);
+
+  /// Give a chance to displayable managers to process the event.
+  /// Return true if the event is processed.
+  bool ForwardInteractionEventToDisplayableManagers(unsigned long event);
 
   /// Internal state management for multi-event sequences (like click-drag-release)
 
@@ -245,6 +122,9 @@ public:
   /// Adjust zoom factor. If zoomScaleFactor>1 then view is zoomed in,
   /// if 0<zoomScaleFactor<1 then view is zoomed out.
   void ScaleZoom(double zoomScaleFactor);
+  void DoZoom();
+
+  void DoRotate();
 
   /// Collect some boilerplate management steps so they can be used
   /// in more than one place
@@ -254,11 +134,13 @@ public:
   /// Enter a mode where the mouse moves are used to change the foreground
   /// or labelmap opacity.
   void StartBlend();
+  void DoBlend();
   void EndBlend();
 
   /// Enter a mode where the mouse moves are used to change the window/level
   /// setting.
   void StartAdjustWindowLevel();
+  void DoAdjustWindowLevel();
   void EndAdjustWindowLevel();
 
   /// Convert event coordinates (with respect to viewport) into
@@ -286,14 +168,8 @@ public:
   void SetLabelOpacity(double opacity);
   double GetLabelOpacity();
 
-  void SetDisplayableManagers(vtkMRMLDisplayableManagerGroup* displayableManagers);
-
-  /// Give a chance to displayable managers to process the event.
-  /// Return true if the event is processed.
-  bool ForwardInteractionEventToDisplayableManagers(unsigned long event);
 
 protected:
-
   vtkSliceViewInteractorStyle();
   ~vtkSliceViewInteractorStyle();
 
@@ -310,10 +186,6 @@ protected:
   int ActionState;
   int ActionsEnabled;
 
-  /// Indicates whether the shift key was used during the previous action.
-  /// This is used to require shift-up before returning to default mode.
-  bool ShiftKeyUsedForPreviousAction;
-
   int StartActionEventPosition[2];
   double StartActionFOV[3];
   double VolumeScalarRange[2];
@@ -326,10 +198,14 @@ protected:
 
   vtkMRMLSliceLogic *SliceLogic;
 
+  bool MouseMovedSinceButtonDown;
+
+  /// Indicates whether the shift key was used during the previous action.
+  /// This is used to require shift-up before returning to default mode.
+  bool ShiftKeyUsedForPreviousAction;
+
   vtkWeakPointer<vtkMRMLDisplayableManagerGroup> DisplayableManagers;
   vtkMRMLAbstractDisplayableManager* FocusedDisplayableManager;
-
-  bool MouseMovedSinceButtonDown;
 
 private:
   vtkSliceViewInteractorStyle(const vtkSliceViewInteractorStyle&);  /// Not implemented.

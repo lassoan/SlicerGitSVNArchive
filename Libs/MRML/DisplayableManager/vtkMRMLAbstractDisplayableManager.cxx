@@ -989,14 +989,14 @@ vtkRenderer* vtkMRMLAbstractDisplayableManager::GetRenderer(int idx)
 }
 
 //---------------------------------------------------------------------------
-bool vtkMRMLAbstractDisplayableManager::CanProcessInteractionEvent(vtkSlicerInteractionEventData* eventData, double &distance2)
+bool vtkMRMLAbstractDisplayableManager::CanProcessInteractionEvent(vtkMRMLInteractionEventData* eventData, double &distance2)
 {
   distance2 = VTK_DOUBLE_MAX;
   return false;
 }
 
 //---------------------------------------------------------------------------
-void vtkMRMLAbstractDisplayableManager::ProcessInteractionEvent(vtkSlicerInteractionEventData* eventData)
+void vtkMRMLAbstractDisplayableManager::ProcessInteractionEvent(vtkMRMLInteractionEventData* eventData)
 {
 }
 

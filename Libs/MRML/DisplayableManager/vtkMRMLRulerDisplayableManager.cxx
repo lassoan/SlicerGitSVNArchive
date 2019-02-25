@@ -124,6 +124,7 @@ vtkMRMLRulerDisplayableManager::vtkInternal::vtkInternal(vtkMRMLRulerDisplayable
   this->RendererUpdateObservationId = 0;
   this->ActorsAddedToRenderer = false;
   this->MarkerRenderer = vtkSmartPointer<vtkRenderer>::New();
+  this->MarkerRenderer->EraseOff();
   this->RulerLineActor = vtkSmartPointer<vtkAxisActor2D>::New();
   this->RulerTextActor = vtkSmartPointer<vtkTextActor>::New();
 }

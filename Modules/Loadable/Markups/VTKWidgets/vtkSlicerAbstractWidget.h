@@ -49,7 +49,7 @@
 
 class vtkMRMLAbstractViewNode;
 class vtkSlicerAbstractWidgetRepresentation;
-class vtkSlicerInteractionEventData;
+class vtkMRMLInteractionEventData;
 class vtkPolyData;
 class vtkIdList;
 
@@ -164,13 +164,13 @@ public:
   /// Return true if the widget can process the event.
   /// Distance2 is the squared distance in display coordinates from the closest interaction position.
   /// The displayable manager with the closest distance will get the chance to process the interaction event.
-  virtual bool CanProcessInteractionEvent(vtkSlicerInteractionEventData* eventData, double &distance2);
+  virtual bool CanProcessInteractionEvent(vtkMRMLInteractionEventData* eventData, double &distance2);
 
   /// Allows injecting interaction events for processing, without directly observing window interactor events.
   /// Return true if the widget processed the event.
-  virtual bool ProcessInteractionEvent(vtkSlicerInteractionEventData* eventData);
+  virtual bool ProcessInteractionEvent(vtkMRMLInteractionEventData* eventData);
 
-  virtual unsigned long TranslateInteractionEventToWidgetEvent(vtkSlicerInteractionEventData* eventData);
+  virtual unsigned long TranslateInteractionEventToWidgetEvent(vtkMRMLInteractionEventData* eventData);
 
   /// Called when the the widget loses the focus.
   virtual void Leave();
@@ -206,7 +206,7 @@ protected:
   /// Request render (may be slightly delayed)
   void RequestRender();
 
-  void StartWidgetInteraction(vtkSlicerInteractionEventData* eventData);
+  void StartWidgetInteraction(vtkMRMLInteractionEventData* eventData);
   void EndWidgetInteraction();
 
   /// Set the nth node's display position. Display position
@@ -242,14 +242,14 @@ protected:
   // Callback interface to capture events when
   // placing the widget.
   // Return true if the event is processed.
-  bool ProcessMouseMove(vtkSlicerInteractionEventData* eventData);
-  bool ProcessControlPointDelete(vtkSlicerInteractionEventData* eventData);
-  bool ProcessControlPointMove(vtkSlicerInteractionEventData* eventData);
-  bool ProcessEndMouseDrag(vtkSlicerInteractionEventData* eventData);
-  bool ProcessWidgetReset(vtkSlicerInteractionEventData* eventData);
-  bool ProcessWidgetRotate(vtkSlicerInteractionEventData* eventData);
-  bool ProcessWidgetScale(vtkSlicerInteractionEventData* eventData);
-  bool ProcessWidgetTranslate(vtkSlicerInteractionEventData* eventData);
+  bool ProcessMouseMove(vtkMRMLInteractionEventData* eventData);
+  bool ProcessControlPointDelete(vtkMRMLInteractionEventData* eventData);
+  bool ProcessControlPointMove(vtkMRMLInteractionEventData* eventData);
+  bool ProcessEndMouseDrag(vtkMRMLInteractionEventData* eventData);
+  bool ProcessWidgetReset(vtkMRMLInteractionEventData* eventData);
+  bool ProcessWidgetRotate(vtkMRMLInteractionEventData* eventData);
+  bool ProcessWidgetScale(vtkMRMLInteractionEventData* eventData);
+  bool ProcessWidgetTranslate(vtkMRMLInteractionEventData* eventData);
 
   // Manual axis constrain
   char HorizontalActiveKeyCode;

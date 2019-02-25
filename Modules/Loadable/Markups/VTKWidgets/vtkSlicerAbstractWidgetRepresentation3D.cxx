@@ -59,6 +59,7 @@
 #include "vtkStringArray.h"
 #include "vtkLabelHierarchy.h"
 #include "vtkMRMLMarkupsDisplayNode.h"
+#include "vtkSelectVisiblePoints.h"
 
 vtkSlicerAbstractWidgetRepresentation3D::ControlPointsPipeline3D::ControlPointsPipeline3D()
 {
@@ -97,6 +98,13 @@ vtkSlicerAbstractWidgetRepresentation3D::ControlPointsPipeline3D::ControlPointsP
   this->Actor->SetProperty(this->Property);
 
   // Labels
+
+  this->SelectVisiblePoints = vtkSmartPointer<vtkSelectVisiblePoints>::New();
+  this->SelectVisiblePoints->SetInputData(this->LabelControlPointsPolyData);
+  //this->SelectVisiblePoints->SetInputData(this->ControlPointsPolyData);
+
+  this->PointSetToLabelHierarchyFilter->SetInputConnection(this->SelectVisiblePoints->GetOutputPort());
+
   this->LabelsMapper = vtkSmartPointer<vtkLabelPlacementMapper>::New();
   this->LabelsMapper->SetInputConnection(this->PointSetToLabelHierarchyFilter->GetOutputPort());
   this->LabelsActor = vtkSmartPointer<vtkActor2D>::New();
@@ -239,9 +247,11 @@ void vtkSlicerAbstractWidgetRepresentation3D::UpdateAllPointsAndLabelsFromMRML()
 
       controlPoints->ControlPoints->InsertNextPoint(worldPos);
 
+      /*
       worldPos[0] += this->ControlPointSize;
       worldPos[1] += this->ControlPointSize;
       worldPos[2] += this->ControlPointSize;
+      */
       controlPoints->LabelControlPoints->InsertNextPoint(worldPos);
 
       double worldOrient[9] = { 0 };
@@ -574,4 +584,19 @@ void vtkSlicerAbstractWidgetRepresentation3D::PrintSelf(ostream& os,
 vtkSlicerAbstractWidgetRepresentation3D::ControlPointsPipeline3D* vtkSlicerAbstractWidgetRepresentation3D::GetControlPointsPipeline(int controlPointType)
 {
   return reinterpret_cast<ControlPointsPipeline3D*>(this->ControlPoints[controlPointType]);
+}
+
+//-----------------------------------------------------------------------------
+void vtkSlicerAbstractWidgetRepresentation3D::SetRenderer(vtkRenderer *ren)
+{
+  if (ren == this->Renderer)
+    {
+    return;
+    }
+  Superclass::SetRenderer(ren);
+  for (int controlPointType = 0; controlPointType < NumberOfControlPointTypes; ++controlPointType)
+    {
+    ControlPointsPipeline3D* controlPoints = reinterpret_cast<ControlPointsPipeline3D*>(this->ControlPoints[controlPointType]);
+    controlPoints->SelectVisiblePoints->SetRenderer(ren);
+    }
 }

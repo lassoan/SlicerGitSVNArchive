@@ -167,6 +167,7 @@ vtkMRMLOrientationMarkerDisplayableManager::vtkInternal::vtkInternal(vtkMRMLOrie
   this->RendererUpdateObservationId = 0;
   this->DisplayedActor = NULL;
   this->MarkerRenderer = vtkSmartPointer<vtkRenderer>::New();
+  this->MarkerRenderer->EraseOff();
   this->HumanPolyData = vtkSmartPointer<vtkPolyData>::New();
   this->HumanPolyDataMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
   this->AxesActorFontViewportSize = 0.0;

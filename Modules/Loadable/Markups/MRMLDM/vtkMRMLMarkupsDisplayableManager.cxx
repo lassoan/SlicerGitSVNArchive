@@ -26,11 +26,10 @@
 #include <vtkSlicerPointsRepresentation2D.h>
 #include <vtkSlicerPointsRepresentation3D.h>
 
-
 // MRMLDisplayableManager includes
 #include <vtkMRMLDisplayableManagerGroup.h>
+#include <vtkMRMLInteractionEventData.h>
 #include <vtkMRMLModelDisplayableManager.h>
-#include <vtkSliceViewInteractorStyle.h>
 
 // MRML includes
 #include <vtkMRMLApplicationLogic.h>
@@ -110,9 +109,6 @@ vtkStandardNewMacro (vtkMRMLMarkupsDisplayableManager);
 //---------------------------------------------------------------------------
 vtkMRMLMarkupsDisplayableManager::vtkMRMLMarkupsDisplayableManager()
 {
-
-  this->LastActiveWidget = NULL;
-
   this->Focus.insert("vtkMRMLMarkupsAngleNode");
   this->Focus.insert("vtkMRMLMarkupsFiducialNode");
   this->Focus.insert("vtkMRMLMarkupsLineNode");
@@ -565,7 +561,7 @@ vtkSlicerAbstractWidget* vtkMRMLMarkupsDisplayableManager::GetWidget(vtkMRMLMark
 }
 
 //---------------------------------------------------------------------------
-std::string vtkMRMLMarkupsDisplayableManager::GetAssociatedNodeID(vtkSlicerInteractionEventData* eventData)
+std::string vtkMRMLMarkupsDisplayableManager::GetAssociatedNodeID(vtkMRMLInteractionEventData* eventData)
 {
   if (eventData)
   {
@@ -933,7 +929,7 @@ vtkMRMLMarkupsNode* vtkMRMLMarkupsDisplayableManager::CreateNewMarkupsNode(
 }
 
 //---------------------------------------------------------------------------
-vtkSlicerAbstractWidget* vtkMRMLMarkupsDisplayableManager::FindClosestWidget(vtkSlicerInteractionEventData *callData, double &closestDistance2)
+vtkSlicerAbstractWidget* vtkMRMLMarkupsDisplayableManager::FindClosestWidget(vtkMRMLInteractionEventData *callData, double &closestDistance2)
 {
   vtkSlicerAbstractWidget* closestWidget = NULL;
   closestDistance2 = VTK_DOUBLE_MAX;
@@ -960,7 +956,7 @@ vtkSlicerAbstractWidget* vtkMRMLMarkupsDisplayableManager::FindClosestWidget(vtk
 }
 
 //---------------------------------------------------------------------------
-bool vtkMRMLMarkupsDisplayableManager::CanProcessInteractionEvent(vtkSlicerInteractionEventData* eventData, double &closestDistance2)
+bool vtkMRMLMarkupsDisplayableManager::CanProcessInteractionEvent(vtkMRMLInteractionEventData* eventData, double &closestDistance2)
 {
   // New point can be placed anywhere
   int eventid = eventData->GetType();
@@ -990,7 +986,7 @@ bool vtkMRMLMarkupsDisplayableManager::CanProcessInteractionEvent(vtkSlicerInter
 }
 
 //---------------------------------------------------------------------------
-void vtkMRMLMarkupsDisplayableManager::ProcessInteractionEvent(vtkSlicerInteractionEventData* eventData)
+void vtkMRMLMarkupsDisplayableManager::ProcessInteractionEvent(vtkMRMLInteractionEventData* eventData)
 {
   if (this->GetDisableInteractorStyleEventsProcessing())
   {
@@ -1004,7 +1000,7 @@ void vtkMRMLMarkupsDisplayableManager::ProcessInteractionEvent(vtkSlicerInteract
   {
     if (eventid == vtkCommand::MouseMoveEvent)
     {
-      vtkSlicerInteractionEventData* interactionEventData = vtkSlicerInteractionEventData::SafeDownCast(eventData);
+      vtkMRMLInteractionEventData* interactionEventData = vtkMRMLInteractionEventData::SafeDownCast(eventData);
       if (interactionEventData)
       {
         this->UpdatePointPlacePreview(interactionEventData->GetDisplayPosition(), interactionEventData->GetWorldPosition());
@@ -1012,7 +1008,7 @@ void vtkMRMLMarkupsDisplayableManager::ProcessInteractionEvent(vtkSlicerInteract
     }
     else if (eventid == vtkCommand::LeftButtonReleaseEvent)
     {
-      vtkSlicerInteractionEventData* interactionEventData = vtkSlicerInteractionEventData::SafeDownCast(eventData);
+      vtkMRMLInteractionEventData* interactionEventData = vtkMRMLInteractionEventData::SafeDownCast(eventData);
       if (interactionEventData)
       {
         std::string associatedNodeID = this->GetAssociatedNodeID(eventData);
@@ -1068,7 +1064,7 @@ void vtkMRMLMarkupsDisplayableManager::ProcessInteractionEvent(vtkSlicerInteract
     {
       if (this->GetInteractionNode()->GetCurrentInteractionMode() == vtkMRMLInteractionNode::Place)
       {
-        vtkSlicerInteractionEventData* interactionEventData = vtkSlicerInteractionEventData::SafeDownCast(eventData);
+        vtkMRMLInteractionEventData* interactionEventData = vtkMRMLInteractionEventData::SafeDownCast(eventData);
         if (interactionEventData)
         {
           std::string associatedNodeID = this->GetAssociatedNodeID(eventData);

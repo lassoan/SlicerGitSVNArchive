@@ -45,6 +45,7 @@ class vtkLabelPlacementMapper;
 class vtkPointSetToLabelHierarchy;
 class vtkStringArray;
 class vtkActor2D;
+class vtkSelectVisiblePoints;
 class vtkTextProperty;
 
 class VTK_SLICER_MARKUPS_MODULE_VTKWIDGETS_EXPORT vtkSlicerAbstractWidgetRepresentation3D : public vtkSlicerAbstractWidgetRepresentation
@@ -53,6 +54,8 @@ public:
   /// Standard methods for instances of this class.
   vtkTypeMacro(vtkSlicerAbstractWidgetRepresentation3D,vtkSlicerAbstractWidgetRepresentation);
   void PrintSelf(ostream& os, vtkIndent indent) VTK_OVERRIDE;
+
+  void SetRenderer(vtkRenderer *ren) VTK_OVERRIDE;
 
   /// Subclasses of vtkSlicerAbstractWidgetRepresentation3D must implement these methods. These
   /// are the methods that the widget and its representation use to
@@ -87,6 +90,7 @@ protected:
   public:
     ControlPointsPipeline3D();
 
+    vtkSmartPointer<vtkSelectVisiblePoints> SelectVisiblePoints;
     vtkSmartPointer<vtkOpenGLActor> Actor;
     vtkSmartPointer<vtkOpenGLPolyDataMapper> Mapper;
     vtkSmartPointer<vtkGlyph3D> Glypher;

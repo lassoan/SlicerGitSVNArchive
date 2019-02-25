@@ -17,9 +17,12 @@
 =========================================================================*/
 
 #include "vtkSlicerAbstractWidget.h"
+
+#include "vtkMRMLInteractionEventData.h"
 #include "vtkSlicerAbstractWidgetRepresentation.h"
 #include "vtkSlicerAbstractWidgetRepresentation2D.h"
-#include "vtkSliceViewInteractorStyle.h" // for vtkSlicerInteractionEventData
+
+// VTK includes
 #include "vtkCommand.h"
 #include "vtkCallbackCommand.h"
 #include "vtkRenderWindowInteractor.h"
@@ -64,7 +67,7 @@ vtkSlicerAbstractWidget::vtkSlicerAbstractWidget()
   this->SetKeyboardEventTranslation(vtkEvent::NoModifier, 127, 1, "Delete", WidgetControlPointDelete);
   this->SetKeyboardEventTranslation(vtkEvent::NoModifier, 8, 1, "BackSpace", WidgetControlPointDelete);
 
-  this->SetEventTranslation(vtkSlicerInteractionEventData::LeftButtonClickEvent, vtkEvent::NoModifier, WidgetPick);
+  this->SetEventTranslation(vtkMRMLInteractionEventData::LeftButtonClickEvent, vtkEvent::NoModifier, WidgetPick);
 
   this->SetEventTranslation(vtkCommand::LeftButtonDoubleClickEvent, vtkEvent::AnyModifier, WidgetAction);
 }
@@ -78,7 +81,7 @@ vtkSlicerAbstractWidget::~vtkSlicerAbstractWidget()
 //----------------------------------------------------------------------
 void vtkSlicerAbstractWidget::SetEventTranslation(unsigned long interactionEvent, int modifiers, unsigned long widgetEvent)
 {
-  vtkNew<vtkSlicerInteractionEventData> ed;
+  vtkNew<vtkMRMLInteractionEventData> ed;
   ed->SetType(interactionEvent);
   ed->SetModifiers(modifiers);
   this->EventTranslator->SetTranslation(interactionEvent, ed, widgetEvent);
@@ -138,7 +141,7 @@ void vtkSlicerAbstractWidget::UpdateFromMRML(vtkMRMLNode* caller, unsigned long 
 }
 
 //-------------------------------------------------------------------------
-bool vtkSlicerAbstractWidget::ProcessControlPointMove(vtkSlicerInteractionEventData* eventData)
+bool vtkSlicerAbstractWidget::ProcessControlPointMove(vtkMRMLInteractionEventData* eventData)
 {
   if (this->WidgetState != vtkSlicerAbstractWidget::OnWidget)
     {
@@ -164,7 +167,7 @@ bool vtkSlicerAbstractWidget::ProcessControlPointMove(vtkSlicerInteractionEventD
 }
 
 //----------------------------------------------------------------------
-bool vtkSlicerAbstractWidget::ProcessWidgetRotate(vtkSlicerInteractionEventData* eventData)
+bool vtkSlicerAbstractWidget::ProcessWidgetRotate(vtkMRMLInteractionEventData* eventData)
 {
   if (this->WidgetState != vtkSlicerAbstractWidget::OnWidget || this->IsAnyControlPointLocked())
     {
@@ -177,7 +180,7 @@ bool vtkSlicerAbstractWidget::ProcessWidgetRotate(vtkSlicerInteractionEventData*
 }
 
 //-------------------------------------------------------------------------
-bool vtkSlicerAbstractWidget::ProcessWidgetScale(vtkSlicerInteractionEventData* eventData)
+bool vtkSlicerAbstractWidget::ProcessWidgetScale(vtkMRMLInteractionEventData* eventData)
 {
   if (this->WidgetState != vtkSlicerAbstractWidget::OnWidget || this->IsAnyControlPointLocked())
   {
@@ -190,7 +193,7 @@ bool vtkSlicerAbstractWidget::ProcessWidgetScale(vtkSlicerInteractionEventData* 
 }
 
 //-------------------------------------------------------------------------
-bool vtkSlicerAbstractWidget::ProcessWidgetTranslate(vtkSlicerInteractionEventData* eventData)
+bool vtkSlicerAbstractWidget::ProcessWidgetTranslate(vtkMRMLInteractionEventData* eventData)
 {
   if (this->WidgetState != vtkSlicerAbstractWidget::OnWidget || this->IsAnyControlPointLocked())
   {
@@ -203,7 +206,7 @@ bool vtkSlicerAbstractWidget::ProcessWidgetTranslate(vtkSlicerInteractionEventDa
 }
 
 //-------------------------------------------------------------------------
-bool vtkSlicerAbstractWidget::ProcessMouseMove(vtkSlicerInteractionEventData* eventData)
+bool vtkSlicerAbstractWidget::ProcessMouseMove(vtkMRMLInteractionEventData* eventData)
 {
   vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
   if (!this->WidgetRep || !markupsNode || !eventData)
@@ -284,7 +287,7 @@ bool vtkSlicerAbstractWidget::ProcessMouseMove(vtkSlicerInteractionEventData* ev
 }
 
 //-------------------------------------------------------------------------
-bool vtkSlicerAbstractWidget::ProcessEndMouseDrag(vtkSlicerInteractionEventData* eventData)
+bool vtkSlicerAbstractWidget::ProcessEndMouseDrag(vtkMRMLInteractionEventData* eventData)
 {
   if (!this->WidgetRep)
   {
@@ -309,7 +312,7 @@ bool vtkSlicerAbstractWidget::ProcessEndMouseDrag(vtkSlicerInteractionEventData*
 }
 
 //-------------------------------------------------------------------------
-bool vtkSlicerAbstractWidget::ProcessWidgetReset(vtkSlicerInteractionEventData* eventData)
+bool vtkSlicerAbstractWidget::ProcessWidgetReset(vtkMRMLInteractionEventData* eventData)
 {
   vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
   if (!markupsNode)
@@ -321,7 +324,7 @@ bool vtkSlicerAbstractWidget::ProcessWidgetReset(vtkSlicerInteractionEventData* 
 }
 
 //-------------------------------------------------------------------------
-bool vtkSlicerAbstractWidget::ProcessControlPointDelete(vtkSlicerInteractionEventData* eventData)
+bool vtkSlicerAbstractWidget::ProcessControlPointDelete(vtkMRMLInteractionEventData* eventData)
 {
   if (this->WidgetState != Define && this->WidgetState != OnWidget)
     {
@@ -422,7 +425,7 @@ void vtkSlicerAbstractWidget::PrintSelf(ostream& os, vtkIndent indent)
 }
 
 //-----------------------------------------------------------------------------
-bool vtkSlicerAbstractWidget::ProcessInteractionEvent(vtkSlicerInteractionEventData* eventData)
+bool vtkSlicerAbstractWidget::ProcessInteractionEvent(vtkMRMLInteractionEventData* eventData)
 {
   unsigned long widgetEvent = this->TranslateInteractionEventToWidgetEvent(eventData);
 
@@ -469,7 +472,7 @@ bool vtkSlicerAbstractWidget::ProcessInteractionEvent(vtkSlicerInteractionEventD
 
 //-----------------------------------------------------------------------------
 unsigned long vtkSlicerAbstractWidget::TranslateInteractionEventToWidgetEvent(
-  vtkSlicerInteractionEventData* eventData)
+  vtkMRMLInteractionEventData* eventData)
 {
   unsigned long widgetEvent = vtkWidgetEvent::NoEvent;
 
@@ -514,7 +517,7 @@ unsigned long vtkSlicerAbstractWidget::TranslateInteractionEventToWidgetEvent(
 
 
 //-----------------------------------------------------------------------------
-bool vtkSlicerAbstractWidget::CanProcessInteractionEvent(vtkSlicerInteractionEventData* eventData, double &distance2)
+bool vtkSlicerAbstractWidget::CanProcessInteractionEvent(vtkMRMLInteractionEventData* eventData, double &distance2)
 {
   unsigned long widgetEvent = this->TranslateInteractionEventToWidgetEvent(eventData);
   if (widgetEvent == vtkWidgetEvent::NoEvent)
@@ -536,7 +539,7 @@ bool vtkSlicerAbstractWidget::CanProcessInteractionEvent(vtkSlicerInteractionEve
     return true;
     }
 
-  vtkSlicerInteractionEventData* interactionEventData = vtkSlicerInteractionEventData::SafeDownCast(eventData);
+  vtkMRMLInteractionEventData* interactionEventData = vtkMRMLInteractionEventData::SafeDownCast(eventData);
   if (!interactionEventData)
   {
     // only 3D event types are supported for now
@@ -565,7 +568,7 @@ void vtkSlicerAbstractWidget::Leave()
 }
 
 //----------------------------------------------------------------------
-void vtkSlicerAbstractWidget::StartWidgetInteraction(vtkSlicerInteractionEventData* eventData)
+void vtkSlicerAbstractWidget::StartWidgetInteraction(vtkMRMLInteractionEventData* eventData)
 {
   if (!this->WidgetRep)
   {

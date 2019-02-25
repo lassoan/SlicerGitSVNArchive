@@ -88,8 +88,8 @@ public:
   /// and false otherwise.
   bool IsInLightboxMode();
 
-  bool CanProcessInteractionEvent(vtkSlicerInteractionEventData* eventData, double &closestDistance2) VTK_OVERRIDE;
-  void ProcessInteractionEvent(vtkSlicerInteractionEventData* eventData) VTK_OVERRIDE;
+  bool CanProcessInteractionEvent(vtkMRMLInteractionEventData* eventData, double &closestDistance2) VTK_OVERRIDE;
+  void ProcessInteractionEvent(vtkMRMLInteractionEventData* eventData) VTK_OVERRIDE;
 
   void SetHasFocus(bool hasFocus) VTK_OVERRIDE;
   bool GetGrabFocus() VTK_OVERRIDE;
@@ -123,7 +123,7 @@ protected:
   vtkMRMLMarkupsDisplayableManager();
   virtual ~vtkMRMLMarkupsDisplayableManager();
 
-  vtkSlicerAbstractWidget* FindClosestWidget(vtkSlicerInteractionEventData *callData, double &closestDistance2);
+  vtkSlicerAbstractWidget* FindClosestWidget(vtkMRMLInteractionEventData *callData, double &closestDistance2);
 
   virtual void ProcessMRMLNodesEvents(vtkObject *caller, unsigned long event, void *callData) VTK_OVERRIDE;
 
@@ -160,7 +160,7 @@ protected:
   /// enum for action at click events
   enum {AddPoint = 0,AddPreview,RemovePreview};
 
-  std::string GetAssociatedNodeID(vtkSlicerInteractionEventData* eventData);
+  std::string GetAssociatedNodeID(vtkMRMLInteractionEventData* eventData);
 
   /// Convert display to viewport coordinates
   void GetDisplayToViewportCoordinates(double x, double y, double * viewportCoordinates);
@@ -198,7 +198,7 @@ protected:
 
   vtkMRMLMarkupsNode* CreateNewMarkupsNode(const std::string &markupsNodeClassName);
 
-  vtkSlicerAbstractWidget* LastActiveWidget;
+  vtkWeakPointer<vtkSlicerAbstractWidget> LastActiveWidget;
 
 private:
   vtkMRMLMarkupsDisplayableManager(const vtkMRMLMarkupsDisplayableManager&); /// Not implemented
