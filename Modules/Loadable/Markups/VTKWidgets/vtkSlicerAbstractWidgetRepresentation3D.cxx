@@ -109,6 +109,16 @@ vtkSlicerAbstractWidgetRepresentation3D::ControlPointsPipeline3D::ControlPointsP
 
   this->LabelsMapper = vtkSmartPointer<vtkLabelPlacementMapper>::New();
   this->LabelsMapper->SetInputConnection(this->PointSetToLabelHierarchyFilter->GetOutputPort());
+
+  this->LabelsMapper->PlaceAllLabelsOn();
+
+  /*
+  We could consider showing labels with semi-transparent background:
+  this->LabelsMapper->SetShapeToRect();
+  this->LabelsMapper->SetStyleToFilled();
+  this->LabelsMapper->SetBackgroundOpacity(0.4);
+  */
+
   this->LabelsActor = vtkSmartPointer<vtkActor2D>::New();
   this->LabelsActor->SetMapper(this->LabelsMapper);
   this->LabelsActor->PickableOff();
@@ -259,7 +269,8 @@ void vtkSlicerAbstractWidgetRepresentation3D::UpdateAllPointsAndLabelsFromMRML()
 
       controlPoints->ControlPoints->InsertNextPoint(worldPos);
 
-      /*
+      /* No offset for 3D actors - we may revisit this in the future
+      (we could also use text margins to add some space).
       worldPos[0] += this->ControlPointSize;
       worldPos[1] += this->ControlPointSize;
       worldPos[2] += this->ControlPointSize;

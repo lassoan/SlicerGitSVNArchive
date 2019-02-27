@@ -91,6 +91,18 @@ vtkSlicerAbstractWidgetRepresentation2D::ControlPointsPipeline2D::ControlPointsP
 
   // Labels
   this->LabelsMapper = vtkSmartPointer<vtkLabelPlacementMapper>::New();
+
+  // PointSetToLabelHierarchyFilter perturbs (slightly modifies) label positions around
+  // coincident points, but the result is far from optimal (labels are quite far from
+  // the control point and not at the same distance).
+  // We set maximum depth from the default 5 to 10 to essentially eliminate
+  // this coincident label position perturbation (perturbation may still be visible
+  // when zooming into the view very much). Probably it would be cleaner to have on option
+  // to disable this label position adjustment in PointSetToLabelHierarchyFilter.
+  this->PointSetToLabelHierarchyFilter->SetMaximumDepth(10);
+
+  this->LabelsMapper->PlaceAllLabelsOn();
+
   this->LabelsMapper->SetInputConnection(this->PointSetToLabelHierarchyFilter->GetOutputPort());
   // Here it will be the best to use Display coorinate system
   // in that way we would not need the addtional copy of the polydata in LabelFocalData (in Viewport coordinates)
@@ -201,14 +213,13 @@ void vtkSlicerAbstractWidgetRepresentation2D::UpdateAllPointsAndLabelsFromMRML(d
   {
     ControlPointsPipeline2D* controlPoints = reinterpret_cast<ControlPointsPipeline2D*>(this->ControlPoints[controlPointType]);
 
-    controlPoints->ControlPoints->SetNumberOfPoints(0);
-    controlPoints->ControlPointsPolyData->GetPointData()->GetNormals()->SetNumberOfTuples(0);
+    controlPoints->ControlPoints->Reset();
+    controlPoints->ControlPointsPolyData->GetPointData()->GetNormals()->Reset();
 
-    controlPoints->LabelControlPoints->SetNumberOfPoints(0);
-    controlPoints->LabelControlPointsPolyData->GetPointData()->GetNormals()->SetNumberOfTuples(0);
-
-    controlPoints->Labels->SetNumberOfValues(0);
-    controlPoints->LabelsPriority->SetNumberOfValues(0);
+    controlPoints->LabelControlPoints->Reset();
+    controlPoints->LabelControlPointsPolyData->GetPointData()->GetNormals()->Reset();
+    controlPoints->Labels->Reset();
+    controlPoints->LabelsPriority->Reset();
 
     int startIndex = 0;
     int stopIndex = numPoints - 1;
@@ -252,28 +263,9 @@ void vtkSlicerAbstractWidgetRepresentation2D::UpdateAllPointsAndLabelsFromMRML(d
       double worldOrient[9] = { 0.0 };
       double orientation[4] = { 0.0 };
       this->GetNthNodeDisplayPosition(pointIndex, slicePos);
-      bool skipPoint = false;
 
-      // TODO: skipping points at the same position is probably this not a good idea.
-      // For example, only one of them may have label.
-      for (int jj = 0; jj < controlPoints->ControlPoints->GetNumberOfPoints(); jj++)
-        {
-        double* pos = controlPoints->ControlPoints->GetPoint(jj);
-        double eps = 0.001;
-        if (fabs(pos[0] - slicePos[0]) < eps &&
-            fabs(pos[1] - slicePos[1]))
-          {
-          skipPoint = true;
-          break;
-          }
-        }
-      if (skipPoint)
-        {
-        continue;
-        }
 
       controlPoints->ControlPoints->InsertNextPoint(slicePos);
-
       slicePos[0] += labelsOffset;
       slicePos[1] += labelsOffset;
       this->Renderer->SetDisplayPoint(slicePos);
