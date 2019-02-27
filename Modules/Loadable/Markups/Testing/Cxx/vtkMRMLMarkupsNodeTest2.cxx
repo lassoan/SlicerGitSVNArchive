@@ -28,8 +28,6 @@ int vtkMRMLMarkupsNodeTest2(int , char * [] )
   vtkNew<vtkMRMLMarkupsNode> node1;
   vtkIndent indent;
 
-  std::cout << "Trying copy markup with null pointers" << std::endl;
-  node1->CopyControlPoint(nullptr, nullptr);
   // now try with some data
   vtkMRMLMarkupsNode::ControlPoint markup1, markup2;
   markup2.Label = std::string("Markup number two");
@@ -42,7 +40,7 @@ int vtkMRMLMarkupsNodeTest2(int , char * [] )
   markup2.Position.SetY(-5.0);
   markup2.Position.SetZ(15.6);
 
-  node1->CopyControlPoint(&markup2, &markup1);
+  markup1 = markup2;
 
   if (markup1.Position.GetX() != markup2.Position.GetX() ||
       markup1.Position.GetY() != markup2.Position.GetY() ||

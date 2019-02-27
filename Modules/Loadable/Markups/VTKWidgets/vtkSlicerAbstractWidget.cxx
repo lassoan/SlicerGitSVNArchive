@@ -21,6 +21,7 @@
 #include "vtkMRMLInteractionEventData.h"
 #include "vtkSlicerAbstractWidgetRepresentation.h"
 #include "vtkSlicerAbstractWidgetRepresentation2D.h"
+#include "vtkSlicerAbstractWidgetRepresentation3D.h"
 
 // VTK includes
 #include "vtkCommand.h"
@@ -68,6 +69,7 @@ vtkSlicerAbstractWidget::vtkSlicerAbstractWidget()
   this->SetKeyboardEventTranslation(vtkEvent::NoModifier, 8, 1, "BackSpace", WidgetControlPointDelete);
 
   this->SetEventTranslation(vtkMRMLInteractionEventData::LeftButtonClickEvent, vtkEvent::NoModifier, WidgetPick);
+  this->SetEventTranslation(vtkMRMLInteractionEventData::LeftButtonClickEvent, vtkEvent::ShiftModifier, WidgetJumpCursor);
 
   this->SetEventTranslation(vtkCommand::LeftButtonDoubleClickEvent, vtkEvent::AnyModifier, WidgetAction);
 }
@@ -166,6 +168,13 @@ bool vtkSlicerAbstractWidget::ProcessControlPointMove(vtkMRMLInteractionEventDat
   return true;
 }
 
+//-------------------------------------------------------------------------
+bool vtkSlicerAbstractWidget::ProcessControlPointInsert(vtkMRMLInteractionEventData* eventData)
+{
+  // Can be implemented in derived classes
+  return false;
+}
+
 //----------------------------------------------------------------------
 bool vtkSlicerAbstractWidget::ProcessWidgetRotate(vtkMRMLInteractionEventData* eventData)
 {
@@ -222,7 +231,24 @@ bool vtkSlicerAbstractWidget::ProcessMouseMove(vtkMRMLInteractionEventData* even
     if (this->FollowCursor && markupsNode->GetNumberOfControlPoints() > 0)
     {
       const int* displayPosition = eventData->GetDisplayPosition();
-      this->SetNthNodeDisplayPosition(markupsNode->GetNumberOfControlPoints() - 1, displayPosition);
+      vtkSlicerAbstractWidgetRepresentation3D* rep3d = vtkSlicerAbstractWidgetRepresentation3D::SafeDownCast(this->WidgetRep);
+      if (rep3d)
+      {
+        double worldPos[3] = { 0.0 };
+        bool picked = rep3d->AccuratePick(displayPosition[0], displayPosition[1], worldPos);
+        if (picked)
+        {
+          markupsNode->SetNthControlPointPositionWorldFromArray(markupsNode->GetNumberOfControlPoints() - 1, worldPos);
+        }
+        else
+        {
+          this->SetNthNodeDisplayPosition(markupsNode->GetNumberOfControlPoints() - 1, displayPosition);
+        }
+      }
+      else
+      {
+        this->SetNthNodeDisplayPosition(markupsNode->GetNumberOfControlPoints() - 1, displayPosition);
+      }
     }
   }
   else if (state == Idle || state == OnWidget)
@@ -347,12 +373,39 @@ bool vtkSlicerAbstractWidget::ProcessControlPointDelete(vtkMRMLInteractionEventD
     controlPointToDelete = markupsDisplayNode->GetActiveControlPoint();
   }
 
-  if (controlPointToDelete < 0 && controlPointToDelete >= markupsNode->GetNumberOfControlPoints())
+  if (controlPointToDelete < 0 || controlPointToDelete >= markupsNode->GetNumberOfControlPoints())
   {
     return false;
   }
 
   markupsNode->RemoveNthControlPoint(controlPointToDelete);
+  return true;
+}
+
+//-------------------------------------------------------------------------
+bool vtkSlicerAbstractWidget::ProcessWidgetJumpCursor(vtkMRMLInteractionEventData* eventData)
+{
+  if (this->WidgetState != OnWidget)
+    {
+    return false;
+    }
+  vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
+  vtkMRMLMarkupsDisplayNode* markupsDisplayNode = this->GetMarkupsDisplayNode();
+  if (!markupsNode || !markupsDisplayNode)
+    {
+    return false;
+    }
+  int controlPointIndex = markupsDisplayNode->GetActiveControlPoint();
+  if (controlPointIndex < 0 || controlPointIndex >= markupsNode->GetNumberOfControlPoints())
+    {
+    return false;
+    }
+  vtkNew<vtkMRMLInteractionEventData> jumpToPointEventData;
+  jumpToPointEventData->SetType(vtkMRMLMarkupsDisplayNode::JumpToPointEvent);
+  jumpToPointEventData->SetComponentType(vtkMRMLMarkupsDisplayNode::ComponentControlPoint);
+  jumpToPointEventData->SetComponentIndex(controlPointIndex);
+  jumpToPointEventData->SetViewNode(this->WidgetRep->GetViewNode());
+  markupsDisplayNode->InvokeEvent(vtkMRMLMarkupsDisplayNode::JumpToPointEvent, jumpToPointEventData);
   return true;
 }
 
@@ -441,6 +494,9 @@ bool vtkSlicerAbstractWidget::ProcessInteractionEvent(vtkMRMLInteractionEventDat
   case WidgetControlPointMoveStart:
     processedEvent = ProcessControlPointMove(eventData);
     break;
+  case WidgetControlPointInsert:
+    processedEvent = ProcessControlPointInsert(eventData);
+    break;
   case WidgetControlPointMoveEnd:
     processedEvent = ProcessEndMouseDrag(eventData);
     break;
@@ -464,6 +520,9 @@ bool vtkSlicerAbstractWidget::ProcessInteractionEvent(vtkMRMLInteractionEventDat
     break;
   case WidgetReset:
     processedEvent = ProcessWidgetReset(eventData);
+    break;
+  case WidgetJumpCursor:
+    processedEvent = ProcessWidgetJumpCursor(eventData);
     break;
   }
 
@@ -551,7 +610,12 @@ bool vtkSlicerAbstractWidget::CanProcessInteractionEvent(vtkMRMLInteractionEvent
   double closestDistance2 = 0.0;
   this->GetRepresentation()->CanInteract(interactionEventData->GetDisplayPosition(), interactionEventData->GetWorldPosition(),
     foundComponentType, foundComponentIndex, closestDistance2);
-  return (foundComponentType != vtkMRMLMarkupsDisplayNode::ComponentNone);
+  if (foundComponentType == vtkMRMLMarkupsDisplayNode::ComponentNone)
+    {
+    return false;
+    }
+  distance2 = closestDistance2;
+  return true;
 }
 
 //-----------------------------------------------------------------------------

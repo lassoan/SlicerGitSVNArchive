@@ -130,6 +130,7 @@ public:
     WidgetControlPointInsert,
     // MRML events
     WidgetPick, // generates a MRML Pick event (e.g., on left click)
+    WidgetJumpCursor, // jumps cursor to the control point position
     WidgetAction, // generates a MRML Action event (e.g., left double-click)
     WidgetCustomAction1, // generates a MRML CustomAction1 event (allows modules to define custom widget actions and get notification via MRML node event)
     WidgetCustomAction2, // generates a MRML CustomAction1 event
@@ -196,6 +197,10 @@ public:
   // Acknowledge rendering request (rendering completed)
   void NeedToRenderOff();
 
+  vtkMRMLMarkupsNode* GetMarkupsNode();
+  vtkMRMLMarkupsDisplayNode* GetMarkupsDisplayNode();
+  int GetActiveControlPoint();
+
 protected:
   vtkSlicerAbstractWidget();
   ~vtkSlicerAbstractWidget() VTK_OVERRIDE;
@@ -222,10 +227,6 @@ protected:
   virtual void ScaleWidget(double eventPos[2]);
   virtual void RotateWidget(double eventPos[2]);
 
-  vtkMRMLMarkupsNode* GetMarkupsNode();
-  vtkMRMLMarkupsDisplayNode* GetMarkupsDisplayNode();
-  int GetActiveControlPoint();
-
   bool IsAnyControlPointLocked();
 
   vtkRenderer* Renderer;
@@ -242,14 +243,16 @@ protected:
   // Callback interface to capture events when
   // placing the widget.
   // Return true if the event is processed.
-  bool ProcessMouseMove(vtkMRMLInteractionEventData* eventData);
-  bool ProcessControlPointDelete(vtkMRMLInteractionEventData* eventData);
-  bool ProcessControlPointMove(vtkMRMLInteractionEventData* eventData);
-  bool ProcessEndMouseDrag(vtkMRMLInteractionEventData* eventData);
-  bool ProcessWidgetReset(vtkMRMLInteractionEventData* eventData);
-  bool ProcessWidgetRotate(vtkMRMLInteractionEventData* eventData);
-  bool ProcessWidgetScale(vtkMRMLInteractionEventData* eventData);
-  bool ProcessWidgetTranslate(vtkMRMLInteractionEventData* eventData);
+  virtual bool ProcessMouseMove(vtkMRMLInteractionEventData* eventData);
+  virtual bool ProcessControlPointDelete(vtkMRMLInteractionEventData* eventData);
+  virtual bool ProcessControlPointMove(vtkMRMLInteractionEventData* eventData);
+  virtual bool ProcessControlPointInsert(vtkMRMLInteractionEventData* eventData);
+  virtual bool ProcessEndMouseDrag(vtkMRMLInteractionEventData* eventData);
+  virtual bool ProcessWidgetReset(vtkMRMLInteractionEventData* eventData);
+  virtual bool ProcessWidgetRotate(vtkMRMLInteractionEventData* eventData);
+  virtual bool ProcessWidgetScale(vtkMRMLInteractionEventData* eventData);
+  virtual bool ProcessWidgetTranslate(vtkMRMLInteractionEventData* eventData);
+  virtual bool ProcessWidgetJumpCursor(vtkMRMLInteractionEventData* eventData);
 
   // Manual axis constrain
   char HorizontalActiveKeyCode;

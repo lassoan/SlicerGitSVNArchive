@@ -135,7 +135,7 @@ vtkSlicerAbstractWidgetRepresentation::vtkSlicerAbstractWidgetRepresentation()
   this->ViewScaleFactor = 1.0;
 
   this->ControlPointSize = 3.0;
-  this->Tolerance                = 0.4;
+  this->Tolerance                = 2.0;
   this->PixelTolerance           = 1;
   this->Locator                  = nullptr;
   this->NeedToRender             = false;

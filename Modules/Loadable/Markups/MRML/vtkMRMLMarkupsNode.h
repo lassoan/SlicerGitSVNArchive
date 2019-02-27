@@ -249,9 +249,6 @@ public:
   /// Returns true on success, false on failure.
   bool InsertControlPoint(ControlPoint* controlPoint, int targetIndex);
 
-  /// Copy settings from source control point to target control point
-  void CopyControlPoint(ControlPoint *source, ControlPoint *target);
-
   /// Swap the position of two control points
   void SwapControlPoints(int m1, int m2);
 
@@ -430,9 +427,13 @@ public:
 
   vtkPoints* GetCurvePointsWorld();
 
+  vtkPolyData* GetCurveWorld();
+
   vtkAlgorithmOutput* GetCurveWorldConnection();
 
   vtkGetMacro(CurveClosed, bool);
+
+  int GetControlPointIndexFromInterpolatedPointIndex(vtkIdType interpolatedPointIndex);
 
 protected:
   vtkMRMLMarkupsNode();

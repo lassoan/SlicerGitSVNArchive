@@ -19,6 +19,7 @@
 #include "vtkSlicerMarkupsLogic.h"
 
 // Markups MRML includes
+#include "vtkMRMLInteractionEventData.h"
 #include "vtkMRMLMarkupsDisplayNode.h"
 #include "vtkMRMLMarkupsFiducialNode.h"
 #include "vtkMRMLMarkupsFiducialStorageNode.h"
@@ -116,7 +117,7 @@ void vtkSlicerMarkupsLogic::PrintSelf(ostream& os, vtkIndent indent)
 //---------------------------------------------------------------------------
 void vtkSlicerMarkupsLogic::ProcessMRMLNodesEvents(vtkObject *caller,
                                                    unsigned long event,
-                                                   void *vtkNotUsed(callData))
+                                                   void *callData)
 {
   vtkDebugMacro("ProcessMRMLNodesEvents: Event " << event);
 
@@ -129,6 +130,39 @@ void vtkSlicerMarkupsLogic::ProcessMRMLNodesEvents(vtkObject *caller,
       {
       vtkDebugMacro("ProcessMRMLNodesEvents: calling SetDisplayNodeToDefaults");
       this->SetDisplayNodeToDefaults(markupsDisplayNode);
+      }
+    else if (event == vtkMRMLMarkupsDisplayNode::JumpToPointEvent)
+      {
+      int controlPointIndex = -1;
+      int viewGroup = -1;
+      vtkMRMLSliceNode* sliceNode = nullptr;
+      if (callData != nullptr)
+        {
+        vtkMRMLInteractionEventData* eventData = reinterpret_cast<vtkMRMLInteractionEventData*>(callData);
+        if (eventData->GetComponentType() == vtkMRMLMarkupsDisplayNode::ComponentControlPoint)
+          {
+          controlPointIndex = eventData->GetComponentIndex();
+          }
+        if (eventData->GetViewNode())
+          {
+          viewGroup = eventData->GetViewNode()->GetViewGroup();
+          sliceNode = vtkMRMLSliceNode::SafeDownCast(eventData->GetViewNode());
+          }
+        }
+      // Jump current slice node to the plane of the control point (do not center)
+      if (sliceNode)
+        {
+        vtkMRMLMarkupsNode* markupsNode = vtkMRMLMarkupsNode::SafeDownCast(markupsDisplayNode->GetDisplayableNode());
+        if (markupsNode)
+          {
+          double worldPos[3] = { 0.0 };
+          markupsNode->GetNthControlPointPositionWorld(controlPointIndex, worldPos);
+          sliceNode->JumpSliceByOffsetting(worldPos[0], worldPos[1], worldPos[2]);
+          }
+        }
+      // Jump centered in all other slices in the view group
+      this->JumpSlicesToNthPointInMarkup(markupsDisplayNode->GetDisplayableNode()->GetID(), controlPointIndex,
+        true /* centered */, viewGroup, sliceNode);
       }
     }
 }
@@ -212,6 +246,7 @@ void vtkSlicerMarkupsLogic::OnMRMLSceneNodeAdded(vtkMRMLNode* node)
     vtkDebugMacro("OnMRMLSceneNodeAdded: Have a markups display node");
     vtkNew<vtkIntArray> events;
     events->InsertNextValue(vtkMRMLMarkupsDisplayNode::ResetToDefaultsEvent);
+    events->InsertNextValue(vtkMRMLMarkupsDisplayNode::JumpToPointEvent);
     vtkUnObserveMRMLNodeMacro(node);
     vtkObserveMRMLNodeEventsMacro(node, events.GetPointer());
     }
@@ -534,7 +569,8 @@ int vtkSlicerMarkupsLogic::AddFiducial(double r, double a, double s)
 }
 
 //---------------------------------------------------------------------------
-void vtkSlicerMarkupsLogic::JumpSlicesToLocation(double x, double y, double z, bool centered, int viewGroup /* =-1 */)
+void vtkSlicerMarkupsLogic::JumpSlicesToLocation(double x, double y, double z, bool centered,
+  int viewGroup /* =-1 */, vtkMRMLSliceNode* exclude /* =NULL */)
 {
   if (!this->GetMRMLScene())
     {
@@ -545,11 +581,12 @@ void vtkSlicerMarkupsLogic::JumpSlicesToLocation(double x, double y, double z, b
   // save the whole state as iterating over all slice nodes
   this->GetMRMLScene()->SaveStateForUndo();
   int jumpMode = centered ? vtkMRMLSliceNode::CenteredJumpSlice: vtkMRMLSliceNode::OffsetJumpSlice;
-  vtkMRMLSliceNode::JumpAllSlices(this->GetMRMLScene(), x, y, z, jumpMode, viewGroup);
+  vtkMRMLSliceNode::JumpAllSlices(this->GetMRMLScene(), x, y, z, jumpMode, viewGroup, exclude);
 }
 
 //---------------------------------------------------------------------------
-void vtkSlicerMarkupsLogic::JumpSlicesToNthPointInMarkup(const char *id, int n, bool centered, int viewGroup /* =-1 */)
+void vtkSlicerMarkupsLogic::JumpSlicesToNthPointInMarkup(const char *id, int n, bool centered,
+  int viewGroup /* =-1 */, vtkMRMLSliceNode* exclude /* =NULL */)
 {
   if (!id)
     {
@@ -571,7 +608,7 @@ void vtkSlicerMarkupsLogic::JumpSlicesToNthPointInMarkup(const char *id, int n, 
     {
     double point[4];
     markupNode->GetNthControlPointPositionWorld(n, point);
-    this->JumpSlicesToLocation(point[0], point[1], point[2], centered, viewGroup);
+    this->JumpSlicesToLocation(point[0], point[1], point[2], centered, viewGroup, exclude);
     }
 }
 
@@ -974,7 +1011,7 @@ bool vtkSlicerMarkupsLogic::MoveNthControlPointToNewListAtIndex(int n, vtkMRMLMa
 
   // get the control point
   vtkMRMLMarkupsNode::ControlPoint *newControlPoint = new vtkMRMLMarkupsNode::ControlPoint;
-  markupsNode->CopyControlPoint(markupsNode->GetNthControlPoint(n), newControlPoint);
+  *newControlPoint = *markupsNode->GetNthControlPoint(n);
 
   // add it to the destination list
   bool insertVal = newMarkupsNode->InsertControlPoint(newControlPoint, newIndex);
@@ -1010,7 +1047,7 @@ bool vtkSlicerMarkupsLogic::CopyNthControlPointToNewList(int n, vtkMRMLMarkupsNo
 
   // get the control point
   vtkMRMLMarkupsNode::ControlPoint *newControlPoint = new vtkMRMLMarkupsNode::ControlPoint;
-  markupsNode->CopyControlPoint(markupsNode->GetNthControlPoint(n), newControlPoint);
+  *newControlPoint = *markupsNode->GetNthControlPoint(n);
 
   // add it to the destination list
   newMarkupsNode->AddControlPoint(newControlPoint);

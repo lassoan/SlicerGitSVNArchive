@@ -32,6 +32,7 @@
 #include "vtkMRMLVolumeNode.h"
 
 // VTK includes
+#include "vtkEvent.h"
 #include "vtkGeneralTransform.h"
 #include "vtkImageData.h"
 #include "vtkRenderWindowInteractor.h"
@@ -593,6 +594,11 @@ bool vtkSliceViewInteractorStyle::ForwardInteractionEventToDisplayableManagers(u
   int displayPositionCorrected[2] = { displayPositionInt[0] - pokedRenderer->GetOrigin()[0], displayPositionInt[1] - pokedRenderer->GetOrigin()[1] };
   ed->SetDisplayPosition(displayPositionCorrected);
   ed->SetWorldPosition(worldPosition);
+  int modifiers = 0;
+  if (this->Interactor->GetShiftKey()) { modifiers |= vtkEvent::ShiftModifier; }
+  if (this->Interactor->GetControlKey()) { modifiers |= vtkEvent::ControlModifier; }
+  if (this->Interactor->GetAltKey()) { modifiers |= vtkEvent::AltModifier; }
+  ed->SetModifiers(modifiers);
   ed->SetKeyCode(this->Interactor->GetKeyCode());
   ed->SetKeySym(this->Interactor->GetKeySym() ? this->Interactor->GetKeySym() : "");
   ed->SetKeyRepeatCount(this->Interactor->GetRepeatCount());
@@ -616,6 +622,12 @@ bool vtkSliceViewInteractorStyle::ForwardInteractionEventToDisplayableManagers(u
         closestDistance2 = distance2;
         }
       }
+    }
+
+  if (!canProcessEvent)
+    {
+    // none of the displayable managers can process the event, just ignore it
+    return false;
     }
 
   // Notify displayable managers about focus change

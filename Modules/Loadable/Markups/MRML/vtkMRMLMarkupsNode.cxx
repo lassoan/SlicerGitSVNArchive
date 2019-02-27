@@ -209,7 +209,7 @@ void vtkMRMLMarkupsNode::Copy(vtkMRMLNode *anode)
     {
     ControlPoint *controlPoint = node->GetNthControlPoint(n);
     int controlPointIndex = this->AddControlPoint(controlPoint);
-    this->CopyControlPoint(controlPoint, this->GetNthControlPoint(controlPointIndex));
+    *this->GetNthControlPoint(controlPointIndex) = *controlPoint;
     }
 }
 
@@ -758,17 +758,6 @@ void vtkMRMLMarkupsNode::UpdateCurvePolyFromCurveInputPoly()
 }
 
 //-----------------------------------------------------------
-void vtkMRMLMarkupsNode::CopyControlPoint(ControlPoint *source, ControlPoint *target)
-{
-  if (source == nullptr || target == nullptr)
-    {
-    return;
-    }
-
-  (*target) = (*source);
-}
-
-//-----------------------------------------------------------
 void vtkMRMLMarkupsNode::SwapControlPoints(int m1, int m2)
 {
   if (!this->ControlPointExists(m1))
@@ -787,11 +776,11 @@ void vtkMRMLMarkupsNode::SwapControlPoints(int m1, int m2)
   ControlPoint *m1Markup = this->GetNthControlPoint(m1);
   ControlPoint m1MarkupBackup;
   // make a copy of the first control point
-  this->CopyControlPoint(m1Markup, &m1MarkupBackup);
+  m1MarkupBackup = *m1Markup;
   // copy the second control point into the first
-  this->CopyControlPoint(this->GetNthControlPoint(m2), m1Markup);
+  *m1Markup = *this->GetNthControlPoint(m2);
   // and copy the backup of the first one into the second
-  this->CopyControlPoint(&m1MarkupBackup, this->GetNthControlPoint(m2));
+  *this->GetNthControlPoint(m2) = m1MarkupBackup;
 
   this->UpdateCurvePolyFromControlPoints();
 
@@ -1495,12 +1484,7 @@ void vtkMRMLMarkupsNode::FromOrientationQuaternionToWorldOrient(double orientati
 //----------------------------------------------------------------------
 vtkPoints* vtkMRMLMarkupsNode::GetCurvePointsWorld()
 {
-  if (this->GetNumberOfControlPoints() < 1)
-    {
-    return NULL;
-    }
-  this->CurvePolyToWorldTransformer->Update();
-  vtkPolyData* curvePolyDataWorld = this->CurvePolyToWorldTransformer->GetOutput();
+  vtkPolyData* curvePolyDataWorld = this->GetCurveWorld();
   if (!curvePolyDataWorld)
     {
     return NULL;
@@ -1509,7 +1493,37 @@ vtkPoints* vtkMRMLMarkupsNode::GetCurvePointsWorld()
 }
 
 //----------------------------------------------------------------------
+vtkPolyData* vtkMRMLMarkupsNode::GetCurveWorld()
+{
+  if (this->GetNumberOfControlPoints() < 1)
+  {
+    return NULL;
+  }
+  this->CurvePolyToWorldTransformer->Update();
+  vtkPolyData* curvePolyDataWorld = this->CurvePolyToWorldTransformer->GetOutput();
+  return curvePolyDataWorld;
+}
+
+//----------------------------------------------------------------------
 vtkAlgorithmOutput* vtkMRMLMarkupsNode::GetCurveWorldConnection()
 {
   return this->CurvePolyToWorldTransformer->GetOutputPort();
+}
+
+//----------------------------------------------------------------------
+int vtkMRMLMarkupsNode::GetControlPointIndexFromInterpolatedPointIndex(vtkIdType interpolatedPointIndex)
+{
+  if (this->CurveGenerator->IsInterpolatingCurve())
+  {
+    return int(floor(interpolatedPointIndex / this->CurveGenerator->GetNumberOfPointsPerInterpolatingSegment()));
+  }
+  if (this->CurveGenerator->GetPolynomialPointSortingMethod() == vtkCurveGenerator::SORTING_METHOD_MINIMUM_SPANNING_TREE_POSITION)
+  {
+    // If sorting is based on spanning tree then we can insert point anywhere (so we add to the end for simplicity).
+    return this->GetNumberOfControlPoints();
+  }
+  // In case of approximating curves, there is no clear assignment between control points and curve points.
+  vtkWarningMacro("vtkMRMLMarkupsNode::GetControlPointIndexFromInterpolatedPointIndex for non-interpolated"
+    " curves, minimum spanning tree sorting is recommended");
+  return this->GetNumberOfControlPoints();
 }

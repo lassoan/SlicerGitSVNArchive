@@ -32,6 +32,7 @@ class vtkMRMLAbstractDisplayableManager;
 class vtkMRMLSegmentationDisplayNode;
 class vtkMRMLSliceLogic;
 class vtkMRMLDisplayableManagerGroup;
+class vtkMRMLAbstractViewNode;
 
 /// Class for storing all relevant details of mouse and keyboard events.
 /// It stores additional information that is expensive to compute (such as 3D position)
@@ -114,12 +115,24 @@ public:
   void SetKeySym(const std::string &v) { this->KeySym = v; }
   const std::string& GetKeySym() { return this->KeySym; }
 
+  void SetViewNode(vtkMRMLAbstractViewNode* viewNode) { this->ViewNode = viewNode; }
+  vtkMRMLAbstractViewNode* GetViewNode() { return this->ViewNode; }
+
+  void SetComponentType(int componentType) { this->ComponentType = componentType; }
+  int GetComponentType() { return this->ComponentType; }
+
+  void SetComponentIndex(int componentIndex) { this->ComponentIndex = componentIndex; }
+  int GetComponentIndex() { return this->ComponentIndex; }
+
 protected:
   int Modifiers;
   int DisplayPosition[2];
   double WorldPosition[3];
   bool DisplayPositionValid;
   bool WorldPositionValid;
+  vtkMRMLAbstractViewNode* ViewNode;
+  int ComponentType;
+  int ComponentIndex;
 
   // For KeyPressEvent
   char KeyCode;

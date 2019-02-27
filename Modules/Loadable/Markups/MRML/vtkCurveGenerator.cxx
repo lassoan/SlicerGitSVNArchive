@@ -728,3 +728,11 @@ void vtkCurveGenerator::SortByMinimumSpanningTreePosition( vtkPoints* points, vt
     parameters->InsertNextTuple1( pathParameters[ indexAlongPath ] );
   }
 }
+
+//------------------------------------------------------------------------------
+bool vtkCurveGenerator::IsInterpolatingCurve()
+{
+  return (this->CurveType == CURVE_TYPE_LINEAR_SPLINE
+    || this->CurveType == CURVE_TYPE_CARDINAL_SPLINE
+    || this->CurveType == CURVE_TYPE_KOCHANEK_SPLINE);
+}

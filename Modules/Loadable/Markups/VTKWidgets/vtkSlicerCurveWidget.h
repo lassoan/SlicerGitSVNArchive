@@ -161,6 +161,7 @@
 class vtkSlicerAbstractWidgetRepresentation;
 class vtkPolyData;
 class vtkIdList;
+class vtkMRMLMarkupsCurveNode;
 
 class VTK_SLICER_MARKUPS_MODULE_VTKWIDGETS_EXPORT vtkSlicerCurveWidget : public vtkSlicerAbstractWidget
 {
@@ -178,9 +179,9 @@ protected:
   vtkSlicerCurveWidget();
   ~vtkSlicerCurveWidget() override;
 
-  // Callback interface to capture evets when
-  // placing the widget.
-  static void AddPointOnCurveAction(vtkAbstractWidget*);
+  bool ProcessControlPointInsert(vtkMRMLInteractionEventData* eventData) VTK_OVERRIDE;
+
+  vtkMRMLMarkupsCurveNode* GetMarkupsCurveNode();
 
 private:
   vtkSlicerCurveWidget(const vtkSlicerCurveWidget&) = delete;

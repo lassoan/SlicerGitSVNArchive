@@ -35,6 +35,7 @@
 #include "vtkSlicerAbstractWidgetRepresentation3D.h"
 
 class vtkAppendPolyData;
+class vtkCellLocator;
 class vtkOpenGLActor;
 class vtkOpenGLPolyDataMapper;
 class vtkPolyData;
@@ -71,6 +72,9 @@ public:
   void CanInteract(const int displayPosition[2], const double worldPosition[3],
     int &foundComponentType, int &foundComponentIndex, double &closestDistance2) VTK_OVERRIDE;
 
+  void CanInteractWithCurve(const int displayPosition[2], const double worldPosition[3],
+    int &foundComponentType, int &componentIndex, double &closestDistance2);
+
 protected:
   vtkSlicerCurveRepresentation3D();
   ~vtkSlicerCurveRepresentation3D() VTK_OVERRIDE;
@@ -82,6 +86,8 @@ protected:
   vtkSmartPointer<vtkOpenGLActor> LineActor;
 
   vtkSmartPointer<vtkTubeFilter> TubeFilter;
+
+  vtkSmartPointer<vtkCellLocator> CurvePointLocator;
 
 private:
   vtkSlicerCurveRepresentation3D(const vtkSlicerCurveRepresentation3D&) = delete;

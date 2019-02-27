@@ -36,6 +36,7 @@
 class vtkActor2D;
 class vtkArcSource;
 class vtkAppendPolyData;
+class vtkCellLocator;
 class vtkDiscretizableColorTransferFunction;
 class vtkOpenGLPolyDataMapper2D;
 class vtkOpenGLTextActor;
@@ -75,14 +76,14 @@ public:
   /// Return the bounds of the representation
   double *GetBounds() override;
 
+  void CanInteractWithCurve(const int displayPosition[2], const double worldPosition[3],
+    int &foundComponentType, int &componentIndex, double &closestDistance2);
+
 protected:
   vtkSlicerCurveRepresentation2D();
   ~vtkSlicerCurveRepresentation2D() override;
 
   void SetMarkupsNode(vtkMRMLMarkupsNode *markupsNode) override;
-
-  void CanInteractWithCurve(const int displayPosition[2], const double worldPosition[3],
-    int &foundComponentType, int &componentIndex, double &closestDistance2);
 
   vtkSmartPointer<vtkPolyData>                  Line;
   vtkSmartPointer<vtkOpenGLPolyDataMapper2D>    LineMapper;
@@ -93,6 +94,8 @@ protected:
 
   vtkSmartPointer<vtkTransform> WorldToSliceTransform;
   vtkSmartPointer<vtkTransformPolyDataFilter> WorldToSliceTransformer;
+  vtkSmartPointer<vtkCellLocator> SliceCurvePointLocator;
+
 
   vtkSmartPointer<vtkPlane> SlicePlane;
   vtkSmartPointer<vtkSampleImplicitFunctionFilter> SliceDistance;

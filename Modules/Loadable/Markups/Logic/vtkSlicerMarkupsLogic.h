@@ -91,10 +91,10 @@ public:
   /// jump the slice windows to the given coordinate
   /// If viewGroup is -1 then all all slice views are updated, otherwise only those views
   /// that are in the specified group.
-  void JumpSlicesToLocation(double x, double y, double z, bool centered, int viewGroup = -1);
+  void JumpSlicesToLocation(double x, double y, double z, bool centered, int viewGroup = -1, vtkMRMLSliceNode* exclude = NULL);
   /// jump the slice windows to the nth markup with the mrml id id
   /// \sa JumpSlicesToLocation
-  void JumpSlicesToNthPointInMarkup(const char *id, int n, bool centered = false, int viewGroup = -1);
+  void JumpSlicesToNthPointInMarkup(const char *id, int n, bool centered = false, int viewGroup = -1, vtkMRMLSliceNode* exclude = NULL);
   /// refocus all of the 3D cameras to the nth markup with the mrml id id
   /// \sa FocusCameraOnNthPointInMarkup
   void FocusCamerasOnNthPointInMarkup(const char *id, int n);

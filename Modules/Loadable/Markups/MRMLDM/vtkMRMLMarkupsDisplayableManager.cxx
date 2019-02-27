@@ -981,8 +981,29 @@ bool vtkMRMLMarkupsDisplayableManager::CanProcessInteractionEvent(vtkMRMLInterac
       }
     }
 
+  if (eventid == vtkCommand::LeaveEvent && this->LastActiveWidget != NULL)
+    {
+    if (this->LastActiveWidget->GetMarkupsDisplayNode()
+      && this->LastActiveWidget->GetMarkupsDisplayNode()->GetActiveComponentType() != vtkMRMLMarkupsDisplayNode::ComponentNone)
+      {
+      // this widget has active component, therefore leave event is relevant
+      closestDistance2 = 0.0;
+      return this->LastActiveWidget;
+      }
+    }
+
   // Other interactions
-  return (this->FindClosestWidget(eventData, closestDistance2) != NULL);
+  bool canProcess = (this->FindClosestWidget(eventData, closestDistance2) != NULL);
+
+  if (!canProcess && this->LastActiveWidget != nullptr
+    && eventid == vtkCommand::MouseMoveEvent)
+    {
+    // mouse is moved away from the widget -> deactivate
+    closestDistance2 = 0.0;
+    return this->LastActiveWidget;
+    }
+
+  return canProcess;
 }
 
 //---------------------------------------------------------------------------
@@ -997,39 +1018,38 @@ void vtkMRMLMarkupsDisplayableManager::ProcessInteractionEvent(vtkMRMLInteractio
   int eventid = eventData->GetType();
 
   if (this->GetInteractionNode()->GetCurrentInteractionMode() == vtkMRMLInteractionNode::Place)
-  {
+    {
     if (eventid == vtkCommand::MouseMoveEvent)
-    {
+      {
       vtkMRMLInteractionEventData* interactionEventData = vtkMRMLInteractionEventData::SafeDownCast(eventData);
       if (interactionEventData)
-      {
+        {
         this->UpdatePointPlacePreview(interactionEventData->GetDisplayPosition(), interactionEventData->GetWorldPosition());
+        }
       }
-    }
     else if (eventid == vtkCommand::LeftButtonReleaseEvent)
-    {
+      {
       vtkMRMLInteractionEventData* interactionEventData = vtkMRMLInteractionEventData::SafeDownCast(eventData);
       if (interactionEventData)
-      {
+        {
         std::string associatedNodeID = this->GetAssociatedNodeID(eventData);
         this->PlacePoint(interactionEventData->GetDisplayPosition(), interactionEventData->GetWorldPosition(), associatedNodeID);
+        }
       }
-    }
     else if (eventid == vtkCommand::RightButtonReleaseEvent)
-    {
+      {
       // if we're in persistent place mode, go back to view transform mode, but
       // leave the persistent flag on
       if (this->GetInteractionNode()->GetPlaceModePersistence() == 1)
-      {
+        {
         vtkInfoMacro("Switch to transform mode");
         // add point after is switched to no place
         // the manager helper will take care to set the right status on the widgets
         this->GetInteractionNode()->SwitchToViewTransformMode();
         this->RemovePointPlacePreview();
+        }
       }
     }
-  }
-
 
   if (eventid == vtkCommand::EnterEvent)
     {
@@ -1049,42 +1069,6 @@ void vtkMRMLMarkupsDisplayableManager::ProcessInteractionEvent(vtkMRMLInteractio
       this->LastActiveWidget = NULL;
       }
     }
-  if (eventid == vtkCommand::KeyPressEvent)
-  {
-    char *keySym = this->GetInteractor()->GetKeySym();
-    vtkDebugMacro("OnInteractorStyleEvent 3D: key press event position = "
-      << this->GetInteractor()->GetEventPosition()[0] << ", "
-      << this->GetInteractor()->GetEventPosition()[1]
-      << ", key sym = " << (keySym == NULL ? "null" : keySym));
-    if (!keySym)
-    {
-      return;
-    }
-    if (strcmp(keySym, "p") == 0)
-    {
-      if (this->GetInteractionNode()->GetCurrentInteractionMode() == vtkMRMLInteractionNode::Place)
-      {
-        vtkMRMLInteractionEventData* interactionEventData = vtkMRMLInteractionEventData::SafeDownCast(eventData);
-        if (interactionEventData)
-        {
-          std::string associatedNodeID = this->GetAssociatedNodeID(eventData);
-          if (this->PlacePoint(interactionEventData->GetDisplayPosition(), interactionEventData->GetWorldPosition(), associatedNodeID))
-          {
-            return;
-          }
-        }
-        else
-        {
-          vtkDebugMacro("Line DisplayableManager: key press p, but not in Place mode! Returning.");
-          return;
-        }
-      }
-    }
-    else if (eventid == vtkCommand::KeyReleaseEvent)
-    {
-      vtkDebugMacro("Got a key release event");
-    }
-  }
 
   double closestDistance2 = VTK_DOUBLE_MAX;
   vtkSlicerAbstractWidget* closestWidget = this->FindClosestWidget(eventData, closestDistance2);
@@ -1095,6 +1079,12 @@ void vtkMRMLMarkupsDisplayableManager::ProcessInteractionEvent(vtkMRMLInteractio
   this->LastActiveWidget = closestWidget;
   if (!closestWidget)
     {
+    // deactive widget is moving far from it
+    if (eventid == vtkCommand::MouseMoveEvent && this->LastActiveWidget != NULL)
+      {
+      this->LastActiveWidget->Leave();
+      this->LastActiveWidget = NULL;
+      }
     return;
     }
   closestWidget->ProcessInteractionEvent(eventData);

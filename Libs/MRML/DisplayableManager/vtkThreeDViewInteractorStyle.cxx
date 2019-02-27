@@ -27,6 +27,7 @@
 #include <vtkCamera.h>
 #include <vtkCellPicker.h>
 #include <vtkCallbackCommand.h>
+#include <vtkEvent.h>
 #include <vtkMath.h>
 #include <vtkObjectFactory.h>
 #include <vtkPoints.h>
@@ -724,6 +725,11 @@ bool vtkThreeDViewInteractorStyle::ForwardInteractionEventToDisplayableManagers(
     ed->SetWorldPosition(worldPosition);
     }
 
+  int modifiers = 0;
+  if (this->Interactor->GetShiftKey()) { modifiers |= vtkEvent::ShiftModifier; }
+  if (this->Interactor->GetControlKey()) { modifiers |= vtkEvent::ShiftModifier; }
+  if (this->Interactor->GetAltKey()) { modifiers |= vtkEvent::AltModifier; }
+  ed->SetModifiers(modifiers);
   ed->SetKeyCode(this->Interactor->GetKeyCode());
   ed->SetKeySym(this->Interactor->GetKeySym() ? this->Interactor->GetKeySym() : "");
   ed->SetKeyRepeatCount(this->Interactor->GetRepeatCount());
@@ -747,6 +753,12 @@ bool vtkThreeDViewInteractorStyle::ForwardInteractionEventToDisplayableManagers(
         closestDistance2 = distance2;
         }
       }
+    }
+
+  if (!canProcessEvent)
+    {
+    // none of the displayable managers can process the event, just ignore it
+    return false;
     }
 
   // Notify displayable managers about focus change

@@ -18,6 +18,7 @@
 
 #include "vtkSlicerCurveRepresentation2D.h"
 
+#include "vtkCellLocator.h"
 #include "vtkCleanPolyData.h"
 #include "vtkDiscretizableColorTransferFunction.h"
 #include "vtkOpenGLPolyDataMapper2D.h"
@@ -86,6 +87,8 @@ vtkSlicerCurveRepresentation2D::vtkSlicerCurveRepresentation2D()
   this->LineActor = vtkSmartPointer<vtkActor2D>::New();
   this->LineActor->SetMapper(this->LineMapper);
   this->LineActor->SetProperty(this->GetControlPointsPipeline(Unselected)->Property);
+
+  this->SliceCurvePointLocator = vtkSmartPointer<vtkCellLocator>::New();
 }
 
 //----------------------------------------------------------------------
@@ -236,7 +239,6 @@ void vtkSlicerCurveRepresentation2D::CanInteract(
     return;
   }
 
-  // TODO: implement quick search of nearby points on the curve
   this->CanInteractWithCurve(displayPosition, worldPosition, foundComponentType, foundComponentIndex, closestDistance2);
 }
 
@@ -353,52 +355,28 @@ void vtkSlicerCurveRepresentation2D::CanInteractWithCurve(
   const int displayPosition[2], const double worldPosition[3],
   int &foundComponentType, int &componentIndex, double &closestDistance2)
 {
-  foundComponentType = vtkMRMLMarkupsDisplayNode::ComponentNone;
   vtkMRMLSliceNode *sliceNode = this->GetSliceNode();
   vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
   if (!sliceNode || !markupsNode || markupsNode->GetLocked() || markupsNode->GetNumberOfControlPoints() < 1)
-  {
+    {
     return;
-  }
-
-  double displayPosition3[3] = { static_cast<double>(displayPosition[0]), static_cast<double>(displayPosition[1]), 0.0 };
-
-  this->PixelTolerance = this->ControlPointSize * (1.0 + this->Tolerance) * this->ViewScaleFactor;
-  double pixelTolerance2 = this->PixelTolerance * this->PixelTolerance;
-
-  vtkIdType numberOfPoints = markupsNode->GetNumberOfControlPoints();
-  double sliceCoordinates[4], worldCoordinates[4];
-
-  double pointDisplayPos1[4] = { 0.0, 0.0, 0.0, 1.0 };
-  double pointWorldPos1[4] = { 0.0, 0.0, 0.0, 1.0 };
-  double pointDisplayPos2[4] = { 0.0, 0.0, 0.0, 1.0 };
-  double pointWorldPos2[4] = { 0.0, 0.0, 0.0, 1.0 };
-
-  vtkNew<vtkMatrix4x4> rasToxyMatrix;
-  sliceNode->GetXYToRAS()->Invert(sliceNode->GetXYToRAS(), rasToxyMatrix.GetPointer());
-  for (int i = 0; i < numberOfPoints - 1; i++)
-  {
-    if (!this->PointsVisibilityOnSlice->GetValue(i))
-    {
-      continue;
     }
-    if (!this->PointsVisibilityOnSlice->GetValue(i + 1))
-    {
-      i++; // skip one more, as the next iteration would use (i+1)-th point
-      continue;
-    }
-    markupsNode->GetNthControlPointPositionWorld(i, pointWorldPos1);
-    rasToxyMatrix->MultiplyPoint(pointWorldPos1, pointDisplayPos1);
-    markupsNode->GetNthControlPointPositionWorld(i + 1, pointWorldPos2);
-    rasToxyMatrix->MultiplyPoint(pointWorldPos2, pointDisplayPos2);
 
-    double relativePositionAlongLine = -1.0; // between 0.0-1.0 if between the endpoints of the line segment
-    double distance2 = vtkLine::DistanceToLine(displayPosition3, pointDisplayPos1, pointDisplayPos2, relativePositionAlongLine);
-    if (distance2 < pixelTolerance2 && distance2 < closestDistance2 && relativePositionAlongLine >= 0 && relativePositionAlongLine <= 1)
+  this->SliceDistance->Update();
+  this->SliceCurvePointLocator->SetDataSet(this->SliceDistance->GetOutput());
+  this->SliceCurvePointLocator->Update();
+
+  double closestPointDisplay[3] = { 0.0 };
+  vtkIdType cellId = -1;
+  int subId = -1;
+  double dist2 = VTK_DOUBLE_MAX;
+  this->SliceCurvePointLocator->FindClosestPoint(worldPosition, closestPointDisplay, cellId, subId, dist2);
+
+  //if (dist2 < this->ControlPointSize * (1.0 + this->Tolerance))
+  if (dist2 < this->MarkupsDisplayNode->GetGlyphScale() * (1.0 + this->Tolerance))
     {
-      closestDistance2 = distance2;
-      foundComponentType = vtkMRMLMarkupsDisplayNode::ComponentLine;
-      componentIndex = i;
+    closestDistance2 = dist2 * this->ViewScaleFactor * this->ViewScaleFactor;
+    foundComponentType = vtkMRMLMarkupsDisplayNode::ComponentLine;
+    componentIndex = markupsNode->GetControlPointIndexFromInterpolatedPointIndex(subId);
     }
-  }
 }

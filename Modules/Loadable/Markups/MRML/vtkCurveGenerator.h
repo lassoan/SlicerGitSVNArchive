@@ -47,6 +47,8 @@ class VTK_SLICER_MARKUPS_MODULE_MRML_EXPORT vtkCurveGenerator : public vtkObject
     void SetCurveTypeToKochanekSpline() { this->SetCurveType( CURVE_TYPE_KOCHANEK_SPLINE ); }
     void SetCurveTypeToPolynomial() { this->SetCurveType( CURVE_TYPE_POLYNOMIAL ); }
 
+    virtual bool IsInterpolatingCurve();
+
     // Sample an *interpolating* curve this many times per segment (pair of points in sequence). Range 1 and up. Default 5.
     vtkSetMacro( NumberOfPointsPerInterpolatingSegment, int );
     vtkGetMacro( NumberOfPointsPerInterpolatingSegment, int );

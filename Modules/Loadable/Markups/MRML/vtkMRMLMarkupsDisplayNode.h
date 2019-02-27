@@ -149,6 +149,7 @@ public:
   enum
   {
     ResetToDefaultsEvent = 19001,
+    JumpToPointEvent, // request jump to a selected control point, request completed by markups logic
   };
 
   /// Set SliceProjection flag that controls if the projection of markups

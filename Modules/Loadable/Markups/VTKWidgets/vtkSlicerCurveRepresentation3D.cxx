@@ -17,6 +17,8 @@
 =========================================================================*/
 
 #include "vtkSlicerCurveRepresentation3D.h"
+
+#include "vtkCellLocator.h"
 #include "vtkCleanPolyData.h"
 #include "vtkOpenGLPolyDataMapper.h"
 #include "vtkOpenGLActor.h"
@@ -71,6 +73,8 @@ vtkSlicerCurveRepresentation3D::vtkSlicerCurveRepresentation3D()
   this->LineActor = vtkSmartPointer<vtkOpenGLActor>::New();
   this->LineActor->SetMapper(this->LineMapper);
   this->LineActor->SetProperty(this->GetControlPointsPipeline(Unselected)->Property);
+
+  this->CurvePointLocator = vtkSmartPointer<vtkCellLocator>::New();
 }
 
 //----------------------------------------------------------------------
@@ -248,7 +252,7 @@ void vtkSlicerCurveRepresentation3D::CanInteract(
     return;
   }
 
-  // TODO: implement line picking
+  this->CanInteractWithCurve(displayPosition, worldPosition, foundComponentType, foundComponentIndex, closestDistance2);
 }
 
 //-----------------------------------------------------------------------------
@@ -282,4 +286,37 @@ void vtkSlicerCurveRepresentation3D::SetMarkupsNode(vtkMRMLMarkupsNode *markupsN
       }
     }
   this->Superclass::SetMarkupsNode(markupsNode);
+}
+
+//----------------------------------------------------------------------
+void vtkSlicerCurveRepresentation3D::CanInteractWithCurve(
+  const int displayPosition[2], const double worldPosition[3],
+  int &foundComponentType, int &componentIndex, double &closestDistance2)
+{
+  if (!this->MarkupsNode)
+    {
+    return;
+    }
+
+  vtkPolyData* curveWorld = this->MarkupsNode->GetCurveWorld();
+  if (!curveWorld)
+    {
+    return;
+    }
+
+  this->CurvePointLocator->SetDataSet(curveWorld);
+  this->CurvePointLocator->Update();
+
+  double closestPointDisplay[3] = { 0.0 };
+  vtkIdType cellId = -1;
+  int subId = -1;
+  double dist2 = VTK_DOUBLE_MAX;
+  this->CurvePointLocator->FindClosestPoint(worldPosition, closestPointDisplay, cellId, subId, dist2);
+
+  if (dist2 < this->ControlPointSize * (1.0 + this->Tolerance))
+    {
+    closestDistance2 = dist2 * this->ViewScaleFactor * this->ViewScaleFactor;
+    foundComponentType = vtkMRMLMarkupsDisplayNode::ComponentLine;
+    componentIndex = this->MarkupsNode->GetControlPointIndexFromInterpolatedPointIndex(cellId);
+    }
 }

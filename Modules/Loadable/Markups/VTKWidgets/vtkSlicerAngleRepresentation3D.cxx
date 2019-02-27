@@ -375,7 +375,7 @@ void vtkSlicerAngleRepresentation3D::CanInteract(
     return;
   }
   Superclass::CanInteract(displayPosition, worldPosition, foundComponentType, foundComponentIndex, closestDistance2);
-  if (foundComponentType != vtkMRMLMarkupsDisplayNode::ComponentNone && closestDistance2 == 0.0)
+  if (foundComponentType != vtkMRMLMarkupsDisplayNode::ComponentNone)
   {
     return;
   }

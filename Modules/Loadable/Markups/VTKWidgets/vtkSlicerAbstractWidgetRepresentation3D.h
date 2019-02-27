@@ -37,15 +37,16 @@
 
 #include <vector> // STL Header; Required for vector
 
-class vtkProperty;
-class vtkOpenGLActor;
-class vtkOpenGLPolyDataMapper;
+class vtkActor2D;
+class vtkCellPicker;
 class vtkGlyph3D;
 class vtkLabelPlacementMapper;
+class vtkOpenGLActor;
+class vtkOpenGLPolyDataMapper;
 class vtkPointSetToLabelHierarchy;
-class vtkStringArray;
-class vtkActor2D;
+class vtkProperty;
 class vtkSelectVisiblePoints;
+class vtkStringArray;
 class vtkTextProperty;
 
 class VTK_SLICER_MARKUPS_MODULE_VTKWIDGETS_EXPORT vtkSlicerAbstractWidgetRepresentation3D : public vtkSlicerAbstractWidgetRepresentation
@@ -81,6 +82,8 @@ public:
   void CanInteractWithLine(const int displayPosition[2], const double worldPosition[3],
     int &foundComponentType, int &foundComponentIndex, double &closestDistance2);
 
+  bool AccuratePick(int x, int y, double pickPoint[3]);
+
 protected:
   vtkSlicerAbstractWidgetRepresentation3D();
   ~vtkSlicerAbstractWidgetRepresentation3D() VTK_OVERRIDE;
@@ -106,6 +109,8 @@ protected:
   virtual void UpdateNthPointAndLabelFromMRML(int n);
 
   virtual void UpdateAllPointsAndLabelsFromMRML();
+
+  vtkSmartPointer<vtkCellPicker> AccuratePicker;
 
 private:
   vtkSlicerAbstractWidgetRepresentation3D(const vtkSlicerAbstractWidgetRepresentation3D&) = delete;

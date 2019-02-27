@@ -18,6 +18,7 @@
 
 #include "vtkSlicerAbstractWidgetRepresentation.h"
 #include "vtkSlicerAbstractWidgetRepresentation3D.h"
+#include "vtkCellPicker.h"
 #include "vtkCleanPolyData.h"
 #include "vtkOpenGLPolyDataMapper.h"
 #include "vtkOpenGLActor.h"
@@ -110,6 +111,8 @@ vtkSlicerAbstractWidgetRepresentation3D::ControlPointsPipeline3D::ControlPointsP
   this->LabelsMapper->SetInputConnection(this->PointSetToLabelHierarchyFilter->GetOutputPort());
   this->LabelsActor = vtkSmartPointer<vtkActor2D>::New();
   this->LabelsActor->SetMapper(this->LabelsMapper);
+  this->LabelsActor->PickableOff();
+  this->LabelsActor->DragableOff();
 };
 
 //----------------------------------------------------------------------
@@ -125,8 +128,14 @@ vtkSlicerAbstractWidgetRepresentation3D::vtkSlicerAbstractWidgetRepresentation3D
 
   this->ControlPoints[Active]->TextProperty->SetColor(0.4, 1.0, 0.); // bright green
   reinterpret_cast<ControlPointsPipeline3D*>(this->ControlPoints[Active])->Property->SetColor(0.4, 1.0, 0.);
+  reinterpret_cast<ControlPointsPipeline3D*>(this->ControlPoints[Active])->Actor->PickableOff();
+  reinterpret_cast<ControlPointsPipeline3D*>(this->ControlPoints[Active])->Actor->DragableOff();
 
-  this->ControlPointSize = 3;
+  this->ControlPointSize = 10; // will be set from the markup's GlyphScale
+  this->Tolerance = 5.0;
+
+  this->AccuratePicker = vtkSmartPointer<vtkCellPicker>::New();
+  this->AccuratePicker->SetTolerance(.005);
 }
 
 //----------------------------------------------------------------------
@@ -293,8 +302,6 @@ void vtkSlicerAbstractWidgetRepresentation3D::CanInteract(
 
   double displayPosition3[3] = { static_cast<double>(displayPosition[0]), static_cast<double>(displayPosition[1]), 0.0 };
 
-  this->UpdateViewScaleFactor(); // TODO: this is performed very frequently, check how it can be optimized
-  this->PixelTolerance = (this->ControlPointSize + this->ControlPointSize * this->Tolerance) * this->ViewScaleFactor;
   double pixelTolerance2 = this->PixelTolerance * this->PixelTolerance;
 
   closestDistance2 = VTK_DOUBLE_MAX; // in display coordinate system
@@ -334,7 +341,7 @@ void vtkSlicerAbstractWidgetRepresentation3D::CanInteract(
     this->Renderer->WorldToDisplay();
     this->Renderer->GetDisplayPoint(centerPosDisplay);
     double dist2 = vtkMath::Distance2BetweenPoints(centerPosDisplay, displayPosition3);
-    if (dist2 < pixelTolerance2)
+    if (dist2 < pixelTolerance2 && dist2 < closestDistance2)
     {
       closestDistance2 = dist2;
       foundComponentType = vtkMRMLMarkupsDisplayNode::ComponentControlPoint;
@@ -378,10 +385,6 @@ void vtkSlicerAbstractWidgetRepresentation3D::CanInteractWithLine(
 
   double toleranceWorld = this->ControlPointSize * this->ControlPointSize;
 
-  //this->PixelTolerance = this->ControlPointSize + this->ControlPointSize * this->Tolerance;
-  //double scale = this->CalculateViewScaleFactor();
-  //this->PixelTolerance *= scale;
-
   for (int i = 0; i < numberOfPoints - 1; i++)
   {
     markupsNode->GetNthControlPointPositionWorld(i, pointWorldPos1);
@@ -408,6 +411,7 @@ void vtkSlicerAbstractWidgetRepresentation3D::UpdateFromMRML(vtkMRMLNode* caller
   }
 
   this->ControlPointSize = this->MarkupsDisplayNode->GetGlyphScale();
+  this->PixelTolerance = this->ControlPointSize * (1.0 + this->Tolerance) * this->ViewScaleFactor;
 
   Superclass::UpdateFromMRML(caller, event, callData);
 
@@ -645,4 +649,37 @@ void vtkSlicerAbstractWidgetRepresentation3D::SetRenderer(vtkRenderer *ren)
     ControlPointsPipeline3D* controlPoints = reinterpret_cast<ControlPointsPipeline3D*>(this->ControlPoints[controlPointType]);
     controlPoints->SelectVisiblePoints->SetRenderer(ren);
     }
+}
+
+//---------------------------------------------------------------------------
+bool vtkSlicerAbstractWidgetRepresentation3D::AccuratePick(int x, int y, double pickPoint[3])
+{
+  if (!this->AccuratePicker->Pick(x, y, 0, this->Renderer))
+    {
+    return false;
+    }
+
+  vtkPoints* pickPositions = this->AccuratePicker->GetPickedPositions();
+  int numberOfPickedPositions = pickPositions->GetNumberOfPoints();
+  if (numberOfPickedPositions<1)
+    {
+    return false;
+    }
+
+  // There may be multiple picked positions, choose the one closest to the camera
+  double cameraPosition[3] = { 0,0,0 };
+  this->Renderer->GetActiveCamera()->GetPosition(cameraPosition);
+  pickPositions->GetPoint(0, pickPoint);
+  double minDist2 = vtkMath::Distance2BetweenPoints(pickPoint, cameraPosition);
+  std::cout << "  Found position: [" << pickPoint[0] << ", " << pickPoint[1] << ", " << pickPoint[2] << "]    " << minDist2 << std::endl;
+  for (int i = 1; i<numberOfPickedPositions; i++)
+    {
+    double currentMinDist2 = vtkMath::Distance2BetweenPoints(pickPositions->GetPoint(i), cameraPosition);
+    if (currentMinDist2<minDist2)
+      {
+      pickPositions->GetPoint(i, pickPoint);
+      minDist2 = currentMinDist2;
+      }
+    }
+  return true;
 }
