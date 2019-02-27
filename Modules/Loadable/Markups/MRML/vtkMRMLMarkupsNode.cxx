@@ -75,6 +75,7 @@ vtkMRMLMarkupsNode::vtkMRMLMarkupsNode()
   this->CurveGenerator = vtkSmartPointer<vtkCurveGenerator>::New();
   this->CurveGenerator->SetInputPoints(curveInputPoints);
   this->CurveGenerator->SetOutputPoints(curvePoints);
+  this->CurveGenerator->SetNumberOfPointsPerInterpolatingSegment(10);
 
   vtkNew<vtkTrivialProducer> curvePointConnector; // allows connecting a data object to pipeline input
   curvePointConnector->SetOutput(this->CurvePoly);

@@ -217,13 +217,6 @@ void vtkCurveGenerator::Update()
     return;
   }
 
-  int numberOfInputPoints = this->InputPoints->GetNumberOfPoints();
-  if ( numberOfInputPoints <= 1 )
-  {
-    vtkWarningMacro( "Not enough input points, need 2 but got " << numberOfInputPoints << ". No curve generation possible." );
-    return;
-  }
-
   if ( !this->UpdateNeeded() )
   {
     return;
@@ -479,6 +472,11 @@ void vtkCurveGenerator::GeneratePoints()
   this->OutputCurveLength = 0.0;
 
   int numberOfInputPoints = this->InputPoints->GetNumberOfPoints();
+  if (numberOfInputPoints <= 1)
+  {
+    return;
+  }
+
   int numberOfSegments = 0; // temporary value
   if ( this->CurveIsLoop && this->CurveType != vtkCurveGenerator::CURVE_TYPE_POLYNOMIAL )
   {

@@ -68,8 +68,8 @@ vtkSlicerAbstractWidget::vtkSlicerAbstractWidget()
   this->SetKeyboardEventTranslation(vtkEvent::NoModifier, 127, 1, "Delete", WidgetControlPointDelete);
   this->SetKeyboardEventTranslation(vtkEvent::NoModifier, 8, 1, "BackSpace", WidgetControlPointDelete);
 
-  this->SetEventTranslation(vtkMRMLInteractionEventData::LeftButtonClickEvent, vtkEvent::NoModifier, WidgetPick);
-  this->SetEventTranslation(vtkMRMLInteractionEventData::LeftButtonClickEvent, vtkEvent::ShiftModifier, WidgetJumpCursor);
+  //this->SetEventTranslation(vtkMRMLInteractionEventData::LeftButtonClickEvent, vtkEvent::NoModifier, WidgetPick);
+  this->SetEventTranslation(vtkMRMLInteractionEventData::LeftButtonClickEvent, vtkEvent::NoModifier, WidgetJumpCursor);
 
   this->SetEventTranslation(vtkCommand::LeftButtonDoubleClickEvent, vtkEvent::AnyModifier, WidgetAction);
 }

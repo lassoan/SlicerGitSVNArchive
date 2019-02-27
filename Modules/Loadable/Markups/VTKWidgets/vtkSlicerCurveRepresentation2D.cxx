@@ -147,7 +147,7 @@ void vtkSlicerCurveRepresentation2D::UpdateFromMRML(vtkMRMLNode* caller, unsigne
 
   this->TubeFilter->SetRadius(this->ViewScaleFactor * this->ControlPointSize * 0.125);
 
-  //this->LineActor->SetVisibility(this->GetAllControlPointsVisible());
+  this->LineActor->SetVisibility(markupsNode->GetNumberOfControlPoints() >= 2);
 
   bool allControlPointsSelected = this->GetAllControlPointsSelected();
   int controlPointType = Active;
@@ -357,7 +357,7 @@ void vtkSlicerCurveRepresentation2D::CanInteractWithCurve(
 {
   vtkMRMLSliceNode *sliceNode = this->GetSliceNode();
   vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
-  if (!sliceNode || !markupsNode || markupsNode->GetLocked() || markupsNode->GetNumberOfControlPoints() < 1)
+  if (!sliceNode || !markupsNode || markupsNode->GetLocked() || markupsNode->GetNumberOfControlPoints() < 2)
     {
     return;
     }

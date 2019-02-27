@@ -115,7 +115,7 @@ void vtkSlicerCurveRepresentation3D::UpdateFromMRML(vtkMRMLNode* caller, unsigne
 
   this->TubeFilter->SetRadius(this->ControlPointSize * 0.125);
 
-  this->LineActor->SetVisibility(this->GetAllControlPointsVisible());
+  this->LineActor->SetVisibility(markupsNode->GetNumberOfControlPoints() >= 2);
 
   bool allControlPointsSelected = this->GetAllControlPointsSelected();
   int controlPointType = Active;
