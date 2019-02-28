@@ -199,7 +199,6 @@ protected:
   {
   public:
     ControlPointsPipeline();
-    virtual ~ControlPointsPipeline();
 
     /// Specify the glyph that is displayed at each control point position.
     /// Keep in mind that the shape will be

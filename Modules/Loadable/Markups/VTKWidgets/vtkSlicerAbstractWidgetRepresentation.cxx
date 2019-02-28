@@ -128,10 +128,6 @@ vtkSlicerAbstractWidgetRepresentation::ControlPointsPipeline::ControlPointsPipel
 
 };
 
-vtkSlicerAbstractWidgetRepresentation::ControlPointsPipeline::~ControlPointsPipeline()
-{
-}
-
 //----------------------------------------------------------------------
 vtkSlicerAbstractWidgetRepresentation::vtkSlicerAbstractWidgetRepresentation()
 {

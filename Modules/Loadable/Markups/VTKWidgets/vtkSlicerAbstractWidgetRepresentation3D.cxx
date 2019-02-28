@@ -125,10 +125,6 @@ vtkSlicerAbstractWidgetRepresentation3D::ControlPointsPipeline3D::ControlPointsP
   this->LabelsActor->DragableOff();
 };
 
-vtkSlicerAbstractWidgetRepresentation3D::ControlPointsPipeline3D::~ControlPointsPipeline3D()
-{
-}
-
 //----------------------------------------------------------------------
 vtkSlicerAbstractWidgetRepresentation3D::vtkSlicerAbstractWidgetRepresentation3D()
 {

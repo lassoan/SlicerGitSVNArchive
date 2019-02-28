@@ -111,9 +111,6 @@ vtkSlicerAbstractWidgetRepresentation2D::ControlPointsPipeline2D::ControlPointsP
   this->LabelsActor->SetMapper(this->LabelsMapper);
 }
 
-vtkSlicerAbstractWidgetRepresentation2D::ControlPointsPipeline2D::~ControlPointsPipeline2D()
-{
-}
 
 //----------------------------------------------------------------------
 vtkSlicerAbstractWidgetRepresentation2D::vtkSlicerAbstractWidgetRepresentation2D()

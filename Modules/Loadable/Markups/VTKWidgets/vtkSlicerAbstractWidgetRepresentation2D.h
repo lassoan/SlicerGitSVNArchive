@@ -112,7 +112,6 @@ protected:
   {
   public:
     ControlPointsPipeline2D();
-    virtual ~ControlPointsPipeline2D();
 
     vtkSmartPointer<vtkActor2D> Actor;
     vtkSmartPointer<vtkOpenGLPolyDataMapper2D> Mapper;
