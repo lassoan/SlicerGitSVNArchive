@@ -57,36 +57,7 @@ public:
   /// Get the sliceNode, if registered. This would mean it is a 2D SliceView displayableManager.
   vtkMRMLSliceNode * GetMRMLSliceNode();
 
-  /// Check if the displayCoordinates are inside the viewport and if not,
-  /// correct the displayCoordinates. Coordinates are reset if the normalized
-  /// viewport coordinates are less than 0.001 or greater than 0.999 and are
-  /// reset to those values.
-  /// If the coordinates have been reset, return true, otherwise return false.
-  bool RestrictDisplayCoordinatesToViewport(double* displayCoordinates);
-
-  /// Check if there are real changes between two sets of displayCoordinates
-  bool GetDisplayCoordinatesChanged(double * displayCoordinates1, double * displayCoordinates2);
-
-  /// Check if there are real changes between two sets of worldCoordinates
-  bool GetWorldCoordinatesChanged(double * worldCoordinates1, double * worldCoordinates2);
-
-  /// Convert display to world coordinates
-  void GetDisplayToWorldCoordinates(double x, double y, double * worldCoordinates);
-  void GetDisplayToWorldCoordinates(double * displayCoordinates, double * worldCoordinates);
-
-  /// Convert world coordinates to local using mrml parent transform
-  virtual void GetWorldToLocalCoordinates(vtkMRMLMarkupsNode *node,
-                                  double *worldCoordinates, double *localCoordinates);
-
-  /// Set mrml parent transform to widgets
-  virtual void SetParentTransformToWidget(vtkMRMLMarkupsNode *vtkNotUsed(node), vtkAbstractWidget *vtkNotUsed(widget)){}
-
   vtkMRMLMarkupsDisplayableManagerHelper *  GetHelper() { return this->Helper; };
-
-  /// Checks if this 2D displayable manager is in light box mode. Returns true
-  /// if there is a slice node and it has grid columns or rows greater than 1,
-  /// and false otherwise.
-  bool IsInLightboxMode();
 
   bool CanProcessInteractionEvent(vtkMRMLInteractionEventData* eventData, double &closestDistance2) VTK_OVERRIDE;
   void ProcessInteractionEvent(vtkMRMLInteractionEventData* eventData) VTK_OVERRIDE;
@@ -97,19 +68,11 @@ public:
 
   // Updates markup point preview position.
   // Returns true if the event is processed.
-  bool UpdatePointPlacePreview(const int displayPosition[2], const double worldPosition[3]);
+  vtkSlicerAbstractWidget* GetWidgetForPlacement();
 
-  // Remove previewed markup point.
-  // Returns true if the event is processed.
-  bool RemovePointPlacePreview();
-
-  vtkMRMLMarkupsNode* GetActiveMarkupsNode(bool forPlacement=false);
+  vtkMRMLMarkupsNode* GetActiveMarkupsNodeForPlacement();
 
   int GetCurrentInteractionMode();
-
-  // Places a new markup point.
-  // Returns true if the event is processed.
-  bool PlacePoint(const int displayPosition[2], const double worldPosition[3], std::string associatedNodeID);
 
   // Methods from vtkMRMLAbstractSliceViewDisplayableManager
 
@@ -156,15 +119,6 @@ protected:
   /// Observe the interaction node.
   void AddObserversToInteractionNode();
   void RemoveObserversFromInteractionNode();
-
-  /// enum for action at click events
-  enum {AddPoint = 0,AddPreview,RemovePreview};
-
-  std::string GetAssociatedNodeID(vtkMRMLInteractionEventData* eventData);
-
-  /// Convert display to viewport coordinates
-  void GetDisplayToViewportCoordinates(double x, double y, double * viewportCoordinates);
-  void GetDisplayToViewportCoordinates(double *displayCoordinates, double * viewportCoordinates);
 
   /// Get the widget of a node.
   vtkSlicerAbstractWidget* GetWidget(vtkMRMLMarkupsDisplayNode * node);

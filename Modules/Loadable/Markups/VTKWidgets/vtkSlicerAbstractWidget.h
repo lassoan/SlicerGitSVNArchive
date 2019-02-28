@@ -48,11 +48,12 @@
 #include "vtkMRMLMarkupsNode.h"
 
 class vtkMRMLAbstractViewNode;
-class vtkSlicerAbstractWidgetRepresentation;
+class vtkMRMLApplicationLogic;
 class vtkMRMLInteractionEventData;
-class vtkPolyData;
+class vtkMRMLInteractionNode;
 class vtkIdList;
-
+class vtkPolyData;
+class vtkSlicerAbstractWidgetRepresentation;
 
 class VTK_SLICER_MARKUPS_MODULE_VTKWIDGETS_EXPORT vtkSlicerAbstractWidget : public vtkObject
 {
@@ -63,6 +64,9 @@ public:
 
   /// Create the default widget representation and initializes the widget and representation.
   virtual void CreateDefaultRepresentation(vtkMRMLMarkupsDisplayNode* markupsDisplayNode, vtkMRMLAbstractViewNode* viewNode, vtkRenderer* renderer) = 0;
+
+  void SetMRMLApplicationLogic(vtkMRMLApplicationLogic* applicationLogic);
+  vtkMRMLApplicationLogic* GetMRMLApplicationLogic();
 
   /// Set the representation.
   /// The widget takes over the ownership of this actor.
@@ -79,15 +83,6 @@ public:
 
   /// Convenient method to determine the state of the method
   vtkGetMacro(WidgetState,int);
-
-  /// During definition, the last node of the
-  /// contour will automatically follow the cursor, without waiting for the
-  /// point to be dropped. This is useful for some interpolators, such as the
-  /// live-wire interpolator to see the shape of the contour that will be placed
-  /// as you move the mouse cursor.
-  vtkSetMacro(FollowCursor, vtkTypeBool);
-  vtkGetMacro(FollowCursor, vtkTypeBool);
-  vtkBooleanMacro(FollowCursor, vtkTypeBool);
 
   /// Convenient method to remap the horizonbtal axes constrain key.
   vtkSetMacro(HorizontalActiveKeyCode, const char);
@@ -141,19 +136,22 @@ public:
     // Other actions
     WidgetMenu, // show context menu
     WidgetReset, // reset widget to initial state (clear all points)
-
-
   };
 
-  /// Add a point preview to the current active Markup at input World coordiantes.
-  int AddPreviewPointToRepresentationFromWorldCoordinate(const double worldCoordinates [3]);
+  // Returns true if one of the markup points are just being previewed and not placed yet.
+  bool IsPointPreviewed();
 
-  /// Add/update preview point position
-  void UpdatePreviewPointPositionFromWorldCoordinate(const double worldCoordinates[3]);
+  /// Add/update a point preview to the current active Markup at the specified position.
+  void UpdatePreviewPoint(const int displayPos[2], const double worldPos[3]);
 
   /// Remove the point preview to the current active Markup.
   /// Returns true is preview point existed and now it is removed.
   bool RemovePreviewPoint();
+
+  // Places a new markup point.
+  // Reuses current preview point, if possible.
+  // Returns true if the event is processed.
+  bool PlacePoint(vtkMRMLInteractionEventData* eventData);
 
   /// Add a point to the current active Markup at input World coordiantes.
   virtual int AddPointFromWorldCoordinate(const double worldCoordinates[3]);
@@ -181,6 +179,8 @@ public:
 
   void SetRenderer(vtkRenderer* renderer);
   vtkGetMacro(Renderer, vtkRenderer*);
+
+  vtkMRMLInteractionNode* GetInteractionNode();
 
   // Allows the widget to request a cursor shape
   virtual int GetCursor();
@@ -214,14 +214,6 @@ protected:
   void StartWidgetInteraction(vtkMRMLInteractionEventData* eventData);
   void EndWidgetInteraction();
 
-  /// Set the nth node's display position. Display position
-  /// will be converted into world position according to the
-  /// constraints of the point placer. Will return
-  /// 1 on success, or 0 if there are not at least
-  /// (n+1) nodes (0 based counting) or the world position
-  /// is not valid.
-  virtual int SetNthNodeDisplayPosition(int n, const int pos[2]);
-
   virtual void TranslateNode(double eventPos[2]);
   virtual void TranslateWidget(double eventPos[2]);
   virtual void ScaleWidget(double eventPos[2]);
@@ -229,7 +221,11 @@ protected:
 
   bool IsAnyControlPointLocked();
 
+  std::string GetAssociatedNodeID(vtkMRMLInteractionEventData* eventData);
+
   vtkRenderer* Renderer;
+
+  vtkMRMLApplicationLogic* ApplicationLogic;
 
   // Translates interaction event to widget event.
   // In the future, a vector of event translators could be added
@@ -238,7 +234,10 @@ protected:
   vtkSmartPointer<vtkWidgetEventTranslator> EventTranslator;
 
   int WidgetState;
-  vtkTypeBool FollowCursor;
+
+  /// Index of the control point that is currently being previewed (follows the mouse pointer).
+  /// If <0 it means that there is currently no point being previewed.
+  int PreviewPointIndex;
 
   // Callback interface to capture events when
   // placing the widget.

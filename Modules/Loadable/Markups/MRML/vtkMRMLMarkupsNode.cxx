@@ -822,6 +822,8 @@ void vtkMRMLMarkupsNode::SetNthControlPointPosition(const int pointIndex,
 
   // TODO: return if no modification
 
+  std::cout << "MRML node internal position: " << x << ",  " << y << ",  " << z << std::endl;
+
   this->GetNthControlPoint(pointIndex)->Position.Set(x, y, z);
 
   vtkPoints* points = this->CurveInputPoly->GetPoints();
