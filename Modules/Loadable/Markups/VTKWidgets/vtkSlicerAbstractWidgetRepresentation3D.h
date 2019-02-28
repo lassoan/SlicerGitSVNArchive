@@ -92,6 +92,7 @@ protected:
   {
   public:
     ControlPointsPipeline3D();
+    virtual ~ControlPointsPipeline3D();
 
     vtkSmartPointer<vtkSelectVisiblePoints> SelectVisiblePoints;
     vtkSmartPointer<vtkOpenGLActor> Actor;

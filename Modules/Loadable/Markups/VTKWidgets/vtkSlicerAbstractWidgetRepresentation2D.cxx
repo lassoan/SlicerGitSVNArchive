@@ -27,7 +27,6 @@
 #include "vtkObjectFactory.h"
 #include "vtkMath.h"
 #include "vtkInteractorObserver.h"
-#include "vtkIncrementalOctreePointLocator.h"
 #include "vtkLine.h"
 #include "vtkCoordinate.h"
 #include "vtkGlyph2D.h"
@@ -108,10 +107,13 @@ vtkSlicerAbstractWidgetRepresentation2D::ControlPointsPipeline2D::ControlPointsP
   // in that way we would not need the addtional copy of the polydata in LabelFocalData (in Viewport coordinates)
   // However the LabelsMapper seems not working with the Display coordiantes.
   this->LabelsMapper->GetAnchorTransform()->SetCoordinateSystemToNormalizedViewport();
-  this->LabelsActor = vtkActor2D::New();
+  this->LabelsActor = vtkSmartPointer<vtkActor2D>::New();
   this->LabelsActor->SetMapper(this->LabelsMapper);
 }
 
+vtkSlicerAbstractWidgetRepresentation2D::ControlPointsPipeline2D::~ControlPointsPipeline2D()
+{
+}
 
 //----------------------------------------------------------------------
 vtkSlicerAbstractWidgetRepresentation2D::vtkSlicerAbstractWidgetRepresentation2D()
@@ -335,46 +337,6 @@ void vtkSlicerAbstractWidgetRepresentation2D::SetCenterSliceVisibility(bool visi
 {
   this->CenterVisibilityOnSlice = visibility;
   this->Modified();
-}
-
-//----------------------------------------------------------------------
-void vtkSlicerAbstractWidgetRepresentation2D::BuildLocator()
-{
-  if (!this->RebuildLocator && !this->NeedToRender)
-    {
-    return;
-    }
-
-  vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
-  if (!markupsNode)
-    {
-    return;
-    }
-
-  vtkIdType size = markupsNode->GetNumberOfControlPoints();
-  if (size < 1)
-    {
-    return;
-    }
-
-  vtkPoints *points = vtkPoints::New();
-  points->SetNumberOfPoints(size);
-
-  double pos[3] = {0,0,0};
-  for(int i = 0; i < size; i++)
-    {
-    this->GetNthNodeDisplayPosition(i, pos);
-    points->InsertPoint(i,pos);
-    }
-
-  vtkPolyData *tmp = vtkPolyData::New();
-  tmp->SetPoints(points);
-  this->Locator->SetDataSet(tmp);
-  tmp->FastDelete();
-  points->FastDelete();
-
-  //we fully updated the display locator
-  this->RebuildLocator = false;
 }
 
 //----------------------------------------------------------------------

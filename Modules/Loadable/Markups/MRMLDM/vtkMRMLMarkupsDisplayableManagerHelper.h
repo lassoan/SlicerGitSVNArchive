@@ -80,22 +80,6 @@ public:
   typedef std::set < vtkSmartPointer<vtkMRMLMarkupsNode> >::iterator MarkupsNodesIt;
   MarkupsNodesType MarkupsNodes; // observed markups nodes
 
-
-  //----------------------------------------------------------------------------------
-
-  /*
-  /// Get the seed glyph type for the given display node.
-  /// Returns -1 if not found
-  int GetNodeGlyphType(vtkMRMLNode *displayNode, int index);
-  /// Set the glyph type for the given display node, making a new entry if the
-  /// display node or the index are out of bounds
-  void SetNodeGlyphType(vtkMRMLNode *displayNode, int glyphType, int index);
-  /// Remove the entry for this display node
-  void RemoveNodeGlyphType(vtkMRMLNode *displayNode);
-  /// Clear out the saved list of glyph types, called on scene close or node removed
-  void ClearNodeGlyphTypes();
-  */
-
   void AddMarkupsNode(vtkMRMLMarkupsNode* node);
   void RemoveMarkupsNode(vtkMRMLMarkupsNode* node);
   void AddDisplayNode(vtkMRMLMarkupsDisplayNode* displayNode);
@@ -110,9 +94,6 @@ protected:
 
   vtkMRMLMarkupsDisplayableManagerHelper();
   virtual ~vtkMRMLMarkupsDisplayableManagerHelper();
-
-  /// utility method to print out the current glyph types
-  void PrintNodeGlyphTypes();
 
 private:
 

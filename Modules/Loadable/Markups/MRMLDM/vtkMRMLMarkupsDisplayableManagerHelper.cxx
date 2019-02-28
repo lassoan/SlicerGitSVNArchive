@@ -53,8 +53,6 @@
 
 //---------------------------------------------------------------------------
 vtkStandardNewMacro (vtkMRMLMarkupsDisplayableManagerHelper);
-vtkCxxSetObjectMacro(vtkMRMLMarkupsDisplayableManagerHelper, DisplayableManager, vtkMRMLMarkupsDisplayableManager);
-
 
 //---------------------------------------------------------------------------
 vtkMRMLMarkupsDisplayableManagerHelper::vtkMRMLMarkupsDisplayableManagerHelper()
@@ -75,6 +73,7 @@ vtkMRMLMarkupsDisplayableManagerHelper::vtkMRMLMarkupsDisplayableManagerHelper()
 vtkMRMLMarkupsDisplayableManagerHelper::~vtkMRMLMarkupsDisplayableManagerHelper()
 {
   this->RemoveAllWidgetsAndNodes();
+  this->SetDisplayableManager(NULL);
 }
 
 //---------------------------------------------------------------------------
@@ -170,96 +169,15 @@ void vtkMRMLMarkupsDisplayableManagerHelper::RemoveAllWidgetsAndNodes()
     widgetIterator->second->Delete();
     }
   this->MarkupsDisplayNodesToWidgets.clear();
-  // TODO: remove observers and MarkupsToDisplayNodes
-}
 
-/*
-//---------------------------------------------------------------------------
-int vtkMRMLMarkupsDisplayableManagerHelper::GetNodeGlyphType(vtkMRMLNode *displayNode, int index)
-{
-  std::map<vtkMRMLNode*, std::vector<int> >::iterator iter  = this->NodeGlyphTypes.find(displayNode);
-  if (iter == this->NodeGlyphTypes.end())
+  MarkupsNodesIt markupsIterator = this->MarkupsNodes.begin();
+  for (markupsIterator = this->MarkupsNodes.begin();
+    markupsIterator != this->MarkupsNodes.end();
+    ++markupsIterator)
     {
-    // no record for this node
-    return -1;
-    }
-  if (index < 0 || iter->second.size() <= static_cast<unsigned int> (index))
-    {
-    // no entry for this index
-    return -1;
-    }
-  return iter->second[static_cast<size_t> (index)];
-}
-
-//---------------------------------------------------------------------------
-void vtkMRMLMarkupsDisplayableManagerHelper::SetNodeGlyphType(vtkMRMLNode *displayNode, int glyphType, int index)
-{
-  if (!displayNode)
-    {
-    return;
-    }
-  // is there already an entry for this node?
-  std::map<vtkMRMLNode*, std::vector<int> >::iterator iter  = this->NodeGlyphTypes.find(displayNode);
-  if (iter == this->NodeGlyphTypes.end())
-    {
-    // no? add one
-    std::vector<int> newEntry;
-    newEntry.resize(static_cast<size_t> (index + 1));
-    newEntry.at(static_cast<size_t> (index)) = glyphType;
-    this->NodeGlyphTypes[displayNode] = newEntry;
-    return;
-    }
-
-  // is there already an entry at this index?
-  if (iter->second.size() <= static_cast<unsigned int> (index))
-    {
-    // no? add space
-    this->NodeGlyphTypes[displayNode].resize(static_cast<size_t> (index + 1));
-    }
-  // set it
-  this->NodeGlyphTypes[displayNode].at(static_cast<size_t> (index)) = glyphType;
-}
-
-//---------------------------------------------------------------------------
-void vtkMRMLMarkupsDisplayableManagerHelper::RemoveNodeGlyphType(vtkMRMLNode *displayNode)
-{
-  if (!displayNode)
-    {
-    return;
-    }
-  // is there an entry for this node?
-  std::map<vtkMRMLNode*, std::vector<int> >::iterator iter  = this->NodeGlyphTypes.find(displayNode);
-  if (iter == this->NodeGlyphTypes.end())
-    {
-    return;
-    }
-  // erase it
-  this->NodeGlyphTypes.erase(iter);
-}
-
-//---------------------------------------------------------------------------
-void vtkMRMLMarkupsDisplayableManagerHelper::ClearNodeGlyphTypes()
-{
-  this->NodeGlyphTypes.clear();
-}
-
-//---------------------------------------------------------------------------
-void vtkMRMLMarkupsDisplayableManagerHelper::PrintNodeGlyphTypes()
-{
-  std::cout << "Node Glyph Types:" << std::endl;
-  for (std::map<vtkMRMLNode*, std::vector<int> >::iterator iter  = this->NodeGlyphTypes.begin();
-       iter !=  this->NodeGlyphTypes.end();
-       iter++)
-    {
-    std::cout << "\tDisplay node " << iter->first->GetID() << ": " << iter->first->GetName() << std::endl;
-    for (unsigned int i = 0; i < iter->second.size(); i++)
-      {
-      std::cout << "\t\t" << i << " glyph type = " << iter->second[i] << std::endl;
-      }
+    this->RemoveObservations(*markupsIterator);
     }
 }
-*/
-
 
 //---------------------------------------------------------------------------
 void vtkMRMLMarkupsDisplayableManagerHelper::AddMarkupsNode(vtkMRMLMarkupsNode* node)
@@ -420,7 +338,8 @@ void vtkMRMLMarkupsDisplayableManagerHelper::DeleteWidget(vtkSlicerAbstractWidge
   {
     return;
   }
-  // TODO: remove vtkMarkupsFiducialWidgetCallback2D observers
+  widget->SetRenderer(NULL);
+  widget->SetRepresentation(NULL);
   widget->Delete();
 }
 
@@ -449,4 +368,10 @@ void vtkMRMLMarkupsDisplayableManagerHelper::RemoveObservations(vtkMRMLMarkupsNo
     observations = broker->GetObservations(node, observedMarkupNodeEvent, this, callbackCommand);
     broker->RemoveObservations(observations);
   }
+}
+
+//---------------------------------------------------------------------------
+void vtkMRMLMarkupsDisplayableManagerHelper::SetDisplayableManager(vtkMRMLMarkupsDisplayableManager* displayableManager)
+{
+  this->DisplayableManager = displayableManager;
 }

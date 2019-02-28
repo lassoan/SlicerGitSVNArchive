@@ -72,30 +72,6 @@
 #include <sstream>
 #include <string>
 
-/*
-
-#include <vtkMarkupsGlyphSource2D.h>
-
-// VTK includes
-#include <vtkFollower.h>
-#include <vtkHandleRepresentation.h>
-#include <vtkInteractorStyle.h>
-#include <vtkMath.h>
-#include <vtkNew.h>
-#include <vtkObjectFactory.h>
-#include <vtkOrientedPolygonalHandleRepresentation3D.h>
-#include <vtkPickingManager.h>
-#include <vtkPointHandleRepresentation2D.h>
-#include <vtkProperty2D.h>
-#include <vtkProperty.h>
-#include <vtkRenderer.h>
-#include <vtkRenderWindowInteractor.h>
-#include <vtkSmartPointer.h>
-#include <vtkSphereSource.h>
-
-
-*/
-
 typedef void (*fp)(void);
 
 #define NUMERIC_ZERO 0.001

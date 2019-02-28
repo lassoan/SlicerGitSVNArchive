@@ -55,7 +55,6 @@ class vtkMarkupsGlyphSource2D;
 class vtkPolyData;
 class vtkPoints;
 
-class vtkIncrementalOctreePointLocator;
 class vtkPointPlacer;
 class vtkPolyData;
 class vtkIdList;
@@ -132,7 +131,7 @@ public:
   virtual vtkMRMLMarkupsNode::ControlPoint *GetNthNode(int n);
 
   /// Specify tolerance for performing pick operations of points
-  /// (by the locator, see ActivateNode).
+  /// (see ActivateNode).
   /// Tolerance is defined in terms of percentage of the handle size.
   /// Default value is 0.5
   vtkSetMacro(Tolerance, double);
@@ -196,16 +195,11 @@ protected:
   // The renderer in which this widget is placed
   vtkWeakPointer<vtkRenderer> Renderer;
 
-  /*
-  vtkSmartPointer<vtkObserverManager> MRMLObserverManager;
-  vtkSmartPointer<vtkIntArray> ObservedNodeEvents;
-  bool InMRMLNodesCallbackFlag;
-  */
-
   class ControlPointsPipeline
   {
   public:
     ControlPointsPipeline();
+    virtual ~ControlPointsPipeline();
 
     /// Specify the glyph that is displayed at each control point position.
     /// Keep in mind that the shape will be
@@ -279,10 +273,6 @@ protected:
       mid[2] = (p1[2] + p2[2])/2;
   }
 
-  // Adding a point locator to the representation to speed
-  // up lookup of the active node when dealing with large datasets (100k+)
-  vtkSmartPointer<vtkIncrementalOctreePointLocator> Locator;
-
   vtkWeakPointer<vtkMRMLAbstractViewNode> ViewNode;
 
   // Calculate view scale factor
@@ -291,10 +281,6 @@ protected:
   double ViewScaleFactor;
 
   void UpdateRelativeCoincidentTopologyOffsets(vtkMapper* mapper);
-
-  virtual void BuildLocator();
-
-  bool RebuildLocator;
 
   enum
   {

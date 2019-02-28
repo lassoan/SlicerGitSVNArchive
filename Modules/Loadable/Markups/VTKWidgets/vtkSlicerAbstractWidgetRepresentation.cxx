@@ -32,7 +32,6 @@
 #include "vtkAssemblyPath.h"
 #include "vtkMath.h"
 #include "vtkInteractorObserver.h"
-#include "vtkIncrementalOctreePointLocator.h"
 #include "vtkLine.h"
 #include "vtkCoordinate.h"
 #include "vtkCursor2D.h"
@@ -129,6 +128,10 @@ vtkSlicerAbstractWidgetRepresentation::ControlPointsPipeline::ControlPointsPipel
 
 };
 
+vtkSlicerAbstractWidgetRepresentation::ControlPointsPipeline::~ControlPointsPipeline()
+{
+}
+
 //----------------------------------------------------------------------
 vtkSlicerAbstractWidgetRepresentation::vtkSlicerAbstractWidgetRepresentation()
 {
@@ -137,13 +140,8 @@ vtkSlicerAbstractWidgetRepresentation::vtkSlicerAbstractWidgetRepresentation()
   this->ControlPointSize = 3.0;
   this->Tolerance                = 2.0;
   this->PixelTolerance           = 1;
-  this->Locator                  = nullptr;
   this->NeedToRender             = false;
   this->ClosedLoop               = 0;
-
-  this->Locator = vtkSmartPointer<vtkIncrementalOctreePointLocator>::New();
-  this->Locator->SetBuildCubicOctree(1);
-  this->RebuildLocator = true;
 
   this->PointPlacer = vtkSmartPointer<vtkFocalPlanePointPlacer>::New();
 
@@ -165,7 +163,6 @@ vtkSlicerAbstractWidgetRepresentation::~vtkSlicerAbstractWidgetRepresentation()
     this->ControlPoints[i] = nullptr;
   }
   // Force deleting variables to prevent circular dependency keeping objects alive
-  this->Locator = NULL;
   this->PointPlacer = NULL;
 }
 
@@ -252,26 +249,6 @@ vtkMRMLMarkupsNode::ControlPoint* vtkSlicerAbstractWidgetRepresentation::GetNthN
   }
   return markupsNode->GetNthControlPoint(n);
 }
-
-/*
-//----------------------------------------------------------------------
-int vtkSlicerAbstractWidgetRepresentation::SetNthNodeWorldPosition(int n, const double worldPos[3])
-{
-  if (!this->NodeExists(n))
-    {
-    return 0;
-    }
-
-  // Check if this is a valid location
-  if (!this->PointPlacer->ValidateWorldPosition((double*)worldPos))
-    {
-    return 0;
-    }
-
-  this->SetNthNodeWorldPositionInternal(n, worldPos);
-  return 1;
-}
-*/
 
 //----------------------------------------------------------------------
 int vtkSlicerAbstractWidgetRepresentation::FindClosestPointOnWidget(
@@ -428,104 +405,6 @@ void vtkSlicerAbstractWidgetRepresentation
 }
 
 //----------------------------------------------------------------------
-void vtkSlicerAbstractWidgetRepresentation::BuildLocator()
-{
-  vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
-  if (!markupsNode)
-    {
-    return;
-    }
-  if (!this->RebuildLocator && !this->NeedToRender)
-    {
-    return;
-    }
-
-  int size = markupsNode->GetNumberOfControlPoints();
-  if (size < 1)
-    {
-    return;
-    }
-
-  vtkPoints *points = vtkPoints::New();
-  points->SetNumberOfPoints(size);
-
-  //setup up the matrixes needed to transform
-  //world to display. We are going to do this manually
-  // as calling the renderer will create a new matrix for each call
-  vtkMatrix4x4 *matrix = vtkMatrix4x4::New();
-  matrix->DeepCopy(this->Renderer->GetActiveCamera()
-    ->GetCompositeProjectionTransformMatrix(
-    this->Renderer->GetTiledAspectRatio(),0,1));
-
-  //viewport info
-  double viewPortRatio[2];
-  int sizex,sizey;
-
-  /* get physical window dimensions */
-  if (this->Renderer->GetVTKWindow())
-    {
-    double *viewPort = this->Renderer->GetViewport();
-    sizex = this->Renderer->GetVTKWindow()->GetSize()[0];
-    sizey = this->Renderer->GetVTKWindow()->GetSize()[1];
-    viewPortRatio[0] = (sizex * (viewPort[2] - viewPort[0])) / 2.0 +
-        sizex*viewPort[0];
-    viewPortRatio[1] = (sizey * (viewPort[3] - viewPort[1])) / 2.0 +
-        sizey*viewPort[1];
-    }
-  else
-    {
-    //can't compute the locator without a vtk window
-    return;
-    }
-
-  double view[4];
-  double pos[3] = {0,0,0};
-  double *wp;
-  for (int i = 0; i < size; i++)
-    {
-    if (!markupsNode->ControlPointExists(i))
-      {
-      continue;
-      }
-    vtkVector3d worldPos;
-    markupsNode->TransformPointToWorld(this->GetNthNode(i)->Position, worldPos);
-    double* wp = worldPos.GetData();
-
-    //convert from world to view
-    view[0] = wp[0]*matrix->Element[0][0] + wp[1]*matrix->Element[0][1] +
-      wp[2]*matrix->Element[0][2] + matrix->Element[0][3];
-    view[1] = wp[0]*matrix->Element[1][0] + wp[1]*matrix->Element[1][1] +
-      wp[2]*matrix->Element[1][2] + matrix->Element[1][3];
-    view[2] = wp[0]*matrix->Element[2][0] + wp[1]*matrix->Element[2][1] +
-      wp[2]*matrix->Element[2][2] + matrix->Element[2][3];
-    view[3] = wp[0]*matrix->Element[3][0] + wp[1]*matrix->Element[3][1] +
-      wp[2]*matrix->Element[3][2] + matrix->Element[3][3];
-    if (view[3] != 0.0)
-      {
-      pos[0] = view[0] / view[3];
-      pos[1] = view[1] / view[3];
-      }
-
-    //now from view to display
-    pos[0] = (pos[0] + 1.0) * viewPortRatio[0];
-    pos[1] = (pos[1] + 1.0) * viewPortRatio[1];
-    pos[2] = 0;
-
-    points->InsertPoint(i, pos);
-    }
-
-  matrix->Delete();
-  vtkPolyData *tmp = vtkPolyData::New();
-  tmp->SetPoints(points);
-  this->Locator->SetDataSet(tmp);
-  tmp->Delete();
-  points->Delete();
-
-  //we fully updated the display locator
-  this->RebuildLocator = false;
-}
-
-//----------------------------------------------------------------------
 void vtkSlicerAbstractWidgetRepresentation::UpdateCenter()
 {
   vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
@@ -634,8 +513,6 @@ void vtkSlicerAbstractWidgetRepresentation::PrintSelf(ostream& os,
   this->Superclass::PrintSelf(os, indent);
 
   os << indent << "Tolerance: " << this->Tolerance <<"\n";
-  os << indent << "Rebuild Locator: " <<
-     (this->RebuildLocator ? "On" : "Off") << endl;
 
   os << indent << "Current Operation: ";
 

@@ -112,6 +112,7 @@ protected:
   {
   public:
     ControlPointsPipeline2D();
+    virtual ~ControlPointsPipeline2D();
 
     vtkSmartPointer<vtkActor2D> Actor;
     vtkSmartPointer<vtkOpenGLPolyDataMapper2D> Mapper;
@@ -132,7 +133,6 @@ protected:
   double ScaleFactor2D;
 
   virtual void UpdateAllPointsAndLabelsFromMRML(double labelsOffset);
-  void BuildLocator() VTK_OVERRIDE;
 
 private:
   vtkSlicerAbstractWidgetRepresentation2D(const vtkSlicerAbstractWidgetRepresentation2D&) = delete;
