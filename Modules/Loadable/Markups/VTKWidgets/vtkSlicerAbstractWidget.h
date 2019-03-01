@@ -214,7 +214,7 @@ protected:
   void StartWidgetInteraction(vtkMRMLInteractionEventData* eventData);
   void EndWidgetInteraction();
 
-  virtual void TranslateNode(double eventPos[2]);
+  virtual void TranslatePoint(double eventPos[2]);
   virtual void TranslateWidget(double eventPos[2]);
   virtual void ScaleWidget(double eventPos[2]);
   virtual void RotateWidget(double eventPos[2]);
@@ -222,6 +222,11 @@ protected:
   bool IsAnyControlPointLocked();
 
   std::string GetAssociatedNodeID(vtkMRMLInteractionEventData* eventData);
+
+  // Get accurate world position.
+  // World position that comes in the event data may be inaccurate, this method computes a more reliable position.
+  // Returns true on success.
+  bool ConvertDisplayPositionToWorld(const int displayPos[2], double worldPos[3], double worldOrientation[4]);
 
   vtkRenderer* Renderer;
 

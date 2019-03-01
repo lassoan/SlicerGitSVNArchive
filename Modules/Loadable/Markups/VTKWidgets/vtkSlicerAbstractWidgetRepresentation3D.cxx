@@ -682,7 +682,6 @@ bool vtkSlicerAbstractWidgetRepresentation3D::AccuratePick(int x, int y, double 
   this->Renderer->GetActiveCamera()->GetPosition(cameraPosition);
   pickPositions->GetPoint(0, pickPoint);
   double minDist2 = vtkMath::Distance2BetweenPoints(pickPoint, cameraPosition);
-  std::cout << "  Found position: [" << pickPoint[0] << ", " << pickPoint[1] << ", " << pickPoint[2] << "]    " << minDist2 << std::endl;
   for (int i = 1; i<numberOfPickedPositions; i++)
     {
     double currentMinDist2 = vtkMath::Distance2BetweenPoints(pickPositions->GetPoint(i), cameraPosition);

@@ -269,7 +269,7 @@ bool vtkSlicerAbstractWidget::ProcessMouseMove(vtkMRMLInteractionEventData* even
     };
     if (state == TranslateControlPoint)
     {
-      this->TranslateNode(eventPos);
+      this->TranslatePoint(eventPos);
     }
     else if (state == Translate)
     {
@@ -394,6 +394,38 @@ bool vtkSlicerAbstractWidget::ProcessWidgetJumpCursor(vtkMRMLInteractionEventDat
 }
 
 //-------------------------------------------------------------------------
+bool vtkSlicerAbstractWidget::ConvertDisplayPositionToWorld(const int displayPos[2], double worldPos[3], double worldOrientation[4])
+{
+  vtkSlicerAbstractWidgetRepresentation2D* rep2d = vtkSlicerAbstractWidgetRepresentation2D::SafeDownCast(this->WidgetRep);
+  vtkSlicerAbstractWidgetRepresentation3D* rep3d = vtkSlicerAbstractWidgetRepresentation3D::SafeDownCast(this->WidgetRep);
+  double doubleDisplayPos[3] = { static_cast<double>(displayPos[0]), static_cast<double>(displayPos[1]), 0.0 };
+  if (rep2d)
+    {
+    // 2D view
+    rep2d->GetSliceToWorldCoordinates(doubleDisplayPos, worldPos);
+    return true;
+    }
+  else
+    {
+    // 3D view
+    bool success = false;
+    if (rep3d->AccuratePick(displayPos[0], displayPos[1], worldPos))
+      {
+      return true;
+      }
+    // try default picker method
+    double worldOrientationMatrix[9] = { 0.0 };
+    if (this->WidgetRep->GetPointPlacer()->ComputeWorldPosition(this->Renderer,
+      doubleDisplayPos, worldPos, worldOrientationMatrix))
+      {
+      vtkMRMLMarkupsNode::FromWorldOrientToOrientationQuaternion(worldOrientationMatrix, worldOrientation);
+      return true;
+      }
+    }
+  return false;
+}
+
+//-------------------------------------------------------------------------
 void vtkSlicerAbstractWidget::UpdatePreviewPoint(const int displayPos[2], const double worldPos[3])
 {
   vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
@@ -405,44 +437,18 @@ void vtkSlicerAbstractWidget::UpdatePreviewPoint(const int displayPos[2], const 
   // Get accurate world position
   double accurateWorldPos[3] = { 0.0 };
   double accurateWorldOrientation[4] = { 0.0, 0.0, 0.0, 1.0 };
-  vtkSlicerAbstractWidgetRepresentation2D* rep2d = vtkSlicerAbstractWidgetRepresentation2D::SafeDownCast(this->WidgetRep);
-  vtkSlicerAbstractWidgetRepresentation3D* rep3d = vtkSlicerAbstractWidgetRepresentation3D::SafeDownCast(this->WidgetRep);
-  double doubleDisplayPos[3] = { static_cast<double>(displayPos[0]), static_cast<double>(displayPos[1]), 0.0 };
-  if (rep2d)
-  {
-    // 2D view
-    rep2d->GetSliceToWorldCoordinates(doubleDisplayPos, accurateWorldPos);
-  }
-  else
-  {
-    // 3D view
-    bool success = false;
-    success = rep3d->AccuratePick(displayPos[0], displayPos[1], accurateWorldPos);
-    if (!success)
+  if (!this->ConvertDisplayPositionToWorld(displayPos, accurateWorldPos, accurateWorldOrientation))
     {
-      // try default picker method
-      double accurateWorldOrientation9[9] = { 0.0 };
-      success = this->WidgetRep->GetPointPlacer()->ComputeWorldPosition(this->Renderer,
-        doubleDisplayPos, accurateWorldPos, accurateWorldOrientation9);
-      if (success)
-      {
-        vtkMRMLMarkupsNode::FromWorldOrientToOrientationQuaternion(accurateWorldOrientation9, accurateWorldOrientation);
-      }
+    accurateWorldPos[0] = worldPos[0];
+    accurateWorldPos[1] = worldPos[1];
+    accurateWorldPos[2] = worldPos[2];
     }
-    if (!success)
-    {
-      accurateWorldPos[0] = worldPos[0];
-      accurateWorldPos[1] = worldPos[1];
-      accurateWorldPos[2] = worldPos[2];
-    }
-  }
 
   // Add/update control point position and orientation
   if (this->PreviewPointIndex >= 0)
   {
     // update
     markupsNode->SetNthControlPointPositionWorldFromArray(this->PreviewPointIndex, accurateWorldPos);
-
   }
   else
   {
@@ -719,7 +725,7 @@ void vtkSlicerAbstractWidget::EndWidgetInteraction()
 }
 
 //----------------------------------------------------------------------
-void vtkSlicerAbstractWidget::TranslateNode(double eventPos[2])
+void vtkSlicerAbstractWidget::TranslatePoint(double eventPos[2])
 {
   vtkMRMLMarkupsNode* markupsNode = this->GetMarkupsNode();
   vtkMRMLMarkupsDisplayNode* markupsDisplayNode = this->GetMarkupsDisplayNode();
@@ -740,29 +746,25 @@ void vtkSlicerAbstractWidget::TranslateNode(double eventPos[2])
   double oldWorldPos[3];
   markupsNode->GetNthControlPointPositionWorld(activeControlPointIndex, oldWorldPos);
 
-  double worldPos[3], worldOrient[9];
-  vtkSlicerAbstractWidgetRepresentation2D* rep2d = vtkSlicerAbstractWidgetRepresentation2D::SafeDownCast(this->WidgetRep);
-  if (rep2d)
-  {
-    // 2D view
-    rep2d->GetSliceToWorldCoordinates(eventPos, worldPos);
-  }
-  else
-  {
-    // 3D view
-    if (!this->WidgetRep->GetPointPlacer()->ComputeWorldPosition(this->Renderer,
-      eventPos, oldWorldPos, worldPos,
-      worldOrient))
+  // Get accurate world position
+  int displayPos[2] = { int(eventPos[0] + 0.5), int(eventPos[1] + 0.5) };
+  double worldPos[3] = { 0.0 };
+  double worldOrient[4] = { 0.0, 0.0, 0.0, 1.0 };
+  if (!this->ConvertDisplayPositionToWorld(displayPos, worldPos, worldOrient))
     {
+    if (!this->WidgetRep->GetPointPlacer()->ComputeWorldPosition(this->Renderer, eventPos, oldWorldPos, worldPos, worldOrient))
+      {
       return;
+      }
     }
-  }
 
+  /*
   // Check if this is a valid location
   if (!this->WidgetRep->GetPointPlacer()->ValidateWorldPosition((double*)worldPos))
   {
     return;
   }
+  */
 
   markupsNode->SetNthControlPointPositionWorldFromArray(activeControlPointIndex, worldPos);
 }
@@ -1322,10 +1324,11 @@ bool vtkSlicerAbstractWidget::PlacePoint(vtkMRMLInteractionEventData* eventData)
   // interaction node so that don't end up back in place mode
   markupsNode->GetScene()->SaveStateForUndo();
 
-  // Create/add preview point (it will be converted to real point)
+  // Add/update preview point
   this->UpdatePreviewPoint(eventData->GetDisplayPosition(), eventData->GetWorldPosition());
   int controlPointIndex = this->PreviewPointIndex;
-  this->PreviewPointIndex = -1; // now this point is not a preview point anymore but a proper control point
+  // Convert the preview point to a proper control point
+  this->PreviewPointIndex = -1;
 
   // Save associated node ID
   std::string associatedNodeID = this->GetAssociatedNodeID(eventData);
@@ -1335,10 +1338,17 @@ bool vtkSlicerAbstractWidget::PlacePoint(vtkMRMLInteractionEventData* eventData)
   vtkMRMLInteractionNode *interactionNode = this->GetInteractionNode();
   if (interactionNode && !interactionNode->GetPlaceModePersistence()
     && markupsNode->GetNumberOfControlPoints() >= markupsNode->GetPreferredNumberOfControlPoints())
-  {
+    {
     vtkDebugMacro("End of one time place, place mode persistence = " << interactionNode->GetPlaceModePersistence());
     interactionNode->SetCurrentInteractionMode(vtkMRMLInteractionNode::ViewTransform);
-  }
+
+    // The mouse is over the control point and we are not in place mode anymore
+    if (this->GetMarkupsDisplayNode())
+      {
+      this->GetMarkupsDisplayNode()->SetActiveControlPoint(controlPointIndex);
+      }
+    this->WidgetState = OnWidget;
+    }
 
   return (controlPointIndex >= 0);
 }

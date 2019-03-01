@@ -75,11 +75,6 @@ void vtkThreeDViewInteractorStyle::PrintSelf(ostream& os, vtkIndent indent)
 //----------------------------------------------------------------------------
 void vtkThreeDViewInteractorStyle::OnKeyPress()
 {
-  if (this->ForwardInteractionEventToDisplayableManagers(vtkCommand::KeyPressEvent))
-    {
-    return;
-    }
-
   if(!this->CameraNode)
     {
     vtkErrorMacro("OnKeyPress: camera node is null");
@@ -186,37 +181,22 @@ void vtkThreeDViewInteractorStyle::OnKeyPress()
     {
     this->Dolly(0.8);
     }
-  else
-    {
-    this->Superclass::OnKeyPress();
-    }
 }
 
 //----------------------------------------------------------------------------
  void vtkThreeDViewInteractorStyle::OnKeyRelease()
 {
-  if (this->ForwardInteractionEventToDisplayableManagers(vtkCommand::KeyReleaseEvent))
-    {
-    return;
-    }
-
   std::string key = this->Interactor->GetKeySym();
 
   if (((key.find("Shift") != std::string::npos)) && this->ShiftKeyUsedForPreviousAction)
     {
     this->ShiftKeyUsedForPreviousAction = false;
     }
-  this->Superclass::OnKeyRelease();
 }
 
 //----------------------------------------------------------------------------
 void vtkThreeDViewInteractorStyle::OnChar()
 {
-  if (this->ForwardInteractionEventToDisplayableManagers(vtkCommand::CharEvent))
-    {
-    return;
-    }
-
   if (!this->Interactor->GetKeySym())
     {
     vtkErrorMacro("OnChar: could not retrieve KeySym");
@@ -237,8 +217,6 @@ void vtkThreeDViewInteractorStyle::OnChar()
 //----------------------------------------------------------------------------
 void vtkThreeDViewInteractorStyle::OnMouseMove()
 {
-  this->MouseMovedSinceButtonDown = true;
-
   int x = this->Interactor->GetEventPosition()[0];
   int y = this->Interactor->GetEventPosition()[1];
   int disabledModify = 0;
@@ -311,14 +289,6 @@ void vtkThreeDViewInteractorStyle::OnMouseMove()
             }
           }
         }
-      else
-        {
-        if (!this->ForwardInteractionEventToDisplayableManagers(vtkCommand::MouseMoveEvent))
-          {
-          // Displayable managers did not process it
-          this->Superclass::OnMouseMove();
-          }
-        }
       break;
     }
 
@@ -331,12 +301,6 @@ void vtkThreeDViewInteractorStyle::OnMouseMove()
 //----------------------------------------------------------------------------
 void vtkThreeDViewInteractorStyle::OnRightButtonDown()
 {
-  this->MouseMovedSinceButtonDown = false;
-  if (this->ForwardInteractionEventToDisplayableManagers(vtkCommand::RightButtonPressEvent))
-    {
-    return;
-    }
-
   this->FindPokedRenderer(this->Interactor->GetEventPosition()[0],
                           this->Interactor->GetEventPosition()[1]);
   if (this->CurrentRenderer == 0)
@@ -361,15 +325,6 @@ void vtkThreeDViewInteractorStyle::OnRightButtonUp()
         }
       break;
     }
-
-  if (!this->ForwardInteractionEventToDisplayableManagers(vtkCommand::RightButtonReleaseEvent))
-    {
-    this->InvokeEvent(vtkCommand::RightButtonReleaseEvent, nullptr);
-    }
-  if (!this->MouseMovedSinceButtonDown)
-    {
-    this->ForwardInteractionEventToDisplayableManagers(vtkMRMLInteractionEventData::RightButtonClickEvent);
-    }
 }
 
 //----------------------------------------------------------------------------
@@ -382,13 +337,6 @@ void vtkThreeDViewInteractorStyle::OnMiddleButtonDown()
     {
     return;
     }
-
-  this->MouseMovedSinceButtonDown = false;
-  if (this->ForwardInteractionEventToDisplayableManagers(vtkCommand::MiddleButtonPressEvent))
-    {
-    return;
-    }
-
   this->GrabFocus(this->EventCallbackCommand);
   this->StartPan();
 }
@@ -406,26 +354,11 @@ void vtkThreeDViewInteractorStyle::OnMiddleButtonUp()
         }
       break;
     }
-
-  if (!this->ForwardInteractionEventToDisplayableManagers(vtkCommand::MiddleButtonReleaseEvent))
-    {
-    this->InvokeEvent(vtkCommand::MiddleButtonReleaseEvent, nullptr);
-    }
-  if (!this->MouseMovedSinceButtonDown)
-    {
-    this->ForwardInteractionEventToDisplayableManagers(vtkMRMLInteractionEventData::MiddleButtonClickEvent);
-    }
 }
 
 //----------------------------------------------------------------------------
 void vtkThreeDViewInteractorStyle::OnLeftButtonDown()
 {
-  this->MouseMovedSinceButtonDown = false;
-  if (this->ForwardInteractionEventToDisplayableManagers(vtkCommand::LeftButtonPressEvent))
-    {
-    return;
-    }
-
   this->FindPokedRenderer(this->Interactor->GetEventPosition()[0],
                           this->Interactor->GetEventPosition()[1]);
   if (this->CurrentRenderer == 0)
@@ -575,25 +508,12 @@ void vtkThreeDViewInteractorStyle::OnLeftButtonUp()
         this->ReleaseFocus();
         }
       break;
-    default:
-      if (!this->ForwardInteractionEventToDisplayableManagers(vtkCommand::LeftButtonReleaseEvent))
-        {
-        this->InvokeEvent(vtkCommand::LeftButtonReleaseEvent, nullptr);
-        }
-      if (!this->MouseMovedSinceButtonDown)
-        {
-        this->ForwardInteractionEventToDisplayableManagers(vtkMRMLInteractionEventData::LeftButtonClickEvent);
-        }
     }
 }
 
 //----------------------------------------------------------------------------
 void vtkThreeDViewInteractorStyle::OnEnter()
 {
-  if (!this->ForwardInteractionEventToDisplayableManagers(vtkCommand::EnterEvent))
-    {
-    this->Superclass::OnEnter();
-    }
 }
 
 //----------------------------------------------------------------------------
@@ -610,10 +530,6 @@ void vtkThreeDViewInteractorStyle::OnLeave()
     {
     crosshairNode->SetCursorPositionInvalid();
     }
-  if (!this->ForwardInteractionEventToDisplayableManagers(vtkCommand::LeaveEvent))
-    {
-    this->Superclass::OnLeave();
-    }
 }
 
 //----------------------------------------------------------------------------
@@ -622,11 +538,6 @@ void vtkThreeDViewInteractorStyle::OnMouseWheelForward()
   this->FindPokedRenderer(this->Interactor->GetEventPosition()[0],
                           this->Interactor->GetEventPosition()[1]);
   if (this->CurrentRenderer == 0)
-    {
-    return;
-    }
-
-  if (this->ForwardInteractionEventToDisplayableManagers(vtkCommand::MouseWheelForwardEvent))
     {
     return;
     }
@@ -649,12 +560,6 @@ void vtkThreeDViewInteractorStyle::OnMouseWheelBackward()
     {
     return;
     }
-
-  if (this->ForwardInteractionEventToDisplayableManagers(vtkCommand::MouseWheelBackwardEvent))
-    {
-    return;
-    }
-
   this->GrabFocus(this->EventCallbackCommand);
   this->StartDolly();
   double factor = this->MotionFactor * -0.2 * this->MouseWheelMotionFactor;
@@ -667,24 +572,17 @@ void vtkThreeDViewInteractorStyle::OnMouseWheelBackward()
 //----------------------------------------------------------------------------
 void vtkThreeDViewInteractorStyle::OnExpose()
 {
-  if (this->ForwardInteractionEventToDisplayableManagers(vtkCommand::ExposeEvent))
-    {
-    return;
-    }
+  /*
   if ( this->GetModelDisplayableManager() != 0 )
     {
     this->GetModelDisplayableManager()->RequestRender();
     }
+    */
 }
 
 //----------------------------------------------------------------------------
 void vtkThreeDViewInteractorStyle::OnConfigure()
 {
-  if (this->ForwardInteractionEventToDisplayableManagers(vtkCommand::ConfigureEvent))
-    {
-    return;
-    }
-  this->Superclass::OnConfigure();
 }
 //----------------------------------------------------------------------------
 void vtkThreeDViewInteractorStyle::SetDisplayableManagers(vtkMRMLDisplayableManagerGroup* displayableManagerGroup)
@@ -1105,39 +1003,41 @@ void vtkThreeDViewInteractorStyle::ThreeDViewProcessEvents(vtkObject* object,
   vtkThreeDViewInteractorStyle* self
     = reinterpret_cast<vtkThreeDViewInteractorStyle *>(clientdata);
 
-  // Displayable managers add interactor style observers and those observers
-  // replace callback method calls. We make sure here that the callback methods
-  // are called anyway, but it would be a cleaner solution to remove interactor
-  // style observers (use CanProcessEvent/ProcessEvent callbacks instead).
-
-  if (self->HandleObservers && self->HasObserver(event))
+  // Save info for button click detection
+  if (event == vtkCommand::LeftButtonPressEvent
+    || event == vtkCommand::RightButtonPressEvent
+    || event == vtkCommand::MiddleButtonPressEvent)
     {
-    switch (event)
-      {
-      case vtkCommand::ExposeEvent: self->OnExpose(); break;
-      case vtkCommand::ConfigureEvent: self->OnConfigure(); break;
-      case vtkCommand::EnterEvent: self->OnEnter(); break;
-      case vtkCommand::LeaveEvent: self->OnLeave(); break;
-      case vtkCommand::TimerEvent: self->OnTimer(); break;
-      case vtkCommand::MouseMoveEvent: self->OnMouseMove(); break;
-      case vtkCommand::LeftButtonPressEvent: self->OnLeftButtonDown(); break;
-      case vtkCommand::LeftButtonReleaseEvent: self->OnLeftButtonUp(); break;
-      case vtkCommand::MiddleButtonPressEvent: self->OnMiddleButtonDown(); break;
-      case vtkCommand::MiddleButtonReleaseEvent: self->OnMiddleButtonUp(); break;
-      case vtkCommand::RightButtonPressEvent: self->OnRightButtonDown(); break;
-      case vtkCommand::RightButtonReleaseEvent: self->OnRightButtonUp(); break;
-      case vtkCommand::MouseWheelForwardEvent: self->OnMouseWheelForward(); break;
-      case vtkCommand::MouseWheelBackwardEvent: self->OnMouseWheelBackward(); break;
-      case vtkCommand::KeyPressEvent: self->OnKeyDown(); self->OnKeyPress(); break;
-      case vtkCommand::KeyReleaseEvent: self->OnKeyUp(); self->OnKeyRelease(); break;
-      case vtkCommand::CharEvent: self->OnChar(); break;
-      case vtkCommand::DeleteEvent: self->SetInteractor(0); break;
-      case vtkCommand::TDxMotionEvent:
-      case vtkCommand::TDxButtonPressEvent:
-      case vtkCommand::TDxButtonReleaseEvent:
-        self->DelegateTDxEvent(event, 0); break;
-      }
+    self->MouseMovedSinceButtonDown = false;
+    }
+  if (event == vtkCommand::MouseMoveEvent)
+    {
+    self->MouseMovedSinceButtonDown = true;
     }
 
-  Superclass::ProcessEvents(object, event, clientdata, calldata);
+  // Displayable managers add interactor style observers and those observers
+  // replace callback method calls. We make sure here that displayable managers
+  // get the chance to process the events first.
+  if (!self->ForwardInteractionEventToDisplayableManagers(event))
+    {
+    // Displayable managers did not processed it
+    Superclass::ProcessEvents(object, event, clientdata, calldata);
+    }
+
+  // Detect click events
+  if (!self->MouseMovedSinceButtonDown)
+    {
+    if (event == vtkCommand::LeftButtonReleaseEvent)
+      {
+      self->ForwardInteractionEventToDisplayableManagers(vtkMRMLInteractionEventData::LeftButtonClickEvent);
+      }
+    else if (event == vtkCommand::MiddleButtonReleaseEvent)
+      {
+      self->ForwardInteractionEventToDisplayableManagers(vtkMRMLInteractionEventData::MiddleButtonClickEvent);
+      }
+    else if (event == vtkCommand::RightButtonReleaseEvent)
+      {
+      self->ForwardInteractionEventToDisplayableManagers(vtkMRMLInteractionEventData::RightButtonClickEvent);
+      }
+    }
 }

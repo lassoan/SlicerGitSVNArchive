@@ -237,9 +237,6 @@ public:
 
   /// Remove Nth Control Point
   void RemoveNthControlPoint(int pointIndex);
-  /// Remove last Control Point
-  void RemoveLastControlPoint();
-
 
   /// Insert a control point in this list at targetIndex.
   /// If targetIndex is < 0, insert at the start of the list.
