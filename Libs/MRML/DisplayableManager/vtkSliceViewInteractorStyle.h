@@ -123,6 +123,8 @@ protected:
   vtkSliceViewInteractorStyle();
   ~vtkSliceViewInteractorStyle() override;
 
+  void SetMouseCursor(int cursor);
+
   vtkMRMLSliceLogic *SliceLogic;
 
   bool MouseMovedSinceButtonDown;

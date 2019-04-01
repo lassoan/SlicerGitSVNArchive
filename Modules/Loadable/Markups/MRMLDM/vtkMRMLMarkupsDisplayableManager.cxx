@@ -753,11 +753,15 @@ bool vtkMRMLMarkupsDisplayableManager::ProcessInteractionEvent(vtkMRMLInteractio
       this->LastActiveWidget->Leave();
       this->LastActiveWidget = nullptr;
       }
+    //this->SetMouseCursor(VTK_CURSOR_DEFAULT);
     return false;
     }
 
   // Pass on the interaction event to the active widget
-  return activeWidget->ProcessInteractionEvent(eventData);
+  bool processed = activeWidget->ProcessInteractionEvent(eventData);
+
+  //this->SetMouseCursor(activeWidget->GetMouseCursor());
+  return processed;
 }
 
 //---------------------------------------------------------------------------
@@ -899,6 +903,16 @@ bool vtkMRMLMarkupsDisplayableManager::GetGrabFocus()
 bool vtkMRMLMarkupsDisplayableManager::GetInteractive()
 {
   return (this->LastActiveWidget != nullptr && this->LastActiveWidget->GetInteractive());
+}
+
+//---------------------------------------------------------------------------
+int vtkMRMLMarkupsDisplayableManager::GetMouseCursor()
+{
+  if (!this->LastActiveWidget)
+    {
+    return VTK_CURSOR_DEFAULT;
+    }
+  return this->LastActiveWidget->GetMouseCursor();
 }
 
 //---------------------------------------------------------------------------

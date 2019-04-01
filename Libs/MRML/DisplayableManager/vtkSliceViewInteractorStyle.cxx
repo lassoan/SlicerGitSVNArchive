@@ -286,6 +286,7 @@ bool vtkSliceViewInteractorStyle::ForwardInteractionEventToDisplayableManagers(u
 {
   if (!this->DisplayableManagers)
     {
+    //this->SetMouseCursor(VTK_CURSOR_DEFAULT);
     return false;
     }
   double canProcessEvent = false;
@@ -339,6 +340,8 @@ bool vtkSliceViewInteractorStyle::ForwardInteractionEventToDisplayableManagers(u
   if (!canProcessEvent)
     {
     // none of the displayable managers can process the event, just ignore it
+    //this->SetMouseCursor(VTK_CURSOR_DEFAULT);
+    this->DisplayableManagers->GetNthDisplayableManager(0)->SetMouseCursor(VTK_CURSOR_DEFAULT);
     return false;
     }
 
@@ -360,10 +363,21 @@ bool vtkSliceViewInteractorStyle::ForwardInteractionEventToDisplayableManagers(u
   // Process event with new displayable manager
   if (!this->FocusedDisplayableManager)
     {
+    if (oldFocusedDisplayableManager)
+      {
+      oldFocusedDisplayableManager->SetMouseCursor(VTK_CURSOR_DEFAULT);
+      }
     return false;
     }
 
-  return this->FocusedDisplayableManager->ProcessInteractionEvent(ed);
+  bool processed = this->FocusedDisplayableManager->ProcessInteractionEvent(ed);
+  int cursor = VTK_CURSOR_DEFAULT;
+  if (processed)
+    {
+    cursor = this->FocusedDisplayableManager->GetMouseCursor();
+    }
+  this->FocusedDisplayableManager->SetMouseCursor(cursor);
+  return processed;
 }
 
 //----------------------------------------------------------------------------
@@ -417,4 +431,13 @@ vtkMRMLCrosshairDisplayableManager* vtkSliceViewInteractorStyle::GetCrosshairDis
       }
     }
   return nullptr;
+}
+
+//----------------------------------------------------------------------------
+void vtkSliceViewInteractorStyle::SetMouseCursor(int cursor)
+{
+  if (this->GetCurrentRenderer() && this->GetCurrentRenderer()->GetRenderWindow())
+    {
+    this->GetCurrentRenderer()->GetRenderWindow()->SetCurrentCursor(cursor);
+    }
 }
