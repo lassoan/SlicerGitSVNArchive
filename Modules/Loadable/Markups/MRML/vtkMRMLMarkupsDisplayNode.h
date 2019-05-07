@@ -106,12 +106,24 @@ public:
   vtkGetMacro(TextScale,double);
   vtkSetMacro(TextScale,double);
 
-  /// Set the text visibility of the display node.
-  vtkSetMacro(TextVisibility, bool);
-  /// Get the text visibility of the display node.
-  vtkGetMacro(TextVisibility, bool);
-  /// Set the text visibility of the display node.
-  vtkBooleanMacro(TextVisibility, bool);
+  //@{
+  /**
+   * Control visibility of control point labels.
+   */
+  vtkSetMacro(PointLabelsVisibility, bool);
+  vtkGetMacro(PointLabelsVisibility, bool);
+  vtkBooleanMacro(PointLabelsVisibility, bool);
+  //@}
+
+  //@{
+  /**
+   * Control visibility of information box.
+   */
+  vtkSetMacro(PropertiesLabelVisibility, bool);
+  vtkGetMacro(PropertiesLabelVisibility, bool);
+  vtkBooleanMacro(PropertiesLabelVisibility, bool);
+  //@}
+
 
   /// Which kind of glyph should be used to display this markup?
   /// Vertex2D is supposed to start at 1
@@ -241,7 +253,8 @@ protected:
   int ActiveComponentType;
   int ActiveComponentIndex;
 
-  bool TextVisibility;
+  bool PropertiesLabelVisibility;
+  bool PointLabelsVisibility;
   double TextScale;
   int GlyphType;
   double GlyphScale;

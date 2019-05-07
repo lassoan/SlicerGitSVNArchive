@@ -119,6 +119,8 @@ vtkSlicerMarkupsWidgetRepresentation3D::vtkSlicerMarkupsWidgetRepresentation3D()
   reinterpret_cast<ControlPointsPipeline3D*>(this->ControlPoints[Active])->Actor->PickableOff();
   reinterpret_cast<ControlPointsPipeline3D*>(this->ControlPoints[Active])->Actor->DragableOff();
 
+  this->TextActor->SetTextProperty(this->GetControlPointsPipeline(Unselected)->TextProperty);
+
   this->ControlPointSize = 10; // will be set from the markup's GlyphScale
   this->Tolerance = 5.0;
 
@@ -196,7 +198,7 @@ void vtkSlicerMarkupsWidgetRepresentation3D::UpdateAllPointsAndLabelsFromMRML()
         startIndex = activeControlPointIndex;
         stopIndex = startIndex;
         controlPoints->Actor->VisibilityOn();
-        controlPoints->LabelsActor->SetVisibility(display->GetTextVisibility());
+        controlPoints->LabelsActor->SetVisibility(display->GetPointLabelsVisibility());
         }
       else
         {
@@ -207,7 +209,7 @@ void vtkSlicerMarkupsWidgetRepresentation3D::UpdateAllPointsAndLabelsFromMRML()
       }
     else
       {
-      controlPoints->LabelsActor->SetVisibility(display->GetTextVisibility());
+      controlPoints->LabelsActor->SetVisibility(display->GetPointLabelsVisibility());
       }
 
     for (int pointIndex = startIndex; pointIndex <= stopIndex; pointIndex++)

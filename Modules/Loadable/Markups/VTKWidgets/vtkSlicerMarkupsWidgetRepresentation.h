@@ -51,6 +51,7 @@ class vtkMarkupsGlyphSource2D;
 class vtkPointPlacer;
 class vtkPointSetToLabelHierarchy;
 class vtkSphereSource;
+class vtkTextActor;
 class vtkTextProperty;
 
 class VTK_SLICER_MARKUPS_MODULE_VTKWIDGETS_EXPORT vtkSlicerMarkupsWidgetRepresentation : public vtkMRMLAbstractWidgetRepresentation
@@ -130,6 +131,8 @@ protected:
   vtkWeakPointer<vtkMRMLMarkupsNode> MarkupsNode;
 
   vtkSmartPointer<vtkPointPlacer> PointPlacer;
+
+  vtkSmartPointer<vtkTextActor> TextActor;
 
   vtkTypeBool ClosedLoop;
 
