@@ -114,9 +114,10 @@ double vtkMRMLMarkupsCurveNode::GetCurveLengthWorld(vtkIdType startCurvePointInd
   double length = 0.0;
   double previousPoint[3] = { 0.0 };
   points->GetPoint(startCurvePointIndex, previousPoint);
-  for (vtkIdType curvePointIndex = startCurvePointIndex + 1; curvePointIndex < lastCurvePointIndex; curvePointIndex++)
+  for (vtkIdType curvePointIndex = startCurvePointIndex + 1; curvePointIndex <= lastCurvePointIndex; curvePointIndex++)
     {
-    double* nextPoint = points->GetPoint(curvePointIndex);
+    double nextPoint[3];
+    points->GetPoint(curvePointIndex, nextPoint);
     length += sqrt(vtkMath::Distance2BetweenPoints(previousPoint, nextPoint));
     previousPoint[0] = nextPoint[0];
     previousPoint[1] = nextPoint[1];
@@ -412,6 +413,7 @@ vtkIdType vtkMRMLMarkupsCurveNode::GetCurvePointIndexAlongCurveWorld(vtkIdType s
   points->GetPoint(startCurvePointId, previousPoint);
   vtkIdType pointId = startCurvePointId;
   bool curveConfirmedToBeNonZeroLength = false;
+  double lastSegmentLength = 0;
   while (remainingDistanceFromStartPoint>0)
     {
     pointId += idIncrement;
@@ -442,13 +444,21 @@ vtkIdType vtkMRMLMarkupsCurveNode::GetCurvePointIndexAlongCurveWorld(vtkIdType s
 
     // determine how much closer we are now
     double* nextPoint = points->GetPoint(pointId);
-    remainingDistanceFromStartPoint -= sqrt(vtkMath::Distance2BetweenPoints(nextPoint, previousPoint));
+    lastSegmentLength = sqrt(vtkMath::Distance2BetweenPoints(nextPoint, previousPoint));
+    remainingDistanceFromStartPoint -= lastSegmentLength;
     previousPoint[0] = nextPoint[0];
     previousPoint[1] = nextPoint[1];
     previousPoint[2] = nextPoint[2];
     }
 
-  return pointId;
+  if (fabs(remainingDistanceFromStartPoint) < fabs(remainingDistanceFromStartPoint + lastSegmentLength))
+    {
+    return pointId;
+    }
+  else
+    {
+    return pointId-1;
+    }
 }
 
 //---------------------------------------------------------------------------

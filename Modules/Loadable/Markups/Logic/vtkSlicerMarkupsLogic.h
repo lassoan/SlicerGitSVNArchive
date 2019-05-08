@@ -37,6 +37,7 @@
 class vtkMRMLMarkupsNode;
 class vtkMRMLMarkupsClosedCurveNode;
 class vtkMRMLMarkupsDisplayNode;
+class vtkPlane;
 class vtkPoints;
 class vtkPolyData;
 
@@ -205,6 +206,12 @@ public:
   /// Larger values increase the generated soap bubble outer radius, which may be useful to avoid coincident points
   /// when using this surface for cutting another surface.
   static bool CreateSoapBubblePolyDataFromCircumferencePoints(vtkPoints* curvePoints, vtkPolyData* surface, double radiusScalingFactor = 1.0);
+
+  /// Get best fit plane for a markup
+  static bool GetBestFitPlane(vtkMRMLMarkupsNode* curveNode, vtkPlane* plane);
+
+  /// Compute least squares best fit plane
+  static bool FitPlaneToPoints(vtkPoints* curvePoints, vtkPlane* plane);
 
 protected:
   vtkSlicerMarkupsLogic();

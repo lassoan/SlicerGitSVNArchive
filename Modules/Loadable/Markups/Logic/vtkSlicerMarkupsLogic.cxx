@@ -50,12 +50,14 @@
 #include <vtkDiskSource.h>
 #include <vtkNew.h>
 #include <vtkObjectFactory.h>
+#include <vtkPlane.h>
 #include <vtkPoints.h>
 #include <vtkPolyData.h>
 #include <vtkPolyDataNormals.h>
 #include <vtkMassProperties.h>
 #include <vtkStringArray.h>
 #include <vtkThinPlateSplineTransform.h>
+#include <vtkTransform.h>
 #include <vtkTransformPolyDataFilter.h>
 
 // STD includes
@@ -1443,5 +1445,55 @@ bool vtkSlicerMarkupsLogic::CreateSoapBubblePolyDataFromCircumferencePoints(vtkP
   polyDataNormals->Update();
 
   surface->DeepCopy(polyDataNormals->GetOutput());
+  return true;
+}
+
+//---------------------------------------------------------------------------
+bool vtkSlicerMarkupsLogic::GetBestFitPlane(vtkMRMLMarkupsNode* curveNode, vtkPlane* plane)
+{
+  if (!curveNode || !plane)
+    {
+    return false;
+    }
+  vtkPoints* curvePointsWorld = curveNode->GetCurvePointsWorld();
+  if (curvePointsWorld == nullptr || curvePointsWorld->GetNumberOfPoints() < 3)
+    {
+    // not enough points for computing a plane
+    return false;
+    }
+  return vtkSlicerMarkupsLogic::FitPlaneToPoints(curvePointsWorld, plane);
+}
+
+//---------------------------------------------------------------------------
+bool vtkSlicerMarkupsLogic::FitPlaneToPoints(vtkPoints* curvePoints, vtkPlane* plane)
+{
+  if (!curvePoints || !plane)
+    {
+    return false;
+    }
+  vtkNew<vtkPolyData> pointSet;
+  pointSet->SetPoints(curvePoints);
+  vtkSmartPointer<vtkAbstractTransform> transform = vtkSmartPointer<vtkAbstractTransform>::Take(
+    vtkDelaunay2D::ComputeBestFittingPlane(pointSet));
+  vtkTransform* linearTransform = vtkTransform::SafeDownCast(transform->GetInverse());
+  if (!linearTransform)
+    {
+    return false;
+    }
+  vtkMatrix4x4* transformMatrix = linearTransform->GetMatrix();
+  double position[3] =
+    {
+    transformMatrix->GetElement(0, 3),
+    transformMatrix->GetElement(1, 3),
+    transformMatrix->GetElement(2, 3)
+    };
+  double normal[3] =
+    {
+    transformMatrix->GetElement(0, 2),
+    transformMatrix->GetElement(1, 2),
+    transformMatrix->GetElement(2, 2)
+    };
+  plane->SetOrigin(position);
+  plane->SetNormal(normal);
   return true;
 }
