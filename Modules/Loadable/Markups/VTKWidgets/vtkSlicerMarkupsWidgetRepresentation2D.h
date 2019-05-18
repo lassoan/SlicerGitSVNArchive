@@ -97,7 +97,7 @@ protected:
   void UpdatePlaneFromSliceNode();
 
   void UpdateViewScaleFactor() override;
-  void UpdatePixelTolerance() override;
+  void UpdateControlPointSize() override;
 
   bool GetAllControlPointsVisible() override;
 

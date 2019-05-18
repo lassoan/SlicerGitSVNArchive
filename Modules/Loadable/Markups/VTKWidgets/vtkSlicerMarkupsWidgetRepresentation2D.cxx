@@ -17,6 +17,7 @@
 =========================================================================*/
 
 // VTK includes
+#include "vtkCamera.h"
 #include "vtkCellLocator.h"
 #include "vtkDiscretizableColorTransferFunction.h"
 #include "vtkGlyph2D.h"
@@ -238,7 +239,7 @@ void vtkSlicerMarkupsWidgetRepresentation2D::UpdateAllPointsAndLabelsFromMRML(do
       {
       if (!markupsNode->GetNthControlPointVisibility(pointIndex) ||
           (controlPointType < Active &&
-           !this->PointsVisibilityOnSlice->GetValue(pointIndex)) ||   
+           !this->PointsVisibilityOnSlice->GetValue(pointIndex)) ||
           (controlPointType > Active &&
            this->PointsVisibilityOnSlice->GetValue(pointIndex)))
         {
@@ -429,14 +430,7 @@ void vtkSlicerMarkupsWidgetRepresentation2D::UpdateFromMRML(vtkMRMLNode* caller,
       this->GetControlPointsPipeline(controlPointType)->Glypher->SetSourceConnection(glyphSource->GetOutputPort());
     }
 
-  if (this->MarkupsDisplayNode->GetUseGlyphScale())
-    {
-    this->ControlPointSize = this->ScreenSizePixel * this->ScreenScaleFactor * this->MarkupsDisplayNode->GetGlyphScale() / 100.0;
-    }
-  else
-    {
-    this->ControlPointSize = this->MarkupsDisplayNode->GetGlyphSize() / this->ViewScaleFactorMmPerPixel;
-    }
+  UpdateControlPointSize();
 
   // Points widgets have only one Markup/Representation
   for (int PointIndex = 0; PointIndex < markupsNode->GetNumberOfControlPoints(); PointIndex++)
@@ -457,7 +451,7 @@ void vtkSlicerMarkupsWidgetRepresentation2D::UpdateFromMRML(vtkMRMLNode* caller,
     controlPoints->Glypher->SetScaleFactor(this->ControlPointSize);
     }
 
-  this->UpdateAllPointsAndLabelsFromMRML(this->ControlPointSize);
+  this->UpdateAllPointsAndLabelsFromMRML(this->ControlPointSize/1.9);
 
   this->VisibilityOn();
 }
@@ -478,17 +472,8 @@ void vtkSlicerMarkupsWidgetRepresentation2D::CanInteract(
 
   double displayPosition3[3] = { static_cast<double>(displayPosition[0]), static_cast<double>(displayPosition[1]), 0.0 };
 
-  if (this->MarkupsDisplayNode->GetUseGlyphScale())
-  {
-    this->ControlPointSize = this->ScreenSizePixel * this->MarkupsDisplayNode->GetGlyphScale() / 100.0 * this->ViewScaleFactorMmPerPixel;
-  }
-  else
-  {
-    this->ControlPointSize = this->MarkupsDisplayNode->GetGlyphSize();
-  }
-
-  this->UpdatePixelTolerance();
-  double pixelTolerance2 = this->PixelTolerance * this->PixelTolerance;
+  this->UpdateControlPointSize();
+  double maxPickingDistanceFromControlPoint2 = this->GetMaximumControlPointPickingDistance2();
 
   closestDistance2 = VTK_DOUBLE_MAX; // in display coordinate system
   foundComponentIndex = -1;
@@ -500,7 +485,7 @@ void vtkSlicerMarkupsWidgetRepresentation2D::CanInteract(
     this->GetWorldToSliceCoordinates(centerPosWorld, centerPosDisplay);
 
     double dist2 = vtkMath::Distance2BetweenPoints(centerPosDisplay, displayPosition3);
-    if ( dist2 < pixelTolerance2)
+    if ( dist2 < maxPickingDistanceFromControlPoint2)
       {
       closestDistance2 = dist2;
       foundComponentType = vtkMRMLMarkupsDisplayNode::ComponentCenterPoint;
@@ -528,7 +513,7 @@ void vtkSlicerMarkupsWidgetRepresentation2D::CanInteract(
       pointDisplayPos[2] = displayPosition3[2];
       }
     double dist2 = vtkMath::Distance2BetweenPoints(pointDisplayPos, displayPosition3);
-    if (dist2 < pixelTolerance2 && dist2 < closestDistance2)
+    if (dist2 < maxPickingDistanceFromControlPoint2 && dist2 < closestDistance2)
       {
       closestDistance2 = dist2;
       foundComponentType = vtkMRMLMarkupsDisplayNode::ComponentControlPoint;
@@ -552,9 +537,7 @@ void vtkSlicerMarkupsWidgetRepresentation2D::CanInteractWithLine(
     }
 
   double displayPosition3[3] = { static_cast<double>(displayPosition[0]), static_cast<double>(displayPosition[1]), 0.0 };
-
-  this->UpdatePixelTolerance();
-  double pixelTolerance2 = this->PixelTolerance * this->PixelTolerance;
+  double maxPickingDistanceFromControlPoint2 = this->GetMaximumControlPointPickingDistance2();
 
   vtkIdType numberOfPoints = markupsNode->GetNumberOfControlPoints();
 
@@ -583,7 +566,7 @@ void vtkSlicerMarkupsWidgetRepresentation2D::CanInteractWithLine(
 
     double relativePositionAlongLine = -1.0; // between 0.0-1.0 if between the endpoints of the line segment
     double distance2 = vtkLine::DistanceToLine(displayPosition3, pointDisplayPos1, pointDisplayPos2, relativePositionAlongLine);
-    if (distance2 < pixelTolerance2 && distance2 < closestDistance2 && relativePositionAlongLine >= 0 && relativePositionAlongLine <= 1)
+    if (distance2 < maxPickingDistanceFromControlPoint2 && distance2 < closestDistance2 && relativePositionAlongLine >= 0 && relativePositionAlongLine <= 1)
       {
       closestDistance2 = distance2;
       foundComponentType = vtkMRMLMarkupsDisplayNode::ComponentLine;
@@ -1109,18 +1092,42 @@ void vtkSlicerMarkupsWidgetRepresentation2D::UpdateViewScaleFactor()
     return;
     }
 
+  vtkCamera* cam = this->Renderer->GetActiveCamera();
+  bool pp = cam->GetParallelProjection();
+  double sf = cam->GetParallelScale();
+
   int* screenSize = this->Renderer->GetRenderWindow()->GetScreenSize();
   this->ScreenSizePixel = sqrt(screenSize[0] * screenSize[0] + screenSize[1] * screenSize[1]);
 
   vtkMatrix4x4* xyToSlice = this->GetSliceNode()->GetXYToSlice();
   this->ViewScaleFactorMmPerPixel = sqrt(xyToSlice->GetElement(0, 1) * xyToSlice->GetElement(0, 1)
-    + xyToSlice->GetElement(1, 1) * xyToSlice->GetElement(1, 1)
-    + xyToSlice->GetElement(2, 1) * xyToSlice->GetElement(2, 1));
+    + xyToSlice->GetElement(1, 1) * xyToSlice->GetElement(1, 1));
 }
 
 //----------------------------------------------------------------------
-void vtkSlicerMarkupsWidgetRepresentation2D::UpdatePixelTolerance()
+void vtkSlicerMarkupsWidgetRepresentation2D::UpdateControlPointSize()
 {
-  this->PixelTolerance = this->ControlPointSize / 2.0 / this->ViewScaleFactorMmPerPixel
-    + this->ScreenSizePixel * this->ScreenScaleFactor / 100.0 * this->Tolerance;
+  // Since we use parallel camera projection and the camera scale is 1.0,
+  // the renderer coordinate system is the same as the display coordinate system, therefore
+  // ControlPointSize is specified in pixels.
+  if (this->MarkupsDisplayNode->GetUseGlyphScale())
+  {
+    // relative
+    this->ControlPointSize = this->ScreenSizePixel * this->ScreenScaleFactor * this->MarkupsDisplayNode->GetGlyphScale() / 100.0;
+  }
+  else
+  {
+    // absolute
+    this->ControlPointSize = this->MarkupsDisplayNode->GetGlyphSize() / this->ViewScaleFactorMmPerPixel;
+  }
+/*
+  if (this->MarkupsDisplayNode->GetUseGlyphScale())
+  {
+    this->ControlPointSize = this->ScreenSizePixel * this->MarkupsDisplayNode->GetGlyphScale() / 100.0 * this->ViewScaleFactorMmPerPixel;
+  }
+  else
+  {
+    this->ControlPointSize = this->MarkupsDisplayNode->GetGlyphSize();
+  }
+  */
 }

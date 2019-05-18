@@ -67,7 +67,7 @@ public:
   void CanInteract(const int displayPosition[2], const double worldPosition[3],
     int &foundComponentType, int &foundComponentIndex, double &closestDistance2) override;
 
-  /// Checks if interaction with straight line between visible points is possible.
+  /// Checks ~if interaction with straight line between visible points is possible.
   /// Can be used on the output of CanInteract, as if no better component is found then the input is returned.
   void CanInteractWithLine(const int displayPosition[2], const double worldPosition[3],
     int &foundComponentType, int &foundComponentIndex, double &closestDistance2);
@@ -82,7 +82,7 @@ protected:
 
   void UpdateViewScaleFactor() override;
 
-  void UpdatePixelTolerance() override;
+  void UpdateControlPointSize() override;
 
   class ControlPointsPipeline3D : public ControlPointsPipeline
   {
