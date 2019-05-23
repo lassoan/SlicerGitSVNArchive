@@ -55,8 +55,9 @@ public:
   vtkGetVectorMacro(SignalRange, int, 2);
   vtkGetVectorMacro(ClipExtent, int, 6);
 
-  vtkGetMacro(Offset, int);
-  vtkSetMacro(Offset, int);
+  // Starting value of histogram (x origin of input)
+  vtkGetMacro(Offset, double);
+  vtkSetMacro(Offset, double);
 
   ///
   /// Ideally this should not be public API
@@ -74,15 +75,15 @@ protected:
 
   int Modality;
 
-  int Threshold;
-  int Window;
-  int Level;
-  int Min;
-  int Max;
+  double Threshold;
+  double Window;
+  double Level;
+  double Min;
+  double Max;
   int ClipExtent[6];
   int SignalRange[2];
 
-  int Offset;
+  double Offset;
 
   int RequestInformation(vtkInformation *, vtkInformationVector **, vtkInformationVector *) override;
   void ExecuteDataWithInformation(vtkDataObject *, vtkInformation*) override;

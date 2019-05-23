@@ -31,17 +31,14 @@ vtkStandardNewMacro(vtkImageBimodalAnalysis);
 vtkImageBimodalAnalysis::vtkImageBimodalAnalysis()
 {
   this->Modality  = VTK_BIMODAL_MODALITY_CT;
-  this->Threshold = 0;
-  this->Window    = 0;
-  this->Level     = 0;
-  this->Min       = 0;
-  this->Max       = 0;
-  this->Offset    = 0;
-
-  for (int i = 0; i < 2; ++i)
-    {
-    this->SignalRange[i] = 0;
-    }
+  this->Threshold = 0.0;
+  this->Window    = 0.0;
+  this->Level     = 0.0;
+  this->Min       = 0.0;
+  this->Max       = 0.0;
+  this->Offset    = 0.0;
+  this->SignalRange[0] = 0.0;
+  this->SignalRange[1] = 0.0;
   for (int i = 0; i < 6; ++i)
     {
     this->ClipExtent[i] = 0;
@@ -68,164 +65,155 @@ static void vtkImageBimodalAnalysisExecute(vtkImageBimodalAnalysis *self,
                       vtkImageData *inData, T *inPtr,
                       vtkImageData *outData, float *outPtr)
 {
-  int x, k, offset, clipExt[6];
-  int min0, max0, min1, max1, min2, max2;
-  int noise = 1, width = 5;
-  float fwidth = 1.0 / 5.0;
-  T tmp, minSignal, maxSignal;
-  double sum, wsum;
-  int ct = (self->GetModality() == VTK_BIMODAL_MODALITY_CT) ? 1 : 0;
-  int centroid, noiseCentroid, trough, window, threshold, min, max;
-  double origin[3], spacing[3];
-
   // Process x dimension only
-  outData->GetExtent(min0, max0, min1, max1, min2, max2);
-  inData->GetOrigin(origin);
-  inData->GetSpacing(spacing);
-
-  offset = (int)origin[0];
+  int numberOfValues = outData->GetExtent()[1] - outData->GetExtent()[0] + 1;
 
   // Zero output
-  memset((void *)outPtr, 0, (max0-min0+1)*sizeof(int));
+  std::fill(outPtr, outPtr+numberOfValues, 0.0);
 
-  // For CT data, ignore -32768
-  if (ct)
-    {
-    min0 = 1;
-    }
+  int startIndex = 0;
 
-  // Find min (first non-zero value in histogram)
-  min = x = min0;
-  while (!inPtr[x] && x <= max0)
+  // For CT data, make sure we ignore -32768
+  if (self->GetModality() == VTK_BIMODAL_MODALITY_CT)
     {
-    x++;
-    }
-  if (x <= max0)
-    {
-    min = x;
-    }
-
-  // Find max (last non-zero value in histogram)
-  max = x = max0;
-  while (!inPtr[x] && x >= min0)
-    {
-    x--;
-    }
-  if (x >= min0)
-    {
-    max = x;
-    }
-
-  // Smooth
-  for (x = min; x <= max; x++)
-    {
-    for (k=0; k < width; k++)
+    if (numberOfValues>0)
       {
-      if (x+k <= max0) // skip any that would be outside range of outPtr see Bug #3429
+      startIndex++;
+      }
+    }
+
+  // Find first non-zero value in histogram
+  int firstNonZeroValueIndex = startIndex;
+  for (int valueIndex = 0; valueIndex < numberOfValues; ++valueIndex)
+    {
+    if (inPtr[valueIndex] > 0)
+      {
+      firstNonZeroValueIndex = valueIndex;
+      break;
+      }
+    }
+  // Find last non-zero value in histogram
+  int lastNonZeroValueIndex = numberOfValues-1;
+  for (int valueIndex = numberOfValues-1; valueIndex >= 0 ; --valueIndex)
+  {
+    if (inPtr[valueIndex] > 0)
+    {
+      lastNonZeroValueIndex = valueIndex;
+      break;
+    }
+  }
+
+  // Smooth histogram with moving average filter
+  int filterRadius = 2;
+  float filterWeightFactor = 1.0 / static_cast<float>(filterRadius * 2 + 1);
+  for (int valueIndex = firstNonZeroValueIndex; valueIndex <= lastNonZeroValueIndex; valueIndex++)
+    {
+    for (int k=-filterRadius; k <= filterRadius; k++)
+      {
+      if (valueIndex+k > firstNonZeroValueIndex && valueIndex+k < numberOfValues) // skip any that would be outside range of outPtr see Bug #3429
         {
-        outPtr[x] += (float)inPtr[x+k];
+        outPtr[valueIndex] += (float)inPtr[valueIndex+k];
         }
       }
-    outPtr[x] *= fwidth;
+    // Regardless of how many points we added, we always divide by the same number, which
+    // means that we get lower the values at the near the two boundaries.
+    // Since this will not impact further analysis steps, we leave it as is.
+    outPtr[valueIndex] *= filterWeightFactor;
     }
 
-  // Find first trough of smoothed histogram
-  x = min;
-  trough = min-1;
-  noise = 1;
-  while (x < max && trough < min)
+  // Find first local minimum (trough) of smoothed histogram
+  int firstLocalMinimumIndex = firstNonZeroValueIndex;
+  bool valueIncreasing = true;
+  for (int valueIndex = firstNonZeroValueIndex+1; valueIndex < lastNonZeroValueIndex; valueIndex++)
     {
-    if (noise)
+    if (valueIncreasing)
       {
-      if (outPtr[x] > outPtr[x+1])
+      if (outPtr[valueIndex] > outPtr[valueIndex + 1])
         {
-        if (x > min)
-          {
-          noise = 0;
-          }
+        valueIncreasing = false;
         }
       }
     else
       {
-      if (outPtr[x] < outPtr[x+1])
+      if (outPtr[valueIndex] < outPtr[valueIndex +1])
         {
-        trough = x;
+        firstLocalMinimumIndex = valueIndex;
+        break;
         }
       }
-    x++;
     }
 
-  // Compute centroid of the histogram that PRECEDES the trough
+  // Compute centroid of the histogram that PRECEDES the first local minimum
   // (noise lobe)
-  wsum = sum = 0;
-  for (x=min; x <= trough; x++)
+  int noiseCentroid = firstLocalMinimumIndex;
     {
-    tmp = inPtr[x];
-    wsum += (double)x*tmp;
-    sum  += (double)  tmp;
-    }
-  if (sum)
-    {
-    noiseCentroid = (int)(wsum / sum);
-    }
-  else
-    {
-    noiseCentroid = trough;
-    }
-
-  // Compute centroid of the histogram that FOLLOWS the trough
-  // (signal lobe, and not noise lobe)
-  wsum = sum = 0;
-  minSignal = maxSignal = inPtr[trough];
-  for (x=trough; x <= max; x++)
-    {
-    tmp = inPtr[x];
-    if (tmp > maxSignal)
+    double indexWeightedSum = 0.0;
+    double sum = 0.0;
+    for (int valueIndex = firstNonZeroValueIndex; valueIndex <= firstLocalMinimumIndex; valueIndex++)
       {
-      maxSignal = tmp;
+      double value = static_cast<double>(inPtr[valueIndex]);
+      indexWeightedSum += static_cast<double>(valueIndex) * value;
+      sum += value;
       }
-    else if (tmp < minSignal)
+    if (sum > 0.0)
       {
-      minSignal = tmp;
+      noiseCentroid = static_cast<int>(indexWeightedSum / sum);
       }
-    wsum += (double)x*tmp;
-    sum  += (double)  tmp;
     }
-  if (sum)
+  // Compute centroid of the histogram that FOLLOWS the first local minimum
+  // (signal lobe, and not noise lobe) and the minimum and maximum value
+  int signalCentroid = firstLocalMinimumIndex;
+  double minSignal = inPtr[firstLocalMinimumIndex];
+  double maxSignal = inPtr[firstLocalMinimumIndex];
     {
-    centroid = (int)(wsum / sum);
+    double indexWeightedSum = 0.0;
+    double sum = 0.0;
+    for (int valueIndex = firstLocalMinimumIndex; valueIndex <= lastNonZeroValueIndex; valueIndex++)
+      {
+      double value = static_cast<double>(inPtr[valueIndex]);
+      if (value > maxSignal)
+        {
+        maxSignal = value;
+        }
+      else if (value < minSignal)
+        {
+        minSignal = value;
+        }
+      indexWeightedSum += static_cast<double>(valueIndex) * value;
+      sum += value;
+      }
+    if (sum > 0.0)
+      {
+      noiseCentroid = static_cast<int>(indexWeightedSum / sum);
+      }
     }
-  else
-    {
-    centroid = trough;
-    }
-
-  // Threshold
-  threshold = trough;
 
   // Compute the window as twice the width as the smaller half
   // of the signal lobe
-  if (centroid - noiseCentroid < max - centroid)
+  double window = 0.0;
+  if (signalCentroid - noiseCentroid < lastNonZeroValueIndex - signalCentroid)
     {
-    window = (centroid - noiseCentroid)*2;
+    window = (signalCentroid - noiseCentroid) * 2.0;
     }
   else
     {
-    window = (max - centroid)*2;
+    window = (lastNonZeroValueIndex - signalCentroid) * 2.0;
     }
 
   // Record findings
+  double offset = inData->GetOrigin()[0];
   self->SetOffset(offset);
-  self->SetThreshold(threshold + offset);
-  self->SetMin(min + offset);
-  self->SetMax(max + offset);
-  self->SetLevel(centroid + offset);
+  self->SetThreshold(firstLocalMinimumIndex + offset);
+  self->SetMin(firstNonZeroValueIndex + offset);
+  self->SetMax(lastNonZeroValueIndex + offset);
+  self->SetLevel(signalCentroid + offset);
   self->SetWindow(window);
   self->SetSignalRange((int)minSignal, (int)maxSignal);
 
+  int clipExt[6] = { 0 };
   outData->GetExtent(clipExt);
-  clipExt[0] = min;
-  clipExt[1] = max;
+  clipExt[0] = firstNonZeroValueIndex;
+  clipExt[1] = lastNonZeroValueIndex;
   self->SetClipExtent(clipExt);
 }
 
@@ -238,13 +226,10 @@ static void vtkImageBimodalAnalysisExecute(vtkImageBimodalAnalysis *self,
 // the Datas data types.
 void vtkImageBimodalAnalysis::ExecuteDataWithInformation(vtkDataObject *out, vtkInformation* outInfo)
 {
-    vtkImageData *inData = vtkImageData::SafeDownCast(this->GetInput());
-    void *inPtr;
-    float *outPtr;
-    vtkImageData *outData = this->AllocateOutputData(out, outInfo);
-
-  inPtr  = inData->GetScalarPointer();
-  outPtr = (float *)outData->GetScalarPointer();
+  vtkImageData *inData = vtkImageData::SafeDownCast(this->GetInput());
+  vtkImageData *outData = this->AllocateOutputData(out, outInfo);
+  void *inPtr  = inData->GetScalarPointer();
+  float *outPtr = (float *)outData->GetScalarPointer();
 
   // Components turned into x, y and z
   int c = inData->GetNumberOfScalarComponents();
