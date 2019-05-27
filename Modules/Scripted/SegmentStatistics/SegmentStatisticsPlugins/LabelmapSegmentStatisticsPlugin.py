@@ -9,8 +9,8 @@ class LabelmapSegmentStatisticsPlugin(SegmentStatisticsPluginBase):
   def __init__(self):
     super(LabelmapSegmentStatisticsPlugin,self).__init__()
     self.name = "Labelmap"
-    self.keys = ["voxel_count", "volume_mm3", "volume_cm3"]
-    self.defaultKeys = self.keys # calculate all measurements by default
+    self.keys = ["voxel_count", "volume_mm3", "volume_cm3", "diameter_x", "diameter_y", "diameter_z"]
+    self.defaultKeys = ["voxel_count", "volume_mm3", "volume_cm3"]
     #... developer may add extra options to configure other parameters
 
   def computeStatistics(self, segmentID):
@@ -59,6 +59,9 @@ class LabelmapSegmentStatisticsPlugin(SegmentStatisticsPluginBase):
     stat.SetStencilData(stencil.GetOutput())
     stat.Update()
 
+    bounds = [0] * 6
+    segment.GetBounds(bounds)
+
     # Add data to statistics list
     cubicMMPerVoxel = reduce(lambda x,y: x*y, segmentLabelmap.GetSpacing())
     ccPerCubicMM = 0.001
@@ -69,6 +72,12 @@ class LabelmapSegmentStatisticsPlugin(SegmentStatisticsPluginBase):
       stats["volume_mm3"] = stat.GetVoxelCount() * cubicMMPerVoxel
     if "volume_cm3" in requestedKeys:
       stats["volume_cm3"] = stat.GetVoxelCount() * cubicMMPerVoxel * ccPerCubicMM
+    if "diameter_x" in requestedKeys:
+      stats["diameter_x"] = abs(bounds[1]-bounds[0])
+    if "diameter_y" in requestedKeys:
+      stats["diameter_y"] = abs(bounds[3] - bounds[2])
+    if "diameter_z" in requestedKeys:
+      stats["diameter_z"] = abs(bounds[5] - bounds[4])
     return stats
 
   def getMeasurementInfo(self, key):
@@ -95,5 +104,21 @@ class LabelmapSegmentStatisticsPlugin(SegmentStatisticsPluginBase):
                                    unitsDicomCode=self.createCodedEntry("cm3", "UCUM", "cubic centimeter", True),
                                    measurementMethodDicomCode=self.createCodedEntry("126030", "DCM",
                                                                              "Sum of segmented voxel volumes", True))
+
+    info["diameter_x"] = \
+      self.createMeasurementInfo(name="Diameter X mm", description="Diameter along the first axis of the segmentation in mm", units="mm",
+                                   quantityDicomCode=self.createCodedEntry("M-02550", "SRT", "Diameter", True),
+                                   unitsDicomCode=self.createCodedEntry("mm", "UCUM", "millimeter", True),
+                                   derivationDicomCode=self.createCodedEntry("G-A220","SRT","Width", True))
+    info["diameter_y"] = \
+      self.createMeasurementInfo(name="Diameter Y mm", description="Diameter along the second axis of the segmentation in mm", units="mm",
+                                   quantityDicomCode=self.createCodedEntry("M-02550", "SRT", "Diameter", True),
+                                   unitsDicomCode=self.createCodedEntry("mm", "UCUM", "millimeter", True),
+                                   derivationDicomCode=self.createCodedEntry("G-D7FE","SRT","Length", True))
+    info["diameter_z"] = \
+      self.createMeasurementInfo(name="Diameter Z mm", description="Diameter along the third axis of the segmentation in mm", units="mm",
+                                   quantityDicomCode=self.createCodedEntry("M-02550", "SRT", "Diameter", True),
+                                   unitsDicomCode=self.createCodedEntry("mm", "UCUM", "millimeter", True),
+                                   derivationDicomCode=self.createCodedEntry("G-D785","SRT","Depth", True))
 
     return info[key] if key in info else None
