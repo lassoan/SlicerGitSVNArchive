@@ -113,6 +113,7 @@ set(vtkITK_SRCS
   vtkITKIslandMath.cxx
   vtkITKGrowCutSegmentationImageFilter.cxx
   vtkITKMorphologicalContourInterpolator.cxx
+  vtkITKLabelGeometryImageFilter.cxx
   )
 
 # these types are never instantiated, so they don't
