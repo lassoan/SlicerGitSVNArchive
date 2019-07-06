@@ -98,15 +98,6 @@ This work is supported by NA-MIC, NAC, BIRN, NCIGT, and the Slicer Community. Se
 
     layoutManager = slicer.app.layoutManager()
     layoutManager.connect('layoutChanged(int)', self.onLayoutChanged)
-    layout = (
-      "<layout type=\"horizontal\">"
-      " <item>"
-      "  <dicombrowser></dicombrowser>"
-      " </item>"
-      "</layout>"
-    )
-    layoutManager.layoutLogic().GetLayoutNode().AddLayoutDescription(
-      slicer.vtkMRMLLayoutNode.SlicerLayoutDicomBrowserView, layout)
 
   def startListener(self):
     # the dicom listener is also global, but only started on app start if

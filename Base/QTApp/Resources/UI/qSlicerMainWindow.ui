@@ -210,6 +210,7 @@
    <addaction name="ViewLayoutFourByTwoSliceAction"/>
    <addaction name="ViewLayoutFiveByTwoSliceAction"/>
    <addaction name="ViewLayoutThreeByThreeSliceAction"/>
+   <addaction name="ViewLayoutDicomBrowserAction"/>
   </widget>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">
@@ -332,6 +333,7 @@
      <addaction name="ViewLayoutFourByThreeSliceAction"/>
      <addaction name="ViewLayoutFourByTwoSliceAction"/>
      <addaction name="ViewLayoutThreeByThreeSliceAction"/>
+     <addaction name="ViewLayoutDicomBrowserAction"/>
     </widget>
     <widget class="QMenu" name="WindowToolBarsMenu">
      <property name="title">
@@ -1208,6 +1210,18 @@
    </property>
    <property name="toolTip">
     <string>Three by three slice</string>
+   </property>
+  </action>
+  <action name="ViewLayoutDicomBrowserAction">
+   <property name="icon">
+    <iconset resource="../../../../Libs/MRML/Widgets/Resources/qMRMLWidgets.qrc">
+     <normaloff>:/Icons/LayoutDicomBrowserView.png</normaloff>:/Icons/LayoutDicomBrowserView.png</iconset>
+   </property>
+   <property name="text">
+    <string>DICOM browser</string>
+   </property>
+   <property name="toolTip">
+    <string>DICOM browser</string>
    </property>
   </action>
   <action name="ViewLayoutOneUpPlotAction">

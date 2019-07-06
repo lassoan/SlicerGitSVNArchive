@@ -1175,6 +1175,12 @@ const char* threeByThreeSliceView =
   " </item>"
   "</layout>";
 
+const char* dicomBrowserView =
+  "<layout type=\"horizontal\">"
+  " <item>"
+  "  <dicombrowser></dicombrowser>"
+  " </item>"
+  "</layout>";
 
 //----------------------------------------------------------------------------
 vtkStandardNewMacro(vtkMRMLLayoutLogic);
@@ -1628,6 +1634,8 @@ void vtkMRMLLayoutLogic::AddDefaultLayouts()
                                          fiveByTwoSliceView);
   this->LayoutNode->AddLayoutDescription(vtkMRMLLayoutNode::SlicerLayoutThreeByThreeSliceView,
                                          threeByThreeSliceView);
+  this->LayoutNode->AddLayoutDescription(vtkMRMLLayoutNode::SlicerLayoutDicomBrowserView,
+                                         dicomBrowserView);
   // add the CompareView modes which are defined programmatically
   this->UpdateCompareViewLayoutDefinitions();
   this->LayoutNode->EndModify(wasModifying);
