@@ -39,10 +39,14 @@
 #include "vtkMRMLTransformNode.h"
 #include "vtkMRMLAnnotationROINode.h"
 #include "vtkMRMLModelNode.h"
+#include "vtkITKDistanceTransform.h"
 
 // VTK includes
 #include <vtkAddonMathUtilities.h>
 #include <vtkGeneralTransform.h>
+#include <vtkImageEuclideanDistance.h>
+#include <vtkImageGaussianSmooth.h>
+#include <vtkImageThreshold.h>
 #include <vtkMatrix4x4.h>
 #include <vtkNew.h>
 #include <vtkTransform.h>
@@ -485,6 +489,8 @@ void qMRMLSegmentationGeometryWidget::resampleLabelmapsInSegmentationNode()
     return;
     }
 
+  QApplication::setOverrideCursor(QCursor(Qt::BusyCursor));
+
   int wasModified = d->SegmentationNode->StartModify();
   std::vector< std::string > segmentIDs;
   d->SegmentationNode->GetSegmentation()->GetSegmentIDs(segmentIDs);
@@ -503,12 +509,86 @@ void qMRMLSegmentationGeometryWidget::resampleLabelmapsInSegmentationNode()
       }
 
     // Resample
+    bool labelmapIsBinary = (masterRepresentationName == vtkSegmentationConverter::GetBinaryLabelmapRepresentationName());
+    // Choose label and background values that allow many gray levels for interpolation but still fits into a single byte.
+    const int scaledLabelValue = 255;
+    const int scaledBackgroundValue = 0;
+    const double scaledLabelThreshold = (static_cast<double>(scaledLabelValue) - static_cast<double>(scaledBackgroundValue)) / 2.0;
+    vtkSmartPointer<vtkOrientedImageData> currentLabelmapScaled = currentLabelmap;
+    if (labelmapIsBinary)
+      {
+      /*
+      // Scale current labelmap to 0..255
+      vtkNew<vtkImageThreshold> thresh;
+      thresh->SetInputData(currentLabelmap);
+      thresh->ThresholdByLower(0);
+      thresh->SetInValue(scaledBackgroundValue);
+      thresh->SetOutValue(scaledLabelValue);
+      thresh->SetOutputScalarType(VTK_UNSIGNED_CHAR);
+      //thresh->Update();
+
+      vtkNew<vtkImageGaussianSmooth> smoother;
+      smoother->SetInputConnection(thresh->GetOutputPort());
+      smoother->SetStandardDeviations(1.0, 1.0, 1.0);
+      smoother->Update();
+      */
+      vtkNew<vtkImageThreshold> thresh;
+      thresh->SetInputData(currentLabelmap);
+      thresh->ThresholdByLower(0);
+      thresh->SetInValue(0);
+      thresh->SetOutValue(200);
+      thresh->SetOutputScalarType(VTK_FLOAT);
+      //thresh->SetOutputScalarTypeToShort();
+
+      vtkNew<vtkITKDistanceTransform> distanceMap;
+      distanceMap->SetInputConnection(thresh->GetOutputPort());
+      distanceMap->SetSquaredDistance(false);
+      distanceMap->SetUseImageSpacing(true);
+      distanceMap->SetBackgroundValue(0);
+      //distanceMap->SetInsideIsPositive(true);
+      distanceMap->Update();
+
+      vtkNew<vtkImageGaussianSmooth> smoother;
+      smoother->SetInputConnection(distanceMap->GetOutputPort());
+      smoother->SetStandardDeviations(0.3, 0.3, 0.3);
+      smoother->Update();
+
+      currentLabelmapScaled = vtkSmartPointer<vtkOrientedImageData>::New();
+      //currentLabelmapScaled->DeepCopy(distanceMap->GetOutput());
+      currentLabelmapScaled->DeepCopy(smoother->GetOutput());
+      //currentLabelmapScaled->DeepCopy(thresh->GetOutput());
+      vtkNew<vtkMatrix4x4> imageToWorld;
+      currentLabelmap->GetImageToWorldMatrix(imageToWorld);
+      currentLabelmapScaled->SetImageToWorldMatrix(imageToWorld);
+      }
     vtkOrientedImageData* geometryImageData = d->Logic->GetOutputGeometryImageData();
-    if (!vtkOrientedImageDataResample::ResampleOrientedImageToReferenceOrientedImage(currentLabelmap, geometryImageData, currentLabelmap, false, true))
+    if (!vtkOrientedImageDataResample::ResampleOrientedImageToReferenceOrientedImage(
+      currentLabelmapScaled, geometryImageData, currentLabelmapScaled, true, true))
       {
       qCritical() << Q_FUNC_INFO << "Segment " << d->SegmentationNode->GetName() << "/" << currentSegmentID.c_str() << " failed to be resampled";
       success = false;
       continue;
+      }
+    if (labelmapIsBinary)
+      {
+      // Scale back labelmap to 0..1
+      vtkNew<vtkMatrix4x4> imageToWorld;
+      currentLabelmapScaled->GetImageToWorldMatrix(imageToWorld);
+      vtkNew<vtkImageThreshold> thresh;
+      thresh->SetInputData(currentLabelmapScaled);
+      thresh->SetInValue(1); // background
+      thresh->SetOutValue(0); // label
+      thresh->ThresholdByLower(0);
+      /*
+      thresh->ThresholdByLower(scaledLabelThreshold);
+      thresh->SetInValue(0); // background
+      thresh->SetOutValue(1); // label
+      */
+      thresh->SetOutputScalarType(currentLabelmap->GetScalarType());
+      thresh->Update();
+      // Save thresholded result into
+      currentLabelmap->DeepCopy(thresh->GetOutput());
+      currentLabelmap->SetImageToWorldMatrix(imageToWorld);
       }
     }
 
@@ -522,6 +602,8 @@ void qMRMLSegmentationGeometryWidget::resampleLabelmapsInSegmentationNode()
   d->SegmentationNode->Modified();
 
   d->SegmentationNode->EndModify(wasModified);
+
+  QApplication::restoreOverrideCursor();
 }
 
 //-----------------------------------------------------------------------------
