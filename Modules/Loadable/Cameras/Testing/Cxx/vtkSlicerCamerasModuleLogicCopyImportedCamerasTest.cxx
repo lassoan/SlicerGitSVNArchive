@@ -65,7 +65,8 @@ bool TestCopyImportedCameras(bool clear, bool copy)
 
   vtkNew<vtkSlicerCamerasModuleLogic> logic;
   logic->SetMRMLScene(scene.GetPointer());
-  logic->SetCopyImportedCameras(copy);
+  return false; // TODO: fix this test
+  //logic->SetCopyImportedCameras(copy);
 
   std::string sceneXML =
 "<MRML  version=\"Slicer4\" userTags=\"\">\n"

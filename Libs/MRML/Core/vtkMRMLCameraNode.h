@@ -57,10 +57,22 @@ public:
   const char* GetNodeTagName() override {return "Camera";};
 
   ///
+  /// Deprecated. Use SetLayoutName instead.
   /// Set the camera active tag, i.e. the tag for which object (view) this
   /// camera is active.
   const char* GetActiveTag();
   virtual void SetActiveTag(const char *);
+
+  ///
+  /// Name of the layout widget that this camera is used in.
+  /// Must be unique between all the slice composite
+  /// nodes because it is used as a singleton tag.
+  /// Must be the same as the slice node.
+  /// No name (i.e. "") by default. Typical names are numbers:
+  /// "1", "2", ... to uniquely define the 3D view node.
+  /// \sa vtkMRMLViewNode::SetLayoutName
+  void SetLayoutName(const char* layoutName);
+  char* GetLayoutName();
 
   ///
   /// vtkCamera
@@ -148,7 +160,8 @@ public:
   /// Events
   enum
   {
-    ActiveTagModifiedEvent = 30000,
+    LayoutNameModifiedEvent = 30000,
+    ActiveTagModifiedEvent = LayoutNameModifiedEvent, // dperecated, kept for backward compatibility only
     CameraInteractionEvent = 31000,
     ResetCameraClippingEvent = 32000,
   };
@@ -259,10 +272,7 @@ protected:
   void SetAndObserveCamera(vtkCamera* camera);
   vtkCamera* Camera;
 
-  vtkMRMLCameraNode* FindActiveTagInScene(const char* tag);
-
-  void SetInternalActiveTag(const char* id);
-  char* InternalActiveTag;
+  std::string InternalActiveTag; // variable to hold returned value of GetActiveTag
 
   vtkMatrix4x4* AppliedTransform;
 

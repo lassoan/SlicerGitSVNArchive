@@ -91,8 +91,8 @@ public:
   /// Manage and synchronise the CameraNode
   void UpdateCameraNode();
 
-  /// Manage and synchronise the ViewNode
-  void UpdateViewNode();
+  /// Convenience function for adding a view node and setting it in this logic
+  void AddViewNode(const char* layoutName);
 
   /// Convenient method to get the view node from scene and name of the Logic.
   /// The name of the Logic is the same of the widget one to which it is associated
@@ -119,6 +119,7 @@ protected:
   char* Name;
   vtkMRMLViewNode* ViewNode;
   vtkMRMLCameraNode* CameraNode;
+  bool UpdatingMRMLNodes;
 
 private:
   vtkMRMLViewLogic(const vtkMRMLViewLogic&) = delete;

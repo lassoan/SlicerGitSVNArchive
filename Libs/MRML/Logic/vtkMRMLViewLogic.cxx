@@ -48,6 +48,7 @@ vtkStandardNewMacro(vtkMRMLViewLogic);
 //----------------------------------------------------------------------------
 vtkMRMLViewLogic::vtkMRMLViewLogic()
 {
+  this->UpdatingMRMLNodes = false;
   this->Name = nullptr;
   this->SetName("");
   this->ViewNode = nullptr;
@@ -79,13 +80,6 @@ vtkMRMLViewLogic::~vtkMRMLViewLogic()
 //----------------------------------------------------------------------------
 void vtkMRMLViewLogic::SetMRMLSceneInternal(vtkMRMLScene* newScene)
 {
-  // Sanity checks
-  if (!this->GetName() || strlen(this->GetName()) == 0)
-    {
-    vtkErrorMacro(<< "Name is nullptr - Make sure you call SetName before SetMRMLScene !");
-    return;
-    }
-
   // List of events the slice logics should listen
   vtkNew<vtkIntArray> events;
   events->InsertNextValue(vtkMRMLScene::EndBatchProcessEvent);
@@ -100,10 +94,12 @@ void vtkMRMLViewLogic::SetMRMLSceneInternal(vtkMRMLScene* newScene)
 //----------------------------------------------------------------------------
 void vtkMRMLViewLogic::OnMRMLSceneNodeAdded(vtkMRMLNode* node)
 {
+  /*
   if (node->IsA("vtkMRMLViewNode") || node->IsA("vtkMRMLCameraNode"))
     {
     this->UpdateMRMLNodes();
     }
+    */
 }
 
 //----------------------------------------------------------------------------
@@ -129,10 +125,13 @@ void vtkMRMLViewLogic::UpdateMRMLNodes()
     {
     return;
     }
-
-  // Set up the nodes
-  this->UpdateViewNode();
+  if (this->UpdatingMRMLNodes)
+    {
+    return;
+    }
+  this->UpdatingMRMLNodes = true;
   this->UpdateCameraNode();
+  this->UpdatingMRMLNodes = false;
 }
 
 //----------------------------------------------------------------------------
@@ -162,36 +161,13 @@ vtkMRMLViewNode* vtkMRMLViewLogic::GetViewNode(vtkMRMLScene* scene, const char* 
 //----------------------------------------------------------------------------
 vtkMRMLCameraNode* vtkMRMLViewLogic::GetCameraNode(vtkMRMLScene* scene, const char* layoutName)
 {
-  if (!scene || !layoutName)
+  if (!scene || !layoutName || strlen(layoutName)==0)
     {
     return nullptr;
     }
-
-  vtkSmartPointer<vtkCollection> cameraNodes = vtkSmartPointer<vtkCollection>::Take
-      (scene->GetNodesByClass("vtkMRMLCameraNode"));
-  for (int cameraIndex = 0; cameraIndex < cameraNodes->GetNumberOfItems(); ++cameraIndex)
-    {
-    vtkMRMLCameraNode* cameraNode =
-        vtkMRMLCameraNode::SafeDownCast(cameraNodes->GetItemAsObject(cameraIndex));
-    if (!cameraNode || !cameraNode->GetActiveTag())
-      {
-      continue;
-      }
-    vtkSmartPointer<vtkCollection> viewNodes = vtkSmartPointer<vtkCollection>::Take
-        (scene->GetNodesByClass("vtkMRMLViewNode"));
-    for(int viewNodeIndex = 0; viewNodeIndex < viewNodes->GetNumberOfItems(); ++viewNodeIndex)
-      {
-      vtkMRMLViewNode* viewNode =
-          vtkMRMLViewNode::SafeDownCast(viewNodes->GetItemAsObject(viewNodeIndex));
-      if (viewNode &&  viewNode->GetLayoutName() &&
-          !strcmp(viewNode->GetLayoutName(), layoutName) &&
-          !strcmp(cameraNode->GetActiveTag(), viewNode->GetID()))
-        {
-        return cameraNode;
-        }
-      }
-    }
-  return nullptr;
+  vtkMRMLCameraNode* cameraNode = vtkMRMLCameraNode::SafeDownCast(
+    scene->GetSingletonNode(layoutName, "vtkMRMLCameraNode"));
+  return cameraNode;
 }
 
 //----------------------------------------------------------------------------
@@ -295,95 +271,23 @@ void vtkMRMLViewLogic::UpdateCameraNode()
     this->SetCameraNode(nullptr);
     return;
     }
-
   // find ViewNode in the scene
-  vtkMRMLCameraNode* node = vtkMRMLViewLogic::GetCameraNode(this->GetMRMLScene(), this->GetName());
-
-  if (this->CameraNode != nullptr && node != nullptr &&
-      (this->CameraNode->GetID() == nullptr ||
-      strcmp(this->CameraNode->GetID(), node->GetID()) != 0))
-    {
-    // local ViewNode is out of sync with the scene
-    this->SetCameraNode(nullptr);
-    }
-
-  // find ViewNode in the scene
-  vtkMRMLViewNode* viewNode = vtkMRMLViewLogic::GetViewNode(this->GetMRMLScene(), this->GetName());
-
-  if (this->CameraNode == nullptr)
-    {
-    if (node == nullptr && viewNode)
-      {
-      // Use CreateNodeByClass instead of New to use default node specified in the scene
-      node = vtkMRMLCameraNode::SafeDownCast(this->GetMRMLScene()->CreateNodeByClass("vtkMRMLCameraNode"));
-      node ->SetActiveTag(viewNode->GetID());
-      this->SetCameraNode(node);
-      node->Delete();
-      }
-    else
-      {
-      this->SetCameraNode(node);
-      }
-    }
-
-  if (this->GetMRMLScene()->GetNodeByID(this->CameraNode->GetID()) == nullptr)
-    {
-    // local node not in the scene
-    node = this->CameraNode;
-    node->Register(this);
-    this->SetCameraNode(nullptr);
-    this->GetMRMLScene()->AddNode(node);
-    this->SetCameraNode(node);
-    node->UnRegister(this);
-    }
+  vtkSmartPointer<vtkMRMLCameraNode> updatedCameraNode = vtkMRMLViewLogic::GetCameraNode(this->GetMRMLScene(), this->GetName());
+  this->SetCameraNode(updatedCameraNode);
 }
 
 //----------------------------------------------------------------------------
-void vtkMRMLViewLogic::UpdateViewNode()
+void vtkMRMLViewLogic::AddViewNode(const char* layoutName)
 {
   if (!this->GetMRMLScene())
     {
-    this->SetViewNode(nullptr);
+    vtkErrorMacro("vtkMRMLViewLogic::AddViewNode failed: scene is not set");
     return;
     }
-
-  // find ViewNode in the scene
-  vtkMRMLViewNode* node = vtkMRMLViewLogic::GetViewNode(this->GetMRMLScene(), this->GetName());
-
-  if (this->ViewNode != nullptr && node != nullptr &&
-      (this->ViewNode->GetID() == nullptr ||
-      strcmp(this->ViewNode->GetID(), node->GetID()) != 0))
-    {
-    // local ViewNode is out of sync with the scene
-    this->SetViewNode(nullptr);
-    }
-
-  if (this->ViewNode == nullptr)
-    {
-    if (node == nullptr)
-      {
-      // Use CreateNodeByClass instead of New to use default node specified in the scene
-      node = vtkMRMLViewNode::SafeDownCast(this->GetMRMLScene()->CreateNodeByClass("vtkMRMLViewNode"));
-      node->SetLayoutName(this->GetName());
-      this->SetViewNode(node);
-      node->Delete();
-      }
-    else
-      {
-      this->SetViewNode(node);
-      }
-    }
-
-  if (this->GetMRMLScene()->GetNodeByID(this->ViewNode->GetID()) == nullptr)
-    {
-    // local node not in the scene
-    node = this->ViewNode;
-    node->Register(this);
-    this->SetViewNode(nullptr);
-    this->GetMRMLScene()->AddNode(node);
-    this->SetViewNode(node);
-    node->UnRegister(this);
-    }
+  vtkSmartPointer<vtkMRMLViewNode> node = vtkSmartPointer<vtkMRMLViewNode>::Take(
+    vtkMRMLViewNode::SafeDownCast(this->GetMRMLScene()->CreateNodeByClass("vtkMRMLViewNode")));
+  node->SetLayoutName(layoutName);
+  this->SetViewNode(node);
 }
 
 //----------------------------------------------------------------------------

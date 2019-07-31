@@ -527,9 +527,10 @@ bool vtkMRMLCameraWidget::ProcessSetCrosshair(vtkMRMLInteractionEventData* event
     {
     // Try to get view group of the 3D view and jump only those slices.
     int viewGroup = -1; // jump all by default
-    if (this->GetCameraNode() && this->GetCameraNode()->GetActiveTag())
+    if (this->GetCameraNode() && this->GetCameraNode()->GetLayoutName())
       {
-      vtkMRMLAbstractViewNode* viewNode = vtkMRMLAbstractViewNode::SafeDownCast(scene->GetNodeByID(this->GetCameraNode()->GetActiveTag()));
+      vtkMRMLViewNode* viewNode = vtkMRMLViewNode::SafeDownCast(
+        scene->GetSingletonNode(this->GetCameraNode()->GetLayoutName(), "vtkMRMLViewNode"));
       if (viewNode)
         {
         viewGroup = viewNode->GetViewGroup();
@@ -902,7 +903,8 @@ bool vtkMRMLCameraWidget::Dolly(double factor)
     if (this->GetCameraNode() && this->GetCameraNode()->GetScene())
       {
       vtkMRMLScene* scene = this->GetCameraNode()->GetScene();
-      vtkMRMLViewNode* viewNode = vtkMRMLViewNode::SafeDownCast(scene->GetNodeByID(this->GetCameraNode()->GetActiveTag()));
+      vtkMRMLViewNode* viewNode = vtkMRMLViewNode::SafeDownCast(
+        scene->GetSingletonNode(this->GetCameraNode()->GetLayoutName(), "vtkMRMLViewNode"));
       if (viewNode)
         {
         viewNode->SetFieldOfView(camera->GetParallelScale());
