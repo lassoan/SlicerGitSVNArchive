@@ -445,8 +445,6 @@ void qMRMLSliceControllerWidgetPrivate::init()
 
   vtkNew<vtkMRMLSliceLogic> defaultLogic;
   q->setSliceLogic(defaultLogic.GetPointer());
-
-  q->setSliceViewName("Red");
 }
 
 // --------------------------------------------------------------------------
@@ -860,10 +858,16 @@ void qMRMLSliceControllerWidgetPrivate::updateSliceOrientationSelector(
 // --------------------------------------------------------------------------
 void qMRMLSliceControllerWidgetPrivate::updateWidgetFromMRMLSliceNode()
 {
+  Q_Q(qMRMLSliceControllerWidget);
+
   if (!this->MRMLSliceNode)
     {
     return;
     }
+
+  double* layoutColorVtk = this->MRMLSliceNode->GetLayoutColor();
+  QColor layoutColor = QColor::fromRgbF(layoutColorVtk[0], layoutColorVtk[1], layoutColorVtk[2]);
+  this->setColor(layoutColor);
 
   bool wasBlocked;
 
@@ -1002,7 +1006,10 @@ void qMRMLSliceControllerWidgetPrivate::updateWidgetFromMRMLSliceCompositeNode()
     // the volumes pointed by the slice composite node don't exist yet
     return;
     }
-  Q_ASSERT(this->MRMLSliceCompositeNode);
+  if (!this->MRMLSliceCompositeNode)
+    {
+    return;
+    }
 
   bool wasBlocked;
 
@@ -1768,33 +1775,13 @@ void qMRMLSliceControllerWidget::setSliceViewName(const QString& newSliceViewNam
 {
   Q_D(qMRMLSliceControllerWidget);
 
-  if (d->MRMLSliceNode)
+  if (!d->MRMLSliceNode)
     {
-    qCritical() << "qMRMLSliceControllerWidget::setSliceViewName should be called before setMRMLSliceNode !";
+    qCritical() << "qMRMLSliceControllerWidget::setSliceViewName failed: MRMLSliceNode is invalid";
     return;
     }
 
-  if (d->SliceViewName == newSliceViewName)
-    {
-    return;
-    }
-
-  // Colors are now first class properties not derived from the
-  // name...
-
-  // // If name matches either 'Red, 'Green' or 'Yellow' set the
-  // // corresponding color (legacy colors). If the name matches an SVG color keyword
-  // // http://www.w3.org/TR/SVG/types.html#ColorKeywords, then use that.
-  // // Set Orange otherwise.
-  // QColor barColor = qMRMLSliceControllerWidget::sliceViewColor(newSliceViewName);
-  // d->setColor(barColor);
-
-  if (d->SliceLogic)
-    {
-    d->SliceLogic->SetName(newSliceViewName.toLatin1());
-    }
-
-  d->SliceViewName = newSliceViewName;
+  d->MRMLSliceNode->SetLayoutName(newSliceViewName.toLatin1().constData());
 }
 
 //---------------------------------------------------------------------------
@@ -1850,6 +1837,7 @@ void qMRMLSliceControllerWidget::setSliceViewLabel(const QString& newSliceViewLa
   Q_D(qMRMLSliceControllerWidget);
   if (!d->MRMLSliceNode)
     {
+    qCritical() << "qMRMLSliceControllerWidget::setSliceViewLabel failed: MRMLSliceNode is invalid";
     return;
     }
   d->MRMLSliceNode->SetLayoutLabel(newSliceViewLabel.toLatin1());
@@ -1866,14 +1854,13 @@ QString qMRMLSliceControllerWidget::sliceViewLabel()const
 void qMRMLSliceControllerWidget::setSliceViewColor(const QColor& newSliceViewColor)
 {
   Q_D(qMRMLSliceControllerWidget);
-
-  if (d->MRMLSliceNode)
+  if (!d->MRMLSliceNode)
     {
-    qCritical() << "qMRMLSliceControllerWidget::setSliceViewColor should be called before setMRMLSliceNode";
+    qCritical() << "qMRMLSliceControllerWidget::setSliceViewName failed: MRMLSliceNode is invalid";
     return;
     }
-
-  d->setColor(newSliceViewColor);
+  // this will update the widget color
+  d->MRMLSliceNode->SetLayoutColor(newSliceViewColor.redF(), newSliceViewColor.greenF(), newSliceViewColor.blueF());
 }
 
 //---------------------------------------------------------------------------

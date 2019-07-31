@@ -46,35 +46,21 @@ class VTK_MRML_EXPORT vtkMRMLSliceCompositeNode : public vtkMRMLNode
   /// Get node XML tag name (like Volume, Model)
   const char* GetNodeTagName() override {return "SliceComposite";}
 
-  /// Set the volumes as reference in the scene
-  void SetSceneReferences() override;
-
-  ///
-  /// Updates this node if it depends on other nodes
-  /// when the node is deleted in the scene
-  void UpdateReferences() override;
-
-  ///
-  /// Update the stored reference to another node in the scene
-  void UpdateReferenceID(const char *oldID, const char *newID) override;
-
   ///
   /// the ID of a MRMLVolumeNode
-  vtkGetStringMacro (BackgroundVolumeID);
+  const char* GetBackgroundVolumeID();
   void SetBackgroundVolumeID(const char* id);
   void SetReferenceBackgroundVolumeID(const char *id) { this->SetBackgroundVolumeID(id); }
 
   ///
   /// the ID of a MRMLVolumeNode
-  /// TODO: make this an arbitrary list of layers
-  vtkGetStringMacro (ForegroundVolumeID);
+  const char* GetForegroundVolumeID();
   void SetForegroundVolumeID(const char* id);
   void SetReferenceForegroundVolumeID(const char *id) { this->SetForegroundVolumeID(id); }
 
   ///
   /// the ID of a MRMLVolumeNode
-  /// TODO: make this an arbitrary list of layers
-  vtkGetStringMacro (LabelVolumeID);
+  const char* GetLabelVolumeID();
   void SetLabelVolumeID(const char* id);
   void SetReferenceLabelVolumeID(const char *id) { this->SetLabelVolumeID(id); }
 
@@ -166,7 +152,8 @@ class VTK_MRML_EXPORT vtkMRMLSliceCompositeNode : public vtkMRMLNode
       XYZ = 0,
       IJK,
       RAS,
-      IJKAndRAS
+      IJKAndRAS,
+      AnnotationSpace_Last // insert values above this line
     };
 
   /// Annotation mode
@@ -175,7 +162,8 @@ class VTK_MRML_EXPORT vtkMRMLSliceCompositeNode : public vtkMRMLNode
       NoAnnotation = 0,
       All,
       LabelValuesOnly,
-      LabelAndVoxelValuesOnly
+      LabelAndVoxelValuesOnly,
+      AnnotationMode_Last // insert values above this line
     };
 
   /// Modes for compositing
@@ -236,16 +224,21 @@ class VTK_MRML_EXPORT vtkMRMLSliceCompositeNode : public vtkMRMLNode
   /// broadcast when composite slice nodes are linked).
   void ResetInteractionFlagsModifier();
 
+  /// Convert between annotation space ID and name
+  const char* GetAnnotationSpaceAsString(int id);
+  int GetAnnotationSpaceFromString(const char* name);
+
+  /// Convert between annotation mode ID and name
+  const char* GetAnnotationModeAsString(int id);
+  int GetAnnotationModeFromString(const char* name);
 
 protected:
+
   vtkMRMLSliceCompositeNode();
   ~vtkMRMLSliceCompositeNode() override;
   vtkMRMLSliceCompositeNode(const vtkMRMLSliceCompositeNode&);
   void operator=(const vtkMRMLSliceCompositeNode&);
 
-  char *BackgroundVolumeID;
-  char *ForegroundVolumeID;
-  char *LabelVolumeID;
   double ForegroundOpacity;
 
   int Compositing;

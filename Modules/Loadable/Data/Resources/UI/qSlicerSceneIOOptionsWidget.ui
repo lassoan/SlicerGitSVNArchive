@@ -27,16 +27,6 @@
      </property>
     </widget>
    </item>
-   <item>
-    <widget class="QCheckBox" name="CopyCameraCheckBox">
-     <property name="text">
-      <string>Replace active camera</string>
-     </property>
-     <property name="checked">
-      <bool>true</bool>
-     </property>
-    </widget>
-   </item>
   </layout>
  </widget>
  <customwidgets>

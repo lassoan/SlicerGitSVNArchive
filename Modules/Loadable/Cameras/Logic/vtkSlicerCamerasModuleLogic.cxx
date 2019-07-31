@@ -29,6 +29,7 @@
 
 // VTK includes
 #include <vtkCollection.h>
+#include <vtkFloatArray.h>
 #include <vtkNew.h>
 #include <vtkObjectFactory.h>
 
@@ -41,7 +42,6 @@ vtkStandardNewMacro(vtkSlicerCamerasModuleLogic);
 //----------------------------------------------------------------------------
 vtkSlicerCamerasModuleLogic::vtkSlicerCamerasModuleLogic()
 {
-  this->CopyImportedCameras = true;
 }
 
 //----------------------------------------------------------------------------
@@ -58,72 +58,58 @@ void vtkSlicerCamerasModuleLogic::PrintSelf(ostream& os, vtkIndent indent)
 vtkMRMLCameraNode* vtkSlicerCamerasModuleLogic
 ::GetViewActiveCameraNode(vtkMRMLViewNode* viewNode)
 {
-  vtkCollection* nodes = this->GetMRMLScene() ? this->GetMRMLScene()->GetNodes() : nullptr;
-  if (nodes == nullptr || viewNode == nullptr)
+  if (!this->GetMRMLScene())
     {
     return nullptr;
     }
-  vtkMRMLNode *node;
-  vtkCollectionSimpleIterator it;
-  for (nodes->InitTraversal(it);
-       (node = vtkMRMLNode::SafeDownCast(nodes->GetNextItemAsObject(it))) ;)
-    {
-    vtkMRMLCameraNode* cameraNode = vtkMRMLCameraNode::SafeDownCast(node);
-    if (cameraNode &&
-        cameraNode->GetActiveTag() &&
-        !strcmp(cameraNode->GetActiveTag(), viewNode->GetID()))
-      {
-      return cameraNode;
-      }
-    }
-  return nullptr;
+  vtkMRMLCameraNode* cameraNode = vtkMRMLCameraNode::SafeDownCast(
+    this->GetMRMLScene()->GetSingletonNode(viewNode->GetLayoutName(), "vtkMRMLCameraNode"));
+  return cameraNode;
 }
 
 //---------------------------------------------------------------------------
 void vtkSlicerCamerasModuleLogic::SetMRMLSceneInternal(vtkMRMLScene * newScene)
 {
+  // List of events the slice logics should listen
   vtkNew<vtkIntArray> events;
+  vtkNew<vtkFloatArray> priorities;
+
+  float normalPriority = 0.0;
+  //float lowPriority = -0.5;
+  float highPriority = 0.5;
+
+  // Events that use the default priority.  Don't care the order they
+  // are triggered
+  events->InsertNextValue(vtkMRMLScene::StartImportEvent);
+  priorities->InsertNextValue(highPriority); // need to get to this event before camera displayable manager clears the active tag
   events->InsertNextValue(vtkMRMLScene::NodeAboutToBeAddedEvent);
-  this->SetAndObserveMRMLSceneEventsInternal(newScene, events.GetPointer());
+  priorities->InsertNextValue(normalPriority);
+
+  // Events that need to a lower priority than normal, in other words,
+  // guaranteed to be be called before other triggers.
+  // We use high priority here so that modules that observe scene imports
+  // will not have to process imported camera nodes that will be deleted
+  // right away.
+  events->InsertNextValue(vtkMRMLScene::EndImportEvent);
+  priorities->InsertNextValue(highPriority);
+
+  this->SetAndObserveMRMLSceneEventsInternal(newScene, events.GetPointer(), priorities.GetPointer());
+
+  this->ProcessMRMLSceneEvents(newScene, vtkCommand::ModifiedEvent, nullptr);
 }
 
 //---------------------------------------------------------------------------
-void vtkSlicerCamerasModuleLogic
-::ProcessMRMLSceneEvents(vtkObject *caller, unsigned long event, void *callData)
+void vtkSlicerCamerasModuleLogic::ProcessMRMLSceneEvents(vtkObject *caller, unsigned long event, void *callData)
 {
   this->Superclass::ProcessMRMLSceneEvents(caller, event, callData);
-  if (event == vtkMRMLScene::NodeAboutToBeAddedEvent &&
-      this->GetMRMLScene()->IsImporting() &&
-      this->CopyImportedCameras)
-    {
-    vtkMRMLCameraNode* cameraNode = vtkMRMLCameraNode::SafeDownCast(
-      reinterpret_cast<vtkObject*>(callData));
-    if (cameraNode)
-      {
-      vtkSmartPointer<vtkCollection> existingCamerasWithSameName;
-      existingCamerasWithSameName.TakeReference(
-        this->GetMRMLScene()->GetNodesByClassByName(cameraNode->GetClassName(),
-                                                    cameraNode->GetName()));
-      vtkMRMLCameraNode* existingCameraWithSameName =
-        vtkMRMLCameraNode::SafeDownCast(
-          existingCamerasWithSameName->GetItemAsObject(0));
-      if (existingCameraWithSameName)
-        {
-        int wasModifying = existingCameraWithSameName->StartModify();
-        existingCameraWithSameName->SetParallelProjection(
-          cameraNode->GetParallelProjection());
-        existingCameraWithSameName->SetParallelScale(
-          cameraNode->GetParallelScale());
-        existingCameraWithSameName->SetPosition(
-          cameraNode->GetPosition());
-        existingCameraWithSameName->SetFocalPoint(
-          cameraNode->GetFocalPoint());
-        existingCameraWithSameName->SetViewUp(
-          cameraNode->GetViewUp());
-        // \tbd: Copy AppliedTransform ?
-        existingCameraWithSameName->ResetClippingRange();
-        existingCameraWithSameName->EndModify(wasModifying);
-        }
-      }
-    }
+}
+
+//----------------------------------------------------------------------------
+void vtkSlicerCamerasModuleLogic::OnMRMLSceneStartImport()
+{
+}
+
+//----------------------------------------------------------------------------
+void vtkSlicerCamerasModuleLogic::OnMRMLSceneEndImport()
+{
 }

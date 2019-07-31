@@ -121,8 +121,7 @@ void vtkMRMLViewLinkLogic::OnMRMLNodeModified(vtkMRMLNode* node)
     // CameraNode was modified. Need to find the corresponding
     // ViewNode to check whether operations are linked
     vtkMRMLViewNode* viewNode = vtkMRMLViewNode::SafeDownCast
-      (this->GetMRMLScene()->GetNodeByID(cameraNode->GetActiveTag()));
-
+      (this->GetMRMLScene()->GetSingletonNode(cameraNode->GetLayoutName(), "vtkMRMLViewNode"));
     if (viewNode && viewNode->GetLinkedControl())
       {
       this->BroadcastCameraNodeEvent(cameraNode);
@@ -178,8 +177,7 @@ void vtkMRMLViewLinkLogic::BroadcastCameraNodeEvent(vtkMRMLCameraNode* cameraNod
     }
 
   vtkMRMLViewNode* viewNode = vtkMRMLViewNode::SafeDownCast
-    (this->GetMRMLScene()->GetNodeByID(cameraNode->GetActiveTag()));
-
+    (this->GetMRMLScene()->GetSingletonNode(cameraNode->GetLayoutName(), "vtkMRMLViewNode"));
   if (!viewNode)
     {
     return;
@@ -199,8 +197,7 @@ void vtkMRMLViewLinkLogic::BroadcastCameraNodeEvent(vtkMRMLCameraNode* cameraNod
       }
 
     vtkMRMLViewNode* sViewNode = vtkMRMLViewNode::SafeDownCast
-      (this->GetMRMLScene()->GetNodeByID(cameraNode->GetActiveTag()));
-
+      (this->GetMRMLScene()->GetSingletonNode(cameraNode->GetLayoutName(), "vtkMRMLViewNode"));
     if (!sViewNode || sViewNode->GetViewGroup() != requiredViewGroup)
       {
       continue;

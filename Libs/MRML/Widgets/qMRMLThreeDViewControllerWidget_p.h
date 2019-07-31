@@ -81,7 +81,6 @@ public:
   ctkSignalMapper*                    RulerTypesMapper;
   ctkSignalMapper*                    RulerColorMapper;
 
-  QString                             ThreeDViewLabel;
   QToolButton*                        CenterToolButton;
 
 protected:
