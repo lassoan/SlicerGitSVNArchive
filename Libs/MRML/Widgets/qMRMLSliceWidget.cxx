@@ -142,9 +142,8 @@ void qMRMLSliceWidget::setMRMLScene(vtkMRMLScene* newScene)
 void qMRMLSliceWidget::setMRMLSliceNode(vtkMRMLSliceNode* newSliceNode)
 {
   Q_D(qMRMLSliceWidget);
-
-  d->SliceView->setMRMLSliceNode(newSliceNode);
   d->SliceController->setMRMLSliceNode(newSliceNode);
+  d->SliceView->setMRMLSliceNode(newSliceNode);
 }
 
 //---------------------------------------------------------------------------

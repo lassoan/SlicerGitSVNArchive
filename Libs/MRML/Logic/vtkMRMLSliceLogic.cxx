@@ -198,8 +198,7 @@ vtkStandardNewMacro(vtkMRMLSliceLogic);
 //----------------------------------------------------------------------------
 vtkMRMLSliceLogic::vtkMRMLSliceLogic()
 {
-  this->Initialized = false;
-  this->Name = nullptr;
+  //this->Initialized = false;
   this->BackgroundLayer = nullptr;
   this->ForegroundLayer = nullptr;
   this->LabelLayer = nullptr;
@@ -215,8 +214,6 @@ vtkMRMLSliceLogic::vtkMRMLSliceLogic()
 
   this->SliceModelNode = nullptr;
   this->SliceModelTransformNode = nullptr;
-  this->Name = nullptr;
-  this->SetName("");
   this->SliceModelDisplayNode = nullptr;
   this->ImageDataConnection = nullptr;
   this->SliceSpacing[0] = this->SliceSpacing[1] = this->SliceSpacing[2] = 1;
@@ -226,7 +223,6 @@ vtkMRMLSliceLogic::vtkMRMLSliceLogic()
 //----------------------------------------------------------------------------
 vtkMRMLSliceLogic::~vtkMRMLSliceLogic()
 {
-  this->SetName(nullptr);
   this->SetSliceNode(nullptr);
 
   if (this->ImageDataConnection)
@@ -257,14 +253,15 @@ vtkMRMLSliceLogic::~vtkMRMLSliceLogic()
 
 //----------------------------------------------------------------------------
 // TODO: Remove from API
-bool vtkMRMLSliceLogic::IsInitialized()
+/*bool vtkMRMLSliceLogic::IsInitialized()
 {
   return this->Initialized;
 }
+*/
 
 //----------------------------------------------------------------------------
 // TODO: Remove from API
-void vtkMRMLSliceLogic::Initialize(vtkMRMLSliceNode* newSliceNode)
+/*void vtkMRMLSliceLogic::Initialize(vtkMRMLSliceNode* newSliceNode)
 {
   if (this->Initialized)
     {
@@ -283,17 +280,10 @@ void vtkMRMLSliceLogic::Initialize(vtkMRMLSliceNode* newSliceNode)
 
   this->Initialized = true;
 }
-
+*/
 //----------------------------------------------------------------------------
 void vtkMRMLSliceLogic::SetMRMLSceneInternal(vtkMRMLScene * newScene)
 {
-  // Sanity checks
-  if (!this->GetName() || strlen(this->GetName()) == 0)
-    {
-    vtkErrorMacro(<< "Name is nullptr - Make sure you call SetName before SetMRMLScene !");
-    return;
-    }
-
   // List of events the slice logics should listen
   vtkNew<vtkIntArray> events;
   events->InsertNextValue(vtkMRMLScene::EndBatchProcessEvent);
@@ -320,48 +310,6 @@ void vtkMRMLSliceLogic::UpdateSliceNode()
   if (!this->GetMRMLScene())
     {
     this->SetSliceNode(nullptr);
-    return;
-    }
-  // find SliceNode in the scene
-  vtkMRMLSliceNode *node = vtkMRMLSliceLogic::GetSliceNode(this->GetMRMLScene(), this->GetName());
-
-  if ( this->SliceNode != nullptr && node != nullptr &&
-        this->SliceCompositeNode &&
-       (this->SliceCompositeNode->GetID() == nullptr ||
-        strcmp(this->SliceNode->GetID(), node->GetID()) != 0 ))
-    {
-    // local SliceNode is out of sync with the scene
-    this->SetSliceNode (nullptr);
-    }
-
-  if ( this->SliceNode == nullptr )
-    {
-    if ( node == nullptr )
-      {
-      node = vtkMRMLSliceNode::SafeDownCast(
-            this->GetMRMLScene()->CreateNodeByClass("vtkMRMLSliceNode"));
-      node->SetName(this->GetName());
-      node->SetLayoutName(this->GetName());
-      this->SetSliceNode (node);
-      this->UpdateSliceNodeFromLayout();
-      node->Delete();
-      }
-    else
-      {
-
-      this->SetSliceNode (node);
-      }
-    }
-
-  if ( this->GetMRMLScene()->GetNodeByID(this->SliceNode->GetID()) == nullptr)
-    {
-    // local node not in the scene
-    node = this->SliceNode;
-    node->Register(this);
-    this->SetSliceNode (nullptr);
-    this->GetMRMLScene()->AddNode(node);
-    this->SetSliceNode (node);
-    node->UnRegister(this);
     }
 
 }
@@ -379,13 +327,14 @@ void vtkMRMLSliceLogic::UpdateSliceNodeFromLayout()
 //----------------------------------------------------------------------------
 void vtkMRMLSliceLogic::UpdateSliceCompositeNode()
 {
-  if (!this->GetMRMLScene())
+  if (!this->GetMRMLScene() || !this->GetSliceNode())
     {
     this->SetSliceCompositeNode(nullptr);
     return;
     }
   // find SliceCompositeNode in the scene
-  vtkMRMLSliceCompositeNode *node= vtkMRMLSliceLogic::GetSliceCompositeNode(this->GetMRMLScene(), this->GetName());
+  std::string layoutName = (this->GetSliceNode()->GetLayoutName() ? this->GetSliceNode()->GetLayoutName() : "");
+  vtkMRMLSliceCompositeNode *node = vtkMRMLSliceLogic::GetSliceCompositeNode(this->GetMRMLScene(), layoutName.c_str());
 
   if ( this->SliceCompositeNode != nullptr && node != nullptr &&
        (this->SliceCompositeNode->GetID() == nullptr ||
@@ -401,7 +350,8 @@ void vtkMRMLSliceLogic::UpdateSliceCompositeNode()
       {
       // Use CreateNodeByClass instead of New to use default node specified in the scene
       node = vtkMRMLSliceCompositeNode::SafeDownCast(this->GetMRMLScene()->CreateNodeByClass("vtkMRMLSliceCompositeNode"));
-      node->SetLayoutName(this->GetName());
+      node->SetLayoutName(layoutName.c_str());
+      this->GetMRMLScene()->AddNode(node);
       this->SetSliceCompositeNode(node);
       node->Delete();
       }
@@ -410,18 +360,6 @@ void vtkMRMLSliceLogic::UpdateSliceCompositeNode()
       this->SetSliceCompositeNode(node);
       }
     }
-
-  if ( this->GetMRMLScene()->GetNodeByID(this->SliceCompositeNode->GetID()) == nullptr)
-    {
-    // local node not in the scene
-    node = this->SliceCompositeNode;
-    node->Register(this);
-    this->SetSliceCompositeNode(nullptr);
-    this->GetMRMLScene()->AddNode(node);
-    this->SetSliceCompositeNode(node);
-    node->UnRegister(this);
-    }
-
 }
 
 //----------------------------------------------------------------------------
@@ -680,6 +618,17 @@ void vtkMRMLSliceLogic::ProcessMRMLLogicsEvents()
 }
 
 //----------------------------------------------------------------------------
+void vtkMRMLSliceLogic::AddSliceNode(const char* layoutName)
+{
+  vtkMRMLSliceNode* node = vtkMRMLSliceNode::SafeDownCast(
+    this->GetMRMLScene()->CreateNodeByClass("vtkMRMLSliceNode"));
+  node->SetName(layoutName);
+  node->SetLayoutName(layoutName);
+  this->SetSliceNode(node);
+  this->UpdateSliceNodeFromLayout();
+  node->Delete();
+}
+//----------------------------------------------------------------------------
 void vtkMRMLSliceLogic::SetSliceNode(vtkMRMLSliceNode * newSliceNode)
 {
   if (this->SliceNode == newSliceNode)
@@ -693,6 +642,8 @@ void vtkMRMLSliceLogic::SetSliceNode(vtkMRMLSliceNode * newSliceNode)
   // This class takes care of passing the one slice node to each of the layers
   // so that users of this class only need to set the node one place.
   vtkSetAndObserveMRMLNodeMacro( this->SliceNode, newSliceNode );
+
+  this->UpdateSliceCompositeNode();
 
   if (this->BackgroundLayer)
     {
@@ -1299,10 +1250,14 @@ void vtkMRMLSliceLogic::CreateSliceModel()
     this->SliceModelDisplayNode->SetVisibility(0);
     this->SliceModelDisplayNode->SetOpacity(1);
     this->SliceModelDisplayNode->SetColor(1,1,1);
+    std::string displayName = "Slice Display";
+    std::string modelNodeName = "Slice " + this->SLICE_MODEL_NODE_NAME_SUFFIX;
     if (this->SliceNode)
       {
       // Auto-set the colors based on the slice node
       this->SliceModelDisplayNode->SetColor(this->SliceNode->GetLayoutColor());
+      displayName = std::string(this->SliceNode->GetLayoutName()) + std::string(" Display");
+      modelNodeName = this->SliceNode->GetLayoutName() + std::string(" ") + this->SLICE_MODEL_NODE_NAME_SUFFIX;
       }
     this->SliceModelDisplayNode->SetAmbient(1);
     this->SliceModelDisplayNode->SetBackfaceCulling(0);
@@ -1312,15 +1267,13 @@ void vtkMRMLSliceLogic::CreateSliceModel()
     this->SliceModelDisplayNode->SetDisableModifiedEvent(0);
     // set an attribute to distinguish this from regular model display nodes
     this->SliceModelDisplayNode->SetAttribute("SliceLogic.IsSliceModelDisplayNode", "True");
-    std::string displayName = std::string(this->Name) + std::string(" Display");
     this->SliceModelDisplayNode->SetName(displayName.c_str());
     // Turn slice intersection off by default - there is a higher level GUI control
     // in the SliceCompositeNode that tells if slices should be enabled for a given
     // slice viewer
     this->SliceModelDisplayNode->SetVisibility2D(0);
 
-    std::string name = std::string(this->Name) + std::string(" ") + this->SLICE_MODEL_NODE_NAME_SUFFIX;
-    this->SliceModelNode->SetName (name.c_str());
+    this->SliceModelNode->SetName(modelNodeName.c_str());
 
     // make the xy to RAS transform
     this->SliceModelTransformNode = vtkMRMLLinearTransformNode::New();

@@ -101,8 +101,8 @@ vtkMRMLSliceLogic *setupSliceDisplay(vtkMRMLScene *scene, vtkRenderWindow *rw, c
   // Create the slice logic to create the slice image
   //
   vtkMRMLSliceLogic *sliceLogic = vtkMRMLSliceLogic::New();
-  sliceLogic->SetName( "Image Viewer" );
   sliceLogic->SetMRMLScene(scene);
+  sliceLogic->AddSliceNode("Image Viewer");
 
   vtkMRMLSliceNode *sliceNode = sliceLogic->GetSliceNode();
   sliceNode->SetOrientationToCoronal();

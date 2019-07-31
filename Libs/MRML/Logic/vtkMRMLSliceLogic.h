@@ -78,17 +78,20 @@ public:
 
   /// Convenient methods allowing to initialize SliceLogic given \a newSliceNode
   /// \note This method should be used when the Logic is "shared" between two widgets
-  void Initialize(vtkMRMLSliceNode* newSliceNode);
-  bool IsInitialized();
+  //void Initialize(vtkMRMLSliceNode* newSliceNode);
+  //bool IsInitialized();
 
   /// Set / Get SliceLogic name
-  vtkSetStringMacro(Name);
-  vtkGetStringMacro(Name);
+  //vtkSetStringMacro(Name);
+  //vtkGetStringMacro(Name);
 
   ///
   /// The MRML slice node for this slice logic
   vtkGetObjectMacro (SliceNode, vtkMRMLSliceNode);
   void SetSliceNode (vtkMRMLSliceNode * newSliceNode);
+
+  /// Convenience function for adding a slice node and setting it in this node
+  void AddSliceNode(const char* layoutName);
 
   ///
   /// The MRML slice node for this slice logic
@@ -394,11 +397,10 @@ protected:
   bool UpdateBlendLayers(vtkImageBlend* blend, const std::deque<SliceLayerInfo> &layers);
 
   bool                        AddingSliceModelNodes;
-  bool                        Initialized;
+  //bool                        Initialized;
 
-  char *                      Name;
-  vtkMRMLSliceNode *          SliceNode;
-  vtkMRMLSliceCompositeNode * SliceCompositeNode;
+  vtkMRMLSliceNode*           SliceNode;
+  vtkMRMLSliceCompositeNode*  SliceCompositeNode;
   vtkMRMLSliceLayerLogic *    BackgroundLayer;
   vtkMRMLSliceLayerLogic *    ForegroundLayer;
   vtkMRMLSliceLayerLogic *    LabelLayer;

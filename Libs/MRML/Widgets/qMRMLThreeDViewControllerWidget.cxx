@@ -341,11 +341,6 @@ void qMRMLThreeDViewControllerWidget::setViewLabel(const QString& newViewLabel)
 
   d->ThreeDViewLabel = newViewLabel;
   d->ViewLabel->setText(d->ThreeDViewLabel);
-
-  if (d->ViewLogic)
-    {
-    d->ViewLogic->SetName(newViewLabel.toLatin1());
-    }
 }
 
 //---------------------------------------------------------------------------
@@ -478,6 +473,17 @@ void qMRMLThreeDViewControllerWidget::updateWidgetFromMRMLView()
 
   d->SpinButton->setChecked(d->ViewNode->GetAnimationMode() == vtkMRMLViewNode::Spin);
   d->RockButton->setChecked(d->ViewNode->GetAnimationMode() == vtkMRMLViewNode::Rock);
+
+  if (d->ViewLogic)
+    {
+    d->ViewLogic->SetName(d->ViewNode->GetLayoutName());
+    }
+
+  this->setViewLabel(d->ViewNode->GetLayoutLabel());
+
+  double* layoutColorVtk = d->ViewNode->GetLayoutColor();
+  QColor layoutColor = QColor::fromRgbF(layoutColorVtk[0], layoutColorVtk[1], layoutColorVtk[2]);
+  this->setViewColor(layoutColor);
 }
 
 // --------------------------------------------------------------------------
