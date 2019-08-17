@@ -76,15 +76,6 @@ public:
     LayerLabel = 2
     };
 
-  /// Convenient methods allowing to initialize SliceLogic given \a newSliceNode
-  /// \note This method should be used when the Logic is "shared" between two widgets
-  //void Initialize(vtkMRMLSliceNode* newSliceNode);
-  //bool IsInitialized();
-
-  /// Set / Get SliceLogic name
-  //vtkSetStringMacro(Name);
-  //vtkGetStringMacro(Name);
-
   ///
   /// The MRML slice node for this slice logic
   vtkGetObjectMacro (SliceNode, vtkMRMLSliceNode);

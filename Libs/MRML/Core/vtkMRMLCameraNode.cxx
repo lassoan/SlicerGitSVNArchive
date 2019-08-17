@@ -49,7 +49,7 @@ vtkMRMLCameraNode::vtkMRMLCameraNode()
   camera->SetPosition(0, 500, 0);
   camera->SetFocalPoint(0, 0, 0);
   camera->SetViewUp(0, 0, 1);
-  this->SetAndObserveCamera(camera.GetPointer());
+  this->SetAndObserveCamera(camera);
 
   this->AppliedTransform = vtkMatrix4x4::New();
 
@@ -389,42 +389,10 @@ void vtkMRMLCameraNode::ProcessMRMLEvents ( vtkObject* caller,
     }
 }
 
-//----------------------------------------------------------------------------
-void vtkMRMLCameraNode::SetSceneReferences()
-{
-  this->Superclass::SetSceneReferences();
-  //this->Scene->AddReferencedNodeID(this->GetActiveTag(), this);
-}
-
-//-----------------------------------------------------------
-void vtkMRMLCameraNode::UpdateReferences()
-{
-  /*
-  this->Superclass::UpdateReferences();
-
-  if (this->GetActiveTag() != nullptr &&
-      this->Scene->GetNodeByID(this->GetActiveTag()) == nullptr)
-    {
-    this->SetActiveTag(nullptr);
-    }
-    */
-}
-
-//----------------------------------------------------------------------------
-void vtkMRMLCameraNode::UpdateReferenceID(const char* oldID, const char* newID)
-{
-  /*
-  this->Superclass::UpdateReferenceID(oldID, newID);
-  if (this->GetActiveTag() && !strcmp(oldID, this->GetActiveTag()))
-    {
-    this->SetActiveTag(newID);
-    }
-    */
-}
-
 //---------------------------------------------------------------------------
 const char* vtkMRMLCameraNode::GetActiveTag()
 {
+  vtkWarningMacro("vtkMRMLCameraNode::GetActiveTag() is deprecated. Use vtkMRMLCameraNode::GetLayoutName() instead.");
   std::string singletonTag = (this->GetSingletonTag() ? this->GetSingletonTag() : "");
   this->InternalActiveTag = "vtkMRMLViewNode" + singletonTag;
   return this->InternalActiveTag.c_str();
@@ -433,6 +401,7 @@ const char* vtkMRMLCameraNode::GetActiveTag()
 //---------------------------------------------------------------------------
 void vtkMRMLCameraNode::SetActiveTag(const char* newActiveTag)
 {
+  vtkWarningMacro("vtkMRMLCameraNode::SetActiveTag() is deprecated. Use vtkMRMLCameraNode::SetLayoutName() instead.");
   std::string newActiveTagStr = newActiveTag ? newActiveTag : "";
   if (vtksys::SystemTools::StringStartsWith(newActiveTagStr, "vtkMRMLViewNode"))
     {

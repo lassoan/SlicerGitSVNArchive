@@ -27,9 +27,6 @@
 #include "vtkSlicerCamerasModuleLogicExport.h"
 #include "vtkSlicerModuleLogic.h"
 
-// VTK includes
-#include <vtkWeakPointer.h>
-
 // MRML includes
 class vtkMRMLCameraNode;
 class vtkMRMLViewNode;
@@ -47,32 +44,9 @@ public:
   /// in the view.
   vtkMRMLCameraNode* GetViewActiveCameraNode(vtkMRMLViewNode* view);
 
-  /*
-  /// CopyImportedCameras controls whether the logic copies the properties of
-  /// the scene-to-import camera nodes into the existing nodes having the same
-  /// name. If true, then content of the imported camera node copied when the
-  /// imported node is about to be added and when importing is finished, the
-  /// copied node is removed from the scene to avoid duplication of camera nodes.
-  /// True by default.
-  /// \sa vtkMRMLScene::Import, vtkMRMLScene::Connect
-  vtkSetMacro(CopyImportedCameras, bool);
-  vtkGetMacro(CopyImportedCameras, bool);
-  */
-
 protected:
   vtkSlicerCamerasModuleLogic();
   ~vtkSlicerCamerasModuleLogic() override;
-
-  void SetMRMLSceneInternal(vtkMRMLScene* newScene) override;
-  void ProcessMRMLSceneEvents(vtkObject *, unsigned long, void *) override;
-  void OnMRMLSceneStartImport() override;
-  void OnMRMLSceneEndImport() override;
-
-  /*
-  bool CopyImportedCameras;
-  std::vector< vtkWeakPointer<vtkMRMLCameraNode> > CopiedImportedCameras;
-  std::map< std::string, std::string > ViewNodeIDToCameraNodeIDBeforeImport;
-  */
 
 private:
   vtkSlicerCamerasModuleLogic(const vtkSlicerCamerasModuleLogic&) = delete;

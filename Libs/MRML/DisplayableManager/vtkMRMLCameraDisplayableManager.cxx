@@ -233,6 +233,7 @@ void vtkMRMLCameraDisplayableManager::SetAndObserveCameraNode(vtkMRMLCameraNode 
     }
   // Do not associate the old camera node anymore with this view
   if (this->Internal->CameraNode && this->Internal->CameraNode->GetLayoutName()
+    && this->GetMRMLViewNode() && this->GetMRMLViewNode()->GetLayoutName()
     && strcmp(this->Internal->CameraNode->GetLayoutName(), this->GetMRMLViewNode()->GetLayoutName())==0)
     {
     this->Internal->CameraNode->SetLayoutName(nullptr);
@@ -304,7 +305,7 @@ void vtkMRMLCameraDisplayableManager::UpdateCameraNode()
   this->Internal->UpdatingCameraNode = 1;
 
   if (!updatedCameraNode && viewNode->GetLayoutName() && strlen(viewNode->GetLayoutName()) > 0)
-  {
+    {
     // Use CreateNodeByClass instead of New to make the new node based on default node stored in the scene
     updatedCameraNode = vtkSmartPointer<vtkMRMLCameraNode>::Take(
       vtkMRMLCameraNode::SafeDownCast(this->GetMRMLScene()->CreateNodeByClass("vtkMRMLCameraNode")));
@@ -312,7 +313,7 @@ void vtkMRMLCameraDisplayableManager::UpdateCameraNode()
     updatedCameraNode->SetDescription("Default Scene Camera"); // indicates that this is an automatically created default camera
     updatedCameraNode->SetLayoutName(viewNode->GetLayoutName());
     this->GetMRMLScene()->AddNode(updatedCameraNode);
-  }
+    }
   this->SetAndObserveCameraNode(updatedCameraNode);
 
   this->Internal->UpdatingCameraNode = 0;

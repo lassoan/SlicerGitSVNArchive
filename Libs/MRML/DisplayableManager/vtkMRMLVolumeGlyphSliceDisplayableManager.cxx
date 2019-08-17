@@ -193,7 +193,6 @@ vtkMRMLSliceCompositeNode* vtkMRMLVolumeGlyphSliceDisplayableManager::vtkInterna
       }
     }
   // no matching slice composite node is found
-  //assert(0);
   return nullptr;
 }
 

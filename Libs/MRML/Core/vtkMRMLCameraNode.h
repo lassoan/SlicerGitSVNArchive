@@ -166,18 +166,6 @@ public:
     ResetCameraClippingEvent = 32000,
   };
 
-  /// Mark the active tag node as references.
-  void SetSceneReferences() override;
-
-  ///
-  /// Updates this node if it depends on other nodes
-  /// when the node is deleted in the scene
-  void UpdateReferences() override;
-
-  ///
-  /// Update the stored reference to another node in the scene
-  void UpdateReferenceID(const char* oldID, const char* newID) override;
-
   /// Reset the clipping range just based on its position and focal point
   void ResetClippingRange();
 

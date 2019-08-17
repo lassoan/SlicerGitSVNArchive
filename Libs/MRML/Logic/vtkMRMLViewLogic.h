@@ -88,9 +88,6 @@ public:
   /// Indicate an interaction with the view node has been completed
   void EndViewNodeInteraction();
 
-  /// Manage and synchronise the CameraNode
-  void UpdateCameraNode();
-
   /// Convenience function for adding a view node and setting it in this logic
   void AddViewNode(const char* layoutName);
 

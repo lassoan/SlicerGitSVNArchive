@@ -459,6 +459,7 @@ void qMRMLChartViewControllerWidget::updateWidgetFromMRML()
     {
     d->yAxisLabelLineEdit->clear();
     }
+
 }
 
 // --------------------------------------------------------------------------
