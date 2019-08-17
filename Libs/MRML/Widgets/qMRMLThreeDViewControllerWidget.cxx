@@ -286,26 +286,6 @@ void qMRMLThreeDViewControllerWidgetPrivate::init()
   q->setViewLogic(defaultLogic.GetPointer());
 }
 
-//---------------------------------------------------------------------------
-vtkMRMLViewLogic *qMRMLThreeDViewControllerWidgetPrivate::viewNodeLogic(vtkMRMLViewNode *node)
-{
-  if (!this->ViewLogics)
-    {
-    return nullptr;
-    }
-  vtkMRMLViewLogic* logic = nullptr;
-  vtkCollectionSimpleIterator it;
-  for (this->ViewLogics->InitTraversal(it);(logic = static_cast<vtkMRMLViewLogic*>(
-                                               this->ViewLogics->GetNextItemAsObject(it)));)
-    {
-    if (logic->GetViewNode() == node)
-      {
-      return logic;
-      }
-    }
-  return nullptr;
-}
-
 // --------------------------------------------------------------------------
 // qMRMLThreeDViewControllerWidget methods
 
@@ -331,20 +311,15 @@ void qMRMLThreeDViewControllerWidget::setThreeDView(qMRMLThreeDView* view)
     {
     d->actionSwitchToQuadBufferStereo->setEnabled(
           d->ThreeDView->renderWindow()->GetStereoCapableWindow());
+    if (view->mrmlViewNode())
+      {
+      this->setMRMLViewNode(view->mrmlViewNode());
+      }
+    else if (this->mrml)
+
     }
 }
 
-//---------------------------------------------------------------------------
-void qMRMLThreeDViewControllerWidget::setViewLabel(const QString& newViewLabel)
-{
-  Q_D(qMRMLThreeDViewControllerWidget);
-  if (!d->ViewNode)
-    {
-    qCritical() << "qMRMLThreeDViewControllerWidget::setViewLabel failed: ViewNode is invalid";
-    return;
-    }
-  d->ViewNode->SetLayoutLabel(newViewLabel.toLatin1());
-}
 
 //---------------------------------------------------------------------------
 QString qMRMLThreeDViewControllerWidget::viewLabel()const
@@ -542,13 +517,6 @@ void qMRMLThreeDViewControllerWidget::setViewLogic(vtkMRMLViewLogic* newViewLogi
     {
     this->setMRMLScene(d->ViewLogic->GetMRMLScene());
     }
-}
-
-// --------------------------------------------------------------------------
-void qMRMLThreeDViewControllerWidget::setViewLogics(vtkCollection* viewLogics)
-{
-  Q_D(qMRMLThreeDViewControllerWidget);
-  d->ViewLogics = viewLogics;
 }
 
 // --------------------------------------------------------------------------
@@ -889,24 +857,4 @@ void qMRMLThreeDViewControllerWidget::setRulerColor(int newRulerColor)
   d->ViewLogic->StartViewNodeInteraction(vtkMRMLViewNode::RulerColorFlag);
   d->ViewNode->SetRulerColor(newRulerColor);
   d->ViewLogic->EndViewNodeInteraction();
-}
-
-//---------------------------------------------------------------------------
-void qMRMLThreeDViewControllerWidget::setViewColor(const QColor& newViewColor)
-{
-  Q_D(qMRMLThreeDViewControllerWidget);
-  if (!d->ViewNode)
-    {
-    qCritical() << "qMRMLThreeDViewControllerWidget::setViewColor failed: ViewNode is invalid";
-    return;
-    }
-  // this will update the widget color
-  d->ViewNode->SetLayoutColor(newViewColor.redF(), newViewColor.greenF(), newViewColor.blueF());
-}
-
-//---------------------------------------------------------------------------
-QColor qMRMLThreeDViewControllerWidget::viewColor()const
-{
-  Q_D(const qMRMLThreeDViewControllerWidget);
-  return d->color();
 }

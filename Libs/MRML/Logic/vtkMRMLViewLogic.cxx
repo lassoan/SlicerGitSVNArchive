@@ -94,12 +94,10 @@ void vtkMRMLViewLogic::SetMRMLSceneInternal(vtkMRMLScene* newScene)
 //----------------------------------------------------------------------------
 void vtkMRMLViewLogic::OnMRMLSceneNodeAdded(vtkMRMLNode* node)
 {
-  /*
   if (node->IsA("vtkMRMLViewNode") || node->IsA("vtkMRMLCameraNode"))
     {
     this->UpdateMRMLNodes();
     }
-    */
 }
 
 //----------------------------------------------------------------------------
@@ -120,8 +118,7 @@ void vtkMRMLViewLogic::UpdateFromMRMLScene()
 //----------------------------------------------------------------------------
 void vtkMRMLViewLogic::UpdateMRMLNodes()
 {
-  if (this->GetMRMLScene()
-      && this->GetMRMLScene()->IsBatchProcessing())
+  if (this->GetMRMLScene() && this->GetMRMLScene()->IsBatchProcessing())
     {
     return;
     }
@@ -130,7 +127,13 @@ void vtkMRMLViewLogic::UpdateMRMLNodes()
     return;
     }
   this->UpdatingMRMLNodes = true;
-  this->UpdateCameraNode();
+
+  vtkMRMLViewNode* updatedViewNode = vtkMRMLViewLogic::GetViewNode(this->GetMRMLScene(), this->GetName());
+  this->SetViewNode(updatedViewNode);
+
+  vtkMRMLCameraNode* updatedCameraNode = vtkMRMLViewLogic::GetCameraNode(this->GetMRMLScene(), this->GetName());
+  this->SetCameraNode(updatedCameraNode);
+
   this->UpdatingMRMLNodes = false;
 }
 
@@ -261,19 +264,6 @@ void vtkMRMLViewLogic::EndViewNodeInteraction()
     this->ViewNode->InteractingOff();
     this->ViewNode->SetInteractionFlags(0);
   }
-}
-
-//----------------------------------------------------------------------------
-void vtkMRMLViewLogic::UpdateCameraNode()
-{
-  if (!this->GetMRMLScene())
-    {
-    this->SetCameraNode(nullptr);
-    return;
-    }
-  // find ViewNode in the scene
-  vtkSmartPointer<vtkMRMLCameraNode> updatedCameraNode = vtkMRMLViewLogic::GetCameraNode(this->GetMRMLScene(), this->GetName());
-  this->SetCameraNode(updatedCameraNode);
 }
 
 //----------------------------------------------------------------------------

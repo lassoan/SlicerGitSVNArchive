@@ -198,7 +198,6 @@ vtkStandardNewMacro(vtkMRMLSliceLogic);
 //----------------------------------------------------------------------------
 vtkMRMLSliceLogic::vtkMRMLSliceLogic()
 {
-  //this->Initialized = false;
   this->BackgroundLayer = nullptr;
   this->ForegroundLayer = nullptr;
   this->LabelLayer = nullptr;
@@ -251,36 +250,6 @@ vtkMRMLSliceLogic::~vtkMRMLSliceLogic()
   this->DeleteSliceModel();
 }
 
-//----------------------------------------------------------------------------
-// TODO: Remove from API
-/*bool vtkMRMLSliceLogic::IsInitialized()
-{
-  return this->Initialized;
-}
-*/
-
-//----------------------------------------------------------------------------
-// TODO: Remove from API
-/*void vtkMRMLSliceLogic::Initialize(vtkMRMLSliceNode* newSliceNode)
-{
-  if (this->Initialized)
-    {
-    vtkWarningMacro(<< "vtkMRMLSliceLogic already initialized");
-    return;
-    }
-
-  // Sanity checks
-  if (!newSliceNode)
-    {
-    vtkWarningMacro(<< "Initialize - newSliceNode is NULL");
-    return;
-    }
-
-  this->SetSliceNode(newSliceNode);
-
-  this->Initialized = true;
-}
-*/
 //----------------------------------------------------------------------------
 void vtkMRMLSliceLogic::SetMRMLSceneInternal(vtkMRMLScene * newScene)
 {

@@ -383,28 +383,7 @@ public:
   /// The existing MRML nodes don't always use these conventions but are kept unchanged
   /// for backward compatibility.
   /// \sa vtkMRMLScene::BuildID
-  //vtkSetStringMacro(SingletonTag);
-virtual void SetSingletonTag(const char* _arg)
-{
-  vtkDebugMacro(<< this->GetClassName() << " (" << this << "): setting SingletonTag to " << (_arg?_arg:"(null)") );
-  if ( this->SingletonTag == nullptr && _arg == nullptr) { return;}
-  if ( this->SingletonTag && _arg && (!strcmp(this->SingletonTag,_arg))) { return;}
-  delete [] this->SingletonTag;
-  if (_arg)
-  {
-    size_t n = strlen(_arg) + 1;
-    char *cp1 =  new char[n];
-    const char *cp2 = (_arg);
-    this->SingletonTag = cp1;
-    do { *cp1++ = *cp2++; } while ( --n );
-  }
-  else
-  {
-    this->SingletonTag = nullptr;
-  }
-  this->Modified();
-}
-
+  vtkSetStringMacro(SingletonTag);
   vtkGetStringMacro(SingletonTag);
   void SetSingletonOn()
     {

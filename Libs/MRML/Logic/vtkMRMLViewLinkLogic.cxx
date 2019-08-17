@@ -359,6 +359,14 @@ void vtkMRMLViewLinkLogic::BroadcastCameraNodeEvent(vtkMRMLCameraNode* cameraNod
           sCamera->SetPosition(camera->GetPosition());
           sCamera->SetFocalPoint(camera->GetFocalPoint());
           sCamera->SetViewUp(camera->GetViewUp());
+          if (camera->GetParallelProjection())
+            {
+            sCamera->SetParallelScale(camera->GetParallelScale());
+            }
+          else
+            {
+            sCamera->SetViewAngle(camera->GetViewAngle());
+            }
           }
         if (camera->GetParallelProjection())
           {

@@ -52,19 +52,6 @@ public:
   explicit qMRMLThreeDViewControllerWidget(QWidget* parent = nullptr);
   ~qMRMLThreeDViewControllerWidget() override;
 
-  /// Set the label for the 3D view (abbreviation for the view
-  /// name)
-  void setViewLabel(const QString& newViewLabel);
-
-  /// Get the label for the view (abbreviation for the view name)
-  QString viewLabel()const;
-
-  /// Set the color for the view
-  void setViewColor(const QColor& newViewColor);
-
-  /// Get the color for the view
-  QColor viewColor()const;
-
   void setQuadBufferStereoSupportEnabled(bool value);
 
   /// Get ViewLogic
@@ -73,11 +60,6 @@ public:
   /// Set \a newViewLogic
   /// Use if two instances of the controller need to observe the same logic.
   void setViewLogic(vtkMRMLViewLogic* newViewLogic);
-
-  /// TODO:
-  /// Ideally the view logics should be retrieved by the viewLogic
-  /// until then, we manually set them.
-  void setViewLogics(vtkCollection* logics);
 
 public slots:
 
