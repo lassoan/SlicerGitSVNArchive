@@ -60,17 +60,15 @@ public:
   vtkTypeMacro(vtkMRMLViewLogic,vtkMRMLAbstractLogic);
   void PrintSelf(ostream& os, vtkIndent indent) override;
 
-  /// Set / Get SliceLogic name
-  vtkSetStringMacro(Name);
-  vtkGetStringMacro(Name);
+  /// Set/Get layout name. This is used for finding the camera and view node in the scene.
+  virtual void SetName(const char* name);
+  virtual const char* GetName() const;
 
   /// The MRML View node for this View logic
   vtkGetObjectMacro (ViewNode, vtkMRMLViewNode);
-  void SetViewNode (vtkMRMLViewNode* newViewNode);
 
   /// The MRML camera node for this View logic
   vtkGetObjectMacro (CameraNode, vtkMRMLCameraNode);
-  void SetCameraNode (vtkMRMLCameraNode* newCameraNode);
 
   /// Indicate an interaction with the camera node is beginning. The
   /// parameters of the camera node being manipulated are passed as a
@@ -106,6 +104,8 @@ protected:
   ~vtkMRMLViewLogic() override;
 
   void SetMRMLSceneInternal(vtkMRMLScene* newScene) override;
+  void SetViewNode(vtkMRMLViewNode* newViewNode);
+  void SetCameraNode(vtkMRMLCameraNode* newCameraNode);
 
   void OnMRMLSceneNodeAdded(vtkMRMLNode* node) override;
   void OnMRMLSceneNodeRemoved(vtkMRMLNode* node) override;
@@ -113,7 +113,9 @@ protected:
 
   void UpdateMRMLNodes();
 
-  char* Name;
+  // View and camera nodes are looked up from the scene based on the layout name.
+  std::string Name;
+
   vtkMRMLViewNode* ViewNode;
   vtkMRMLCameraNode* CameraNode;
   bool UpdatingMRMLNodes;

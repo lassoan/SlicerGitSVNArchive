@@ -226,7 +226,6 @@ int qMRMLLayoutManagerWithCustomFactoryTest(int argc, char * argv[] )
 
   qSlicerLayoutCustomSliceViewFactory* customSliceViewFactory =
       new qSlicerLayoutCustomSliceViewFactory(&layoutManager);
-    customSliceViewFactory->setSliceLogics(mrmlSliceViewFactory->sliceLogics());
 
   layoutManager.unregisterViewFactory(mrmlSliceViewFactory);
   layoutManager.registerViewFactory(customSliceViewFactory);

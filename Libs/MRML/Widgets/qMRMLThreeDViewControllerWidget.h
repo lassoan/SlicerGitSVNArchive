@@ -31,13 +31,12 @@ class qMRMLThreeDViewControllerWidgetPrivate;
 class qMRMLThreeDView;
 
 // MRML includes
-class vtkMRMLViewNode;
 
 // MRMLLogic includes
 class vtkMRMLViewLogic;
+class vtkMRMLViewNode;
 
 // VTK includes
-class vtkCollection;
 
 class QMRML_WIDGETS_EXPORT qMRMLThreeDViewControllerWidget
   : public qMRMLViewControllerBar
@@ -66,7 +65,6 @@ public slots:
   void setMRMLScene(vtkMRMLScene* newScene) override;
 
   void setThreeDView(qMRMLThreeDView* threeDView);
-  void setMRMLViewNode(vtkMRMLViewNode* viewNode);
 
   /// Link/Unlink the view controls and the cameras across all viewes
   void setViewLink(bool linked);
@@ -114,8 +112,12 @@ public slots:
   void setRulerColor(int color);
 
 protected slots:
+  void updateWidgetFromMRMLViewLogic();
   void updateWidgetFromMRMLView();
   void updateViewFromMRMLCamera();
+
+protected:
+  void setMRMLViewNode(vtkMRMLViewNode* viewNode);
 
 private:
   Q_DECLARE_PRIVATE(qMRMLThreeDViewControllerWidget);

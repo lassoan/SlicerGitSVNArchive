@@ -72,7 +72,6 @@ public:
   qMRMLThreeDView*                    ThreeDView;
 
   vtkSmartPointer<vtkMRMLViewLogic>   ViewLogic;
-  vtkCollection*                      ViewLogics;
 
   ctkSignalMapper*                    StereoTypesMapper;
   ctkButtonGroup*                     AnimateViewButtonGroup;

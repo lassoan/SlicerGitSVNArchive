@@ -49,8 +49,6 @@ vtkStandardNewMacro(vtkMRMLViewLogic);
 vtkMRMLViewLogic::vtkMRMLViewLogic()
 {
   this->UpdatingMRMLNodes = false;
-  this->Name = nullptr;
-  this->SetName("");
   this->ViewNode = nullptr;
   this->CameraNode = nullptr;
 }
@@ -58,12 +56,7 @@ vtkMRMLViewLogic::vtkMRMLViewLogic()
 //----------------------------------------------------------------------------
 vtkMRMLViewLogic::~vtkMRMLViewLogic()
 {
-  if (this->Name)
-    {
-    delete [] this->Name;
-    }
-  this->Name = nullptr;
-
+  this->Name.clear();
   if (this->CameraNode)
     {
     vtkSetAndObserveMRMLNodeMacro(this->CameraNode, 0);
@@ -88,7 +81,7 @@ void vtkMRMLViewLogic::SetMRMLSceneInternal(vtkMRMLScene* newScene)
 
   this->SetAndObserveMRMLSceneEventsInternal(newScene, events.GetPointer());
 
-  this->ProcessMRMLSceneEvents(newScene, vtkMRMLScene::EndBatchProcessEvent, nullptr);
+  this->UpdateMRMLNodes();
 }
 
 //----------------------------------------------------------------------------
@@ -313,4 +306,23 @@ void vtkMRMLViewLogic::EndCameraNodeInteraction()
     this->CameraNode->InteractingOff();
     this->CameraNode->SetInteractionFlags(0);
     }
+}
+
+//----------------------------------------------------------------------------
+void vtkMRMLViewLogic::SetName(const char* name)
+{
+  std::string newName = (name ? name : "");
+  if (newName == this->Name)
+  {
+    return;
+  }
+  this->Name = newName;
+  this->UpdateMRMLNodes();
+  this->Modified();
+}
+
+//----------------------------------------------------------------------------
+const char* vtkMRMLViewLogic::GetName() const
+{
+  return this->Name.c_str();
 }

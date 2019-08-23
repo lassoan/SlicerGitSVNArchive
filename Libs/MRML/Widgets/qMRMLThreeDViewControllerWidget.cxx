@@ -311,21 +311,15 @@ void qMRMLThreeDViewControllerWidget::setThreeDView(qMRMLThreeDView* view)
     {
     d->actionSwitchToQuadBufferStereo->setEnabled(
           d->ThreeDView->renderWindow()->GetStereoCapableWindow());
+    // TODO: we could get layout name from the view node and keep it up-to-date using signal connection
+    /*
     if (view->mrmlViewNode())
       {
       this->setMRMLViewNode(view->mrmlViewNode());
       }
     else if (this->mrml)
-
+    */
     }
-}
-
-
-//---------------------------------------------------------------------------
-QString qMRMLThreeDViewControllerWidget::viewLabel()const
-{
-  Q_D(const qMRMLThreeDViewControllerWidget);
-  return d->ViewLabel->text();
 }
 
 // --------------------------------------------------------------------------
@@ -376,6 +370,37 @@ void qMRMLThreeDViewControllerWidget::setViewLink(bool linked)
     viewNode->SetLinkedControl(linked);
     }
   viewNodes->Delete();
+}
+
+// --------------------------------------------------------------------------
+void qMRMLThreeDViewControllerWidget::updateWidgetFromMRMLViewLogic()
+{
+  Q_D(qMRMLThreeDViewControllerWidget);
+
+  if (d->ViewLogic && d->ViewLogic->GetMRMLScene())
+    {
+    this->setMRMLScene(d->ViewLogic->GetMRMLScene());
+    }
+
+  // Update camera node connection
+  vtkMRMLCameraNode* cameraNode = (d->ViewLogic ? d->ViewLogic->GetCameraNode() : nullptr);
+  if (cameraNode != d->CameraNode)
+    {
+    this->qvtkReconnect(d->CameraNode, vtkMRMLCameraNode::CameraInteractionEvent,
+      this, SLOT(updateViewFromMRMLCamera()));
+    d->CameraNode = cameraNode;
+    this->updateViewFromMRMLCamera();
+    }
+
+  // Update view node connection
+  vtkMRMLViewNode* viewNode = (d->ViewLogic ? d->ViewLogic->GetViewNode() : nullptr);
+  if (viewNode != d->ViewNode)
+    {
+    this->qvtkReconnect(d->ViewNode, viewNode, vtkCommand::ModifiedEvent,
+      this, SLOT(updateWidgetFromMRMLView()));
+    d->ViewNode = viewNode;
+    this->updateWidgetFromMRMLView();
+    }
 }
 
 // --------------------------------------------------------------------------
@@ -464,11 +489,6 @@ void qMRMLThreeDViewControllerWidget::updateWidgetFromMRMLView()
   d->SpinButton->setChecked(d->ViewNode->GetAnimationMode() == vtkMRMLViewNode::Spin);
   d->RockButton->setChecked(d->ViewNode->GetAnimationMode() == vtkMRMLViewNode::Rock);
 
-  if (d->ViewLogic)
-    {
-    d->ViewLogic->SetName(d->ViewNode->GetLayoutName());
-    }
-
   d->ViewLabel->setText(d->ViewNode->GetLayoutLabel());
 
   double* layoutColorVtk = d->ViewNode->GetLayoutColor();
@@ -511,12 +531,12 @@ void qMRMLThreeDViewControllerWidget::setViewLogic(vtkMRMLViewLogic* newViewLogi
     return;
     }
 
+  this->qvtkReconnect(d->ViewLogic, newViewLogic, vtkCommand::ModifiedEvent,
+    this, SLOT(updateWidgetFromMRMLViewLogic()));
+
   d->ViewLogic = newViewLogic;
 
-  if (d->ViewLogic && d->ViewLogic->GetMRMLScene())
-    {
-    this->setMRMLScene(d->ViewLogic->GetMRMLScene());
-    }
+  this->updateWidgetFromMRMLViewLogic();
 }
 
 // --------------------------------------------------------------------------

@@ -71,7 +71,8 @@ qMRMLLayoutThreeDViewFactory::qMRMLLayoutThreeDViewFactory(QObject* parent)
 //------------------------------------------------------------------------------
 qMRMLLayoutThreeDViewFactory::~qMRMLLayoutThreeDViewFactory()
 {
-  this->setViewLogics(nullptr);
+  this->ViewLogics->Delete();
+  this->ViewLogics = nullptr;
 }
 
 //------------------------------------------------------------------------------
@@ -84,36 +85,6 @@ QString qMRMLLayoutThreeDViewFactory::viewClassName()const
 vtkCollection* qMRMLLayoutThreeDViewFactory::viewLogics() const
 {
   return this->ViewLogics;
-}
-
-//------------------------------------------------------------------------------
-void qMRMLLayoutThreeDViewFactory::setViewLogics(vtkCollection* viewLogics)
-{
-  if (viewLogics == this->ViewLogics)
-    {
-    return;
-    }
-  if (this->ViewLogics)
-    {
-    for (int viewIndex = 0; viewIndex < this->viewCount(); ++viewIndex)
-      {
-      qMRMLThreeDWidget* threeDWidget =
-        qobject_cast<qMRMLThreeDWidget*>(viewWidget(viewIndex));
-      vtkMRMLViewLogic* viewLogic =
-        threeDWidget ? threeDWidget->viewLogic() : nullptr;
-      if (viewLogics)
-        {
-        viewLogics->AddItem(viewLogic);
-        }
-      this->ViewLogics->RemoveItem(viewLogic);
-      }
-    this->ViewLogics->Delete();
-    }
-  this->ViewLogics = viewLogics;
-  if (this->ViewLogics)
-    {
-    this->ViewLogics->Register(this->ViewLogics);
-    }
 }
 
 //------------------------------------------------------------------------------
@@ -132,7 +103,6 @@ QWidget* qMRMLLayoutThreeDViewFactory::createViewFromNode(vtkMRMLAbstractViewNod
   threeDWidget->setObjectName(QString("ThreeDWidget%1").arg(viewNode->GetLayoutName()));
   threeDWidget->setMRMLScene(this->mrmlScene());
   threeDWidget->setMRMLViewNode(vtkMRMLViewNode::SafeDownCast(viewNode));
-  threeDWidget->setViewLogics(this->viewLogics());
 
   this->viewLogics()->AddItem(threeDWidget->viewLogic());
 
@@ -291,7 +261,8 @@ qMRMLLayoutSliceViewFactory::qMRMLLayoutSliceViewFactory(QObject* parent)
 //------------------------------------------------------------------------------
 qMRMLLayoutSliceViewFactory::~qMRMLLayoutSliceViewFactory()
 {
-  this->setSliceLogics(nullptr);
+  this->SliceLogics->Delete();
+  this->SliceLogics = nullptr;
 }
 
 // --------------------------------------------------------------------------
@@ -304,36 +275,6 @@ QString qMRMLLayoutSliceViewFactory::viewClassName()const
 vtkCollection* qMRMLLayoutSliceViewFactory::sliceLogics()const
 {
   return this->SliceLogics;
-}
-
-// --------------------------------------------------------------------------
-void qMRMLLayoutSliceViewFactory::setSliceLogics(vtkCollection* sliceLogics)
-{
-  if (sliceLogics == this->SliceLogics)
-    {
-    return;
-    }
-  if (this->SliceLogics)
-    {
-    for (int i = 0; i < this->viewCount(); ++i)
-      {
-      qMRMLSliceWidget* sliceWidget =
-        qobject_cast<qMRMLSliceWidget*>(viewWidget(i));
-      vtkMRMLSliceLogic* sliceLogic =
-        sliceWidget ? sliceWidget->sliceLogic() : nullptr;
-      if (sliceLogics)
-        {
-        sliceLogics->AddItem(sliceLogic);
-        }
-      this->SliceLogics->RemoveItem(sliceLogic);
-      }
-    this->SliceLogics->Delete();
-    }
-  this->SliceLogics = sliceLogics;
-  if (this->SliceLogics)
-    {
-    this->SliceLogics->Register(this->SliceLogics);
-    }
 }
 
 // --------------------------------------------------------------------------
