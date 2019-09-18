@@ -67,7 +67,7 @@ public:
 
   /// Get length of the curve or a section of the curve.
   /// \param startCurvePointIndex length computation starts from this curve point index
-  /// \param numberOfCurvePoints if specified then distances up to the first n points are computed
+  /// \param numberOfCurvePoints if specified then distances up to the first n points are computed. If <0 then all the points are used.
   /// \return sum of distances between the curve points, returns 0 in case of an error
   double GetCurveLengthWorld(vtkIdType startCurvePointIndex=0, vtkIdType numberOfCurvePoints=-1);
 
@@ -104,6 +104,11 @@ public:
   vtkIdType GetFarthestCurvePointIndexToPositionWorld(const double posWorld[3]);
 
   vtkIdType GetCurvePointIndexFromControlPointIndex(int controlPointIndex);
+
+  static bool GetPositionAndClosestPointIndexAlongCurve(double foundCurvePosition[3], vtkIdType foundClosestPointIndex,
+    vtkIdType startCurvePointId, double distanceFromStartPoint, vtkPoints* curvePoints, bool closedCurve);
+
+  static double GetCurveLength(vtkPoints* curvePoints, bool closedCurve, vtkIdType startCurvePointIndex=0, vtkIdType numberOfCurvePoints=-1);
 
   /// Get position of a curve point along the curve relative to the specified start point index.
   /// \param startCurvePointId index of the curve point to start the distance measurement from
