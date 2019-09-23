@@ -6,7 +6,7 @@ import logging
 
 from functools import cmp_to_key
 
-from ctk import ctkDICOMObjectListWidget, ctkDICOMDatabase, ctkDICOMIndexer, ctkDICOMBrowser, ctkPopupWidget, ctkExpandButton
+from ctk import ctkDICOMObjectListWidget, ctkDICOMDatabase, ctkDICOMIndexer, ctkDICOMBrowser
 import slicer
 from slicer.util import VTKObservationMixin
 
@@ -86,22 +86,10 @@ class DICOMDetailsBase(VTKObservationMixin, SizePositionSettingsMixin):
   def __init__(self, dicomBrowser=None):
     VTKObservationMixin.__init__(self)
     self.settings = qt.QSettings()
-    self.dicomBrowser = None
 
-    # initialize the dicomDatabase
-    #   - pick a default and let the user know
-    if not slicer.dicomDatabase:
-      self.promptForDatabaseDirectory()
-
-    # This creates a DICOM database in the current working directory if nothing else
-    # is specified in the settings, therefore promptForDatabaseDirectory must be called before this.
     self.dicomBrowser = dicomBrowser if dicomBrowser is not None else ctkDICOMBrowser()
 
-    if slicer.app.commandOptions().testingEnabled:
-      self.dicomBrowser.schemaUpdateAutoCreateDirectory = True
-
     self.browserPersistent = settingsValue('DICOM/BrowserPersistent', False, converter=toBool)
-    self.tableDensity = settingsValue('DICOM/tableDensity', 'Compact')
     self.advancedView = settingsValue('DICOM/advancedView', 0, converter=int)
     self.horizontalTables = settingsValue('DICOM/horizontalTables', 0, converter=int)
 
@@ -128,24 +116,29 @@ class DICOMDetailsBase(VTKObservationMixin, SizePositionSettingsMixin):
     except IndexError:
       return slicer.util.findChildren(self.dicomBrowser, name=name)[0]
 
-  def setup(self, showHeader=False, showPreview=False):
+  def setup(self, showPreview=False):
     """
     main window is a frame with widgets from the app
     widget repacked into it along with slicer-specific
     extra widgets
     """
 
-    # find internals of widget for reference and repacking
-    self.toolBar = slicer.util.findChildren(self.dicomBrowser, 'ToolBar')[0]
-    self.databaseNameLabel = slicer.util.findChildren(self.dicomBrowser, 'DatabaseNameLabel')[0]
-    self.databaseDirectoryButton = slicer.util.findChildren(self.dicomBrowser, 'DirectoryButton')[0]
-    self.tableDensityLabel = qt.QLabel('Density: ')
-    self.tableDensityLabel.objectName = 'tablesDensityLabel'
-    self.tableDensityComboBox = slicer.util.findChildren(self.dicomBrowser, 'tableDensityComboBox')[0]
-    self.tableDensityComboBox.connect('currentIndexChanged(QString)', self.onTableDensityComboBox)
-    index = self.tableDensityComboBox.findText(self.tableDensity)
-    if index != -1:
-      self.tableDensityComboBox.setCurrentIndex(index)
+    self.dicomBrowser.databaseDirectorySelectorVisible = False
+    self.dicomBrowser.toolbarVisible = False
+    self.dicomBrowser.databaseDirectorySettingsKey = slicer.dicomDatabaseDirectorySettingsKey
+
+    # If DICOM module has not created slicer.dicomDatabase already then it means that
+    # no database exists yet and it is up to the DICOM browser to create it.
+    if not slicer.dicomDatabase:
+      if slicer.app.commandOptions().testingEnabled:
+        databaseDirectory = os.path.join(slicer.app.temporaryPath, 'tempDICOMDatabase_'+ctk.ctkDICOMDatabase().schemaVersion())
+      else:
+        databaseDirectory = self.settings.value(slicer.dicomDatabaseDirectorySettingsKey)
+        if not databaseDirectory:
+          documentsLocation = qt.QStandardPaths.DocumentsLocation
+          documents = qt.QStandardPaths.writableLocation(documentsLocation)
+          databaseDirectory = os.path.join(documents, slicer.app.applicationName+"DICOMDatabase")
+          self.dicomBrowser = databaseDirectory  # this updates slicer.dicomDatabase
 
     #
     # create and configure the Slicer browser widget - this involves
@@ -168,11 +161,6 @@ class DICOMDetailsBase(VTKObservationMixin, SizePositionSettingsMixin):
     self.tableSplitter.addWidget(self.studyTableView)
     self.tableSplitter.addWidget(self.seriesTableView)
 
-    # TODO: Move to this part to CTK
-    self.patientTableView.resizeColumnsToContents()
-    self.studyTableView.resizeColumnsToContents()
-    self.seriesTableView.resizeColumnsToContents()
-
     self.userFrame = qt.QWidget()
     self.preview = qt.QWidget()
 
@@ -182,31 +170,12 @@ class DICOMDetailsBase(VTKObservationMixin, SizePositionSettingsMixin):
 
     self.setLayout(qt.QVBoxLayout())
 
-    # tool row at top, with commands and database
-    self.toolFrame = qt.QWidget()
-    self.toolFrame.setMaximumHeight(40)
-    self.toolFrame.setContentsMargins(0,0,0,0)
-    self.toolLayout = qt.QHBoxLayout(self.toolFrame)
-    self.layout().addWidget(self.toolFrame)
-    self.toolLayout.addWidget(self.toolBar)
-    self.settingsButton = ctkExpandButton()
-    self.toolLayout.addWidget(self.settingsButton)
-    self.toolLayout.addWidget(self.databaseNameLabel)
-    self.databaseNameLabel.visible = False
-    self.toolLayout.addWidget(self.databaseDirectoryButton)
-    self.databaseDirectoryButton.visible = False
-    self.toolLayout.addWidget(self.tableDensityLabel)
-    self.tableDensityLabel.visible = False
-    self.toolLayout.addWidget(self.tableDensityComboBox)
-    self.tableDensityComboBox.visible = False
-    self.settingsButton.connect('toggled(bool)', self.onSettingsButton)
-
     # enable export button and make new connection
     self.actionExport = self.dicomBrowser.findChildren('QAction', 'ActionExport')[0]
     self.actionExport.enabled = 1
     self.actionExport.connect('triggered()', self.onExportAction)
 
-    # search row
+    # Move all search boxes to one row to save space
     self.searchFrame = qt.QWidget()
     self.searchFrame.setMaximumHeight(40)
     self.searchLayout = qt.QHBoxLayout(self.searchFrame)
@@ -248,8 +217,7 @@ class DICOMDetailsBase(VTKObservationMixin, SizePositionSettingsMixin):
     self.loadableTableLayout.addWidget(self.userFrame)
     self.userFrame.hide()
 
-    tableWidth = 350 if showHeader else 600
-    self.loadableTable = DICOMLoadableTable(self.userFrame, width=tableWidth)
+    self.loadableTable = DICOMLoadableTable(self.userFrame)
     self.loadableTable.itemChanged.connect(self.onLoadableTableItemChanged)
 
     #
@@ -264,19 +232,9 @@ class DICOMDetailsBase(VTKObservationMixin, SizePositionSettingsMixin):
     self.actionButtonsFrame.setLayout(self.actionButtonLayout)
 
     self.loadButton = qt.QPushButton('Load')
-    self.loadButton.toolTip = 'Load Selection to Slicer'
+    self.loadButton.toolTip = 'Load selected items into the scene'
     self.actionButtonLayout.addWidget(self.loadButton)
     self.loadButton.connect('clicked()', self.loadCheckedLoadables)
-
-    self.headerPopup = DICOMLib.DICOMHeaderPopup(self)
-
-    self.viewMetadataButton = qt.QPushButton('Metadata')
-    self.viewMetadataButton.objectName = 'ActionViewMetadata'
-    self.viewMetadataButton.toolTip = 'Display Metadata of the Selected Series'
-    self.viewMetadataButton.enabled = False
-    self.actionButtonLayout.addWidget(self.viewMetadataButton)
-    self.viewMetadataButton.connect('clicked()', self.onViewHeaderButton)
-    self.viewMetadataButton.connect('clicked()', self.headerPopup.show)
 
     self.actionButtonLayout.addStretch(1)
 
@@ -317,14 +275,6 @@ class DICOMDetailsBase(VTKObservationMixin, SizePositionSettingsMixin):
       self.loadableTableFrame.visible = False
       self.examineButton.visible = False
       self.uncheckAllButton.visible = False
-    #
-    # header related column (more details about the selected file)
-    #
-    if showHeader:
-      self.headerLayout = qt.QVBoxLayout()
-      self.layout().addLayout(self.headerLayout)
-      self.header = DICOMHeaderWidget(self)
-      self.headerLayout.addWidget(self.header)
 
     #
     # Series selection
@@ -359,61 +309,11 @@ class DICOMDetailsBase(VTKObservationMixin, SizePositionSettingsMixin):
     self.sendControl = self._findChildren('ActionSend')
     self.sendControl.triggered.connect(self.onSendActionTriggered)
 
-    # Define set of widgets that should be hidden/shown together
-    self.settingsWidgetNames = {
-      'DatabaseButton': ('DatabaseNameLabel', 'DirectoryButton'),
-      'TableDensityComboBox': ('tablesDensityLabel', 'tableDensityComboBox')
-    }
-
-    # Hide the settings button if all associated widgets should be hidden
-    settingsButtonHidden = True
-    for groupName in self.settingsWidgetNames.keys():
-      settingsButtonHidden = settingsButtonHidden and not settingsValue('DICOM/%s.visible' % groupName, True,
-                                                                        converter=toBool)
-    self.settingsButton.visible = not settingsButtonHidden
-
   def onDatabaseDirectoryChanged(self, databaseDirectory):
     if not hasattr(slicer, 'dicomDatabase') or not slicer.dicomDatabase:
       slicer.dicomDatabase = ctkDICOMDatabase()
-    setDatabasePrecacheTags(self.dicomBrowser)
-    databaseFilepath = os.path.join(databaseDirectory, "ctkDICOM.sql")
-    messages = ""
-    if not os.path.exists(databaseDirectory):
-      try:
-        os.mkdir(databaseDirectory)
-      except OSError:
-        messages += "Directory does not exist and cannot be created. "
-    else:
-      if not os.access(databaseDirectory, os.W_OK):
-        messages += "Directory not writable. "
-      if not os.access(databaseDirectory, os.R_OK):
-        messages += "Directory not readable. "
-      if os.listdir(databaseDirectory) and not os.path.isfile(databaseFilepath):
-        # Prevent users from the error of trying to import a DICOM directory by selecting it as DICOM database path
-        messages += "Directory is not empty and not an existing DICOM database."
-
-    if messages != "":
-      slicer.util.warningDisplay('The database file path "%s" cannot be used.  %s\n'
-                                 'Please pick a different database directory using the '
-                                 'LocalDatabase button in the DICOM Browser' % (databaseFilepath, messages),
-                                 windowTitle="DICOM")
-    else:
-      slicer.dicomDatabase.openDatabase(os.path.join(databaseDirectory, "ctkDICOM.sql"), "SLICER")
-      if not slicer.dicomDatabase.isOpen:
-        slicer.util.warningDisplay('The database file path "%s" cannot be opened.\n'
-                                   'Please pick a different database directory using the '
-                                   'LocalDatabase button in the DICOM Browser.' % databaseFilepath,
-                                   windowTitle="DICOM")
-        self.dicomDatabase = None
-      else:
-        if self.dicomBrowser:
-          if self.dicomBrowser.databaseDirectory != databaseDirectory:
-            self.dicomBrowser.databaseDirectory = databaseDirectory
-        else:
-          self.settings.setValue('DatabaseDirectory', databaseDirectory)
-          self.settings.sync()
-    if slicer.dicomDatabase:
       slicer.app.setDICOMDatabase(slicer.dicomDatabase)
+    slicer.dicomDatabase.openDatabase(os.path.join(databaseDirectory, "ctkDICOM.sql"))
 
   def onDirectoryImported(self):
     """The dicom browser will emit multiple directoryImported
@@ -521,36 +421,6 @@ class DICOMDetailsBase(VTKObservationMixin, SizePositionSettingsMixin):
               extensionsToOffer.append(extension)
     return extensionsToOffer
 
-  def promptForDatabaseDirectory(self):
-    """ Select User's Documents directory as default database directory.
-        But, if the application is in testing mode, just pick a temp directory.
-    """
-    if slicer.app.commandOptions().testingEnabled:
-      databaseDirectory = os.path.join(slicer.app.temporaryPath, 'tempDICOMDatabase')
-    else:
-      databaseDirectory = self.settings.value('DatabaseDirectory')
-      if not databaseDirectory:
-        databaseDirectory = ""
-    if not os.path.exists(databaseDirectory):
-      try:
-        os.makedirs(databaseDirectory)
-      except OSError:
-        documentsLocation = qt.QStandardPaths.DocumentsLocation
-        documents = qt.QStandardPaths.writableLocation(documentsLocation)
-        databaseDirectory = os.path.join(documents, slicer.app.applicationName+"DICOMDatabase")
-        if not os.path.exists(databaseDirectory):
-          os.makedirs(databaseDirectory)
-        if not slicer.app.commandOptions().testingEnabled:
-          message = "DICOM Database will be stored in\n\n{}\n\nUse the Local Database button in " \
-                    "the DICOM Browser to pick a different location.".format(slicer.util.toVTKString(databaseDirectory))
-          slicer.util.infoDisplay(message, parent=self, windowTitle='DICOM')
-          self.settings.setValue('DatabaseDirectory', databaseDirectory)
-
-    self.onDatabaseDirectoryChanged(databaseDirectory)
-
-  def onTableDensityComboBox(self, state):
-    self.settings.setValue('DICOM/tableDensity', state)
-
   def onPluginStateChanged(self, state):
     self.settings.beginWriteArray('DICOM/disabledPlugins')
 
@@ -571,15 +441,6 @@ class DICOMDetailsBase(VTKObservationMixin, SizePositionSettingsMixin):
     self.browserPersistent = state
     self.settings.setValue('DICOM/BrowserPersistent', bool(self.browserPersistent))
 
-  def onSettingsButton(self, status):
-    for groupName in self.settingsWidgetNames.keys():
-      visible = settingsValue('DICOM/%s.visible' % groupName, True, converter=toBool)
-      for name in self.settingsWidgetNames[groupName]:
-        control = self._findChildren(name)
-        control.visible = False
-        if visible:
-          control.visible = self.settingsButton.checked
-
   def onAdvancedViewButton(self, checked):
     self.advancedView = checked
     advancedWidgets = [self.loadableTableFrame, self.examineButton, self.uncheckAllButton]
@@ -595,9 +456,6 @@ class DICOMDetailsBase(VTKObservationMixin, SizePositionSettingsMixin):
   def onHorizontalViewCheckBox(self):
     self.tableSplitter.setOrientation(self.horizontalViewCheckBox.checked)
     self.settings.setValue('DICOM/horizontalTables', int(self.horizontalViewCheckBox.checked))
-
-  def onViewHeaderButton(self):
-    self.headerPopup.setFileLists(self.fileLists)
 
   def onExportAction(self):
     self.exportDialog = slicer.qSlicerDICOMExportDialog()
@@ -1072,55 +930,6 @@ class DICOMDetailsWidget(DICOMDetailsBase, qt.QWidget):
     self.setup()
 
 
-class DICOMPluginSelector(qt.QWidget):
-  """Implement the Qt code for a table of
-  selectable DICOM Plugins that determine
-  which mappings from DICOM to slicer datatypes
-  will be considered.
-  """
-
-  def __init__(self, parent, width=50, height=100):
-    super(DICOMPluginSelector, self).__init__(parent)
-    self.setMinimumHeight(height)
-    self.setMinimumWidth(width)
-    self.setLayout(qt.QVBoxLayout())
-    self.checkBoxByPlugin = {}
-    settings = qt.QSettings()
-
-    for pluginClass in slicer.modules.dicomPlugins:
-      self.checkBoxByPlugin[pluginClass] = qt.QCheckBox(pluginClass)
-      self.layout().addWidget(self.checkBoxByPlugin[pluginClass])
-
-    if settings.contains('DICOM/disabledPlugins/size'):
-      size = settings.beginReadArray('DICOM/disabledPlugins')
-      disabledPlugins = []
-
-      for i in range(size):
-        settings.setArrayIndex(i)
-        disabledPlugins.append(str(settings.allKeys()[0]))
-      settings.endArray()
-
-      for pluginClass in slicer.modules.dicomPlugins:
-        if pluginClass in disabledPlugins:
-          self.checkBoxByPlugin[pluginClass].checked = False
-        else:
-          # Activate plugins for the ones who are not in the disabled list
-          # and also plugins installed with extensions
-          self.checkBoxByPlugin[pluginClass].checked = True
-    else:
-      # All DICOM plugins would be enabled by default
-      for pluginClass in slicer.modules.dicomPlugins:
-        self.checkBoxByPlugin[pluginClass].checked = True
-
-  def selectedPlugins(self):
-    """Return a list of selected plugins"""
-    selectedPlugins = []
-    for pluginClass in slicer.modules.dicomPlugins:
-      if self.checkBoxByPlugin[pluginClass].checked:
-        selectedPlugins.append(pluginClass)
-    return selectedPlugins
-
-
 class DICOMLoadableTable(qt.QTableWidget):
   """Implement the Qt code for a table of
   selectable slicer data to be made from
@@ -1219,285 +1028,3 @@ class DICOMLoadableTable(qt.QTableWidget):
       self.loadables[row].selected = (item.checkState() != 0)
       # updating the names
       self.loadables[row].name = item.text()
-
-
-class DICOMHeaderWidget(qt.QTableWidget):
-  """Implement the Qt code for a table of
-  DICOM header values
-  """
-
-  # TODO: move this to ctk and use data dictionary for
-  # tag names
-
-  def __init__(self, parent):
-    super(DICOMHeaderWidget, self).__init__(parent, width=350, height=300)
-    self.configure()
-    self.setHeader()
-
-  def configure(self):
-    self.setColumnCount(2)
-    self.setHorizontalHeaderLabels(['Tag', 'Value'])
-    self.horizontalHeader().setSectionResizeMode(qt.QHeaderView.Stretch)
-    self.horizontalHeader().setSectionResizeMode(0, qt.QHeaderView.Stretch)
-    self.horizontalHeader().setSectionResizeMode(1, qt.QHeaderView.Stretch)
-
-  def setHeader(self, dcmFile=None):
-    #TODO: this method never gets called. Should be called when clicking on items from the SeriesTable
-    """Load the table widget with header values for the file
-    """
-    self.clearContents()
-
-    if not dcmFile:
-      return
-
-    slicer.dicomDatabase.loadFileHeader(dcmFile)
-    keys = slicer.dicomDatabase.headerKeys()
-    self.setRowCount(len(keys))
-    for row, key in enumerate(keys):
-      item = qt.QTableWidgetItem(key)
-      self.setItem(row, 0, item)
-      dump = slicer.dicomDatabase.headerValue(key)
-      try:
-        value = dump[dump.index('[') + 1:dump.index(']')]
-      except ValueError:
-        value = "Unknown"
-      item = qt.QTableWidgetItem(value)
-      self.setItem(row, 1, item)
-
-
-class DICOMRecentActivityWidget(qt.QWidget):
-  """Display the recent activity of the slicer DICOM database
-  """
-
-  def __init__(self, parent, dicomDatabase=None, detailsPopup=None):
-    super(DICOMRecentActivityWidget, self).__init__(parent)
-    if dicomDatabase:
-      self.dicomDatabase = dicomDatabase
-    else:
-      self.dicomDatabase = slicer.dicomDatabase
-    self.detailsPopup = detailsPopup
-    self.recentSeries = []
-    self.name = 'recentActivityWidget'
-    self.setLayout(qt.QVBoxLayout())
-
-    self.statusLabel = qt.QLabel()
-    self.layout().addWidget(self.statusLabel)
-    self.statusLabel.text = 'No inserts in the past hour'
-
-    self.scrollArea = qt.QScrollArea()
-    self.layout().addWidget(self.scrollArea)
-    self.listWidget = qt.QListWidget()
-    self.listWidget.name = 'recentActivityListWidget'
-    self.scrollArea.setWidget(self.listWidget)
-    self.scrollArea.setWidgetResizable(True)
-    self.listWidget.setProperty('SH_ItemView_ActivateItemOnSingleClick', 1)
-    self.listWidget.connect('activated(QModelIndex)', self.onActivated)
-
-    self.refreshButton = qt.QPushButton()
-    self.layout().addWidget(self.refreshButton)
-    self.refreshButton.text = 'Refresh'
-    self.refreshButton.connect('clicked()', self.update)
-
-    self.tags = {}
-    self.tags['seriesDescription'] = "0008,103e"
-    self.tags['patientName'] = "0010,0010"
-
-  class seriesWithTime(object):
-    """helper class to track series and time..."""
-
-    def __init__(self, series, elapsedSinceInsert, insertDateTime, text):
-      self.series = series
-      self.elapsedSinceInsert = elapsedSinceInsert
-      self.insertDateTime = insertDateTime
-      self.text = text
-
-  @staticmethod
-  def compareSeriesTimes(a, b):
-    if a.elapsedSinceInsert > b.elapsedSinceInsert:
-      return 1
-    else:
-      return -1
-
-  def recentSeriesList(self):
-    """Return a list of series sorted by insert time
-    (counting backwards from today)
-    Assume that first insert time of series is valid
-    for entire series (should be close enough for this purpose)
-    """
-    recentSeries = []
-    now = qt.QDateTime.currentDateTime()
-    for patient in self.dicomDatabase.patients():
-      for study in self.dicomDatabase.studiesForPatient(patient):
-        for series in self.dicomDatabase.seriesForStudy(study):
-          files = self.dicomDatabase.filesForSeries(series)
-          if len(files) > 0:
-            instance = self.dicomDatabase.instanceForFile(files[0])
-            seriesTime = self.dicomDatabase.insertDateTimeForInstance(instance)
-            try:
-              patientName = self.dicomDatabase.instanceValue(instance, self.tags['patientName'])
-            except RuntimeError:
-              # this indicates that the particular instance is no longer
-              # accessible to the dicom database, so we should ignore it here
-              continue
-            seriesDescription = self.dicomDatabase.instanceValue(instance, self.tags['seriesDescription'])
-            elapsed = seriesTime.secsTo(now)
-            secondsPerHour = 60 * 60
-            secondsPerDay = secondsPerHour * 24
-            timeNote = None
-            if elapsed < secondsPerDay:
-              timeNote = 'Today'
-            elif elapsed < 7 * secondsPerDay:
-              timeNote = 'Past Week'
-            elif elapsed < 30 * 7 * secondsPerDay:
-              timeNote = 'Past Month'
-            if timeNote:
-              text = "%s: %s for %s" % (timeNote, seriesDescription, patientName)
-              recentSeries.append(self.seriesWithTime(series, elapsed, seriesTime, text))
-    recentSeries.sort(key=cmp_to_key(self.compareSeriesTimes))
-    return recentSeries
-
-  def update(self):
-    """Load the table widget with header values for the file
-    """
-    self.listWidget.clear()
-    secondsPerHour = 60 * 60
-    insertsPastHour = 0
-    self.recentSeries = self.recentSeriesList()
-    for series in self.recentSeries:
-      self.listWidget.addItem(series.text)
-      if series.elapsedSinceInsert < secondsPerHour:
-        insertsPastHour += 1
-    self.statusLabel.text = '%d series added to database in the past hour' % insertsPastHour
-    if len(self.recentSeries) > 0:
-      statusMessage = "Most recent DICOM Database addition: %s" % self.recentSeries[0].insertDateTime.toString()
-      slicer.util.showStatusMessage(statusMessage, 10000)
-
-  def onActivated(self, modelIndex):
-    print('selected row %d' % modelIndex.row())
-    print(self.recentSeries[modelIndex.row()].text)
-    series = self.recentSeries[modelIndex.row()]
-    if self.detailsPopup:
-      self.detailsPopup.open()
-      self.detailsPopup.offerLoadables(series.series, "Series")
-
-
-class DICOMSendDialog(qt.QDialog):
-  """Implement the Qt dialog for doing a DICOM Send (storage SCU)
-  """
-
-  def __init__(self, files, parent="mainWindow"):
-    super(DICOMSendDialog, self).__init__(slicer.util.mainWindow() if parent == "mainWindow" else parent)
-    self.setWindowTitle('Send DICOM Study')
-    self.setWindowModality(1)
-    self.setLayout(qt.QVBoxLayout())
-    self.files = files
-    self.settings = qt.QSettings()
-    self.sendAddress = self.settings.value('DICOM.sendAddress')
-    self.sendPort = self.settings.value('DICOM.sendPort')
-
-    self.open()
-
-  def open(self):
-    self.studyLabel = qt.QLabel('Send %d items to destination' % len(self.files))
-    self.layout().addWidget(self.studyLabel)
-
-    # Send Parameters
-    self.dicomFrame = qt.QFrame(self)
-    self.dicomFormLayout = qt.QFormLayout()
-    self.dicomFrame.setLayout(self.dicomFormLayout)
-    self.dicomEntries = {}
-    self.dicomParameters = {
-      "Destination Address": self.sendAddress,
-      "Destination Port": self.sendPort
-    }
-    for label in self.dicomParameters.keys():
-      self.dicomEntries[label] = qt.QLineEdit()
-      self.dicomEntries[label].text = self.dicomParameters[label]
-      self.dicomFormLayout.addRow(label + ": ", self.dicomEntries[label])
-    self.layout().addWidget(self.dicomFrame)
-
-    # button box
-    bbox = qt.QDialogButtonBox(self)
-    bbox.addButton(bbox.Ok)
-    bbox.addButton(bbox.Cancel)
-    bbox.accepted.connect(self.onOk)
-    bbox.rejected.connect(self.onCancel)
-    self.layout().addWidget(bbox)
-
-    qt.QDialog.open(self)
-
-  def onOk(self):
-    address = self.dicomEntries['Destination Address'].text
-    port = self.dicomEntries['Destination Port'].text
-    self.settings.setValue('DICOM.sendAddress', address)
-    self.settings.setValue('DICOM.sendPort', port)
-    self.progress = slicer.util.createProgressDialog(value=0, maximum=len(self.files))
-    self.progressValue = 0
-
-    try:
-      DICOMLib.DICOMSender(self.files, address, port, progressCallback=self.onProgress)
-    except Exception as result:
-      slicer.util.warningDisplay('Could not send data: %s' % result, windowTitle='DICOM Send', parent=self)
-    self.progress.close()
-    self.progress = None
-    self.progressValue = None
-    self.close()
-
-  def onCancel(self):
-    self.close()
-
-  def onProgress(self, message):
-    self.progress.show()
-    self.progress.activateWindow()
-    self.centerProgress()
-    self.progressValue += 1
-    self.progress.setValue(self.progressValue)
-    self.progress.setLabelText(message)
-    slicer.app.processEvents()
-
-  def centerProgress(self):
-    mainWindow = slicer.util.mainWindow()
-    screenMainPos = mainWindow.pos
-    x = screenMainPos.x() + int((mainWindow.width - self.progress.width)/2)
-    y = screenMainPos.y() + int((mainWindow.height - self.progress.height)/2)
-    self.progress.move(x,y)
-
-
-class DICOMHeaderPopup(qt.QDialog, SizePositionSettingsMixin):
-
-  def __init__(self, parent=None):
-    qt.QDialog.__init__(self, parent)
-    self.setWindowFlags(
-            qt.Qt.WindowMaximizeButtonHint |
-            qt.Qt.WindowCloseButtonHint |
-            qt.Qt.Window)
-    self.modal = True
-    self.settings = qt.QSettings()
-    self.objectName = 'HeaderPopup'
-    self.setWindowTitle('DICOM File Metadata')
-    self.listWidget = ctkDICOMObjectListWidget()
-    self.setLayout(qt.QGridLayout())
-    self.layout().addWidget(self.listWidget)
-
-  def setFileLists(self, fileLists):
-    filePaths = []
-    for fileList in fileLists:
-      for filePath in fileList:
-        filePaths.append(filePath)
-    self.listWidget.setFileList(filePaths)
-
-  def show(self):
-    if not self.isVisible():
-      self.restoreSizeAndPosition()
-    qt.QDialog.show(self)
-
-  def closeEvent(self, event):
-    qt.QDialog.closeEvent(self, event)
-
-  def resizeEvent(self, event):
-    qt.QDialog.resizeEvent(self, event)
-    self.saveSizeAndPosition()
-
-  def moveEvent(self, event):
-    qt.QDialog.moveEvent(self, event)
-    self.saveSizeAndPosition()

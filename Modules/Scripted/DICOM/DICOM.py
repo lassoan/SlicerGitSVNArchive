@@ -62,6 +62,8 @@ This work is supported by NA-MIC, NAC, BIRN, NCIGT, and the Slicer Community. Se
     that will be called once the event loop is read to start.
     """
 
+    slicer.dicomDatabaseDirectorySettingsKey = 'DatabaseDirectory_'+ctk.ctkDICOMDatabase().schemaVersion().replace('.','_')
+
     if slicer.mrmlScene.GetTagByClassName( "vtkMRMLScriptedModuleNode" ) != 'ScriptedModule':
       slicer.mrmlScene.RegisterNodeClass(vtkMRMLScriptedModuleNode())
 
@@ -69,13 +71,13 @@ This work is supported by NA-MIC, NAC, BIRN, NCIGT, and the Slicer Community. Se
     slicer.dicomDatabase = None
     settings = qt.QSettings()
     # the dicom database is a global object for slicer
-    if settings.contains('DatabaseDirectory'):
-      databaseDirectory = settings.value('DatabaseDirectory')
+    if settings.contains(slicer.dicomDatabaseDirectorySettingsKey):
+      databaseDirectory = settings.value(slicer.dicomDatabaseDirectorySettingsKey)
       if databaseDirectory:
         slicer.dicomDatabase = ctk.ctkDICOMDatabase()
-        slicer.dicomDatabase.openDatabase(databaseDirectory + "/ctkDICOM.sql", "SLICER")
+        slicer.dicomDatabase.openDatabase(databaseDirectory + "/ctkDICOM.sql")
         if not slicer.dicomDatabase.isOpen:
-          # can't open the database, so prompt the user later if they enter module
+          # can't open the database, create it later when user activates the DICOM browser
           slicer.dicomDatabase = None
         else:
           self.startListener()
@@ -152,9 +154,6 @@ This work is supported by NA-MIC, NAC, BIRN, NCIGT, and the Slicer Community. Se
     self.detailsPopup.closed.connect(self.onDetailsPopupClosed)
     self.detailsPopup.browserPersistentButton.hide()
     self.detailsPopup.horizontalViewCheckBox.hide()
-    expandButton = self.detailsPopup.findChild("ctkExpandButton", "")
-    if expandButton is not None:
-      expandButton.hide()
 
     if self.viewWidget is None:
       self.viewWidget = qt.QWidget()
@@ -222,20 +221,6 @@ class _ui_DICOMSettingsPanel(object):
     genericGroupBoxFormLayout.addRow("Load referenced series:", loadReferencesComboBox)
     parent.registerProperty(
       "DICOM/automaticallyLoadReferences", loadReferencesComboBox,
-      "currentUserDataAsString", str(qt.SIGNAL("currentIndexChanged(int)")))
-
-    schemaUpdateComboBox = ctk.ctkComboBox()
-    schemaUpdateComboBox.toolTip = "What do do when the supported schema version is " \
-      "different from that of the loaded database"
-    schemaUpdateComboBox.addItem("Always update", "AlwaysUpdate")
-    schemaUpdateComboBox.addItem("Never update", "NeverUpdate")
-    schemaUpdateComboBox.addItem("Ask user", "AskUser")
-    schemaUpdateComboBox.currentIndex = 2 # Make 'AskUser' the default as opposed to the CTK default 'AlwaysUpdate'
-    if slicer.app.commandOptions().testingEnabled:
-      schemaUpdateComboBox.currentIndex = 0 # Update database for automatic tests
-    genericGroupBoxFormLayout.addRow("Schema update behavior:", schemaUpdateComboBox)
-    parent.registerProperty(
-      "DICOM/SchemaUpdateOption", schemaUpdateComboBox,
       "currentUserDataAsString", str(qt.SIGNAL("currentIndexChanged(int)")))
 
     vBoxLayout.addWidget(genericGroupBox)
@@ -410,7 +395,6 @@ class DICOMWidget(object):
 
     self.detailsPopup = None
     self.directoryButton = None
-    self.tableDensityComboBox = None
 
     globals()['d'] = self
 
@@ -472,11 +456,6 @@ class DICOMWidget(object):
     self.browserSettingsWidget.layout().addRow("Local database:", self.directoryButton)
     self.directoryButton.directoryChanged.connect(self.onDatabaseDirectoryButtonChanged)
     self.onDatabaseDirectoryDetailsPopupChanged(self.detailsPopup.dicomBrowser.databaseDirectory)
-
-    self.tableDensityComboBox = qt.QComboBox()
-    self.browserSettingsWidget.layout().addRow("Table density:", self.tableDensityComboBox)
-    self.tableDensityComboBox.currentIndexChanged.connect(self.onTableDensityChanged)
-    self.updateTableDensityComboBox()
 
     self.horizontalCheckBox = qt.QCheckBox()
     self.horizontalCheckBox.checked = settingsValue('DICOM/horizontalTables', 0, converter=int)
@@ -599,12 +578,6 @@ class DICOMWidget(object):
 
       self.eventFilter = EscapeKeyFilter()
       self.detailsPopup.installEventFilter(self.eventFilter)
-
-      if self.tableDensityComboBox:
-        detailsPopupTableDensityComboBox = self.detailsPopup.findChild("QWidget", "tableDensityComboBox")
-        if detailsPopupTableDensityComboBox:
-          for i in range(detailsPopupTableDensityComboBox.count):
-            self.tableDensityComboBox.addItem(detailsPopupTableDensityComboBox.itemText(i))
 
   def toggleDetailsPopup(self):
     if self.showBrowserButton.checked:
@@ -747,18 +720,6 @@ class DICOMWidget(object):
     if self.directoryButton.directory == databaseDirectory:
       return
     self.directoryButton.directory = databaseDirectory
-
-  def updateTableDensityComboBox(self):
-    if self.detailsPopup:
-      detailsPopupTableDensityComboBox = self.detailsPopup.findChild("QWidget", "tableDensityComboBox")
-      if detailsPopupTableDensityComboBox:
-        self.tableDensityComboBox.clear()
-        for i in range(detailsPopupTableDensityComboBox.count):
-          self.tableDensityComboBox.addItem(detailsPopupTableDensityComboBox.itemText(i))
-        self.tableDensityComboBox.setCurrentIndex(detailsPopupTableDensityComboBox.currentIndex)
-
-  def onTableDensityChanged(self, index):
-    self.detailsPopup.dicomBrowser.onTablesDensityComboBox(self.tableDensityComboBox.itemText(index))
 
   def onHorizontalStateChanged(self):
     if self.detailsPopup:
