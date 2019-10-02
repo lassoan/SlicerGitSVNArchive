@@ -196,16 +196,13 @@
       </widget>
      </item>
      <item>
-      <widget class="ctkDoubleSpinBox" name="NumberOfScalarsSpinBox">
-       <property name="decimals">
-        <number>0</number>
-       </property>
-       <property name="decimalsOption">
-        <set>ctkDoubleSpinBox::FixedDecimals</set>
-       </property>
-       <property name="value">
-        <double>1.000000000000000</double>
-       </property>
+      <widget class="QSpinBox" name="NumberOfScalarsSpinBox">
+        <property name="minimum">
+         <number>0</number>
+        </property>
+        <property name="singleStep">
+         <number>1</number>
+        </property>
       </widget>
      </item>
     </layout>

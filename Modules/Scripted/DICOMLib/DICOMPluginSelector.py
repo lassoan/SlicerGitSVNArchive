@@ -1,3 +1,17 @@
+from __future__ import print_function
+import os, copy
+import qt
+import vtk
+import logging
+
+from ctk import ctkDICOMObjectListWidget, ctkDICOMDatabase, ctkDICOMIndexer, ctkDICOMBrowser
+import slicer
+from slicer.util import VTKObservationMixin
+
+from slicer.util import settingsValue, toBool
+import DICOMLib
+
+
 class DICOMPluginSelector(qt.QWidget):
   """Implement the Qt code for a table of
   selectable DICOM Plugins that determine

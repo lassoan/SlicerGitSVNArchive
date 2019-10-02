@@ -4,3 +4,5 @@ from .DICOMExportScene import *
 from .DICOMWidgets import *
 from .DICOMPlugin import *
 from .DICOMUtils import *
+from .DICOMPluginSelector import *
+from .DICOMSendDialog import *

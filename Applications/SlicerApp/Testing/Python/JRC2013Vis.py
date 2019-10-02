@@ -104,6 +104,9 @@ class JRC2013VisWidget(ScriptedLoadableModuleWidget):
         '/../CTK-build/CMakeExternals/Install/bin',
         '/../DCMTK-install/bin',
         '/../DCMTK-build/bin',
+        '/../DCMTK-build/bin/Release'
+        '/../DCMTK-build/bin/Debug'
+        '/../DCMTK-build/bin/RelWithDebInfo'
         )
 
       dcmqrscpExePath = None
@@ -195,6 +198,9 @@ class JRC2013VisTestTest(ScriptedLoadableModuleTest):
         '/../CTK-build/CMakeExternals/Install/bin',
         '/../DCMTK-install/bin',
         '/../DCMTK-build/bin',
+        '/../DCMTK-build/bin/Release'
+        '/../DCMTK-build/bin/Debug'
+        '/../DCMTK-build/bin/RelWithDebInfo'
         )
 
       dcmqrscpExePath = None
@@ -213,8 +219,7 @@ class JRC2013VisTestTest(ScriptedLoadableModuleTest):
       popen = subprocess.Popen(args, stdout=subprocess.PIPE, cwd=processCurrentPath)
 
       self.delayDisplay('Retrieve DICOM')
-      mainWindow = slicer.util.mainWindow()
-      mainWindow.moduleSelector().selectModule('DICOM')
+      slicer.util.selectModule('DICOM')
       dicomRetrieve = ctk.ctkDICOMRetrieve()
       dicomRetrieve.setKeepAssociationOpen(True)
       dicomRetrieve.setDatabase(slicer.dicomDatabase)
@@ -224,13 +229,14 @@ class JRC2013VisTestTest(ScriptedLoadableModuleTest):
       dicomRetrieve.setHost('localhost')
       dicomRetrieve.getStudy('1.2.124.113932.1.170.223.162.178.20050502.160340.12640015');
       popen.kill()
-      dicomWidget.detailsPopup.open()
-      # click on the first row of the tree
-      index = dicomWidget.tree.indexAt(qt.QPoint(0,0))
-      dicomWidget.onTreeClicked(index)
+
+      # Select first patient
+      browserWidget = slicer.modules.DICOMWidget.browserWidget
+      browserWidget.dicomBrowser.dicomTableManager().patientsTable().selectFirst()
+      browserWidget.examineForLoading()
 
       self.delayDisplay('Loading Selection')
-      dicomWidget.detailsPopup.loadCheckedLoadables()
+      browserWidget.loadCheckedLoadables()
 
       self.delayDisplay('Change Level')
       layoutManager = slicer.app.layoutManager()

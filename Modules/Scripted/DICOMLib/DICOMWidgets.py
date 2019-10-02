@@ -4,8 +4,6 @@ import qt
 import vtk
 import logging
 
-from functools import cmp_to_key
-
 from ctk import ctkDICOMObjectListWidget, ctkDICOMDatabase, ctkDICOMIndexer, ctkDICOMBrowser
 import slicer
 from slicer.util import VTKObservationMixin
@@ -31,90 +29,53 @@ for elements like slicer.dicomDatabase and slicer.mrmlScene
 #
 #########################################################
 
-def setDatabasePrecacheTags(dicomBrowser=None):
-  """query each plugin for tags that should be cached on import
-     and set them for the dicom app widget and slicer"""
-  if not slicer.dicomDatabase:
-    return
-  tagsToPrecache = list(slicer.dicomDatabase.tagsToPrecache)
-  for pluginClass in slicer.modules.dicomPlugins:
-    plugin = slicer.modules.dicomPlugins[pluginClass]()
-    tagsToPrecache += list(plugin.tags.values())
-  tagsToPrecache = sorted(set(tagsToPrecache))  # remove duplicates
-  slicer.dicomDatabase.tagsToPrecache = tagsToPrecache
-  if dicomBrowser:
-    dicomBrowser.tagsToPrecache = tagsToPrecache
 
-
-class SizePositionSettingsMixin(object):
-
-  def saveSizeAndPosition(self):
-
-    self.settings.beginGroup('DICOM/{}'.format(self.objectName))
-    self.settings.setValue("size", self.size)
-    self.settings.setValue("pos", self.pos)
-    self.settings.endGroup()
-
-  def restoreSizeAndPosition(self):
-    parent = self.parent() if self.parent() else slicer.util.mainWindow()
-    screenPos = parent.pos
-
-    self.settings.beginGroup('DICOM/{}'.format(self.objectName))
-    self.resize(self.settings.value("size",
-                                    qt.QSize(int(parent.width*3/4), int(parent.height*3/4))))
-    self.move(self.settings.value("pos",
-                                  qt.QPoint(int(screenPos.x() + (parent.width - self.width)/2), screenPos.y())))
-    self.settings.endGroup()
-
-    # If window position is no longer valid (for example because the window was
-    # placed on a monitor that has been disconnected) then the window may simply not appear
-    # for the user. Use geometry validation feature of restoreGeometry to make sure that
-    # restored window appears.
-    savedGeometry = self.saveGeometry()
-    self.restoreGeometry(savedGeometry)
-
-
-class DICOMDetailsBase(VTKObservationMixin, SizePositionSettingsMixin):
+class SlicerDICOMBrowser(VTKObservationMixin, qt.QWidget):
   """Implement the Qt window showing details and possible
   operations to perform on the selected dicom list item.
   This is a helper used in the DICOMWidget class.
   """
 
-  widgetType = None
   closed = qt.Signal() # Invoked when the dicom widget is closed using the close method
 
-  def __init__(self, dicomBrowser=None):
+  def __init__(self, dicomBrowser=None, parent="mainWindow"):
     VTKObservationMixin.__init__(self)
+    qt.QWidget.__init__(self, slicer.util.mainWindow() if parent == "mainWindow" else parent)
+
+    self.pluginInstances = {}
+    self.fileLists = []
+    self.extensionCheckPending = False
+
     self.settings = qt.QSettings()
 
-    self.dicomBrowser = dicomBrowser if dicomBrowser is not None else ctkDICOMBrowser()
+    self.dicomBrowser = dicomBrowser if dicomBrowser is not None else slicer.app.createDICOMBrowserForMainDatabase()
 
     self.browserPersistent = settingsValue('DICOM/BrowserPersistent', False, converter=toBool)
     self.advancedView = settingsValue('DICOM/advancedView', 0, converter=int)
     self.horizontalTables = settingsValue('DICOM/horizontalTables', 0, converter=int)
 
-    self.pluginInstances = {}
-    self.fileLists = []
-
-    setDatabasePrecacheTags(self.dicomBrowser)
+    self.setup()
 
     self.dicomBrowser.connect('databaseDirectoryChanged(QString)', self.onDatabaseDirectoryChanged)
-    self.extensionCheckPending = False
     self.dicomBrowser.connect('directoryImported()', self.onDirectoryImported)
+    self.dicomBrowser.connect('sendRequested(QStringList)', self.onSend)
 
-  def onSendActionTriggered(self, triggered):
-    if len(self.fileLists):
-      sendDialog = DICOMSendDialog([dcmFile for sublist in self.fileLists for dcmFile in sublist], self)
+    # Load when double-clicked on an item in the browser
+    self.dicomBrowser.dicomTableManager().connect('patientsDoubleClicked(QModelIndex)', self.patientStudySeriesDoubleClicked)
+    self.dicomBrowser.dicomTableManager().connect('studiesDoubleClicked(QModelIndex)', self.patientStudySeriesDoubleClicked)
+    self.dicomBrowser.dicomTableManager().connect('seriesDoubleClicked(QModelIndex)', self.patientStudySeriesDoubleClicked)
 
-  def _findChildren(self, name):
-    """Since the ctkDICOMBrowser widgets stolen by the Slicer DICOM browser
-    loses their objectName when they are re-parented, this convenience function
-    will search in both the ``self`` and ``self.dicomBrowser``.
-    """
-    try:
-      return slicer.util.findChildren(self, name=name)[0]
-    except IndexError:
-      return slicer.util.findChildren(self.dicomBrowser, name=name)[0]
+
+  def open(self):
+    self.show()
+
+  def close(self):
+    self.hide()
+    self.closed.emit()
+
+  def onSend(self, fileList):
+    if len(fileList):
+      sendDialog = DICOMLib.DICOMSendDialog(fileList, self)
 
   def setup(self, showPreview=False):
     """
@@ -123,9 +84,17 @@ class DICOMDetailsBase(VTKObservationMixin, SizePositionSettingsMixin):
     extra widgets
     """
 
+    self.setWindowTitle('DICOM Browser')
+    self.setLayout(qt.QVBoxLayout())
+
     self.dicomBrowser.databaseDirectorySelectorVisible = False
     self.dicomBrowser.toolbarVisible = False
+    self.dicomBrowser.sendActionVisible = True
     self.dicomBrowser.databaseDirectorySettingsKey = slicer.dicomDatabaseDirectorySettingsKey
+    self.dicomBrowser.dicomTableManager().dynamicTableLayout = False
+    horizontal = self.settings.setValue('DICOM/horizontalTables', 0)
+    self.dicomBrowser.dicomTableManager().tableOrientation = qt.Qt.Horizontal if horizontal else qt.Qt.Vertical
+    self.layout().addWidget(self.dicomBrowser)
 
     # If DICOM module has not created slicer.dicomDatabase already then it means that
     # no database exists yet and it is up to the DICOM browser to create it.
@@ -140,62 +109,8 @@ class DICOMDetailsBase(VTKObservationMixin, SizePositionSettingsMixin):
           databaseDirectory = os.path.join(documents, slicer.app.applicationName+"DICOMDatabase")
           self.dicomBrowser = databaseDirectory  # this updates slicer.dicomDatabase
 
-    #
-    # create and configure the Slicer browser widget - this involves
-    # reaching inside and manipulating the widget hierarchy
-    # - TODO: this configuration should be exposed more natively
-    #   in the CTK code to avoid the findChildren calls
-    #
-    self.tables = slicer.util.findChildren(self.dicomBrowser, 'dicomTableManager')[0]
-    patientTable = slicer.util.findChildren(self.tables, 'patientsTable')[0]
-    self.patientTableView = slicer.util.findChildren(patientTable, 'tblDicomDatabaseView')[0]
-    patientSearchBox = slicer.util.findChildren(patientTable, 'leSearchBox')[0]
-    studyTable = slicer.util.findChildren(self.tables, 'studiesTable')[0]
-    self.studyTableView = slicer.util.findChildren(studyTable, 'tblDicomDatabaseView')[0]
-    studySearchBox = slicer.util.findChildren(studyTable, 'leSearchBox')[0]
-    seriesTable = slicer.util.findChildren(self.tables, 'seriesTable')[0]
-    self.seriesTableView = slicer.util.findChildren(seriesTable, 'tblDicomDatabaseView')[0]
-    seriesSearchBox = slicer.util.findChildren(seriesTable, 'leSearchBox')[0]
-    self.tableSplitter = qt.QSplitter()
-    self.tableSplitter.addWidget(self.patientTableView)
-    self.tableSplitter.addWidget(self.studyTableView)
-    self.tableSplitter.addWidget(self.seriesTableView)
-
     self.userFrame = qt.QWidget()
     self.preview = qt.QWidget()
-
-    self.objectName = 'SlicerDICOMBrowser'
-
-    self.setWindowTitle('DICOM Browser')
-
-    self.setLayout(qt.QVBoxLayout())
-
-    # enable export button and make new connection
-    self.actionExport = self.dicomBrowser.findChildren('QAction', 'ActionExport')[0]
-    self.actionExport.enabled = 1
-    self.actionExport.connect('triggered()', self.onExportAction)
-
-    # Move all search boxes to one row to save space
-    self.searchFrame = qt.QWidget()
-    self.searchFrame.setMaximumHeight(40)
-    self.searchLayout = qt.QHBoxLayout(self.searchFrame)
-    self.layout().addWidget(self.searchFrame)
-    patientsLabel = qt.QLabel('Patients: ')
-    self.searchLayout.addWidget(patientsLabel)
-    self.searchLayout.addWidget(patientSearchBox)
-    studiesLabel = qt.QLabel('Studies: ')
-    self.searchLayout.addWidget(studiesLabel)
-    self.searchLayout.addWidget(studySearchBox)
-    seriesLabel = qt.QLabel('Series: ')
-    self.searchLayout.addWidget(seriesLabel)
-    self.searchLayout.addWidget(seriesSearchBox)
-
-    # tables goes next, spread across 1 row, 2 columns
-    if self.horizontalTables:
-      self.tableSplitter.setOrientation(1)
-    else:
-      self.tableSplitter.setOrientation(0)
-    self.layout().addWidget(self.tableSplitter)
 
     #
     # preview related column
@@ -231,14 +146,10 @@ class DICOMDetailsBase(VTKObservationMixin, SizePositionSettingsMixin):
     self.actionButtonLayout = qt.QHBoxLayout()
     self.actionButtonsFrame.setLayout(self.actionButtonLayout)
 
-    self.loadButton = qt.QPushButton('Load')
-    self.loadButton.toolTip = 'Load selected items into the scene'
-    self.actionButtonLayout.addWidget(self.loadButton)
-    self.loadButton.connect('clicked()', self.loadCheckedLoadables)
-
-    self.actionButtonLayout.addStretch(1)
+    self.actionButtonLayout.addStretch(0.05)
 
     self.examineButton = qt.QPushButton('Examine')
+    self.examineButton.setSizePolicy(qt.QSizePolicy.Expanding, qt.QSizePolicy.Fixed)
     self.actionButtonLayout.addWidget(self.examineButton)
     self.examineButton.enabled = False
     self.examineButton.connect('clicked()', self.examineForLoading)
@@ -246,28 +157,20 @@ class DICOMDetailsBase(VTKObservationMixin, SizePositionSettingsMixin):
     self.uncheckAllButton = qt.QPushButton('Uncheck All')
     self.actionButtonLayout.addWidget(self.uncheckAllButton)
     self.uncheckAllButton.connect('clicked()', self.uncheckAllLoadables)
-    self.actionButtonLayout.addStretch(1)
+
+    self.loadButton = qt.QPushButton('Load')
+    self.loadButton.setSizePolicy(qt.QSizePolicy.Expanding, qt.QSizePolicy.Fixed)
+    self.loadButton.toolTip = 'Load selected items into the scene'
+    self.actionButtonLayout.addWidget(self.loadButton)
+    self.loadButton.connect('clicked()', self.loadCheckedLoadables)
+
+    self.actionButtonLayout.addStretch(0.05)
 
     self.advancedViewButton = qt.QCheckBox('Advanced')
     self.advancedViewButton.objectName = 'AdvancedViewCheckBox'
     self.actionButtonLayout.addWidget(self.advancedViewButton)
-    self.advancedViewButton.enabled = True
     self.advancedViewButton.checked = self.advancedView
     self.advancedViewButton.toggled.connect(self.onAdvancedViewButton)
-
-    self.horizontalViewCheckBox = qt.QCheckBox('Horizontal')
-    self.horizontalViewCheckBox.objectName = 'HorizontalViewCheckBox'
-    self.horizontalViewCheckBox.checked = self.horizontalTables
-    self.horizontalViewCheckBox.connect('clicked()', self.onHorizontalViewCheckBox)
-    self.actionButtonLayout.addWidget(self.horizontalViewCheckBox)
-    self.toolLayout.addStretch(1)
-
-    self.browserPersistentButton = qt.QCheckBox('Browser Persistent')
-    self.browserPersistentButton.objectName = 'BrowserPersistentCheckBox'
-    self.browserPersistentButton.toolTip = 'When enabled, DICOM Browser remains open after loading data or switching to another module'
-    self.browserPersistentButton.checked = self.browserPersistent
-    self.actionButtonLayout.addWidget(self.browserPersistentButton)
-    self.browserPersistentButton.connect('stateChanged(int)', self.setBrowserPersistence)
 
     if self.advancedView:
       self.loadableTableFrame.visible = True
@@ -279,12 +182,12 @@ class DICOMDetailsBase(VTKObservationMixin, SizePositionSettingsMixin):
     #
     # Series selection
     #
-    self.tables.connect('seriesSelectionChanged(QStringList)', self.onSeriesSelected)
+    self.dicomBrowser.dicomTableManager().connect('seriesSelectionChanged(QStringList)', self.onSeriesSelected)
 
     #
     # Plugin selection widget
     #
-    self.pluginSelector = DICOMPluginSelector(self)
+    self.pluginSelector = DICOMLib.DICOMPluginSelector(self)
     self.loadableTableLayout.addRow(self.pluginSelector, self.loadableTable)
     self.checkBoxByPlugins = []
 
@@ -293,21 +196,18 @@ class DICOMDetailsBase(VTKObservationMixin, SizePositionSettingsMixin):
       self.checkBox.connect('stateChanged(int)', self.onPluginStateChanged)
       self.checkBoxByPlugins.append(self.checkBox)
 
-    self.loadButton.enabled = self.seriesTableView.selectedIndexes()
+    self.updateButtonStates()
 
-    self.updateVisibility()
-
-  def updateVisibility(self):
-    for name in [
-      'ActionImport', 'ActionExport', 'ActionQuery', 'ActionSend', 'ActionRemove', 'ActionRepair', 'ActionViewMetadata',
-      'AdvancedViewCheckBox', 'HorizontalViewCheckBox', 'BrowserPersistentCheckBox'
-    ]:
-      visible = settingsValue('DICOM/%s.visible' % name, True, converter=toBool)
-      control = self._findChildren(name)
-      control.visible = visible
-
-    self.sendControl = self._findChildren('ActionSend')
-    self.sendControl.triggered.connect(self.onSendActionTriggered)
+  def updateButtonStates(self):
+    if self.advancedView:
+      #self.loadButton.enabled =         loadEnabled = loadEnabled or loadablesByPlugin[plugin] != []
+      loadablesChecked = self.loadableTable.getNumberOfCheckedItems() > 0
+      self.loadButton.enabled = loadablesChecked
+      self.examineButton.enabled = len(self.fileLists) != 0
+      self.uncheckAllButton.enabled = loadablesChecked
+    else:
+      #seriesSelected  = self.dicomBrowser.dicomTableManager().seriesTable().tableView().selectedIndexes()
+      self.loadButton.enabled = self.fileLists
 
   def onDatabaseDirectoryChanged(self, databaseDirectory):
     if not hasattr(slicer, 'dicomDatabase') or not slicer.dicomDatabase:
@@ -446,29 +346,14 @@ class DICOMDetailsBase(VTKObservationMixin, SizePositionSettingsMixin):
     advancedWidgets = [self.loadableTableFrame, self.examineButton, self.uncheckAllButton]
     for widget in advancedWidgets:
       widget.visible = self.advancedView
-    if self.advancedView:
-      self.loadButton.enabled = self.loadableTable.getNumberOfCheckedItems() > 0
-    else:
-      self.loadButton.enabled = self.seriesTableView.selectedIndexes()
+    self.updateButtonStates()
 
     self.settings.setValue('DICOM/advancedView', int(self.advancedView))
 
   def onHorizontalViewCheckBox(self):
-    self.tableSplitter.setOrientation(self.horizontalViewCheckBox.checked)
-    self.settings.setValue('DICOM/horizontalTables', int(self.horizontalViewCheckBox.checked))
-
-  def onExportAction(self):
-    self.exportDialog = slicer.qSlicerDICOMExportDialog()
-    self.exportDialog.setMRMLScene(slicer.mrmlScene)
-    self.close()
-    self.exportDialog.execDialog()
-
-  def open(self):
-    self.show()
-
-  def close(self):
-    self.hide()
-    self.closed.emit()
+    horizontal = self.horizontalViewCheckBox.checked
+    self.dicomBrowser.dicomTableManager().tableOrientation = qt.Qt.Horizontal if horizontal else qt.Qt.Vertical
+    self.settings.setValue('DICOM/horizontalTables', int(horizontal))
 
   def organizeLoadables(self):
     """Review the selected state and confidence of the loadables
@@ -501,19 +386,9 @@ class DICOMDetailsBase(VTKObservationMixin, SizePositionSettingsMixin):
           loadable.selected = False
 
   def onSeriesSelected(self, seriesUIDList):
-    self.loadButton.enabled = self.seriesTableView.selectedIndexes() and not self.advancedView
-    self.offerLoadables(seriesUIDList, "SeriesUIDList")
-    self.sendControl.enabled = len(self.fileLists)
-
-  def offerLoadables(self, uidArgument, role):
-    """Get all the loadable options at the currently selected level
-    and present them in the loadable table"""
     self.loadableTable.setLoadables([])
-    if self.advancedViewButton.checkState() == 2:
-      self.loadButton.enabled = False
-    self.fileLists = self.getFileListsForRole(uidArgument, role)
-    self.examineButton.enabled = len(self.fileLists) != 0
-    self.viewMetadataButton.enabled = len(self.fileLists) != 0
+    self.fileLists = self.getFileListsForRole(seriesUIDList, "SeriesUIDList")
+    self.updateButtonStates()
 
   def getFileListsForRole(self, uidArgument, role):
     fileLists = []
@@ -540,18 +415,16 @@ class DICOMDetailsBase(VTKObservationMixin, SizePositionSettingsMixin):
     self.loadableTable.uncheckAll()
 
   def onLoadableTableItemChanged(self, item):
-    self.loadButton.enabled = self.loadableTable.getNumberOfCheckedItems() > 0
+    self.updateButtonStates()
 
   def examineForLoading(self):
     """For selected plugins, give user the option
     of what to load"""
 
-    self.loadablesByPlugin, loadEnabled = self.getLoadablesFromFileLists(self.fileLists)
-
-    self.loadButton.enabled = loadEnabled
-    # self.viewMetadataButton.enabled = loadEnabled
+    self.loadablesByPlugin = self.getLoadablesFromFileLists(self.fileLists)
     self.organizeLoadables()
     self.loadableTable.setLoadables(self.loadablesByPlugin)
+    self.updateButtonStates()
 
   def getLoadablesFromFileLists(self, fileLists):
     """Take list of file lists, return loadables by plugin dictionary
@@ -596,7 +469,6 @@ class DICOMDetailsBase(VTKObservationMixin, SizePositionSettingsMixin):
         # Ensuring backwards compatibility: examineForImport used to be called examine
         if not loadablesByPlugin[plugin]:
           loadablesByPlugin[plugin] = plugin.examine(fileLists)
-        loadEnabled = loadEnabled or loadablesByPlugin[plugin] != []
       except Exception as e:
         import traceback
         traceback.print_exc()
@@ -606,7 +478,7 @@ class DICOMDetailsBase(VTKObservationMixin, SizePositionSettingsMixin):
 
     progress.close()
 
-    return loadablesByPlugin, loadEnabled
+    return loadablesByPlugin
 
   def isFileListInCheckedLoadables(self, fileList):
     for plugin in self.loadablesByPlugin:
@@ -630,6 +502,14 @@ class DICOMDetailsBase(VTKObservationMixin, SizePositionSettingsMixin):
           continue
         return True
     return False
+
+  def patientStudySeriesDoubleClicked(self):
+    if self.advancedViewButton.checkState() == 0:
+      # basic mode
+      self.loadCheckedLoadables()
+    else:
+      # advanced mode, just examine the double-clicked item, do not load
+      self.examineForLoading()
 
   def loadCheckedLoadables(self):
     """Invoke the load method on each plugin for the loadable
@@ -837,97 +717,6 @@ class DICOMReferencesDialog(qt.QMessageBox):
         self.checkboxes[loadable] = cb
         self.checkBoxGroupBox.layout().addWidget(cb)
     self.layout().addWidget(self.checkBoxGroupBox, 1, 0, 1, 3)
-
-
-class DICOMDetailsDialog(DICOMDetailsBase, qt.QDialog):
-
-  widgetType = "dialog"
-  closed = qt.Signal()  # Invoked when the dicom widget is closed using the close method
-
-  def __init__(self, dicomBrowser=None, parent="mainWindow"):
-    DICOMDetailsBase.__init__(self, dicomBrowser)
-    qt.QDialog.__init__(self, slicer.util.mainWindow() if parent == "mainWindow" else parent)
-    self.modal = True
-    self.setWindowFlags(
-            qt.Qt.WindowMaximizeButtonHint |
-            qt.Qt.WindowCloseButtonHint |
-            qt.Qt.Window)
-    self.setup()
-
-  def open(self):
-    if not self.isVisible():
-      self.restoreSizeAndPosition()
-    self.exec_()
-
-  def closeEvent(self, event):
-    qt.QDialog.closeEvent(self, event)
-
-  def resizeEvent(self, event):
-    qt.QDialog.resizeEvent(self, event)
-    self.saveSizeAndPosition()
-
-  def moveEvent(self, event):
-    qt.QDialog.moveEvent(self, event)
-    self.saveSizeAndPosition()
-
-
-class DICOMDetailsWindow(DICOMDetailsDialog):
-
-  widgetType = "window"
-
-  def __init__(self, dicomBrowser=None, parent="mainWindow"):
-    super(DICOMDetailsWindow, self).__init__(dicomBrowser, parent)
-    self.modal=False
-
-  def open(self):
-    if not self.isVisible():
-      self.restoreSizeAndPosition()
-    self.show()
-    self.activateWindow()
-
-
-class DICOMDetailsDock(DICOMDetailsBase, qt.QFrame):
-
-  widgetType = "dock"
-  closed = qt.Signal()  # Invoked when the dicom widget is closed using the close method
-
-  def __init__(self, dicomBrowser=None):
-    DICOMDetailsBase.__init__(self, dicomBrowser)
-    qt.QFrame.__init__(self)
-    self.dock = qt.QDockWidget(slicer.util.mainWindow())
-    self.dock.setFeatures(qt.QDockWidget.DockWidgetFloatable |
-                          qt.QDockWidget.DockWidgetMovable |
-                          qt.QDockWidget.DockWidgetClosable)
-    slicer.util.mainWindow().addDockWidget(qt.Qt.TopDockWidgetArea, self.dock)
-    self.dock.setWidget(self)
-    self.dock.visibilityChanged.connect(self.onVisibilityChanged)
-    self.setup()
-
-  def __del__(self):
-    self.dock.visibilityChanged.disconnect(self.onVisibilityChanged)
-
-  def open(self):
-    if not self.dock.visible:
-      self.dock.show()
-
-  def close(self):
-    self.dock.hide()
-    self.closed.emit()
-
-  def onVisibilityChanged(self, visible):
-    if not visible:
-      self.close()
-
-
-class DICOMDetailsWidget(DICOMDetailsBase, qt.QWidget):
-
-  widgetType = "widget"
-  closed = qt.Signal()  # Invoked when the dicom widget is closed using the close method
-
-  def __init__(self, dicomBrowser=None, parent=None):
-    DICOMDetailsBase.__init__(self, dicomBrowser)
-    qt.QWidget.__init__(self, parent)
-    self.setup()
 
 
 class DICOMLoadableTable(qt.QTableWidget):
