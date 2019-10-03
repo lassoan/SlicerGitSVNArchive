@@ -30,6 +30,8 @@ class DICOMProcess(object):
     pathOptions = (
         '/../DCMTK-build/bin/Debug',
         '/../DCMTK-build/bin/Release',
+        '/../DCMTK-build/bin/RelWithDebInfo',
+        '/../DCMTK-build/bin/MinSizeRel',
         '/../DCMTK-build/bin',
         '/../CTK-build/CMakeExternals/Install/bin',
         '/bin'
