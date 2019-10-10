@@ -4,7 +4,7 @@ import qt
 import vtk
 import logging
 
-from ctk import ctkDICOMObjectListWidget, ctkDICOMDatabase, ctkDICOMIndexer, ctkDICOMBrowser
+from ctk import ctkDICOMIndexer
 import slicer
 from slicer.util import VTKObservationMixin
 
@@ -56,7 +56,6 @@ class SlicerDICOMBrowser(VTKObservationMixin, qt.QWidget):
 
     self.setup()
 
-    self.dicomBrowser.connect('databaseDirectoryChanged(QString)', self.onDatabaseDirectoryChanged)
     self.dicomBrowser.connect('directoryImported()', self.onDirectoryImported)
     self.dicomBrowser.connect('sendRequested(QStringList)', self.onSend)
 
@@ -96,19 +95,6 @@ class SlicerDICOMBrowser(VTKObservationMixin, qt.QWidget):
     self.dicomBrowser.dicomTableManager().tableOrientation = qt.Qt.Horizontal if horizontal else qt.Qt.Vertical
     self.layout().addWidget(self.dicomBrowser)
 
-    # If DICOM module has not created slicer.dicomDatabase already then it means that
-    # no database exists yet and it is up to the DICOM browser to create it.
-    if not slicer.dicomDatabase:
-      if slicer.app.commandOptions().testingEnabled:
-        databaseDirectory = os.path.join(slicer.app.temporaryPath, 'tempDICOMDatabase_'+ctk.ctkDICOMDatabase().schemaVersion())
-      else:
-        databaseDirectory = self.settings.value(slicer.dicomDatabaseDirectorySettingsKey)
-        if not databaseDirectory:
-          documentsLocation = qt.QStandardPaths.DocumentsLocation
-          documents = qt.QStandardPaths.writableLocation(documentsLocation)
-          databaseDirectory = os.path.join(documents, slicer.app.applicationName+"DICOMDatabase")
-          self.dicomBrowser = databaseDirectory  # this updates slicer.dicomDatabase
-
     self.userFrame = qt.QWidget()
     self.preview = qt.QWidget()
 
@@ -146,6 +132,10 @@ class SlicerDICOMBrowser(VTKObservationMixin, qt.QWidget):
     self.actionButtonLayout = qt.QHBoxLayout()
     self.actionButtonsFrame.setLayout(self.actionButtonLayout)
 
+    self.uncheckAllButton = qt.QPushButton('Uncheck All')
+    self.actionButtonLayout.addWidget(self.uncheckAllButton)
+    self.uncheckAllButton.connect('clicked()', self.uncheckAllLoadables)
+
     self.actionButtonLayout.addStretch(0.05)
 
     self.examineButton = qt.QPushButton('Examine')
@@ -153,10 +143,6 @@ class SlicerDICOMBrowser(VTKObservationMixin, qt.QWidget):
     self.actionButtonLayout.addWidget(self.examineButton)
     self.examineButton.enabled = False
     self.examineButton.connect('clicked()', self.examineForLoading)
-
-    self.uncheckAllButton = qt.QPushButton('Uncheck All')
-    self.actionButtonLayout.addWidget(self.uncheckAllButton)
-    self.uncheckAllButton.connect('clicked()', self.uncheckAllLoadables)
 
     self.loadButton = qt.QPushButton('Load')
     self.loadButton.setSizePolicy(qt.QSizePolicy.Expanding, qt.QSizePolicy.Fixed)
@@ -208,12 +194,6 @@ class SlicerDICOMBrowser(VTKObservationMixin, qt.QWidget):
     else:
       #seriesSelected  = self.dicomBrowser.dicomTableManager().seriesTable().tableView().selectedIndexes()
       self.loadButton.enabled = self.fileLists
-
-  def onDatabaseDirectoryChanged(self, databaseDirectory):
-    if not hasattr(slicer, 'dicomDatabase') or not slicer.dicomDatabase:
-      slicer.dicomDatabase = ctkDICOMDatabase()
-      slicer.app.setDICOMDatabase(slicer.dicomDatabase)
-    slicer.dicomDatabase.openDatabase(os.path.join(databaseDirectory, "ctkDICOM.sql"))
 
   def onDirectoryImported(self):
     """The dicom browser will emit multiple directoryImported
@@ -429,54 +409,45 @@ class SlicerDICOMBrowser(VTKObservationMixin, qt.QWidget):
   def getLoadablesFromFileLists(self, fileLists):
     """Take list of file lists, return loadables by plugin dictionary
     """
+
     loadablesByPlugin = {}
     loadEnabled = False
-    if not isinstance(fileLists, list) or len(fileLists) == 0 or not type(fileLists[0]) in [tuple, list]:
-      logging.error('File lists must contain a non-empty list of tuples/lists')
-      return loadablesByPlugin, loadEnabled
 
     allFileCount = missingFileCount = 0
-    for fileList in self.fileLists:
+    for fileList in fileLists:
       for filePath in fileList:
         allFileCount += 1
         if not os.path.exists(filePath):
           missingFileCount += 1
 
     if missingFileCount > 0:
-      slicer.util.warningDisplay("Warning: %d of %d selected files listed in the database cannot be found on disk."
+      messages.appendslicer.util.warningDisplay("Warning: %d of %d selected files listed in the database cannot be found on disk."
                                  % (missingFileCount, allFileCount), windowTitle="DICOM")
 
     if missingFileCount == allFileCount:
+      # Nothing to load
       return loadablesByPlugin, loadEnabled
 
-    plugins = self.pluginSelector.selectedPlugins()
+    progressDialog = slicer.util.createProgressDialog(parent=self, value=0, maximum=100)
 
-    progress = slicer.util.createProgressDialog(parent=self, value=0, maximum=len(plugins))
+    def progressCallback(progressDialog, progressLabel, progressValue):
+      progressDialog.labelText = '\nChecking %s' % progressLabel
+      slicer.app.processEvents()
+      progressDialog.setValue(progressValue)
+      slicer.app.processEvents()
+      cancelled = progressDialog.wasCanceled
+      return cancelled
 
-    for step, pluginClass in enumerate(plugins):
-      if pluginClass not in self.pluginInstances:
-        self.pluginInstances[pluginClass] = slicer.modules.dicomPlugins[pluginClass]()
-      plugin = self.pluginInstances[pluginClass]
-      if progress.wasCanceled:
-        break
-      progress.labelText = '\nChecking %s' % pluginClass
-      slicer.app.processEvents()
-      progress.setValue(step)
-      slicer.app.processEvents()
-      try:
-        loadablesByPlugin[plugin] = plugin.examineForImport(fileLists)
-        # If regular method is not overridden (so returns empty list), try old function
-        # Ensuring backwards compatibility: examineForImport used to be called examine
-        if not loadablesByPlugin[plugin]:
-          loadablesByPlugin[plugin] = plugin.examine(fileLists)
-      except Exception as e:
-        import traceback
-        traceback.print_exc()
-        slicer.util.warningDisplay("Warning: Plugin failed: %s\n\nSee python console for error message." % pluginClass,
+    messages = []
+    loadablesByPlugin, loadEnabled = DICOMLib.getLoadablesFromFileLists(fileLists, self.pluginSelector.selectedPlugins(), messages,
+      lambda progressLabel, progressValue, progressDialog=progressDialog: progressCallback(progressDialog, progressLabel, progressValue),
+      self.pluginInstances)
+
+    progressDialog.close()
+
+    if messages:
+      slicer.util.warningDisplay("Warning: %s\n\nSee python console for error message." % ' '.join(messages),
                                    windowTitle="DICOM", parent=self)
-        print("DICOM Plugin failed: %s" % str(e))
-
-    progress.close()
 
     return loadablesByPlugin
 
@@ -581,59 +552,32 @@ class SlicerDICOMBrowser(VTKObservationMixin, qt.QWidget):
     if not self.warnUserIfLoadableWarningsAndProceed():
       return
 
-    selectedLoadables = self.getAllSelectedLoadables()
-    progress = slicer.util.createProgressDialog(parent=self, value=0, maximum=len(selectedLoadables))
-    loadingResult = ''
+    progressDialog = slicer.util.createProgressDialog(parent=self, value=0, maximum=100)
 
-    loadedNodeIDs = []
-
-    @vtk.calldata_type(vtk.VTK_OBJECT)
-    def onNodeAdded(caller, event, calldata):
-      node = calldata
-      if isinstance(node, slicer.vtkMRMLVolumeNode):
-        loadedNodeIDs.append(node.GetID())
-
-    def updateProgress(value=None, text=None):
-      if value:
-        progress.setValue(step)
-      if text:
-        progress.labelText = text
+    def progressCallback(progressDialog, progressLabel, progressValue):
+      progressDialog.labelText = '\nLoading %s' % progressLabel
       slicer.app.processEvents()
+      progressDialog.setValue(progressValue)
+      slicer.app.processEvents()
+      cancelled = progressDialog.wasCanceled
+      return cancelled
 
-    self.addObserver(slicer.mrmlScene, slicer.vtkMRMLScene.NodeAddedEvent, onNodeAdded)
+    qt.QApplication.setOverrideCursor(qt.Qt.WaitCursor)
 
-    for step, (loadable, plugin) in enumerate(selectedLoadables.items(), start=1):
-      if progress.wasCanceled:
-        break
-      updateProgress(value=step, text='\nLoading %s' % loadable.name)
-      try:
-        loadSuccess = plugin.load(loadable)
-      except:
-        loadSuccess = False
-        import traceback
-        logging.error("DICOM plugin failed to load '"
-          + loadable.name + "' as a '" + plugin.loadType + "'.\n"
-          + traceback.format_exc())
-      if not loadSuccess:
-        loadingResult = '%s\nCould not load: %s as a %s' % (loadingResult, loadable.name, plugin.loadType)
-      try:
-        for derivedItem in loadable.derivedItems:
-          indexer = ctkDICOMIndexer()
-          updateProgress(text='\nIndexing %s' % derivedItem)
-          indexer.addFile(slicer.dicomDatabase, derivedItem)
-      except AttributeError:
-        # no derived items or some other attribute error
-        pass
-
-    self.removeObserver(slicer.mrmlScene, slicer.vtkMRMLScene.NodeAddedEvent, onNodeAdded)
+    messages = []
+    loadedNodeIDs = DICOMLib.loadLoadables(self.loadablesByPlugin, messages,
+      lambda progressLabel, progressValue, progressDialog=progressDialog: progressCallback(progressDialog, progressLabel, progressValue))
 
     loadedFileParameters = {}
     loadedFileParameters['nodeIDs'] = loadedNodeIDs
     slicer.app.ioManager().emitNewFileLoaded(loadedFileParameters)
 
-    progress.close()
-    if loadingResult:
-      slicer.util.warningDisplay(loadingResult, windowTitle='DICOM loading')
+    qt.QApplication.restoreOverrideCursor()
+
+    progressDialog.close()
+
+    if messages:
+      slicer.util.warningDisplay('\n'.join(messages), windowTitle='DICOM loading')
 
     self.onLoadingFinished()
 
@@ -650,14 +594,6 @@ class SlicerDICOMBrowser(VTKObservationMixin, qt.QWidget):
       if not slicer.util.confirmOkCancelDisplay(warning, parent=self):
         return False
     return True
-
-  def getAllSelectedLoadables(self):
-    loadables = {}
-    for plugin in self.loadablesByPlugin:
-      for loadable in self.loadablesByPlugin[plugin]:
-        if loadable.selected:
-          loadables[loadable] = plugin
-    return loadables
 
   def onLoadingFinished(self):
     if not self.browserPersistent:

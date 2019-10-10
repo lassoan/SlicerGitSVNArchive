@@ -55,6 +55,7 @@ This work is supported by NA-MIC, NAC, BIRN, NCIGT, and the Slicer Community. Se
     if slicer.app.layoutManager() is not None:
       slicer.app.layoutManager().registerViewFactory(self.viewFactory)
 
+
   def performPostModuleDiscoveryTasks(self):
     """Since dicom plugins are discovered while the application
     is initialized, they may be found after the DICOM module
@@ -62,32 +63,15 @@ This work is supported by NA-MIC, NAC, BIRN, NCIGT, and the Slicer Community. Se
     that will be called once the event loop is read to start.
     """
 
-    slicer.dicomDatabaseDirectorySettingsKey = 'DatabaseDirectory_'+ctk.ctkDICOMDatabase().schemaVersion()
-
     if slicer.mrmlScene.GetTagByClassName( "vtkMRMLScriptedModuleNode" ) != 'ScriptedModule':
       slicer.mrmlScene.RegisterNodeClass(vtkMRMLScriptedModuleNode())
 
-    #  Create alias for convenience
-    slicer.dicomDatabase = slicer.app.dicomDatabase()
-
-    # Set the dicom pre-cache tags once all plugin classes have been initialized.
-    # Pre-caching tags is very important for fast DICOM loading because tags that are
-    # not pre-cached during DICOM import in bulk, will be cached during Examine step one-by-one
-    # (which takes magnitudes more time).
-    tagsToPrecache = list(slicer.dicomDatabase.tagsToPrecache)
-    for pluginClass in slicer.modules.dicomPlugins:
-      plugin = slicer.modules.dicomPlugins[pluginClass]()
-      tagsToPrecache += list(plugin.tags.values())
-    tagsToPrecache = sorted(set(tagsToPrecache))  # remove duplicates
-    slicer.dicomDatabase.tagsToPrecache = tagsToPrecache
+    self.initializeDICOMDatabase()
 
     settings = qt.QSettings()
-    if settings.contains(slicer.dicomDatabaseDirectorySettingsKey):
-      databaseDirectory = settings.value(slicer.dicomDatabaseDirectorySettingsKey)
-      if databaseDirectory:
-        slicer.dicomDatabase.openDatabase(databaseDirectory + "/ctkDICOM.sql")
-        if slicer.dicomDatabase.isOpen:
-          self.startListener()
+    if settings.contains('DICOM/RunListenerAtStart') and not slicer.app.commandOptions().testingEnabled:
+      if settings.value('DICOM/RunListenerAtStart') == 'true':
+        self.startListener()
 
     if not slicer.app.commandOptions().noMainWindow:
       # add to the main app file menu
@@ -114,18 +98,76 @@ This work is supported by NA-MIC, NAC, BIRN, NCIGT, and the Slicer Community. Se
       self.currentViewArrangement = layoutNode.GetViewArrangement()
       self.previousViewArrangement = layoutNode.GetViewArrangement()
 
+      slicer.app.moduleManager().connect(
+        'moduleAboutToBeUnloaded(QString)', self._onModuleAboutToBeUnloaded)
+
+
+  def initializeDICOMDatabase(self):
+    #  Create alias for convenience
+    slicer.dicomDatabase = slicer.app.dicomDatabase()
+
+    # Set the dicom pre-cache tags once all plugin classes have been initialized.
+    # Pre-caching tags is very important for fast DICOM loading because tags that are
+    # not pre-cached during DICOM import in bulk, will be cached during Examine step one-by-one
+    # (which takes magnitudes more time).
+    tagsToPrecache = list(slicer.dicomDatabase.tagsToPrecache)
+    for pluginClass in slicer.modules.dicomPlugins:
+      plugin = slicer.modules.dicomPlugins[pluginClass]()
+      tagsToPrecache += list(plugin.tags.values())
+    tagsToPrecache = sorted(set(tagsToPrecache))  # remove duplicates
+    slicer.dicomDatabase.tagsToPrecache = tagsToPrecache
+
+    # Try to initialize the database using the location stored in settings
+    if slicer.app.commandOptions().testingEnabled:
+      # For automatic tests (use a separate DICOM database for testing)
+      slicer.dicomDatabaseDirectorySettingsKey = 'DatabaseDirectoryTest_'+ctk.ctkDICOMDatabase().schemaVersion()
+      databaseDirectory = os.path.join(slicer.app.temporaryPath,
+        'temp'+slicer.app.applicationName+'DICOMDatabase_'+ctk.ctkDICOMDatabase().schemaVersion())
+    else:
+      # For production
+      slicer.dicomDatabaseDirectorySettingsKey = 'DatabaseDirectory_'+ctk.ctkDICOMDatabase().schemaVersion()
+      settings = qt.QSettings()
+      databaseDirectory = settings.value(slicer.dicomDatabaseDirectorySettingsKey)
+      if not databaseDirectory:
+        documentsLocation = qt.QStandardPaths.DocumentsLocation
+        documents = qt.QStandardPaths.writableLocation(documentsLocation)
+        databaseDirectory = os.path.join(documents, slicer.app.applicationName+"DICOMDatabase")
+        settings.setValue(slicer.dicomDatabaseDirectorySettingsKey, databaseDirectory)
+
+    # Attempt to open the database. If it fails then user will have to configure it using DICOM module.
+    databaseFileName = databaseDirectory + "/ctkDICOM.sql"
+    slicer.dicomDatabase.openDatabase(databaseFileName)
+    if slicer.dicomDatabase.isOpen:
+      # There is an existing database at the current location
+      if slicer.dicomDatabase.schemaVersionLoaded() != slicer.dicomDatabase.schemaVersion():
+        # Schema does not match, do not use it
+        slicer.dicomDatabase.closeDatabase()
+
+
+
   def startListener(self):
-    # the dicom listener is also global, but only started on app start if
-    # the user so chooses
-    settings = qt.QSettings()
-    if settings.contains('DICOM/RunListenerAtStart'):
-      if settings.value('DICOM/RunListenerAtStart') == 'true':
-        if not hasattr(slicer, 'dicomListener'):
-          try:
-            slicer.dicomListener = DICOMLib.DICOMListener(slicer.dicomDatabase)
-            slicer.dicomListener.start()
-          except (UserWarning,OSError) as message:
-            logging.error('Problem trying to start DICOMListener:\n %s' % message)
+
+    if not slicer.dicomDatabase.isOpen:
+      logging.error("Failed to start DICOM listener. DICOM database is not open.")
+      return False
+
+    if not hasattr(slicer, 'dicomListener'):
+      try:
+        dicomListener = DICOMLib.DICOMListener(slicer.dicomDatabase)
+        dicomListener.start()
+      except (UserWarning, OSError) as message:
+        logging.error('Problem trying to start DICOM listener:\n %s' % message)
+        return False
+      if not dicomListener.process:
+        logging.error("Failed to start DICOM listener. Process start failed.")
+        return False
+      slicer.dicomListener = dicomListener
+      logging.info("DICOM C-Store SCP service started at port "+str(slicer.dicomListener.port))
+
+  def stopListener(self):
+    if hasattr(slicer, 'dicomListener'):
+      slicer.dicomListener.stop()
+      del slicer.dicomListener
 
   def addMenu(self):
     """Add an action to the File menu that will go into
@@ -140,7 +182,9 @@ This work is supported by NA-MIC, NAC, BIRN, NCIGT, and the Slicer Community. Se
         if action.text == 'Save':
           fileMenu.insertAction(action,a)
 
+
   def setBrowserWidgetInDICOMLayout(self, browserWidget):
+    """Set DICOM browser widget in the custom view layout"""
     if self.browserWidget == browserWidget:
       return
 
@@ -150,7 +194,11 @@ This work is supported by NA-MIC, NAC, BIRN, NCIGT, and the Slicer Community. Se
     oldBrowserWidget = self.browserWidget
     self.browserWidget = browserWidget
     self.browserWidget.setAutoFillBackground(True)
-    self.browserWidget.closed.connect(self.onBrowserWidgetClosed)
+    if slicer.util.mainWindow():
+      # For some reason, we cannot disconnect this event connection if
+      # main window, and not disconnecting would cause crash on application shutdown,
+      # so we only connect when main window is present.
+      self.browserWidget.closed.connect(self.onBrowserWidgetClosed)
 
     if self.viewWidget is None:
       self.viewWidget = qt.QWidget()
@@ -161,24 +209,17 @@ This work is supported by NA-MIC, NAC, BIRN, NCIGT, and the Slicer Community. Se
 
       label = qt.QLabel("DICOM database")
       label.setSizePolicy(qt.QSizePolicy.Expanding, qt.QSizePolicy.Fixed)
-      #layout.addWidget(label)
+      layout.addWidget(label)
       font = qt.QFont()
       font.setBold(True)
       font.setPointSize(12)
       label.setFont(font)
 
-      self.importButton2 = qt.QPushButton('Import DICOM files')
-      #layout.addWidget(self.importButton2)
-      #self.importButton2.connect('clicked()', self.browserWidget.dicomBrowser, 'openImportDialog()')
-
-      hBoxLayout = qt.QHBoxLayout()
-      hBoxLayout.addWidget(label)
-      hBoxLayout.addWidget(self.importButton2)
-      layout.addLayout(hBoxLayout)
-
-    elif oldBrowserWidget is not None:
+    if oldBrowserWidget is not None:
       self.viewWidget.layout().removeWidget(oldBrowserWidget)
-    self.viewWidget.layout().addWidget(self.browserWidget)
+
+    if self.browserWidget:
+      self.viewWidget.layout().addWidget(self.browserWidget)
 
 
   def onLayoutChanged(self, viewArrangement):
@@ -200,15 +241,20 @@ This work is supported by NA-MIC, NAC, BIRN, NCIGT, and the Slicer Community. Se
       # View has been changed from the DICOM browser view
       dataProbe.setVisible(self.wasDataProbeVisible)
 
+
   def onBrowserWidgetClosed(self):
     if (self.currentViewArrangement == slicer.vtkMRMLLayoutNode.SlicerLayoutDicomBrowserView and
         self.previousViewArrangement != slicer.vtkMRMLLayoutNode.SlicerLayoutDicomBrowserView):
       slicer.app.layoutManager().setLayout(self.previousViewArrangement)
 
-  def __del__(self):
-    if hasattr(slicer, 'dicomListener'):
-      logging.debug('trying to stop listener')
-      slicer.dicomListener.stop()
+
+  def _onModuleAboutToBeUnloaded(self, moduleName):
+    # Application is shutting down. Stop the listener.
+    if moduleName == "DICOM":
+      self.stopListener()
+      slicer.app.moduleManager().disconnect(
+        'moduleAboutToBeUnloaded(QString)', self._onModuleAboutToBeUnloaded)
+
 
 class _ui_DICOMSettingsPanel(object):
   def __init__(self, parent):
@@ -249,6 +295,8 @@ class DICOMSettingsPanel(ctk.ctkSettingsPanel):
     ctk.ctkSettingsPanel.__init__(self, *args, **kwargs)
     self.ui = _ui_DICOMSettingsPanel(self)
 
+
+
 #
 # Class for avoiding python error that is caused by the method DICOM::setup
 # http://www.na-mic.org/Bug/view.php?id=3871
@@ -256,6 +304,7 @@ class DICOMSettingsPanel(ctk.ctkSettingsPanel):
 class DICOMFileWriter(object):
   def __init__(self, parent):
     pass
+
 
 
 #
@@ -275,9 +324,11 @@ class DICOMFileDialog(object):
     qSlicerFileDialog.action = slicer.qSlicerFileDialog.Read
     self.directoriesToAdd = []
 
+
   def execDialog(self):
     """Not used"""
     logging.debug('execDialog called on %s' % self)
+
 
   def isMimeDataAccepted(self):
     """Checks the dropped data and returns true if it is one or
@@ -293,6 +344,7 @@ class DICOMFileDialog(object):
         if pathInfo.isDir(): # if it is a directory we add the files to the dialog
           self.directoriesToAdd.append(localPath)
     self.qSlicerFileDialog.acceptMimeData(len(self.directoriesToAdd) != 0)
+
 
   def validDirectories(self, directoriesToAdd):
     """Return True if the directory names are acceptable for input.
@@ -315,6 +367,7 @@ class DICOMFileDialog(object):
           return False
     return True
 
+
   def dropEvent(self):
     if not self.validDirectories(self.directoriesToAdd):
       if not slicer.util.confirmYesNoDisplay("Import from folders with special (non-ASCII) characters in the name is not supported."
@@ -325,6 +378,8 @@ class DICOMFileDialog(object):
     slicer.util.selectModule('DICOM')
     slicer.modules.DICOMInstance.browserWidget.dicomBrowser.importDirectories(self.directoriesToAdd)
     self.directoriesToAdd = []
+
+
 
 #
 # DICOM widget
@@ -384,17 +439,11 @@ class DICOMWidget(ScriptedLoadableModuleWidget):
     self.ui.networkingFrame.collapsed = True
     self.ui.queryServerButton.connect('clicked()', self.browserWidget.dicomBrowser, "openQueryDialog()")
 
-    settings = qt.QSettings()
-    if hasattr(slicer, 'dicomListener'):
-      slicer.dicomListener.process.connect('stateChanged(QProcess::ProcessState)',self.onListenerStateChanged)
-      slicer.dicomListener.fileToBeAddedCallback = self.onListenerToAddFile
-      slicer.dicomListener.fileAddedCallback = self.onListenerAddedFile
-
     self.ui.toggleListener.connect('toggled(bool)', self.onToggleListener)
 
-    self.runListenerAtStart = qt.QCheckBox("Start Listener when Slicer Starts")
-    self.runListenerAtStart.checked = settingsValue('DICOM/RunListenerAtStart', False, converter=toBool)
-    self.runListenerAtStart.connect('clicked()', self.onRunListenerAtStart)
+    settings = qt.QSettings()
+    self.ui.runListenerAtStart.checked = settingsValue('DICOM/RunListenerAtStart', False, converter=toBool)
+    self.ui.runListenerAtStart.connect('toggled(bool)', self.onRunListenerAtStart)
 
     # Testing server - not exposed (used for development)
 
@@ -435,18 +484,47 @@ class DICOMWidget(ScriptedLoadableModuleWidget):
       except IndexError:
         logging.error('Could not connect to the main window DICOM button')
 
+    self.databaseRefreshRequestTimer = qt.QTimer()
+    self.databaseRefreshRequestTimer.setSingleShot(True)
+    # If not receiving new file for 2 seconds then a database update is triggered.
+    self.databaseRefreshRequestTimer.setInterval(2000)
+    self.databaseRefreshRequestTimer.connect('timeout()', self.requestDatabaseRefresh)
+
 
   def enter(self):
     self.onOpenBrowserWidget()
+    self.addListenerObservers()
+
 
   def exit(self):
+    self.removeListenerObservers()
     self.browserWidget.close()
+
+
+  def addListenerObservers(self):
+    if not hasattr(slicer, 'dicomListener'):
+      return
+    slicer.dicomListener.process.connect('stateChanged(QProcess::ProcessState)', self.onListenerStateChanged)
+    slicer.dicomListener.fileToBeAddedCallback = self.onListenerToAddFile
+    slicer.dicomListener.fileAddedCallback = self.onListenerAddedFile
+    self.onListenerStateChanged(slicer.dicomListener.process.state())
+
+
+  def removeListenerObservers(self):
+    if not hasattr(slicer, 'dicomListener'):
+      return
+    slicer.dicomListener.process.disconnect('stateChanged(QProcess::ProcessState)', self.onListenerStateChanged)
+    slicer.dicomListener.fileToBeAddedCallback = None
+    slicer.dicomListener.fileAddedCallback = None
+
 
   def updateGUIFromMRML(self, caller, event):
     pass
 
+
   def onLayoutChanged(self, viewArrangement):
     self.ui.showBrowserButton.checked = (viewArrangement == slicer.vtkMRMLLayoutNode.SlicerLayoutDicomBrowserView)
+
 
   def onCurrentItemChanged(self, id):
     plugin = slicer.qSlicerSubjectHierarchyPluginHandler.instance().getOwnerPluginForSubjectHierarchyItem(id)
@@ -454,6 +532,7 @@ class DICOMWidget(ScriptedLoadableModuleWidget):
       self.subjectHierarchyCurrentVisibility = False
       return
     self.subjectHierarchyCurrentVisibility = plugin.getDisplayVisibility(id)
+
 
   def onCurrentItemModified(self, id):
     oldSubjectHierarchyCurrentVisibility = self.subjectHierarchyCurrentVisibility
@@ -471,6 +550,7 @@ class DICOMWidget(ScriptedLoadableModuleWidget):
         self.subjectHierarchyCurrentVisibility):
       self.browserWidget.close()
 
+
   def toggleBrowserWidget(self):
     if self.ui.showBrowserButton.checked:
       self.onOpenBrowserWidget()
@@ -478,41 +558,36 @@ class DICOMWidget(ScriptedLoadableModuleWidget):
       if self.browserWidget:
         self.browserWidget.close()
 
+
   def onOpenBrowserWidget(self):
     slicer.app.layoutManager().setLayout(slicer.vtkMRMLLayoutNode.SlicerLayoutDicomBrowserView)
 
-  def onToggleListener(self, toggled):
-    self.ui.toggleListener.checked = False
-    if hasattr(slicer, 'dicomListener'):
-      slicer.dicomListener.stop()
-      del slicer.dicomListener
-    else:
-      try:
-        dicomListener = DICOMLib.DICOMListener(database=slicer.dicomDatabase)
-        dicomListener.start()
-        if dicomListener.process:
-          self.onListenerStateChanged(dicomListener.process.state())
-          dicomListener.process.connect('stateChanged(QProcess::ProcessState)',self.onListenerStateChanged)
-          dicomListener.fileToBeAddedCallback = self.onListenerToAddFile
-          dicomListener.fileAddedCallback = self.onListenerAddedFile
-          slicer.dicomListener = dicomListener
-      except UserWarning as message:
-        slicer.util.warningDisplay("Could not start listener:\n %s" % message, windowTitle="DICOM")
 
-  def onListenerStateChanged(self,newState):
+  def onToggleListener(self, toggled):
+    if hasattr(slicer, 'dicomListener'):
+      self.removeListenerObservers()
+      slicer.modules.DICOMInstance.stopListener()
+    if toggled:
+      slicer.modules.DICOMInstance.startListener()
+      self.addListenerObservers()
+
+  def onListenerStateChanged(self, newState):
     """ Called when the indexer process state changes
     so we can provide feedback to the user
     """
     if newState == 0:
       self.ui.listenerStateLabel.text = "not started"
+      wasBlocked = self.ui.toggleListener.blockSignals(True)
       self.ui.toggleListener.checked = False
-      if hasattr(slicer, 'dicomListener'):
-        del slicer.dicomListener
+      self.ui.toggleListener.blockSignals(wasBlocked)
+      slicer.modules.DICOMInstance.stopListener()
     if newState == 1:
       self.ui.listenerStateLabel.text = "starting"
     if newState == 2:
-      self.ui.listenerStateLabel.text = "running"
+      port = str(slicer.dicomListener.port) if hasattr(slicer, 'dicomListener') else "unknown"
+      self.ui.listenerStateLabel.text = "running at port "+port
       self.ui.toggleListener.checked = True
+
 
   def onListenerToAddFile(self):
     """ Called when the indexer is about to add a file to the database.
@@ -520,13 +595,20 @@ class DICOMWidget(ScriptedLoadableModuleWidget):
     database locked.
     """
 
+
   def onListenerAddedFile(self):
     """Called after the listener has added a file.
     Restore and refresh the app model
     """
     newFile = slicer.dicomListener.lastFileAdded
     if newFile:
-      slicer.util.showStatusMessage("Loaded: %s" % newFile, 1000)
+      slicer.util.showStatusMessage("Received DICOM file: %s" % newFile, 1000)
+    self.databaseRefreshRequestTimer.start()
+
+  def requestDatabaseRefresh(self):
+    logging.debug("Database refresh is requested")
+    if slicer.dicomDatabase.isOpen:
+      slicer.dicomDatabase.databaseChanged()
 
   def onToggleServer(self):
     if self.testingServer and self.testingServer.qrRunning():
@@ -564,17 +646,21 @@ class DICOMWidget(ScriptedLoadableModuleWidget):
       self.testingServer.start(verbose=self.verboseServer.checked,initialFiles=files)
       #self.toggleServer.text = "Stop Testing Server"
 
-  def onRunListenerAtStart(self):
+
+  def onRunListenerAtStart(self, toggled):
     settings = qt.QSettings()
-    settings.setValue('DICOM/RunListenerAtStart', self.runListenerAtStart.checked)
+    settings.setValue('DICOM/RunListenerAtStart', toggled)
+
 
   def updateDatabaseDirectoryFromWidget(self, databaseDirectory):
     self.browserWidget.dicomBrowser.databaseDirectory = databaseDirectory
+
 
   def updateDatabaseDirectoryFromBrowser(self,databaseDirectory):
     wasBlocked = self.ui.directoryButton.blockSignals(True)
     self.ui.directoryButton.directory = databaseDirectory
     self.ui.directoryButton.blockSignals(wasBlocked)
+
 
   def onBrowserAutoHideStateChanged(self, autoHideState):
     if self.browserWidget:

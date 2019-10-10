@@ -4,7 +4,6 @@ import qt
 import vtk
 import logging
 
-from ctk import ctkDICOMObjectListWidget, ctkDICOMDatabase, ctkDICOMIndexer, ctkDICOMBrowser
 import slicer
 from slicer.util import VTKObservationMixin
 

@@ -4,4 +4,7 @@
   id="vtkMRMLLinearTransformNode1" name="vtkMRMLLinearTransformNode1" hideFromEditors="false" selectable="true" selected="false" userTags="" matrixTransformToParent="1 0 0 0  0 1 0 0  0 0 1 0  0 0 0 1"></LinearTransform>
  <LinearTransform
   id="vtkMRMLLinearTransformNode2" name="vtkMRMLLinearTransformNode1" hideFromEditors="false" selectable="true" selected="false" userTags="" matrixTransformToParent="1 0 0 0  0 1 0 0  0 0 1 0  0 0 0 1" ></LinearTransform>
+ <SubjectHierarchy
+  id="vtkMRMLSubjectHierarchyNode1" name="SubjectHierarchy" hideFromEditors="false" selectable="true" selected="false" attributes="SubjectHierarchyVersion:2" >
+   <SubjectHierarchyItem id="3" name="Scene" parent="0" type="" expanded="true" attributes="Level^Scene|"></SubjectHierarchyItem></SubjectHierarchy>
 </MRML>

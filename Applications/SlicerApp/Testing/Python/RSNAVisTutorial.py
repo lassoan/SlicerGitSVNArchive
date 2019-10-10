@@ -216,7 +216,7 @@ class RSNAVisTutorialTest(ScriptedLoadableModuleTest):
       logic.takeScreenshot('LoadingADICOMVolume-WL','Changed level and window',-1)
 
       redWidget.sliceController().setSliceLink(True)
-      redWidget.sliceController().setSliceVisible(True);
+      redWidget.sliceController().setSliceVisible(True)
       logic.takeScreenshot('LoadingADICOMVolume-LinkView','Linked and visible',-1)
 
       slicer.util.clickAndDrag(redWidget,button='Right',start=(10,10),end=(10,40))

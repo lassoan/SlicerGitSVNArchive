@@ -32,9 +32,9 @@ class SubjectHierarchyGenericSelfTest(ScriptedLoadableModule):
       slicer.selfTests = {}
     slicer.selfTests['SubjectHierarchyGenericSelfTest'] = self.runTest
 
-  def runTest(self):
+  def runTest(self, msec=100):
     tester = SubjectHierarchyGenericSelfTestTest()
-    tester.runTest()
+    tester.runTest(msec)
 
 #
 # SubjectHierarchyGenericSelfTestWidget
@@ -77,7 +77,7 @@ class SubjectHierarchyGenericSelfTestTest(ScriptedLoadableModuleTest):
     #logFile.write(repr(slicer.modules.subjecthierarchy) + '\n')
     #logFile.close()
 
-  def runTest(self):
+  def runTest(self, msec=100):
     """Run as few or as many tests as needed here.
     """
     self.setUp()
