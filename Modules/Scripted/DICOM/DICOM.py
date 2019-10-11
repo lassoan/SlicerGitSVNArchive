@@ -474,6 +474,7 @@ class DICOMWidget(ScriptedLoadableModuleWidget):
     self.ui.browserAutoHideCheckBox.stateChanged.connect(self.onBrowserAutoHideStateChanged)
 
     self.ui.repairDatabaseButton.connect('clicked()', self.browserWidget.dicomBrowser, "onRepairAction()")
+    self.ui.clearDatabaseButton.connect('clicked()', self.onClearDatabase)
 
     # connect to the main window's dicom button
     mw = slicer.util.mainWindow()
@@ -665,3 +666,13 @@ class DICOMWidget(ScriptedLoadableModuleWidget):
   def onBrowserAutoHideStateChanged(self, autoHideState):
     if self.browserWidget:
       self.browserWidget.setBrowserPersistence(autoHideState != qt.Qt.Checked)
+
+  def onClearDatabase(self):
+    patientIds = slicer.dicomDatabase.patients()
+    if len(patientIds) == 0:
+      slicer.util.infoDisplay("DICOM database is already empty.")
+    elif not slicer.util.confirmYesNoDisplay(
+      'Are you sure you want to delete all data and files copied into the database (%d patients)?' % len(patientIds),
+      windowTitle='Clear entire DICOM database'):
+        return
+    DICOMLib.clearDatabase(slicer.dicomDatabase)

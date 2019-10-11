@@ -54,7 +54,7 @@
         <string>    Show DICOM database</string>
        </property>
        <property name="icon">
-        <iconset resource="../../../../../../../S42/Base/QTGUI/Resources/qSlicerBaseQTGUI.qrc">
+        <iconset resource="../../../../../Base/QTGUI/Resources/qSlicerBaseQTGUI.qrc">
          <normaloff>:/Icons/Medium/SlicerDatabase.png</normaloff>:/Icons/Medium/SlicerDatabase.png</iconset>
        </property>
        <property name="iconSize">
@@ -243,10 +243,20 @@
       <item row="2" column="1">
        <widget class="QPushButton" name="repairDatabaseButton">
         <property name="toolTip">
-         <string>Remove all items from the DICOM database if referenced DICOM file is not found</string>
+         <string>Remove all items from the DICOM database if referenced DICOM file is not found on disk.</string>
         </property>
         <property name="text">
          <string>Remove unavailable data sets</string>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="1">
+       <widget class="QPushButton" name="clearDatabaseButton">
+        <property name="toolTip">
+         <string>Removes all data from the database and all files that were copied into the database during import.</string>
+        </property>
+        <property name="text">
+         <string>Remove all data sets</string>
         </property>
        </widget>
       </item>
@@ -274,7 +284,7 @@
   </customwidget>
  </customwidgets>
  <resources>
-  <include location="../../../../../../../S42/Base/QTGUI/Resources/qSlicerBaseQTGUI.qrc"/>
+  <include location="../../../../../Base/QTGUI/Resources/qSlicerBaseQTGUI.qrc"/>
  </resources>
  <connections/>
 </ui>

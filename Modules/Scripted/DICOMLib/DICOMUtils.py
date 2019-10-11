@@ -143,8 +143,8 @@ def loadSeriesByUID(seriesUIDs):
   return True
 
 #------------------------------------------------------------------------------
-# Open specified DICOM database
 def openDatabase(databaseDir):
+  """Open DICOM database in the specified folder"""
   if not os.access(databaseDir, os.F_OK):
     logging.error('Specified database directory ' + repr(databaseDir) + ' cannot be found')
     return False
@@ -154,6 +154,26 @@ def openDatabase(databaseDir):
     logging.error('Unable to open DICOM database ' + databaseDir)
     return False
   return True
+
+#------------------------------------------------------------------------------
+def clearDatabase(dicomDatabase=None):
+  """Delete entire content (index and copied files) of the DICOM database"""
+  # Remove files from index and copied files from disk
+  if dicomDatabase is None:
+    dicomDatabase = slicer.dicomDatabase
+  patientIds = dicomDatabase.patients()
+  for patientId in patientIds:
+    dicomDatabase.removePatient(patientId)
+  # Delete empty folders remaining after removing copied files
+  removeEmptyDirs(dicomDatabase.databaseDirectory+'/dicom')
+  dicomDatabase.databaseChanged()
+
+def removeEmptyDirs(path):
+  for root, dirnames, filenames in os.walk(path, topdown=False):
+    for dirname in dirnames:
+      print(dirname)
+      removeEmptyDirs(os.path.realpath(os.path.join(root, dirname)))
+      os.rmdir(os.path.realpath(os.path.join(root, dirname)))
 
 #------------------------------------------------------------------------------
 def openTemporaryDatabase(directory=None):
