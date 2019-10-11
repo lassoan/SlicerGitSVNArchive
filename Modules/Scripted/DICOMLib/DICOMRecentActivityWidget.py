@@ -1,21 +1,35 @@
+import os
+import vtk, qt, ctk, slicer
+import logging
+from functools import cmp_to_key
+
 class DICOMRecentActivityWidget(qt.QWidget):
   """Display the recent activity of the slicer DICOM database
+     Example:
+       slicer.util.selectModule('DICOM')
+       import DICOMLib
+       w = DICOMLib.DICOMRecentActivityWidget(None, slicer.dicomDatabase, slicer.modules.DICOMInstance.browserWidget)
+       w.update()
+       w.show()
   """
 
-  def __init__(self, parent, dicomDatabase=None, detailsPopup=None):
+  def __init__(self, parent, dicomDatabase=None, browserWidget=None):
+    """If browserWidget is specified (e.g., set to slicer.modules.DICOMInstance.browserWidget)
+    then clicking on an item selects the series in that browserWidget.
+    """
     super(DICOMRecentActivityWidget, self).__init__(parent)
     if dicomDatabase:
       self.dicomDatabase = dicomDatabase
     else:
       self.dicomDatabase = slicer.dicomDatabase
-    self.detailsPopup = detailsPopup
+    self.browserWidget = browserWidget
     self.recentSeries = []
     self.name = 'recentActivityWidget'
     self.setLayout(qt.QVBoxLayout())
 
     self.statusLabel = qt.QLabel()
     self.layout().addWidget(self.statusLabel)
-    self.statusLabel.text = 'No inserts in the past hour'
+    self.statusLabel.text = ''
 
     self.scrollArea = qt.QScrollArea()
     self.layout().addWidget(self.scrollArea)
@@ -106,9 +120,14 @@ class DICOMRecentActivityWidget(qt.QWidget):
       slicer.util.showStatusMessage(statusMessage, 10000)
 
   def onActivated(self, modelIndex):
-    print('selected row %d' % modelIndex.row())
-    print(self.recentSeries[modelIndex.row()].text)
+    logging.debug('Recent activity widget selected row: %d (%s)' % (modelIndex.row(), self.recentSeries[modelIndex.row()].text))
+    if not self.browserWidget:
+      return
+    # Select series in the series table
     series = self.recentSeries[modelIndex.row()]
-    if self.detailsPopup:
-      self.detailsPopup.open()
-      self.detailsPopup.offerLoadables(series.series, "Series")
+    seriesUID = series.series
+    seriesTableView = self.browserWidget.dicomBrowser.dicomTableManager().seriesTable().tableView()
+    foundModelIndex = seriesTableView.model().match(seriesTableView.model().index(0,0), qt.Qt.ItemDataRole(), seriesUID, 1)
+    if foundModelIndex:
+        row = foundModelIndex[0].row()
+        seriesTableView.selectRow(row)

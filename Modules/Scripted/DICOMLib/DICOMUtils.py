@@ -123,22 +123,23 @@ def loadSeriesByUID(seriesUIDs):
   if not isinstance(seriesUIDs, list):
     logging.error('SeriesUIDs must contain a list')
     return False
+  if seriesUIDs is None or len(seriesUIDs) == 0:
+    logging.error('No series UIDs given')
+    return False
   if not slicer.dicomDatabase.isOpen:
     logging.error('DICOM module or database cannot be accessed')
     return False
-  dicomWidget = slicer.modules.dicom.widgetRepresentation().self()
 
-  dicomWidget.detailsPopup.offerLoadables(seriesUIDs, 'SeriesUIDList')
-  if len(dicomWidget.detailsPopup.fileLists)==0 or \
-      not isinstance(dicomWidget.detailsPopup.fileLists[0], tuple):
-    logging.error('Failed to offer loadables for DICOM series list')
+  fileLists = []
+  for seriesUID in seriesUIDs:
+    fileLists.append(slicer.dicomDatabase.filesForSeries(seriesUID))
+  if len(fileLists) == 0:
+    logging.error('No files found for DICOM series list')
     return False
 
-  # Examine file lists for loadables
-  dicomWidget.detailsPopup.examineForLoading()
+  loadablesByPlugin, loadEnabled = getLoadablesFromFileLists(fileLists)
+  loadedNodeIDs = loadLoadables(loadablesByPlugin)
 
-  # Load selected data
-  dicomWidget.detailsPopup.loadCheckedLoadables()
   return True
 
 #------------------------------------------------------------------------------
@@ -349,7 +350,7 @@ def loadSeriesWithVerification(seriesUIDs, expectedSelectedPlugins=None, expecte
       actualLoadedNodes[nodeType] = nodeCollection.GetNumberOfItems()
 
   # Load selected data
-  loadLoadables(loadablesByPlugin)
+  loadedNodeIDs = loadLoadables(loadablesByPlugin)
 
   if expectedLoadedNodes is not None:
     for nodeType in expectedLoadedNodes.keys():
@@ -542,11 +543,11 @@ def refreshDICOMWidget():
   different from the one stored in the DICOM browser. There may be multiple
   database connection (through different database objects) in the same process.
   """
-  if not hasattr(slicer, 'dicomDatabase') or not hasattr(slicer.modules, 'dicom'):
-    logging.error('DICOM module or database cannot be accessed')
+  try:
+    slicer.modules.DICOMInstance.browserWidget.dicomBrowser.dicomTableManager().updateTableViews()
+  except AttributeError:
+    logging.error('DICOM module or browser cannot be accessed')
     return False
-  dicomWidget = slicer.modules.dicom.widgetRepresentation().self()
-  dicomWidget.detailsPopup.dicomBrowser.dicomTableManager().updateTableViews()
   return True
 
 def getLoadablesFromFileLists(fileLists, pluginClassNames=None, messages=None, progressCallback=None, pluginInstances=None):

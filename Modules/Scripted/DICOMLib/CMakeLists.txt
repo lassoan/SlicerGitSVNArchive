@@ -10,14 +10,14 @@ add_subdirectory(SubjectHierarchyPlugins)
 #-----------------------------------------------------------------------------
 set(MODULE_PYTHON_SCRIPTS
   __init__
+  DICOMBrowser
+  DICOMExportScalarVolume
+  DICOMExportScene
   DICOMPlugin
   DICOMPluginSelector
   DICOMProcesses
-  DICOMExportScalarVolume
-  DICOMExportScene
   DICOMRecentActivityWidget
   DICOMSendDialog
-  DICOMWidgets
   DICOMUtils
   )
 
