@@ -21,32 +21,17 @@
 // Qt includes
 #include <QProcess>
 #include <QStandardPaths>
+#include <QDebug>
 
 // SlicerQt includes
+#include "qSlicerCoreApplication.h"
 #include "qSlicerCLIExecutableModuleFactory.h"
 #include "qSlicerCLIModule.h"
 #include "qSlicerCLIModuleFactoryHelper.h"
 #include "qSlicerUtils.h"
 #include <vtkSlicerCLIModuleLogic.h>
 
-//-----------------------------------------------------------------------------
-QString findPython()
-{
-  QString python_path = QStandardPaths::findExecutable("python-real");
-  if (python_path.isEmpty())
-    {
-    python_path = QStandardPaths::findExecutable("python");
-    }
-
-  QFileInfo python(python_path);
-  if (!(python.exists() && python.isExecutable()))
-    {
-    return QString();
-    }
-  return python_path;
-
-}
-
+#include <ctkAppLauncherEnvironment.h>
 //-----------------------------------------------------------------------------
 qSlicerCLIExecutableModuleFactoryItem::qSlicerCLIExecutableModuleFactoryItem(
   const QString& newTempDirectory) : TempDirectory(newTempDirectory)
@@ -67,6 +52,59 @@ QString qSlicerCLIExecutableModuleFactoryItem::xmlModuleDescriptionFilePath()
 }
 
 //-----------------------------------------------------------------------------
+bool qSlicerCLIExecutableModuleFactoryItem::findPython(
+  const QString& pythonFileFirstLine, QString& pythonPath, bool &useSystemPython)
+{
+  useSystemPython = false;
+
+  QString shebang;
+  if (pythonFileFirstLine.startsWith("#!"))
+    {
+    // remove #! and any leading or trailing spaces
+    shebang = pythonFileFirstLine.right(pythonFileFirstLine.size() - 2).trimmed();
+    }
+
+  if (!shebang.isEmpty() && !shebang.contains("pythonslicer")
+    && !shebang.contains("slicerpython") && !shebang.contains("python-real"))
+    {
+    useSystemPython = true;
+    if (QFile::exists(shebang))
+      {
+      // complete Python executable path is specified in shebang
+      pythonPath = shebang;
+      }
+    else
+      {
+      QProcessEnvironment env = qSlicerCoreApplication::application()->startupEnvironment();
+      QStringList environmentKeys = ctkAppLauncherEnvironment::envKeys(env);
+      QString pathVariableName = ctkAppLauncherEnvironment::casedVariableName(environmentKeys, QString("PATH"));
+#if defined(Q_OS_WIN32)
+      QChar pathSep(';');
+#else
+      QChar pathSep(':');
+#endif
+      QStringList paths = env.value(pathVariableName).split(pathSep);
+      qDebug() << "Potential paths: " << paths;
+      pythonPath = QStandardPaths::findExecutable("python", paths);
+      }
+    }
+  if (pythonPath.isEmpty())
+    {
+    // Slicer's Python is requested or system Python is not found
+    useSystemPython = false;
+    pythonPath = QStandardPaths::findExecutable("python-real");
+    if (pythonPath.isEmpty())
+      {
+      pythonPath = QStandardPaths::findExecutable("python");
+      }
+    }
+
+  QFileInfo python(pythonPath);
+  qDebug() << "Found potential Python interpreter: " << pythonPath;
+  return python.exists() && python.isExecutable();
+}
+
+//-----------------------------------------------------------------------------
 qSlicerAbstractCoreModule* qSlicerCLIExecutableModuleFactoryItem::instanciator()
 {
   // Using a scoped pointer ensures the memory will be cleaned if instantiator
@@ -79,17 +117,38 @@ qSlicerAbstractCoreModule* qSlicerCLIExecutableModuleFactoryItem::instanciator()
   // then set up interpreter path in SEM module `Location` parameter.
   if (QFileInfo(this->path()).suffix().toLower() == "py")
     {
-      QString python_path = findPython();
-      if (python_path.isEmpty())
-        {
-        this->appendInstantiateErrorString(
-          QString("Failed to find python interpreter for CLI: %1").arg(this->path()));
-        return nullptr;
-        }
 
+    QString pythonFileFirstLine; // may contain shebang (#!), which defines Python interpreter
+    QFile pythonFile(this->path());
+    if (pythonFile.open(QIODevice::ReadOnly))
+      {
+      QTextStream in(&pythonFile);
+      pythonFileFirstLine = in.readLine();
+      pythonFile.close();
+      }
+
+    bool useSystemPython = false;
+    QString pythonPath;
+    if (!findPython(pythonFileFirstLine, pythonPath, useSystemPython))
+      {
+      this->appendInstantiateErrorString(
+        QString("Failed to find python interpreter for CLI: %1").arg(this->path()));
+      return nullptr;
+      }
+
+    // Set module entry point. This will determine which environment will be used
+    // to launch python (Slicer's environment or the startup environment).
+    if (useSystemPython)
+      {
       module->setEntryPoint("python");
-      module->moduleDescription().SetLocation(python_path.toStdString());
-      module->moduleDescription().SetTarget(this->path().toStdString());
+      }
+    else
+      {
+      module->setEntryPoint("pythonslicer");
+      }
+
+    module->moduleDescription().SetLocation(pythonPath.toStdString());
+    module->moduleDescription().SetTarget(this->path().toStdString());
     }
 
   QString xmlFilePath = this->xmlModuleDescriptionFilePath();
@@ -139,8 +198,19 @@ QString qSlicerCLIExecutableModuleFactoryItem::runCLIWithXmlArgument()
 
   int cliProcessTimeoutInMs = 5000;
   QProcess cli;
-  QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
-  env.insert("ITK_AUTOLOAD_PATH", "");
+  QProcessEnvironment env;
+  if (this->CLIModule->entryPoint() == "pythonslicer")
+    {
+    // Use Slicer's Python environment
+    env = QProcessEnvironment::systemEnvironment();
+    env.insert("ITK_AUTOLOAD_PATH", "");
+    }
+  else
+    {
+    // Use system Python
+    env = qSlicerCoreApplication::application()->startupEnvironment();
+    }
+
   cli.setProcessEnvironment(env);
   cli.start(this->path(), QStringList(QString("--xml")));
   bool res = cli.waitForFinished(cliProcessTimeoutInMs);

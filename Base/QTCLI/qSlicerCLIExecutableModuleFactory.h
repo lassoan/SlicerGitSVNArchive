@@ -42,6 +42,9 @@ protected:
   /// Return path of the expected XML file.
   QString xmlModuleDescriptionFilePath();
 
+  /// Find Python interpreter from python file shebang.
+  bool findPython(const QString& pythonFileFirstLine, QString& pythonPath, bool& useSystemPython);
+
   qSlicerAbstractCoreModule* instanciator() override;
   QString runCLIWithXmlArgument();
 private:
