@@ -100,6 +100,15 @@ void qSlicerTerminologySelectorDialogPrivate::init()
 // qSlicerTerminologySelectorDialog methods
 
 //-----------------------------------------------------------------------------
+qSlicerTerminologySelectorDialog::qSlicerTerminologySelectorDialog(QObject* parent)
+  : QObject(parent)
+  , d_ptr(new qSlicerTerminologySelectorDialogPrivate(*this))
+{
+  Q_D(qSlicerTerminologySelectorDialog);
+  d->init();
+}
+
+//-----------------------------------------------------------------------------
 qSlicerTerminologySelectorDialog::qSlicerTerminologySelectorDialog(
   qSlicerTerminologyNavigatorWidget::TerminologyInfoBundle &initialTerminologyInfo, QObject* parent)
   : QObject(parent)

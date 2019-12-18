@@ -21,15 +21,20 @@
 ==============================================================================*/
 
 // Qt includes
+#include <QDebug>
 #include <QSettings>
 
 // QtGUI includes
+#include "qSlicerAbstractCoreModule.h"
 #include "qSlicerApplication.h"
+#include "qSlicerModuleManager.h"
 #include "qSlicerSegmentationsSettingsPanel.h"
+#include "qSlicerTerminologySelectorDialog.h"
 #include "ui_qSlicerSegmentationsSettingsPanel.h"
 
 // Logic includes
 #include <vtkSlicerSegmentationsModuleLogic.h>
+#include <vtkSlicerTerminologiesModuleLogic.h>
 
 // --------------------------------------------------------------------------
 // qSlicerSegmentationsSettingsPanelPrivate
@@ -45,7 +50,10 @@ public:
   qSlicerSegmentationsSettingsPanelPrivate(qSlicerSegmentationsSettingsPanel& object);
   void init();
 
+  QString DefaultTerminologyString;
+
   vtkWeakPointer<vtkSlicerSegmentationsModuleLogic> SegmentationsLogic;
+  vtkWeakPointer<vtkSlicerTerminologiesModuleLogic> TerminologiesLogic;
 };
 
 // --------------------------------------------------------------------------
@@ -65,6 +73,16 @@ void qSlicerSegmentationsSettingsPanelPrivate::init()
 
   this->setupUi(q);
 
+  qSlicerAbstractCoreModule* terminologiesModule = qSlicerCoreApplication::application()->moduleManager()->module("Terminologies");
+  if (terminologiesModule)
+    {
+    this->TerminologiesLogic = vtkSlicerTerminologiesModuleLogic::SafeDownCast(terminologiesModule->logic());
+    }
+  else
+    {
+    qCritical() << Q_FUNC_INFO << ": Terminologies module is not found";
+    }
+
   // Default values
   this->AutoOpacitiesCheckBox->setChecked(true);
   this->SurfaceSmoothingCheckBox->setChecked(true);
@@ -76,12 +94,17 @@ void qSlicerSegmentationsSettingsPanelPrivate::init()
   q->registerProperty("Segmentations/DefaultSurfaceSmoothing", this->SurfaceSmoothingCheckBox,
                       "checked", SIGNAL(toggled(bool)),
                       "Enable closed surface representation smoothing by default", ctkSettingsPanel::OptionNone);
+  q->registerProperty("Terminology/DefaultTerminologyEntry", q,
+                      "defaultTerminologyEntry", SIGNAL(defaultTerminologyEntryChanged(QString)),
+                      "Defult terminology entry", ctkSettingsPanel::OptionNone);
 
   // Actions to propagate to the application when settings are changed
   QObject::connect(this->AutoOpacitiesCheckBox, SIGNAL(toggled(bool)),
                    q, SLOT(setAutoOpacities(bool)));
   QObject::connect(this->SurfaceSmoothingCheckBox, SIGNAL(toggled(bool)),
                    q, SLOT(setDefaultSurfaceSmoothing(bool)));
+  QObject::connect(this->EditDefaultTerminologyEntryPushButton, SIGNAL(clicked()),
+                   q, SLOT(onEditDefaultTerminologyEntry()));
 
   // Update default segmentation node from settings when startup completed.
   QObject::connect(qSlicerApplication::application(), SIGNAL(startupCompleted()),
@@ -134,6 +157,56 @@ void qSlicerSegmentationsSettingsPanel::setDefaultSurfaceSmoothing(bool on)
     }
 }
 
+// --------------------------------------------------------------------------
+void qSlicerSegmentationsSettingsPanel::setDefaultTerminologyEntry(QString terminologyStr)
+{
+  Q_D(qSlicerSegmentationsSettingsPanel);
+  d->DefaultTerminologyString = terminologyStr;
+}
+
+// --------------------------------------------------------------------------
+void qSlicerSegmentationsSettingsPanel::onEditDefaultTerminologyEntry()
+{
+  Q_D(qSlicerSegmentationsSettingsPanel);
+
+  if (!d->TerminologiesLogic)
+  {
+    return;
+  }
+  qSlicerTerminologyNavigatorWidget::TerminologyInfoBundle terminologyInfo;
+  std::string terminologyStdStr = d->DefaultTerminologyString.toLatin1().constData();
+  d->TerminologiesLogic->DeserializeTerminologyEntry(terminologyStdStr, terminologyInfo.GetTerminologyEntry());
+  if (!qSlicerTerminologySelectorDialog::getTerminology(terminologyInfo, this))
+    {
+    // user cancelled
+    return;
+    }
+  vtkSlicerTerminologyEntry* terminologyEntry = terminologyInfo.GetTerminologyEntry();
+  if (!terminologyEntry)
+    {
+    return;
+    }
+  //d->DefaultTerminologyString = vtkSlicerTerminologiesModuleLogic::SerializeTerminologyEntry(terminologyEntry).c_str();
+  //emit setDefaultTerminologyEntry(d->DefaultTerminologyString);
+  d->DefaultTerminologyString = vtkSlicerTerminologiesModuleLogic::SerializeTerminologyEntry(terminologyEntry).c_str();
+  emit defaultTerminologyEntryChanged(d->DefaultTerminologyString);
+}
+
+/*
+// --------------------------------------------------------------------------
+void qSlicerSegmentationsSettingsPanel::setDefaultTerminologyEntry(QString terminologyStr)
+{
+  Q_D(qSlicerSegmentationsSettingsPanel);
+  d->DefaultTerminologyString = terminologyStr;
+}
+*/
+
+// --------------------------------------------------------------------------
+QString qSlicerSegmentationsSettingsPanel::defaultTerminologyEntry()
+{
+  Q_D(qSlicerSegmentationsSettingsPanel);
+  return d->DefaultTerminologyString;
+}
 
 // --------------------------------------------------------------------------
 void qSlicerSegmentationsSettingsPanel::updateDefaultSegmentationNodeFromWidget()

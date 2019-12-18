@@ -72,7 +72,8 @@ public:
   /// Destructor
   ~qSlicerTerminologyNavigatorWidget() override;
 
-  class TerminologyInfoBundle
+#ifndef __VTK_WRAP__
+  class Q_SLICER_MODULE_TERMINOLOGIES_WIDGETS_EXPORT TerminologyInfoBundle
   {
   public:
     TerminologyInfoBundle();
@@ -95,6 +96,7 @@ public:
   void terminologyInfo(TerminologyInfoBundle &terminologyInfo);
   /// Set selection to widget: terminology and meta-data (name, color, auto-generated flags)
   void setTerminologyInfo(TerminologyInfoBundle &terminologyInfo);
+#endif // __VTK_WRAP__
 
   /// Populate terminology entry from terminology and anatomy selection
   /// \return Success flag (e.g. fail if no type is selected)
